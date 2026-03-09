@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BoatCare Admin Panel</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <!-- Leaflet Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- MarkerCluster Plugin -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="admin-container" id="app-container">
+        <!-- Mobile Overlay (Hintergrund-Abdunklung) -->
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="window.toggleSidebar()"></div>
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="logo">
+                <h2>⚓ BoatCare Admin</h2>
+                <button class="sidebar-close-btn" onclick="window.toggleSidebar()" aria-label="Menü schließen">✕</button>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-page="dashboard" onclick="window.navigateToPage('dashboard')">
+                    <span class="icon">📊</span>
+                    Dashboard
+                </button>
+                <button class="nav-item" data-page="new-providers" onclick="window.navigateToPage('new-providers')">
+                    <span class="icon">🆕</span>
+                    Neue Betriebe
+                    <span class="badge" id="new-providers-badge">0</span>
+                </button>
+                <button class="nav-item" data-page="suggestions" onclick="window.navigateToPage('suggestions')">
+                    <span class="icon">✏️</span>
+                    Änderungsanfragen
+                    <span class="badge" id="suggestions-badge">0</span>
+                </button>
+                <button class="nav-item" data-page="providers" onclick="window.navigateToPage('providers')">
+                    <span class="icon">🏢</span>
+                    ServiceProvider
+                </button>
+                <button class="nav-item" data-page="map" onclick="window.navigateToPage('map')">
+                    <span class="icon">🗺️</span>
+                    Karte
+                </button>
+                <button class="nav-item" data-page="reviews" onclick="window.navigateToPage('reviews')">
+                    <span class="icon">⭐</span>
+                    Bewertungen
+                </button>
+                <button class="nav-item" data-page="add-provider" onclick="window.navigateToPage('add-provider')">
+                    <span class="icon">➕</span>
+                    Provider hinzufügen
+                </button>
+                <button class="nav-item" data-page="search-automation" onclick="window.navigateToPage('search-automation')">
+                    <span class="icon">🔍</span>
+                    Betriebe suchen
+                </button>
+                <button class="nav-item" data-page="update-search" onclick="window.navigateToPage('update-search')">
+                    <span class="icon">🔄</span>
+                    Update-Suche
+                </button>
+                <button class="nav-item" data-page="shop-management" onclick="window.navigateToPage('shop-management')">
+                    <span class="icon">🛒</span>
+                    Shop-Verwaltung
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logout-btn" class="logout-btn" onclick="window.handleLogout()">
+                    <span class="icon">🚪</span>
+                    Abmelden
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Mobile Header mit Hamburger -->
+            <div class="mobile-header" id="mobile-header">
+                <button class="hamburger-btn" onclick="window.toggleSidebar()" aria-label="Menü öffnen">
+                    <span></span><span></span><span></span>
+                </button>
+                <span class="mobile-title">⚓ BoatCare Admin</span>
+            </div>
+            <!-- Dashboard Page -->
+            <div id="dashboard-page" class="page active">
+                <h1>Dashboard</h1>
+                <p class="subtitle">Willkommen im BoatCare Admin Panel</p>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🏢</div>
+                        <div class="stat-value" id="total-providers">0</div>
+                        <div class="stat-label">ServiceProvider</div>
+                    </div>
+                    <div class="stat-card" style="cursor:pointer" onclick="window.navigateToPage('new-providers')">
+                        <div class="stat-icon">🆕</div>
+                        <div class="stat-value" id="new-providers-count">0</div>
+                        <div class="stat-label">Neue Betriebe (ungeprüft)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-value" id="pending-suggestions">0</div>
+                        <div class="stat-label">Ausstehende Anfragen</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-value" id="approved-today">0</div>
+                        <div class="stat-label">Heute genehmigt</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔍</div>
+                        <div class="stat-value" id="total-searches">0</div>
+                        <div class="stat-label">Suchdurchläufe</div>
+                    </div>
+                </div>
+
+                <h2>Letzte Aktivitäten</h2>
+                <div id="recent-activity-list" class="activity-list">
+                    <p>Keine Aktivitäten</p>
+                </div>
+            </div>
+
+            <!-- Neue Betriebe Page -->
+            <div id="new-providers-page" class="page">
+                <h1>Neue Betriebe</h1>
+
+                <!-- Scraping-Ergebnisse (editierbare Tabelle) -->
+                <div id="scraping-results-section" style="display:none; margin-bottom:30px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <h2 style="margin:0;">Scraping-Ergebnisse</h2>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <span id="scraping-results-count" style="font-size:13px; color:#6b7280;"></span>
+                            <button onclick="window.selectAllScrapingResults()" class="btn-secondary" style="font-size:12px; padding:5px 10px;">Alle auswählen</button>
+                            <button onclick="window.deselectAllScrapingResults()" class="btn-secondary" style="font-size:12px; padding:5px 10px;">Keine</button>
+                            <button onclick="window.importSelectedScrapingResults()" class="btn-primary" style="font-size:12px; padding:5px 12px;">Ausgewählte importieren</button>
+                            <button onclick="window.clearScrapingResults()" class="btn-secondary" style="font-size:12px; padding:5px 10px; background:#fee2e2; color:#991b1b; border-color:#fca5a5;">Verwerfen</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table id="scraping-results-table" style="width:100%; border-collapse:collapse; font-size:13px;">
+                            <thead>
+                                <tr style="background:#f1f5f9; text-align:left;">
+                                    <th style="padding:8px 6px; width:30px;"><input type="checkbox" id="scraping-select-all" onchange="window.toggleAllScrapingCheckboxes(this.checked)"></th>
+                                    <th style="padding:8px 4px; width:40px;">Logo</th>
+                                    <th style="padding:8px 6px;">Name</th>
+                                    <th style="padding:8px 6px; width:130px;">Kategorie</th>
+                                    <th style="padding:8px 6px;">Adresse</th>
+                                    <th style="padding:8px 6px; width:100px;">Stadt</th>
+                                    <th style="padding:8px 6px; width:100px;">Telefon</th>
+                                    <th style="padding:8px 6px;">Website</th>
+                                    <th style="padding:8px 6px;">Services</th>
+                                    <th style="padding:8px 6px;">Marken</th>
+                                    <th style="padding:8px 6px; width:60px;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scraping-results-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Nutzer-Einreichungen -->
+                <h2>Nutzer-Einreichungen</h2>
+                <p class="subtitle">Von Nutzern eingereichte Betriebe, die noch nicht genehmigt sind</p>
+                <div id="new-providers-list">
+                    <p>Wird geladen...</p>
+                </div>
+            </div>
+
+            <!-- Suggestions Page -->
+            <div id="suggestions-page" class="page">
+                <h1>Änderungsanfragen</h1>
+                <div class="filters">
+                    <button class="filter-btn active" data-filter="pending" onclick="window.filterSuggestions('pending')">Ausstehend</button>
+                    <button class="filter-btn" data-filter="approved" onclick="window.filterSuggestions('approved')">Genehmigt</button>
+                    <button class="filter-btn" data-filter="rejected" onclick="window.filterSuggestions('rejected')">Abgelehnt</button>
+                    <button class="filter-btn" data-filter="all" onclick="window.filterSuggestions('all')">Alle</button>
+                </div>
+                <div id="suggestions-list"></div>
+            </div>
+
+            <!-- Providers Page -->
+            <div id="providers-page" class="page">
+                <h1>ServiceProvider</h1>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="filter-btn active" onclick="window.toggleProviderView('list')">📋 Liste</button>
+                    <button class="filter-btn" onclick="window.toggleProviderView('categories')">📊 Nach Kategorien</button>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="provider-search" placeholder="Suchen nach Name, Stadt oder Kategorie...">
+                    <button id="search-btn" class="btn-primary" onclick="window.searchProviders()">🔍 Suchen</button>
+                </div>
+                <div id="providers-list"></div>
+                <div id="providers-by-category" style="display: none;"></div>
+            </div>
+
+            <!-- Map Page -->
+            <div id="map-page" class="page">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h1 style="margin: 0;">Karte</h1>
+                    <span id="map-provider-count" style="font-size: 14px; color: #64748b;"></span>
+                </div>
+
+                <!-- Filter Bar -->
+                <div id="map-filters" style="margin-bottom: 12px;">
+                    <!-- Zeile 1: Suche + Radius -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="map-search-input" placeholder="Suchen: Name, Kategorie, Adresse, Marken, Services..."
+                               style="flex: 1; min-width: 250px; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;">
+                        <select id="map-radius-select" style="padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; min-width: 140px;">
+                            <option value="0">Kein Radius</option>
+                            <option value="5">5 km</option>
+                            <option value="10">10 km</option>
+                            <option value="25">25 km</option>
+                            <option value="50">50 km</option>
+                            <option value="100">100 km</option>
+                            <option value="200">200 km</option>
+                            <option value="500">500 km</option>
+                            <option value="1000">1000 km</option>
+                        </select>
+                    </div>
+                    <!-- Zeile 2: Kategorie-Pill-Buttons (generiert per JS) -->
+                    <div id="map-category-filters" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
+                </div>
+
+                <!-- Leaflet Map Container -->
+                <div id="map-container" style="height: calc(100vh - 240px); min-height: 400px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"></div>
+            </div>
+
+            <!-- Add Provider Page -->
+            <div id="add-provider-page" class="page">
+                <h1>Provider hinzufügen</h1>
+                <form id="add-provider-form" onsubmit="window.handleAddProvider(event)">
+                    <div class="form-group">
+                        <label>Name *</label>
+                        <input type="text" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Kategorie *</label>
+                        <select name="category" required id="category-select">
+                            <option value="">-- Bitte wählen --</option>
+                            <option value="Werkstatt">Werkstatt</option>
+                            <option value="Motorservice">Motorservice</option>
+                            <option value="Zubehör">Zubehör</option>
+                            <option value="Segelmacher">Segelmacher</option>
+                            <option value="Rigg">Rigg</option>
+                            <option value="Instrumente">Instrumente</option>
+                            <option value="Winterlager">Winterlager</option>
+                            <option value="Lackiererei">Lackiererei</option>
+                            <option value="Bootsbauer">Bootsbauer</option>
+                            <option value="Gutachter">Gutachter</option>
+                            <option value="Kran">Kran / Travel Lift</option>
+                            <option value="Heizung/Klima">Heizung / Klimatechnik</option>
+                            <option value="Sonstige">Sonstige</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Beschreibung</label>
+                        <textarea name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Straße</label>
+                        <input type="text" name="street" placeholder="z.B. Hauptstraße 123">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>PLZ</label>
+                            <input type="text" name="postal_code" placeholder="z.B. 20095">
+                        </div>
+                        <div class="form-group">
+                            <label>Stadt *</label>
+                            <input type="text" name="city" required placeholder="z.B. Hamburg">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Land *</label>
+                        <input type="text" name="country" value="Deutschland" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Latitude *</label>
+                            <input type="number" name="latitude" step="any" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Longitude *</label>
+                            <input type="number" name="longitude" step="any" required>
+                        </div>
+                        <button type="button" id="geocode-btn" class="btn-secondary" onclick="window.geocodeAddress()">📍 Geocode</button>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Telefon</label>
+                            <input type="tel" name="phone">
+                        </div>
+                        <div class="form-group">
+                            <label>E-Mail</label>
+                            <input type="email" name="email">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Website</label>
+                        <input type="url" name="website">
+                    </div>
+                    <div class="form-group">
+                        <label>Leistungen (kommagetrennt)</label>
+                        <input type="text" name="services" placeholder="z.B. Reparatur, Wartung, Installation">
+                    </div>
+                    <div class="form-group">
+                        <label>Marken (kommagetrennt)</label>
+                        <input type="text" name="brands" placeholder="z.B. Volvo, Yanmar, Mercruiser">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">➕ Provider hinzufügen</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Bewertungen (Review-Moderation) -->
+            <div id="reviews-page" class="page">
+                <h1>⭐ Bewertungen</h1>
+                <p class="subtitle">Alle Nutzerbewertungen – neueste zuerst. Hatespeech und unangemessene Inhalte können hier entfernt werden.</p>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                    <input type="text" id="review-search" placeholder="Suche nach Provider oder Kommentar..."
+                           oninput="window.filterReviews()"
+                           style="flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;">
+                    <select id="review-rating-filter" onchange="window.filterReviews()"
+                            style="padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;">
+                        <option value="all">Alle Sterne</option>
+                        <option value="1">⭐ 1 Stern</option>
+                        <option value="2">⭐⭐ 2 Sterne</option>
+                        <option value="3">⭐⭐⭐ 3 Sterne</option>
+                        <option value="4">⭐⭐⭐⭐ 4 Sterne</option>
+                        <option value="5">⭐⭐⭐⭐⭐ 5 Sterne</option>
+                    </select>
+                </div>
+                <div id="reviews-stats" style="margin-bottom: 16px; font-size: 14px; color: #64748b;"></div>
+                <div id="reviews-list"></div>
+            </div>
+
+            <!-- Provider-Suche (Google Places) -->
+            <div id="search-automation-page" class="page" onmouseenter="checkScraperStatus()">
+                <h1>🔍 Betriebe suchen <span id="scraper-status-badge"></span></h1>
+                <p class="subtitle">Maritime Servicebetriebe über Google Places finden und in die Datenbank importieren</p>
+
+                <div id="scraper-offline-hint" style="display:none; background:#fef2f2; border:1px solid #fca5a5; border-radius:8px; padding:12px 16px; margin-bottom:16px; color:#dc2626; font-size:14px;">
+                    ⚠️ <strong>Scraper-Server nicht erreichbar!</strong> Bitte Terminal starten:<br>
+                    <code style="background:#fee2e2; padding:4px 8px; border-radius:4px; display:inline-block; margin-top:6px;">cd scraper-backend && npm start</code>
+                </div>
+
+                <!-- Suchformular -->
+                <div style="padding: 20px; background: #f0f9ff; border-radius: 8px; border: 2px solid #0ea5e9; margin-bottom: 20px;">
+                    <h3 style="margin-top: 0;">📍 Ort(e) durchsuchen</h3>
+                    <p style="color:#6b7280; font-size:13px; margin-bottom:12px;">
+                        Ein Ort oder mehrere Orte (einer pro Zeile). Jeder Ort wird separat via Google Places durchsucht.
+                    </p>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 3;">
+                            <label>Ort / Region</label>
+                            <textarea id="search-locations" rows="3" placeholder="Cap d'Agde, France&#10;Gruissan, France&#10;Sète, France" style="font-family: monospace; font-size: 13px;"></textarea>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Radius (km)</label>
+                            <input type="number" id="search-radius" value="20" min="5" max="100">
+                            <label style="margin-top:12px;">Pause (Sek.)</label>
+                            <input type="number" id="search-pause" value="3" min="1" max="30">
+                        </div>
+                    </div>
+
+                    <!-- Erweiterte Suchoptionen: Klappbar -->
+                    <details id="search-advanced-options" style="margin-top:12px; border:1px solid #bae6fd; border-radius:6px; padding:0;">
+                        <summary style="padding:10px 14px; cursor:pointer; font-size:13px; font-weight:600; color:#0369a1; background:#f0f9ff; border-radius:6px; user-select:none;">
+                            ⚙️ Erweiterte Suchoptionen (Suchbegriffe & Ausschlüsse)
+                        </summary>
+                        <div style="padding:14px; display:flex; gap:16px; flex-wrap:wrap;">
+                            <div style="flex:1; min-width:250px;">
+                                <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">
+                                    ➕ Zusätzliche Suchbegriffe <span style="color:#9ca3af; font-weight:normal;">(einer pro Zeile)</span>
+                                </label>
+                                <textarea id="search-custom-keywords" rows="3" placeholder="z.B.&#10;boat polishing service&#10;marine upholstery&#10;yacht detailing" style="font-family:monospace; font-size:12px; width:100%; border:1px solid #d1d5db; border-radius:6px; padding:8px;"></textarea>
+                                <p style="font-size:11px; color:#9ca3af; margin:4px 0 0 0;">Diese Begriffe werden zusätzlich zu den Standard-Kategorien gesucht.</p>
+                            </div>
+                            <div style="flex:1; min-width:250px;">
+                                <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">
+                                    🚫 Zusätzliche Ausschlussbegriffe <span style="color:#9ca3af; font-weight:normal;">(einer pro Zeile)</span>
+                                </label>
+                                <textarea id="search-custom-exclusions" rows="3" placeholder="z.B.&#10;kayak rental&#10;paddle board&#10;surf school" style="font-family:monospace; font-size:12px; width:100%; border:1px solid #d1d5db; border-radius:6px; padding:8px;"></textarea>
+                                <p style="font-size:11px; color:#9ca3af; margin:4px 0 0 0;">Betriebe mit diesen Begriffen im Namen/Beschreibung werden ausgeschlossen.</p>
+                            </div>
+                        </div>
+                        <div style="padding:0 14px 12px;">
+                            <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:8px 12px; font-size:11px; color:#92400e;">
+                                <strong>Standardmäßig ausgeschlossen:</strong> Charter, Bootsfahrten, Tauchschulen, Segelschulen, Angelgeschäfte, Marinas, Jet-Ski, Parasailing, Whale Watching, Sightseeing, Hotels, Restaurants, Appartments
+                            </div>
+                        </div>
+                    </details>
+
+                    <div style="display:flex; gap:16px; margin-top:12px; flex-wrap:wrap;">
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px;">
+                            <input type="checkbox" id="search-auto-import" style="width:auto;">
+                            Direkt importieren (ohne Vorprüfung)
+                        </label>
+                        <span style="font-size:11px; color:#6b7280; align-self:center;">
+                            ℹ️ Ohne Haken: Ergebnisse erscheinen erst zur Kontrolle unter „Neue Betriebe"
+                        </span>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-top:16px;">
+                        <button onclick="window.startProviderSearch()" class="btn-primary" id="provider-search-btn">
+                            🔍 Suche starten
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Fortschritt -->
+                <div id="search-progress-section" style="display:none; margin-bottom:20px;">
+                    <div style="background:#1e293b; color:#e2e8f0; border-radius:8px; padding:15px; font-family:monospace; font-size:12px; max-height:200px; overflow-y:auto;" id="search-log"></div>
+                    <div style="margin-top:10px;">
+                        <div class="progress-bar"><div id="search-progress-fill" class="progress-fill" style="width:0%; background:#0ea5e9;"></div></div>
+                        <p id="search-progress-text" style="font-size:13px; color:#666; margin-top:5px;"></p>
+                    </div>
+                </div>
+
+                <!-- Ergebnis-Stats -->
+                <div id="search-stats-section" style="display:none; margin-bottom:16px;">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:10px;" id="search-stats-grid"></div>
+                </div>
+
+                <!-- Provider-Karten -->
+                <div id="search-results-section" style="display:none;">
+                    <h3 style="margin-bottom:12px;">Gefundene Betriebe</h3>
+                    <div id="search-results-list" style="max-height:700px; overflow-y:auto;"></div>
+                </div>
+            </div>
+
+            <!-- Update-Suche -->
+            <div id="update-search-page" class="page">
+                <h1>🔄 Daten aktualisieren</h1>
+                <p class="subtitle">Bestehende Betriebe mit fehlenden Services/Brands über Google Places ergänzen</p>
+
+                <div style="padding:20px; background:#f0fdf4; border-radius:8px; border:2px solid #10b981; margin-bottom:20px;">
+                    <h3 style="margin-top:0;">🔎 Anreicherungs-Filter</h3>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex:2;">
+                            <label>Was fehlt?</label>
+                            <select id="enrich-filter">
+                                <option value="missing_any">Services, Brands oder Logo fehlen</option>
+                                <option value="missing_services">Nur fehlende Services</option>
+                                <option value="missing_brands">Nur fehlende Brands</option>
+                                <option value="missing_logo">Nur fehlendes Logo</option>
+                                <option value="all">Alle neu durchsuchen (Überschreiben)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Max. Anzahl</label>
+                            <input type="number" id="enrich-limit" value="25" min="1" max="200">
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-top:15px;">
+                        <button onclick="window.startEnrichPreview()" class="btn-primary" id="enrich-preview-btn" style="background:#10b981;">
+                            🔍 Vorschau laden
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Progress -->
+                <div id="enrich-progress-section" style="display:none; margin-bottom:20px;">
+                    <div style="background:#1e293b; color:#e2e8f0; border-radius:8px; padding:15px; font-family:monospace; font-size:12px; max-height:200px; overflow-y:auto;" id="enrich-log"></div>
+                    <div style="margin-top:10px;">
+                        <div class="progress-bar"><div id="enrich-progress-fill" class="progress-fill" style="width:0%; background:#10b981;"></div></div>
+                        <p id="enrich-progress-text" style="font-size:13px; color:#666; margin-top:5px;"></p>
+                    </div>
+                </div>
+
+                <!-- Diff/Preview -->
+                <div id="enrich-results-section" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <h3 style="margin:0;">Ergebnisse</h3>
+                        <div style="display:flex; gap:6px;">
+                            <button onclick="window.selectAllEnrich()" class="btn-secondary" style="font-size:12px; padding:5px 10px;">Alle</button>
+                            <button onclick="window.deselectAllEnrich()" class="btn-secondary" style="font-size:12px; padding:5px 10px;">Keine</button>
+                            <button onclick="window.applySelectedEnrichments()" class="btn-primary" id="apply-enrich-btn" style="font-size:12px; padding:5px 12px; background:#10b981;">
+                                ✅ Ausgewählte übernehmen
+                            </button>
+                        </div>
+                    </div>
+                    <div id="enrich-results-list" style="max-height:600px; overflow-y:auto;"></div>
+                </div>
+            </div>
+
+            <!-- Shop-Verwaltung Page -->
+            <div id="shop-management-page" class="page">
+                <h1>🛒 Shop-Verwaltung</h1>
+                <p class="subtitle">Provisionen und Shop-Freischaltung pro Provider verwalten</p>
+
+                <div class="stats-grid" id="shop-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon">🛒</div>
+                        <div class="stat-value" id="shop-active-count">0</div>
+                        <div class="stat-label">Shops aktiv</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-value" id="shop-products-count">0</div>
+                        <div class="stat-label">Produkte gesamt</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📋</div>
+                        <div class="stat-value" id="shop-orders-count">0</div>
+                        <div class="stat-label">Bestellungen</div>
+                    </div>
+                </div>
+
+                <!-- Suchfeld -->
+                <div class="search-container" style="margin-bottom:16px;">
+                    <input type="text" id="shop-search" placeholder="Provider suchen..." oninput="window.filterShopProviders()" style="width:100%;padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;">
+                </div>
+
+                <!-- Provider-Tabelle -->
+                <div class="card" style="overflow-x:auto;">
+                    <table class="data-table" id="shop-providers-table" style="width:100%;border-collapse:collapse;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Provider</th>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Kategorie</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Shop aktiv</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Provision %</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Produkte</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Stripe</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shop-providers-body">
+                            <tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">Laden...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for Suggestion Details -->
+    <div id="suggestion-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="this.closest('.modal').classList.remove('active')">&times;</span>
+            <div id="suggestion-details"></div>
+        </div>
+    </div>
+
+    <!-- Modal for Provider Details -->
+    <div id="provider-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="this.closest('.modal').classList.remove('active')">&times;</span>
+            <div id="provider-details"></div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="robots-checker.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Stelle globale Funktionen bereit für onclick Handler
+        window.navigateToPage = navigateToPage;
+        window.handleLogout = async function() {
+            console.log('Logout clicked');
+            await supabaseClient.auth.signOut();
+            window.location.reload();
+        };
+        window.filterSuggestions = loadSuggestions;
+        window.searchProviders = searchProviders;
+        window.handleAddProvider = handleAddProvider;
+        window.geocodeAddress = geocodeAddress;
+        window.deleteProvider = deleteProvider;
+        window.editProvider = editProvider;
+        window.updateProvider = updateProvider;
+        window.approveSuggestion = approveSuggestion;
+        window.rejectSuggestion = rejectSuggestion;
+        window.toggleProviderView = toggleProviderView;
+        window.showProviderDetails = showProviderDetails;
+        window.updateBulkActionsBar = updateBulkActionsBar;
+        window.toggleCategorySelection = toggleCategorySelection;
+        window.selectAllProviders = selectAllProviders;
+        window.deselectAllProviders = deselectAllProviders;
+        window.bulkDeleteProviders = bulkDeleteProviders;
+        // Neue Funktionen
+        window.startProviderSearch = startProviderSearch;
+        window.fetchProviderEmail = fetchProviderEmail;
+        window.startEnrichPreview = startEnrichPreview;
+        window.selectAllEnrich = selectAllEnrich;
+        window.deselectAllEnrich = deselectAllEnrich;
+        window.applySelectedEnrichments = applySelectedEnrichments;
+        // Scraping-Ergebnisse Tabelle
+        window.selectAllScrapingResults = selectAllScrapingResults;
+        window.deselectAllScrapingResults = deselectAllScrapingResults;
+        window.importSelectedScrapingResults = importSelectedScrapingResults;
+        window.clearScrapingResults = clearScrapingResults;
+        window.toggleAllScrapingCheckboxes = toggleAllScrapingCheckboxes;
+        window.toggleScrapingRow = toggleScrapingRow;
+        window.updateScrapingField = updateScrapingField;
+        window.updateScrapingArrayField = updateScrapingArrayField;
+        // Bewertungen-Funktionen
+        window.loadReviews = loadReviews;
+        window.filterReviews = filterReviews;
+        window.adminDeleteReview = adminDeleteReview;
+        // Karten-Funktionen
+        window.loadMapPage = loadMapPage;
+        window.editProviderFromMap = editProviderFromMap;
+        window.deleteProviderFromMap = deleteProviderFromMap;
+
+        // Sidebar Toggle (Mobile)
+        window.toggleSidebar = function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('open');
+        };
+        // Sidebar schließen bei Navigation (Mobile)
+        const origNavigate = window.navigateToPage;
+        window.navigateToPage = function(page) {
+            origNavigate(page);
+            if (window.innerWidth <= 1024) {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('sidebar-overlay').classList.remove('open');
+            }
+        };
+    </script>
+</body>
+</html>
