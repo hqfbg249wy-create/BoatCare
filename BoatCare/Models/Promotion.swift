@@ -50,17 +50,48 @@ struct Promotion: Codable, Identifiable, Sendable {
 
     func appliesTo(product: Product) -> Bool {
         guard isActive ?? true else { return false }
+
+        // Check provider filter — promotion only applies to products from the same provider
+        if product.providerId != nil && providerId != product.providerId {
+            return false
+        }
+
         // Check category filter
         if let cats = filterCategories, !cats.isEmpty {
-            // Simple check — in production, compare category IDs
-        }
-        // Check boat type filter
-        if let types = filterBoatTypes, !types.isEmpty {
-            guard let productTypes = product.fitsBoatTypes,
-                  !Set(types).isDisjoint(with: Set(productTypes)) else {
+            if let categoryName = product.category?.displayName {
+                guard cats.contains(where: { $0.localizedCaseInsensitiveCompare(categoryName) == .orderedSame }) else {
+                    return false
+                }
+            } else if let categorySlug = product.category?.slug {
+                guard cats.contains(where: { $0.localizedCaseInsensitiveCompare(categorySlug) == .orderedSame }) else {
+                    return false
+                }
+            } else {
                 return false
             }
         }
+
+        // Check boat type filter
+        if let types = filterBoatTypes, !types.isEmpty {
+            guard let productTypes = product.fitsBoatTypes,
+                  !Set(types.map { $0.lowercased() }).isDisjoint(with: Set(productTypes.map { $0.lowercased() })) else {
+                return false
+            }
+        }
+
+        // Check manufacturer filter
+        if let mfgs = filterManufacturers, !mfgs.isEmpty {
+            guard let productMfgs = product.fitsManufacturers,
+                  !Set(mfgs.map { $0.lowercased() }).isDisjoint(with: Set(productMfgs.map { $0.lowercased() })) else {
+                return false
+            }
+        }
+
+        // Check minimum order value
+        if let minOrder = filterMinOrder, let price = product.price {
+            guard price >= minOrder else { return false }
+        }
+
         return true
     }
 

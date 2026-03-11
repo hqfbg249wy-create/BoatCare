@@ -2,7 +2,7 @@
 //  ProductDetailView.swift
 //  BoatCare
 //
-//  Product detail screen with images, info, and add-to-cart
+//  Product detail screen with images, info, promotions, and add-to-cart
 //
 
 import SwiftUI
@@ -10,10 +10,22 @@ import SwiftUI
 struct ProductDetailView: View {
     let product: Product
     @Environment(CartManager.self) private var cartManager
+    @Environment(AuthService.self) private var authService
 
     @State private var quantity = 1
     @State private var showAddedToast = false
     @State private var selectedImageIndex = 0
+    @State private var similarProducts: [Product] = []
+    @State private var providerProducts: [Product] = []
+    @State private var showChat = false
+    @State private var chatConversation: Conversation?
+
+    private let promotionService = PromotionService.shared
+    private let recommendationService = RecommendationService.shared
+
+    private var bestPromotion: Promotion? {
+        promotionService.bestPromotion(for: product)
+    }
 
     var body: some View {
         ScrollView {
@@ -67,17 +79,13 @@ struct ProductDetailView: View {
                         }
                     }
 
-                    // Price
-                    HStack(alignment: .bottom, spacing: 8) {
-                        Text(product.displayPrice)
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundStyle(AppColors.primary)
-
-                        Text(product.displayShipping)
-                            .font(.caption)
-                            .foregroundStyle(AppColors.gray500)
+                    // Promotion Banner
+                    if let promo = bestPromotion {
+                        promotionBanner(promo)
                     }
+
+                    // Price
+                    priceSection
 
                     Divider()
 
@@ -102,6 +110,18 @@ struct ProductDetailView: View {
 
                     // Quantity + Add to Cart
                     addToCartSection
+
+                    // Similar Products
+                    if !similarProducts.isEmpty {
+                        Divider()
+                        similarProductsSection
+                    }
+
+                    // More from Provider
+                    if !providerProducts.isEmpty {
+                        Divider()
+                        providerProductsSection
+                    }
                 }
                 .padding(.horizontal, 16)
             }
@@ -111,6 +131,95 @@ struct ProductDetailView: View {
             if showAddedToast {
                 toastView
                     .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .task {
+            await loadRelatedProducts()
+        }
+    }
+
+    // MARK: - Promotion Banner
+
+    private func promotionBanner(_ promo: Promotion) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "tag.fill")
+                .font(.title3)
+                .foregroundStyle(.white)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(promo.name)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                Text(promo.displayDiscount)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+
+            Spacer()
+
+            if let until = promo.validUntil {
+                Text("bis \(until)")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+        }
+        .padding(14)
+        .background(
+            LinearGradient(
+                colors: [AppColors.primary, AppColors.primaryDark],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK: - Price Section
+
+    private var priceSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let discountedPrice = promotionService.displayDiscountedPrice(for: product) {
+                // Original price strikethrough
+                Text(product.displayPrice)
+                    .font(.callout)
+                    .strikethrough()
+                    .foregroundStyle(AppColors.gray400)
+
+                HStack(alignment: .bottom, spacing: 8) {
+                    // Discounted price
+                    Text(discountedPrice)
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundStyle(AppColors.primary)
+
+                    // Savings badge
+                    if let promo = bestPromotion {
+                        Text("Spare \(promo.displayDiscount)")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(AppColors.success)
+                            .clipShape(Capsule())
+                    }
+                }
+
+                Text(product.displayShipping)
+                    .font(.caption)
+                    .foregroundStyle(AppColors.gray500)
+            } else {
+                HStack(alignment: .bottom, spacing: 8) {
+                    Text(product.displayPrice)
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundStyle(AppColors.primary)
+
+                    Text(product.displayShipping)
+                        .font(.caption)
+                        .foregroundStyle(AppColors.gray500)
+                }
             }
         }
     }
@@ -277,6 +386,94 @@ struct ProductDetailView: View {
         .padding(.bottom, 20)
     }
 
+    // MARK: - Similar Products
+
+    private var similarProductsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Ähnliche Produkte")
+                .font(.headline)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(similarProducts) { similar in
+                        NavigationLink(value: similar) {
+                            relatedProductCard(similar)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .navigationDestination(for: Product.self) { prod in
+            ProductDetailView(product: prod)
+        }
+    }
+
+    private var providerProductsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Mehr von \(product.provider?.companyName ?? "diesem Anbieter")")
+                    .font(.headline)
+                Spacer()
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(providerProducts) { provProd in
+                        NavigationLink(value: provProd) {
+                            relatedProductCard(provProd)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    private func relatedProductCard(_ prod: Product) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(AppColors.gray100)
+
+                if let url = prod.firstImageURL {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().aspectRatio(contentMode: .fill)
+                        default:
+                            Image(systemName: "shippingbox")
+                                .font(.system(size: 20))
+                                .foregroundStyle(AppColors.gray300)
+                        }
+                    }
+                } else {
+                    Image(systemName: "shippingbox")
+                        .font(.system(size: 20))
+                        .foregroundStyle(AppColors.gray300)
+                }
+            }
+            .frame(width: 120, height: 90)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            Text(prod.name)
+                .font(.caption)
+                .fontWeight(.medium)
+                .lineLimit(2)
+                .foregroundStyle(AppColors.gray900)
+
+            Text(prod.displayPrice)
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundStyle(AppColors.primary)
+        }
+        .frame(width: 120)
+        .padding(8)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
+    }
+
     // MARK: - Toast
 
     private var toastView: some View {
@@ -293,5 +490,21 @@ struct ProductDetailView: View {
         .clipShape(Capsule())
         .shadow(radius: 8)
         .padding(.top, 8)
+    }
+
+    // MARK: - Data Loading
+
+    private func loadRelatedProducts() async {
+        do {
+            similarProducts = try await recommendationService.fetchSimilarProducts(to: product)
+        } catch {
+            print("Failed to load similar products: \(error)")
+        }
+
+        do {
+            providerProducts = try await recommendationService.fetchProviderProducts(for: product)
+        } catch {
+            print("Failed to load provider products: \(error)")
+        }
     }
 }

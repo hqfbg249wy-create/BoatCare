@@ -2,12 +2,14 @@
 //  ShopView.swift
 //  BoatCare
 //
-//  Main shop screen with category navigation, search, and product grid
+//  Main shop screen with category navigation, search, recommendations, and product grid
 //
 
 import SwiftUI
 
 struct ShopView: View {
+    @Environment(AuthService.self) private var authService
+
     @State private var searchText = ""
     @State private var categories: [ProductCategory] = []
     @State private var subcategories: [ProductCategory] = []
@@ -18,6 +20,9 @@ struct ShopView: View {
     @State private var errorMessage: String?
 
     private let productService = ProductService.shared
+    private let recommendationService = RecommendationService.shared
+    private let promotionService = PromotionService.shared
+
     private let columns = [
         GridItem(.flexible(), spacing: 12),
         GridItem(.flexible(), spacing: 12)
@@ -31,12 +36,34 @@ struct ShopView: View {
 
                 ScrollView {
                     LazyVStack(spacing: 16) {
+                        // Active promotions banner
+                        if !promotionService.activePromotions.isEmpty && searchText.isEmpty && selectedCategory == nil {
+                            promotionsBanner
+                        }
+
+                        // Recommendations section (only on main page)
+                        if !recommendationService.recommendedProducts.isEmpty && searchText.isEmpty && selectedCategory == nil {
+                            recommendationsSection
+                        }
+
                         // Category chips
                         categoryChips
 
                         // Subcategory chips (if category selected)
                         if !subcategories.isEmpty {
                             subcategoryChips
+                        }
+
+                        // Section title
+                        if selectedCategory != nil || !searchText.isEmpty {
+                            HStack {
+                                Text(sectionTitle)
+                                    .font(.headline)
+                                Spacer()
+                                Text("\(products.count) Produkte")
+                                    .font(.caption)
+                                    .foregroundStyle(AppColors.gray400)
+                            }
                         }
 
                         // Products grid
@@ -58,8 +85,165 @@ struct ShopView: View {
             .task {
                 await loadCategories()
                 await loadProducts()
+                await promotionService.loadActivePromotions()
+                await recommendationService.loadRecommendations(for: authService.userProfile)
             }
         }
+    }
+
+    private var sectionTitle: String {
+        if !searchText.isEmpty {
+            return "Suchergebnisse"
+        } else if let sub = selectedSubcategory {
+            return sub.displayName
+        } else if let cat = selectedCategory {
+            return cat.displayName
+        }
+        return "Alle Produkte"
+    }
+
+    // MARK: - Promotions Banner
+
+    private var promotionsBanner: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(promotionService.activePromotions.prefix(3)) { promo in
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "tag.fill")
+                                .font(.caption)
+                                .foregroundStyle(.white)
+                            Text(promo.displayDiscount)
+                                .font(.subheadline)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.white)
+                        }
+
+                        Text(promo.name)
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.9))
+                            .lineLimit(1)
+
+                        if let until = promo.validUntil {
+                            Text("Gültig bis \(until)")
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+                    }
+                    .padding(14)
+                    .frame(width: 200)
+                    .background(
+                        LinearGradient(
+                            colors: [AppColors.primary, AppColors.primaryDark],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+            }
+        }
+    }
+
+    // MARK: - Recommendations Section
+
+    private var recommendationsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "sparkles")
+                    .foregroundStyle(AppColors.primary)
+                Text("Empfohlen für Dich")
+                    .font(.headline)
+                Spacer()
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(recommendationService.recommendedProducts) { product in
+                        NavigationLink(value: product) {
+                            recommendationCard(product)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .navigationDestination(for: Product.self) { product in
+            ProductDetailView(product: product)
+        }
+    }
+
+    private func recommendationCard(_ product: Product) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // Image
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(AppColors.gray100)
+
+                if let url = product.firstImageURL {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        default:
+                            Image(systemName: "shippingbox")
+                                .font(.system(size: 24))
+                                .foregroundStyle(AppColors.gray300)
+                        }
+                    }
+                } else {
+                    Image(systemName: "shippingbox")
+                        .font(.system(size: 24))
+                        .foregroundStyle(AppColors.gray300)
+                }
+            }
+            .frame(width: 140, height: 100)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            // Discount badge
+            if let badge = promotionService.promotionBadgeText(for: product) {
+                Text(badge)
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(AppColors.error)
+                    .clipShape(Capsule())
+            }
+
+            Text(product.name)
+                .font(.caption)
+                .fontWeight(.medium)
+                .lineLimit(2)
+                .foregroundStyle(AppColors.gray900)
+
+            // Price with discount
+            if let discountedPrice = promotionService.displayDiscountedPrice(for: product) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(product.displayPrice)
+                        .font(.caption2)
+                        .strikethrough()
+                        .foregroundStyle(AppColors.gray400)
+                    Text(discountedPrice)
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(AppColors.primary)
+                }
+            } else {
+                Text(product.displayPrice)
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundStyle(AppColors.primary)
+            }
+        }
+        .frame(width: 140)
+        .padding(10)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .shadow(color: .black.opacity(0.05), radius: 4, y: 1)
     }
 
     // MARK: - Search Bar
@@ -171,7 +355,11 @@ struct ShopView: View {
         LazyVGrid(columns: columns, spacing: 12) {
             ForEach(products) { product in
                 NavigationLink(value: product) {
-                    ProductCardView(product: product)
+                    ProductCardView(
+                        product: product,
+                        promotionBadge: promotionService.promotionBadgeText(for: product),
+                        discountedPrice: promotionService.displayDiscountedPrice(for: product)
+                    )
                 }
                 .buttonStyle(.plain)
             }

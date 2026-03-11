@@ -9,33 +9,50 @@ import SwiftUI
 
 struct ProductCardView: View {
     let product: Product
+    var promotionBadge: String? = nil
+    var discountedPrice: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Product Image
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(AppColors.gray100)
+            // Product Image with discount badge overlay
+            ZStack(alignment: .topTrailing) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(AppColors.gray100)
 
-                if let url = product.firstImageURL {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        case .failure:
-                            productPlaceholder
-                        default:
-                            ProgressView()
+                    if let url = product.firstImageURL {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            case .failure:
+                                productPlaceholder
+                            default:
+                                ProgressView()
+                            }
                         }
+                    } else {
+                        productPlaceholder
                     }
-                } else {
-                    productPlaceholder
+                }
+                .frame(height: 140)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                // Discount badge
+                if let badge = promotionBadge {
+                    Text(badge)
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(AppColors.error)
+                        .clipShape(Capsule())
+                        .padding(6)
                 }
             }
-            .frame(height: 140)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
 
             // Stock badge
             if !product.isAvailable {
@@ -65,11 +82,24 @@ struct ProductCardView: View {
 
             Spacer(minLength: 0)
 
-            // Price
+            // Price (with optional discount display)
             VStack(alignment: .leading, spacing: 2) {
-                Text(product.displayPrice)
-                    .font(.headline)
-                    .foregroundStyle(AppColors.primary)
+                if let discountedPrice {
+                    // Original price with strikethrough
+                    Text(product.displayPrice)
+                        .font(.caption)
+                        .strikethrough()
+                        .foregroundStyle(AppColors.gray400)
+
+                    // Discounted price
+                    Text(discountedPrice)
+                        .font(.headline)
+                        .foregroundStyle(AppColors.primary)
+                } else {
+                    Text(product.displayPrice)
+                        .font(.headline)
+                        .foregroundStyle(AppColors.primary)
+                }
 
                 if let shipping = product.shippingCost, shipping == 0 {
                     Text("Kostenloser Versand")
@@ -92,36 +122,40 @@ struct ProductCardView: View {
 }
 
 #Preview {
-    ProductCardView(product: Product(
-        id: UUID(),
-        providerId: nil,
-        categoryId: nil,
-        name: "Impeller Jabsco 1210-0001",
-        description: "Original Jabsco Impeller",
-        manufacturer: "Jabsco",
-        partNumber: "1210-0001",
-        price: 24.90,
-        currency: "EUR",
-        shippingCost: 0,
-        deliveryDays: 3,
-        inStock: true,
-        sku: nil,
-        ean: nil,
-        weightKg: nil,
-        stockQuantity: 45,
-        minOrderQuantity: 1,
-        isActive: true,
-        fitsBoatTypes: nil,
-        fitsManufacturers: nil,
-        compatibleEquipment: nil,
-        tags: nil,
-        images: nil,
-        source: nil,
-        createdAt: nil,
-        updatedAt: nil,
-        category: nil,
-        provider: nil
-    ))
+    ProductCardView(
+        product: Product(
+            id: UUID(),
+            providerId: nil,
+            categoryId: nil,
+            name: "Impeller Jabsco 1210-0001",
+            description: "Original Jabsco Impeller",
+            manufacturer: "Jabsco",
+            partNumber: "1210-0001",
+            price: 24.90,
+            currency: "EUR",
+            shippingCost: 0,
+            deliveryDays: 3,
+            inStock: true,
+            sku: nil,
+            ean: nil,
+            weightKg: nil,
+            stockQuantity: 45,
+            minOrderQuantity: 1,
+            isActive: true,
+            fitsBoatTypes: nil,
+            fitsManufacturers: nil,
+            compatibleEquipment: nil,
+            tags: nil,
+            images: nil,
+            source: nil,
+            createdAt: nil,
+            updatedAt: nil,
+            category: nil,
+            provider: nil
+        ),
+        promotionBadge: "10% Rabatt",
+        discountedPrice: "22,41 EUR"
+    )
     .frame(width: 180)
     .padding()
 }

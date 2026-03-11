@@ -76,6 +76,10 @@
                     <span class="icon">📦</span>
                     Bestellungen
                 </button>
+                <button class="nav-item" data-page="admin-promotions" onclick="window.navigateToPage('admin-promotions')">
+                    <span class="icon">🏷️</span>
+                    Promotions
+                </button>
             </nav>
             <div class="sidebar-footer">
                 <button id="logout-btn" class="logout-btn" onclick="window.handleLogout()">
@@ -693,6 +697,77 @@
                             </tr>
                         </thead>
                         <tbody id="admin-orders-body">
+                            <tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">Laden...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Admin Promotions Page -->
+            <div id="admin-promotions-page" class="page">
+                <h1>🏷️ Promotions & Rabatte</h1>
+                <p class="subtitle">Übersicht aller Provider-Angebote und deren Performance</p>
+
+                <!-- Stats -->
+                <div class="stats-grid" id="admin-promos-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon">🏷️</div>
+                        <div>
+                            <div class="stat-value" id="admin-promos-total">0</div>
+                            <div class="stat-label">Gesamt</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#dcfce7;">✅</div>
+                        <div>
+                            <div class="stat-value" id="admin-promos-active">0</div>
+                            <div class="stat-label">Aktiv</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#fef3c7;">📊</div>
+                        <div>
+                            <div class="stat-value" id="admin-promos-usage">0</div>
+                            <div class="stat-label">Einlösungen gesamt</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#dbeafe;">💰</div>
+                        <div>
+                            <div class="stat-value" id="admin-promos-discount-total">0,00 €</div>
+                            <div class="stat-label">Rabatte gewährt</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter -->
+                <div class="filter-bar" id="admin-promos-filter-bar">
+                    <button class="filter-btn active" onclick="window.filterAdminPromos('all')">Alle</button>
+                    <button class="filter-btn" onclick="window.filterAdminPromos('active')">Aktiv</button>
+                    <button class="filter-btn" onclick="window.filterAdminPromos('inactive')">Inaktiv</button>
+                    <button class="filter-btn" onclick="window.filterAdminPromos('expired')">Abgelaufen</button>
+                </div>
+
+                <!-- Search -->
+                <div class="search-container" style="margin-bottom:16px;">
+                    <input type="text" id="admin-promos-search" placeholder="Promotion oder Provider suchen..." oninput="window.searchAdminPromos()" style="width:100%;padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;">
+                </div>
+
+                <!-- Promotions Table -->
+                <div class="card" style="overflow-x:auto;">
+                    <table class="data-table" style="width:100%;border-collapse:collapse;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Angebot</th>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Provider</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Rabatt</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Einlösungen</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Gültigkeit</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Status</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Filter</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-promos-body">
                             <tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">Laden...</td></tr>
                         </tbody>
                     </table>

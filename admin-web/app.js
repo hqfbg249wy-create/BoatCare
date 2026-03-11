@@ -272,6 +272,9 @@ function navigateToPage(pageName) {
         case 'admin-orders':
             loadAdminOrders();
             break;
+        case 'admin-promotions':
+            loadAdminPromotions();
+            break;
     }
 }
 
@@ -5757,3 +5760,139 @@ function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+// ============================================
+// ADMIN PROMOTIONS
+// ============================================
+
+let allAdminPromos = [];
+let adminPromosFilter = 'all';
+
+async function loadAdminPromotions() {
+    console.log('🏷️ Loading admin promotions...');
+
+    const { data: promos, error } = await supabaseClient
+        .from('provider_promotions')
+        .select('*, service_providers(id, company_name)')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Failed to load promotions:', error);
+        return;
+    }
+
+    allAdminPromos = promos || [];
+
+    // Stats
+    const total = allAdminPromos.length;
+    const active = allAdminPromos.filter(p => p.is_active).length;
+    const totalUsage = allAdminPromos.reduce((sum, p) => sum + (p.current_uses || 0), 0);
+
+    document.getElementById('admin-promos-total').textContent = total;
+    document.getElementById('admin-promos-active').textContent = active;
+    document.getElementById('admin-promos-usage').textContent = totalUsage;
+
+    // Calculate total discount from orders
+    const { data: orders } = await supabaseClient
+        .from('orders')
+        .select('discount_amount')
+        .gt('discount_amount', 0);
+
+    const totalDiscounts = (orders || []).reduce((sum, o) => sum + (o.discount_amount || 0), 0);
+    document.getElementById('admin-promos-discount-total').textContent =
+        totalDiscounts.toFixed(2).replace('.', ',') + ' €';
+
+    renderAdminPromotions(allAdminPromos);
+}
+
+function renderAdminPromotions(promos) {
+    const tbody = document.getElementById('admin-promos-body');
+    if (!promos || promos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">Keine Promotions gefunden</td></tr>';
+        return;
+    }
+
+    const now = new Date().toISOString().split('T')[0];
+
+    tbody.innerHTML = promos.map(p => {
+        const provider = p.service_providers?.company_name || '—';
+        const discount = p.discount_type === 'percent'
+            ? `${p.discount_value}%`
+            : `${Number(p.discount_value).toFixed(2)} €`;
+
+        const usage = `${p.current_uses || 0}${p.max_uses ? '/' + p.max_uses : ''}`;
+
+        let validity = '';
+        if (p.valid_from) validity += `Ab: ${p.valid_from}`;
+        if (p.valid_from && p.valid_until) validity += '<br>';
+        if (p.valid_until) validity += `Bis: ${p.valid_until}`;
+        if (!validity) validity = 'Unbegrenzt';
+
+        let statusLabel = 'Aktiv';
+        let statusClass = 'badge-confirmed';
+        if (!p.is_active) { statusLabel = 'Inaktiv'; statusClass = 'badge-pending'; }
+        else if (p.valid_from && now < p.valid_from) { statusLabel = 'Geplant'; statusClass = 'badge-pending'; }
+        else if (p.valid_until && now > p.valid_until) { statusLabel = 'Abgelaufen'; statusClass = 'badge-cancelled'; }
+        else if (p.max_uses && (p.current_uses || 0) >= p.max_uses) { statusLabel = 'Aufgebraucht'; statusClass = 'badge-cancelled'; }
+
+        // Filters
+        const filters = [];
+        if (p.filter_categories?.length) filters.push(...p.filter_categories.map(c => `📦 ${escapeHtml(c)}`));
+        if (p.filter_boat_types?.length) filters.push(...p.filter_boat_types.map(t => `⛵ ${escapeHtml(t)}`));
+        if (p.filter_manufacturers?.length) filters.push(...p.filter_manufacturers.map(m => `🔧 ${escapeHtml(m)}`));
+        if (p.filter_min_order) filters.push(`💰 Min. ${p.filter_min_order} €`);
+        const filterHtml = filters.length
+            ? filters.map(f => `<span style="display:inline-block;padding:2px 8px;margin:2px;background:#f1f5f9;border-radius:10px;font-size:0.75rem;">${f}</span>`).join('')
+            : '<span style="color:#94a3b8;font-size:0.8rem;">Keine</span>';
+
+        return `<tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:10px;">
+                <strong>${escapeHtml(p.name)}</strong>
+                ${p.description ? `<br><span style="font-size:0.8rem;color:#64748b;">${escapeHtml(p.description)}</span>` : ''}
+            </td>
+            <td style="padding:10px;">${escapeHtml(provider)}</td>
+            <td style="padding:10px;text-align:center;">
+                <span style="font-weight:700;color:var(--primary);font-size:1.1rem;">${discount}</span>
+            </td>
+            <td style="padding:10px;text-align:center;">${usage}</td>
+            <td style="padding:10px;text-align:center;font-size:0.8rem;">${validity}</td>
+            <td style="padding:10px;text-align:center;"><span class="badge ${statusClass}">${statusLabel}</span></td>
+            <td style="padding:10px;text-align:center;">${filterHtml}</td>
+        </tr>`;
+    }).join('');
+}
+
+window.filterAdminPromos = function(filter) {
+    adminPromosFilter = filter;
+    const now = new Date().toISOString().split('T')[0];
+
+    // Update active button
+    document.querySelectorAll('#admin-promos-filter-bar .filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.trim().toLowerCase().includes(
+            filter === 'all' ? 'alle' : filter === 'active' ? 'aktiv' : filter === 'inactive' ? 'inaktiv' : 'abgelaufen'
+        ));
+    });
+
+    let filtered = [...allAdminPromos];
+    if (filter === 'active') {
+        filtered = filtered.filter(p => p.is_active && (!p.valid_until || now <= p.valid_until));
+    } else if (filter === 'inactive') {
+        filtered = filtered.filter(p => !p.is_active);
+    } else if (filter === 'expired') {
+        filtered = filtered.filter(p => p.valid_until && now > p.valid_until);
+    }
+
+    const search = document.getElementById('admin-promos-search')?.value?.toLowerCase() || '';
+    if (search) {
+        filtered = filtered.filter(p =>
+            (p.name || '').toLowerCase().includes(search) ||
+            (p.service_providers?.company_name || '').toLowerCase().includes(search)
+        );
+    }
+
+    renderAdminPromotions(filtered);
+};
+
+window.searchAdminPromos = function() {
+    window.filterAdminPromos(adminPromosFilter);
+};
