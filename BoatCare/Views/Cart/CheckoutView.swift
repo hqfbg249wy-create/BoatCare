@@ -2,10 +2,11 @@
 //  CheckoutView.swift
 //  BoatCare
 //
-//  Checkout flow: shipping address, order review, place order
+//  Checkout flow: shipping address → review & pay (Stripe) → confirmation
 //
 
 import SwiftUI
+import StripePaymentSheet
 
 struct CheckoutView: View {
     @Environment(AuthService.self) private var authService
@@ -15,20 +16,22 @@ struct CheckoutView: View {
     @State private var shippingAddress = ShippingAddress()
     @State private var buyerNote = ""
     @State private var isPlacingOrder = false
-    @State private var orderPlaced = false
     @State private var placedOrders: [Order] = []
     @State private var errorMessage: String?
-    @State private var currentStep = 0 // 0: address, 1: review, 2: confirmation
+    @State private var currentStep = 0 // 0: address, 1: review+pay, 2: confirmation
+
+    // Stripe
+    @State private var paymentSheet: PaymentSheet?
+    @State private var isPreparingPayment = false
 
     var body: some View {
         VStack(spacing: 0) {
-            // Step indicator
             stepIndicator
 
             if currentStep == 0 {
                 addressStep
             } else if currentStep == 1 {
-                reviewStep
+                reviewAndPayStep
             } else {
                 confirmationStep
             }
@@ -36,9 +39,7 @@ struct CheckoutView: View {
         .navigationTitle("Checkout")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(currentStep == 2)
-        .onAppear {
-            loadSavedAddress()
-        }
+        .onAppear { loadSavedAddress() }
     }
 
     // MARK: - Step Indicator
@@ -47,7 +48,7 @@ struct CheckoutView: View {
         HStack(spacing: 0) {
             stepDot(index: 0, label: "Adresse")
             stepLine(completed: currentStep > 0)
-            stepDot(index: 1, label: "Prüfen")
+            stepDot(index: 1, label: "Bezahlen")
             stepLine(completed: currentStep > 1)
             stepDot(index: 2, label: "Bestätigung")
         }
@@ -135,7 +136,6 @@ struct CheckoutView: View {
                     }
                 }
 
-                // Buyer note
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Anmerkung (optional)")
                         .font(.subheadline)
@@ -162,9 +162,9 @@ struct CheckoutView: View {
         }
     }
 
-    // MARK: - Step 2: Review
+    // MARK: - Step 2: Review + Pay
 
-    private var reviewStep: some View {
+    private var reviewAndPayStep: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
@@ -172,11 +172,16 @@ struct CheckoutView: View {
                         .font(.title3)
                         .fontWeight(.bold)
 
-                    // Shipping address summary
+                    // Address summary
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Lieferadresse")
-                                .font(.headline)
+                            HStack(spacing: 6) {
+                                Image(systemName: "location.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(AppColors.primary)
+                                Text("Lieferadresse")
+                                    .font(.headline)
+                            }
                             Spacer()
                             Button("Ändern") {
                                 withAnimation { currentStep = 0 }
@@ -187,7 +192,6 @@ struct CheckoutView: View {
                         Text(shippingAddress.name)
                         Text(shippingAddress.street)
                         Text("\(shippingAddress.postalCode) \(shippingAddress.city)")
-                        Text(shippingAddress.country)
                     }
                     .font(.subheadline)
                     .foregroundStyle(AppColors.gray700)
@@ -197,7 +201,7 @@ struct CheckoutView: View {
 
                     // Order groups
                     ForEach(cartManager.groupedByProvider) { group in
-                        orderGroupReview(group)
+                        orderGroupCard(group)
                     }
 
                     // Grand total
@@ -211,41 +215,71 @@ struct CheckoutView: View {
                             .fontWeight(.bold)
                             .foregroundStyle(AppColors.primary)
                     }
-                    .padding(.top, 8)
 
                     if let error = errorMessage {
-                        Text(error)
-                            .font(.callout)
-                            .foregroundStyle(AppColors.error)
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(AppColors.error)
+                            Text(error)
+                                .font(.callout)
+                        }
+                        .foregroundStyle(AppColors.error)
+                        .padding(12)
+                        .background(AppColors.error.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
 
-                    // Payment info
-                    HStack(spacing: 8) {
-                        Image(systemName: "info.circle")
-                            .foregroundStyle(AppColors.info)
-                        Text("Zahlung wird in der Testphase simuliert. Keine echten Kosten.")
-                            .font(.caption)
-                            .foregroundStyle(AppColors.gray500)
+                    // Payment methods
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "creditcard.fill")
+                                .foregroundStyle(AppColors.info)
+                            Text("Zahlungsmethoden")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                        }
+
+                        HStack(spacing: 12) {
+                            payBadge("Kreditkarte", icon: "creditcard")
+                            payBadge("SEPA", icon: "building.columns")
+                            payBadge("Apple Pay", icon: "apple.logo")
+                        }
+
+                        HStack(spacing: 6) {
+                            Image(systemName: "testtube.2")
+                                .font(.caption2)
+                                .foregroundStyle(AppColors.warning)
+                            Text("Testmodus – Keine echten Kosten. Testkarte: 4242 4242 4242 4242")
+                                .font(.caption2)
+                                .foregroundStyle(AppColors.gray400)
+                        }
+                        .padding(10)
+                        .background(AppColors.warning.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
-                    .padding(12)
-                    .background(AppColors.info.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .padding(16)
+                    .background(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
                 }
                 .padding(16)
             }
 
-            // Place order button
+            // Pay button
             VStack(spacing: 8) {
                 Divider()
                 Button {
-                    Task { await placeOrder() }
+                    Task { await placeOrderAndPay() }
                 } label: {
                     HStack(spacing: 8) {
-                        if isPlacingOrder {
+                        if isPlacingOrder || isPreparingPayment {
                             ProgressView().tint(.white)
+                            Text(isPreparingPayment ? "Zahlung vorbereiten..." : "Bestellung erstellen...")
+                                .fontWeight(.semibold)
                         } else {
-                            Image(systemName: "checkmark.seal")
-                            Text("Kostenpflichtig bestellen")
+                            Image(systemName: "lock.fill")
+                                .font(.caption)
+                            Text("Jetzt bezahlen – \(cartManager.displayGrandTotal)")
                                 .fontWeight(.semibold)
                         }
                     }
@@ -255,18 +289,31 @@ struct CheckoutView: View {
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .disabled(isPlacingOrder)
+                .disabled(isPlacingOrder || isPreparingPayment)
                 .padding(.horizontal, 16)
+
+                HStack(spacing: 4) {
+                    Image(systemName: "lock.shield.fill")
+                        .font(.caption2)
+                    Text("Sichere Zahlung über Stripe")
+                        .font(.caption2)
+                }
+                .foregroundStyle(AppColors.gray400)
                 .padding(.bottom, 8)
             }
             .background(.white)
         }
     }
 
-    private func orderGroupReview(_ group: CartGroup) -> some View {
+    private func orderGroupCard(_ group: CartGroup) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(group.providerName)
-                .font(.headline)
+            HStack(spacing: 6) {
+                Image(systemName: "building.2")
+                    .font(.caption)
+                    .foregroundStyle(AppColors.primary)
+                Text(group.providerName)
+                    .font(.headline)
+            }
 
             ForEach(group.items) { item in
                 HStack {
@@ -304,25 +351,53 @@ struct CheckoutView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
+    private func payBadge(_ label: String, icon: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.caption2)
+            Text(label)
+                .font(.caption)
+                .fontWeight(.medium)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(AppColors.gray100)
+        .foregroundStyle(AppColors.gray700)
+        .clipShape(Capsule())
+    }
+
     // MARK: - Step 3: Confirmation
 
     private var confirmationStep: some View {
         VStack(spacing: 24) {
             Spacer()
 
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 72))
-                .foregroundStyle(AppColors.success)
+            ZStack {
+                Circle()
+                    .fill(AppColors.success.opacity(0.1))
+                    .frame(width: 120, height: 120)
+                Circle()
+                    .fill(AppColors.success.opacity(0.2))
+                    .frame(width: 90, height: 90)
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 52))
+                    .foregroundStyle(AppColors.success)
+            }
 
-            Text("Bestellung aufgegeben!")
+            Text("Zahlung erfolgreich!")
                 .font(.title2)
                 .fontWeight(.bold)
 
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 ForEach(placedOrders) { order in
-                    Text("Bestellung \(order.orderNumber ?? order.id.uuidString.prefix(8).description)")
-                        .font(.subheadline)
-                        .foregroundStyle(AppColors.gray500)
+                    HStack(spacing: 6) {
+                        Image(systemName: "number")
+                            .font(.caption)
+                            .foregroundStyle(AppColors.primary)
+                        Text(order.orderNumber ?? order.id.uuidString.prefix(8).description)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    }
                 }
             }
 
@@ -330,6 +405,23 @@ struct CheckoutView: View {
                 .font(.callout)
                 .foregroundStyle(AppColors.gray500)
                 .multilineTextAlignment(.center)
+
+            // Total recap
+            HStack {
+                Text("Bezahlt")
+                    .font(.subheadline)
+                    .foregroundStyle(AppColors.gray500)
+                Spacer()
+                let totalPaid = placedOrders.reduce(0.0) { $0 + $1.total }
+                Text(String(format: "%.2f €", totalPaid).replacingOccurrences(of: ".", with: ","))
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundStyle(AppColors.success)
+            }
+            .padding(16)
+            .background(AppColors.success.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, 24)
 
             Spacer()
 
@@ -361,16 +453,17 @@ struct CheckoutView: View {
         }
     }
 
-    private func placeOrder() async {
+    private func placeOrderAndPay() async {
         guard let buyerId = authService.currentUser?.id else {
             errorMessage = "Bitte melde Dich an"
             return
         }
 
-        isPlacingOrder = true
         errorMessage = nil
+        isPlacingOrder = true
 
         do {
+            // 1. Create orders in DB
             placedOrders = try await OrderService.shared.createOrders(
                 from: cartManager.groupedByProvider,
                 buyerId: buyerId,
@@ -378,21 +471,78 @@ struct CheckoutView: View {
                 buyerNote: buyerNote.isEmpty ? nil : buyerNote
             )
 
-            // Save shipping address to profile
-            if var profile = authService.userProfile {
-                profile.shippingStreet = shippingAddress.street
-                profile.shippingCity = shippingAddress.city
-                profile.shippingPostalCode = shippingAddress.postalCode
-                profile.shippingCountry = shippingAddress.country
-                try? await authService.updateProfile(profile)
-            }
+            isPlacingOrder = false
+            isPreparingPayment = true
 
-            cartManager.clearCart()
-            withAnimation { currentStep = 2 }
+            // 2. Create Stripe PaymentIntent
+            let totalAmount = placedOrders.reduce(0.0) { $0 + $1.total }
+            let sheet = try await PaymentService.shared.createPaymentSheet(
+                for: placedOrders,
+                totalAmount: totalAmount
+            )
+
+            isPreparingPayment = false
+            paymentSheet = sheet
+
+            // 3. Present Payment Sheet
+            presentPaymentSheet()
+
         } catch {
-            errorMessage = "Bestellung fehlgeschlagen: \(error.localizedDescription)"
+            isPlacingOrder = false
+            isPreparingPayment = false
+            errorMessage = "Fehler: \(error.localizedDescription)"
+        }
+    }
+
+    private func presentPaymentSheet() {
+        guard let sheet = paymentSheet else { return }
+
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = windowScene.windows.first?.rootViewController else {
+            errorMessage = "Zahlung konnte nicht angezeigt werden"
+            return
         }
 
-        isPlacingOrder = false
+        var topVC = rootVC
+        while let presented = topVC.presentedViewController {
+            topVC = presented
+        }
+
+        sheet.present(from: topVC) { result in
+            Task { @MainActor in
+                await handlePaymentResult(result)
+            }
+        }
+    }
+
+    private func handlePaymentResult(_ result: PaymentSheetResult) async {
+        let orderIds = placedOrders.map { $0.id }
+
+        switch result {
+        case .completed:
+            do {
+                try await PaymentService.shared.confirmPayment(orderIds: orderIds)
+
+                if var profile = authService.userProfile {
+                    profile.shippingStreet = shippingAddress.street
+                    profile.shippingCity = shippingAddress.city
+                    profile.shippingPostalCode = shippingAddress.postalCode
+                    profile.shippingCountry = shippingAddress.country
+                    try? await authService.updateProfile(profile)
+                }
+
+                cartManager.clearCart()
+                withAnimation { currentStep = 2 }
+            } catch {
+                errorMessage = "Zahlung erfolgreich, Status-Update fehlgeschlagen"
+            }
+
+        case .canceled:
+            errorMessage = nil // User cancelled, can retry
+
+        case .failed(let error):
+            try? await PaymentService.shared.failPayment(orderIds: orderIds)
+            errorMessage = "Zahlung fehlgeschlagen: \(error.localizedDescription)"
+        }
     }
 }
