@@ -125,6 +125,7 @@
 			);
 			name = BoatCare;
 			packageProductDependencies = (
+				C3FE65802EF2F7A3001A07D2 /* Supabase */,
 			);
 			productName = BoatCare;
 			productReference = C3FE65462EF2F7A1001A07D2 /* BoatCare.app */;
@@ -208,6 +209,9 @@
 			);
 			mainGroup = C3FE653D2EF2F7A1001A07D2;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				C3FE657F2EF2F7A3001A07D2 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C3FE65472EF2F7A1001A07D2 /* Products */;
 			projectDirPath = "";
@@ -630,6 +634,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C3FE657F2EF2F7A3001A07D2 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C3FE65802EF2F7A3001A07D2 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C3FE657F2EF2F7A3001A07D2 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C3FE653E2EF2F7A1001A07D2 /* Project object */;
 }

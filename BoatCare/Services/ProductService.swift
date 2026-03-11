@@ -1,0 +1,131 @@
+//
+//  ProductService.swift
+//  BoatCare
+//
+//  Service for fetching products and categories from Supabase
+//
+
+import Foundation
+import Supabase
+
+@MainActor
+final class ProductService {
+    static let shared = ProductService()
+
+    private var client: SupabaseClient {
+        SupabaseManager.shared.client
+    }
+
+    // MARK: - Categories
+
+    func fetchCategories() async throws -> [ProductCategory] {
+        let categories: [ProductCategory] = try await client
+            .from("product_categories")
+            .select()
+            .order("sort_order")
+            .execute()
+            .value
+        return categories
+    }
+
+    func fetchParentCategories() async throws -> [ProductCategory] {
+        let categories: [ProductCategory] = try await client
+            .from("product_categories")
+            .select()
+            .is("parent_id", value: NSNull())
+            .order("sort_order")
+            .execute()
+            .value
+        return categories
+    }
+
+    func fetchSubcategories(parentId: UUID) async throws -> [ProductCategory] {
+        let categories: [ProductCategory] = try await client
+            .from("product_categories")
+            .select()
+            .eq("parent_id", value: parentId.uuidString)
+            .order("sort_order")
+            .execute()
+            .value
+        return categories
+    }
+
+    // MARK: - Products
+
+    private let productSelect = """
+        *, product_categories(*), service_providers(id, company_name, city)
+        """
+
+    func fetchProducts(
+        categoryId: UUID? = nil,
+        searchQuery: String? = nil,
+        limit: Int = 50,
+        offset: Int = 0
+    ) async throws -> [Product] {
+        var query = client
+            .from("metashop_products")
+            .select(productSelect)
+            .eq("is_active", value: true)
+            .order("created_at", ascending: false)
+            .range(from: offset, to: offset + limit - 1)
+
+        if let categoryId {
+            query = query.eq("category_id", value: categoryId.uuidString)
+        }
+
+        if let searchQuery, !searchQuery.isEmpty {
+            query = query.ilike("name", pattern: "%\(searchQuery)%")
+        }
+
+        let products: [Product] = try await query.execute().value
+        return products
+    }
+
+    func fetchProduct(id: UUID) async throws -> Product {
+        let product: Product = try await client
+            .from("metashop_products")
+            .select(productSelect)
+            .eq("id", value: id.uuidString)
+            .single()
+            .execute()
+            .value
+        return product
+    }
+
+    func fetchProductsByProvider(providerId: UUID) async throws -> [Product] {
+        let products: [Product] = try await client
+            .from("metashop_products")
+            .select(productSelect)
+            .eq("provider_id", value: providerId.uuidString)
+            .eq("is_active", value: true)
+            .order("name")
+            .execute()
+            .value
+        return products
+    }
+
+    func fetchProductsByBoatType(_ boatType: String) async throws -> [Product] {
+        let products: [Product] = try await client
+            .from("metashop_products")
+            .select(productSelect)
+            .eq("is_active", value: true)
+            .contains("fits_boat_types", value: [boatType])
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+        return products
+    }
+
+    // MARK: - Promotions
+
+    func fetchActivePromotions() async throws -> [Promotion] {
+        let today = ISO8601DateFormatter().string(from: Date())
+        let promotions: [Promotion] = try await client
+            .from("provider_promotions")
+            .select()
+            .eq("is_active", value: true)
+            .execute()
+            .value
+        return promotions
+    }
+}
