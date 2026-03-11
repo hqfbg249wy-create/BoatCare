@@ -17,11 +17,14 @@ struct ShopView: View {
     @State private var selectedCategory: ProductCategory?
     @State private var selectedSubcategory: ProductCategory?
     @State private var isLoading = true
+    @State private var isLoadingMore = false
+    @State private var hasMoreProducts = true
     @State private var errorMessage: String?
 
     private let productService = ProductService.shared
     private let recommendationService = RecommendationService.shared
     private let promotionService = PromotionService.shared
+    private let pageSize = 20
 
     private let columns = [
         GridItem(.flexible(), spacing: 12),
@@ -352,20 +355,34 @@ struct ShopView: View {
     // MARK: - Product Grid
 
     private var productGrid: some View {
-        LazyVGrid(columns: columns, spacing: 12) {
-            ForEach(products) { product in
-                NavigationLink(value: product) {
-                    ProductCardView(
-                        product: product,
-                        promotionBadge: promotionService.promotionBadgeText(for: product),
-                        discountedPrice: promotionService.displayDiscountedPrice(for: product)
-                    )
+        VStack(spacing: 12) {
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(products) { product in
+                    NavigationLink(value: product) {
+                        ProductCardView(
+                            product: product,
+                            promotionBadge: promotionService.promotionBadgeText(for: product),
+                            discountedPrice: promotionService.displayDiscountedPrice(for: product)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .onAppear {
+                        // Infinite scroll: load more when nearing the end
+                        if product.id == products.last?.id && hasMoreProducts && !isLoadingMore {
+                            Task { await loadMoreProducts() }
+                        }
+                    }
                 }
-                .buttonStyle(.plain)
             }
-        }
-        .navigationDestination(for: Product.self) { product in
-            ProductDetailView(product: product)
+            .navigationDestination(for: Product.self) { product in
+                ProductDetailView(product: product)
+            }
+
+            // Loading more indicator
+            if isLoadingMore {
+                ProgressView()
+                    .padding(.vertical, 16)
+            }
         }
     }
 
@@ -438,15 +455,38 @@ struct ShopView: View {
     private func loadProducts() async {
         isLoading = true
         errorMessage = nil
+        hasMoreProducts = true
         do {
             let categoryFilter = selectedSubcategory?.id ?? selectedCategory?.id
             products = try await productService.fetchProducts(
                 categoryId: categoryFilter,
-                searchQuery: searchText.isEmpty ? nil : searchText
+                searchQuery: searchText.isEmpty ? nil : searchText,
+                limit: pageSize,
+                offset: 0
             )
+            hasMoreProducts = products.count >= pageSize
         } catch {
             errorMessage = "Fehler beim Laden: \(error.localizedDescription)"
         }
         isLoading = false
+    }
+
+    private func loadMoreProducts() async {
+        guard !isLoadingMore && hasMoreProducts else { return }
+        isLoadingMore = true
+        do {
+            let categoryFilter = selectedSubcategory?.id ?? selectedCategory?.id
+            let moreProducts = try await productService.fetchProducts(
+                categoryId: categoryFilter,
+                searchQuery: searchText.isEmpty ? nil : searchText,
+                limit: pageSize,
+                offset: products.count
+            )
+            products.append(contentsOf: moreProducts)
+            hasMoreProducts = moreProducts.count >= pageSize
+        } catch {
+            print("Failed to load more products: \(error)")
+        }
+        isLoadingMore = false
     }
 }

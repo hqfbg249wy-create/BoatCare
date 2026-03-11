@@ -3,6 +3,7 @@
 //  BoatCare
 //
 //  Service for fetching products and categories from Supabase
+//  Includes in-memory caching for categories and frequently accessed data
 //
 
 import Foundation
@@ -16,38 +17,46 @@ final class ProductService {
         SupabaseManager.shared.client
     }
 
-    // MARK: - Categories
+    private let cache = CacheService.shared
+
+    // MARK: - Categories (cached)
 
     func fetchCategories() async throws -> [ProductCategory] {
-        let categories: [ProductCategory] = try await client
-            .from("product_categories")
-            .select()
-            .order("sort_order")
-            .execute()
-            .value
-        return categories
+        try await cache.getOrFetch(CacheService.Keys.categories, ttl: 600) {
+            let categories: [ProductCategory] = try await client
+                .from("product_categories")
+                .select()
+                .order("sort_order")
+                .execute()
+                .value
+            return categories
+        }
     }
 
     func fetchParentCategories() async throws -> [ProductCategory] {
-        let categories: [ProductCategory] = try await client
-            .from("product_categories")
-            .select()
-            .is("parent_id", value: NSNull())
-            .order("sort_order")
-            .execute()
-            .value
-        return categories
+        try await cache.getOrFetch(CacheService.Keys.parentCategories, ttl: 600) {
+            let categories: [ProductCategory] = try await client
+                .from("product_categories")
+                .select()
+                .is("parent_id", value: NSNull())
+                .order("sort_order")
+                .execute()
+                .value
+            return categories
+        }
     }
 
     func fetchSubcategories(parentId: UUID) async throws -> [ProductCategory] {
-        let categories: [ProductCategory] = try await client
-            .from("product_categories")
-            .select()
-            .eq("parent_id", value: parentId.uuidString)
-            .order("sort_order")
-            .execute()
-            .value
-        return categories
+        try await cache.getOrFetch(CacheService.Keys.subcategories(parentId), ttl: 600) {
+            let categories: [ProductCategory] = try await client
+                .from("product_categories")
+                .select()
+                .eq("parent_id", value: parentId.uuidString)
+                .order("sort_order")
+                .execute()
+                .value
+            return categories
+        }
     }
 
     // MARK: - Products
@@ -59,9 +68,20 @@ final class ProductService {
     func fetchProducts(
         categoryId: UUID? = nil,
         searchQuery: String? = nil,
-        limit: Int = 50,
+        limit: Int = 20,
         offset: Int = 0
     ) async throws -> [Product] {
+        // Don't cache search queries (too many variations)
+        // Cache first page of category listings
+        let useCache = searchQuery == nil && offset == 0
+
+        if useCache {
+            let cacheKey = CacheService.Keys.products(0, categoryId, nil)
+            if let cached: [Product] = cache.get(cacheKey) {
+                return cached
+            }
+        }
+
         var query = client
             .from("metashop_products")
             .select(productSelect)
@@ -78,18 +98,26 @@ final class ProductService {
         }
 
         let products: [Product] = try await query.execute().value
+
+        if useCache {
+            let cacheKey = CacheService.Keys.products(0, categoryId, nil)
+            cache.set(cacheKey, value: products, ttl: 120) // 2 min for product listings
+        }
+
         return products
     }
 
     func fetchProduct(id: UUID) async throws -> Product {
-        let product: Product = try await client
-            .from("metashop_products")
-            .select(productSelect)
-            .eq("id", value: id.uuidString)
-            .single()
-            .execute()
-            .value
-        return product
+        try await cache.getOrFetch(CacheService.Keys.product(id), ttl: 180) {
+            let product: Product = try await client
+                .from("metashop_products")
+                .select(productSelect)
+                .eq("id", value: id.uuidString)
+                .single()
+                .execute()
+                .value
+            return product
+        }
     }
 
     func fetchProductsByProvider(providerId: UUID) async throws -> [Product] {
@@ -119,13 +147,31 @@ final class ProductService {
     // MARK: - Promotions
 
     func fetchActivePromotions() async throws -> [Promotion] {
-        let today = ISO8601DateFormatter().string(from: Date())
-        let promotions: [Promotion] = try await client
-            .from("provider_promotions")
-            .select()
-            .eq("is_active", value: true)
-            .execute()
-            .value
-        return promotions
+        try await cache.getOrFetch(CacheService.Keys.promotions, ttl: 300) {
+            let promotions: [Promotion] = try await client
+                .from("provider_promotions")
+                .select()
+                .eq("is_active", value: true)
+                .execute()
+                .value
+            return promotions
+        }
+    }
+
+    // MARK: - Cache Management
+
+    func invalidateProductCache() {
+        cache.removeAll(prefix: "products_")
+        cache.removeAll(prefix: "product_")
+    }
+
+    func invalidateCategoryCache() {
+        cache.remove(CacheService.Keys.categories)
+        cache.remove(CacheService.Keys.parentCategories)
+        cache.removeAll(prefix: "subcategories_")
+    }
+
+    func invalidateAll() {
+        cache.removeAll()
     }
 }

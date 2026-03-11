@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock } from 'lucide-react'
+import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe } from 'lucide-react'
 
 export default function Profile() {
   const { provider, loadProvider, user } = useAuth()
@@ -13,6 +13,13 @@ export default function Profile() {
   const [stripeLoading, setStripeLoading] = useState(false)
   const [stripeStatus, setStripeStatus] = useState(null)
   const [stripeMessage, setStripeMessage] = useState(null)
+
+  // API Key state
+  const [apiKey, setApiKey] = useState(null)
+  const [apiKeyVisible, setApiKeyVisible] = useState(false)
+  const [webhookUrl, setWebhookUrl] = useState('')
+  const [apiKeyCopied, setApiKeyCopied] = useState(false)
+  const [generatingKey, setGeneratingKey] = useState(false)
 
   useEffect(() => {
     if (provider) {
@@ -51,6 +58,14 @@ export default function Profile() {
       loadStripeStatus()
     }
   }, [provider?.stripe_account_id])
+
+  // Load API key
+  useEffect(() => {
+    if (provider) {
+      setApiKey(provider.api_key || null)
+      setWebhookUrl(provider.webhook_url || '')
+    }
+  }, [provider])
 
   async function loadStripeStatus() {
     try {
@@ -153,6 +168,60 @@ export default function Profile() {
       setMessage({ type: 'error', text: 'Fehler: ' + err.message })
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function generateApiKey() {
+    setGeneratingKey(true)
+    try {
+      // Generate a random API key
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+      const keyParts = []
+      for (let i = 0; i < 4; i++) {
+        let part = ''
+        for (let j = 0; j < 8; j++) {
+          part += chars.charAt(Math.floor(Math.random() * chars.length))
+        }
+        keyParts.push(part)
+      }
+      const newKey = `bc_${keyParts.join('_')}`
+
+      const { error } = await supabase
+        .from('service_providers')
+        .update({ api_key: newKey })
+        .eq('id', provider.id)
+
+      if (error) throw error
+      setApiKey(newKey)
+      setApiKeyVisible(true)
+      setMessage({ type: 'success', text: 'API-Schlüssel generiert. Bitte sicher aufbewahren!' })
+      loadProvider(user.id)
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+    } finally {
+      setGeneratingKey(false)
+    }
+  }
+
+  async function saveWebhookUrl() {
+    try {
+      const { error } = await supabase
+        .from('service_providers')
+        .update({ webhook_url: webhookUrl || null })
+        .eq('id', provider.id)
+
+      if (error) throw error
+      setMessage({ type: 'success', text: 'Webhook-URL gespeichert.' })
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+    }
+  }
+
+  function copyApiKey() {
+    if (apiKey) {
+      navigator.clipboard.writeText(apiKey)
+      setApiKeyCopied(true)
+      setTimeout(() => setApiKeyCopied(false), 2000)
     }
   }
 
@@ -363,6 +432,86 @@ export default function Profile() {
               <input name="tax_id" value={form.tax_id} onChange={handleChange} placeholder="DE123456789" />
             </div>
           </div>
+        </div>
+
+        {/* API Integration Section */}
+        <div className="card" style={{ borderLeft: '4px solid var(--primary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+            <Key size={20} style={{ color: 'var(--primary)' }} />
+            <h2 style={{ margin: 0 }}>API & Integration</h2>
+          </div>
+          <p className="hint" style={{ marginBottom: '16px' }}>
+            Nutze die REST API um Produkte automatisch zu synchronisieren. Dein API-Schlüssel ermöglicht Zugriff auf die Produkt-Verwaltung.
+          </p>
+
+          {/* API Key */}
+          <div className="form-group">
+            <label>API-Schlüssel</label>
+            {apiKey ? (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type={apiKeyVisible ? 'text' : 'password'}
+                  value={apiKey}
+                  readOnly
+                  style={{ flex: 1, fontFamily: 'monospace', fontSize: '0.85rem' }}
+                  onClick={() => setApiKeyVisible(!apiKeyVisible)}
+                />
+                <button type="button" className="btn-icon" onClick={copyApiKey} title="Kopieren">
+                  {apiKeyCopied ? <CheckCircle size={16} style={{ color: 'var(--green)' }} /> : <Copy size={16} />}
+                </button>
+                <button type="button" className="btn-icon" onClick={generateApiKey} title="Neu generieren" disabled={generatingKey}>
+                  <RefreshCw size={16} className={generatingKey ? 'spin' : ''} />
+                </button>
+              </div>
+            ) : (
+              <div>
+                <button type="button" className="btn-secondary" onClick={generateApiKey} disabled={generatingKey}>
+                  {generatingKey ? <><Loader size={14} className="spin" /> Generieren...</> : <><Key size={14} /> API-Schlüssel generieren</>}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Webhook URL */}
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Globe size={14} /> Webhook-URL (optional)
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="url"
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                placeholder="https://dein-server.de/webhooks/boatcare"
+                style={{ flex: 1 }}
+              />
+              <button type="button" className="btn-secondary" onClick={saveWebhookUrl} style={{ whiteSpace: 'nowrap' }}>
+                <Save size={14} /> Speichern
+              </button>
+            </div>
+            <p className="hint" style={{ marginTop: '4px' }}>
+              Wird bei Bestelländerungen mit Status-Updates aufgerufen (POST mit JSON-Payload).
+            </p>
+          </div>
+
+          {/* API Docs Link */}
+          {apiKey && (
+            <div style={{ marginTop: '12px', padding: '12px', background: 'var(--gray-50)', borderRadius: '8px', fontSize: '0.85rem' }}>
+              <strong>API-Endpoint:</strong>{' '}
+              <code style={{ background: 'var(--gray-200)', padding: '2px 6px', borderRadius: '4px' }}>
+                POST /functions/v1/products-api
+              </code>
+              <br /><br />
+              <strong>Header:</strong>{' '}
+              <code style={{ background: 'var(--gray-200)', padding: '2px 6px', borderRadius: '4px' }}>
+                x-api-key: {apiKeyVisible ? apiKey : '••••••••'}
+              </code>
+              <br /><br />
+              <span style={{ color: 'var(--gray-500)' }}>
+                Produkte erstellen, aktualisieren und abfragen. GET-Anfragen sind ohne Authentifizierung möglich.
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="form-actions">

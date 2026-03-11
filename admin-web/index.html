@@ -80,6 +80,10 @@
                     <span class="icon">🏷️</span>
                     Promotions
                 </button>
+                <button class="nav-item" data-page="api-monitoring" onclick="window.navigateToPage('api-monitoring')">
+                    <span class="icon">🔌</span>
+                    API & Webhooks
+                </button>
             </nav>
             <div class="sidebar-footer">
                 <button id="logout-btn" class="logout-btn" onclick="window.handleLogout()">
@@ -769,6 +773,82 @@
                         </thead>
                         <tbody id="admin-promos-body">
                             <tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">Laden...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- API Monitoring Page -->
+            <div id="api-monitoring-page" class="page">
+                <h1>🔌 API & Webhooks</h1>
+                <p class="subtitle">API-Nutzung, Provider-Integrationen und Webhook-Events überwachen</p>
+
+                <!-- Stats -->
+                <div class="stats-grid" id="api-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon">🔑</div>
+                        <div>
+                            <div class="stat-value" id="api-keys-count">0</div>
+                            <div class="stat-label">API-Schlüssel aktiv</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#dbeafe;">🌐</div>
+                        <div>
+                            <div class="stat-value" id="api-webhooks-count">0</div>
+                            <div class="stat-label">Webhook-URLs</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#dcfce7;">📊</div>
+                        <div>
+                            <div class="stat-value" id="api-calls-today">0</div>
+                            <div class="stat-label">API-Calls heute</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#fef3c7;">⚠️</div>
+                        <div>
+                            <div class="stat-value" id="api-errors-count">0</div>
+                            <div class="stat-label">Fehlgeschlagene Webhooks</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Provider API Keys Table -->
+                <div class="card" style="margin-bottom:20px;">
+                    <h2>🔑 Provider API-Schlüssel</h2>
+                    <table class="data-table" style="width:100%;border-collapse:collapse;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Provider</th>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">API-Schlüssel</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Webhook-URL</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Shop aktiv</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Produkte</th>
+                            </tr>
+                        </thead>
+                        <tbody id="api-keys-body">
+                            <tr><td colspan="5" style="text-align:center;padding:40px;color:#94a3b8;">Laden...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Recent Webhook Events -->
+                <div class="card">
+                    <h2>📡 Letzte Webhook-Events</h2>
+                    <table class="data-table" style="width:100%;border-collapse:collapse;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Event</th>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Provider</th>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Bestellung</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Status</th>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Datum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="webhook-events-body">
+                            <tr><td colspan="5" style="text-align:center;padding:40px;color:#94a3b8;">Laden...</td></tr>
                         </tbody>
                     </table>
                 </div>

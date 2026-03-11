@@ -275,6 +275,9 @@ function navigateToPage(pageName) {
         case 'admin-promotions':
             loadAdminPromotions();
             break;
+        case 'api-monitoring':
+            loadApiMonitoring();
+            break;
     }
 }
 
@@ -5896,3 +5899,120 @@ window.filterAdminPromos = function(filter) {
 window.searchAdminPromos = function() {
     window.filterAdminPromos(adminPromosFilter);
 };
+
+// ============================================
+// API MONITORING
+// ============================================
+
+async function loadApiMonitoring() {
+    console.log('🔌 Loading API monitoring...');
+
+    // Load providers with API keys
+    const { data: providers } = await supabaseClient
+        .from('service_providers')
+        .select('id, company_name, api_key, webhook_url, is_shop_active')
+        .order('company_name');
+
+    const allProviders = providers || [];
+    const withApiKey = allProviders.filter(p => p.api_key);
+    const withWebhook = allProviders.filter(p => p.webhook_url);
+
+    // Stats
+    document.getElementById('api-keys-count').textContent = withApiKey.length;
+    document.getElementById('api-webhooks-count').textContent = withWebhook.length;
+
+    // Load API usage logs (today)
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const { data: usageLogs, count: todayCount } = await supabaseClient
+        .from('api_usage_logs')
+        .select('*', { count: 'exact', head: true })
+        .gte('timestamp', todayStart.toISOString());
+
+    document.getElementById('api-calls-today').textContent = todayCount || 0;
+
+    // Load webhook events (errors)
+    const { data: webhookEvents } = await supabaseClient
+        .from('webhook_events')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(0, 49);
+
+    const failedEvents = (webhookEvents || []).filter(e =>
+        e.results?.some(r => !r.success)
+    );
+    document.getElementById('api-errors-count').textContent = failedEvents.length;
+
+    // Render API keys table
+    renderApiKeys(allProviders);
+
+    // Render webhook events
+    renderWebhookEvents(webhookEvents || []);
+}
+
+function renderApiKeys(providers) {
+    const tbody = document.getElementById('api-keys-body');
+
+    const relevant = providers.filter(p => p.api_key || p.webhook_url || p.is_shop_active);
+
+    if (relevant.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:#94a3b8;">Keine Provider mit API-Zugang</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = relevant.map(p => {
+        const keyDisplay = p.api_key
+            ? `<code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:0.8rem;">${p.api_key.substring(0, 10)}••••</code>`
+            : '<span style="color:#94a3b8;">—</span>';
+
+        const webhookDisplay = p.webhook_url
+            ? `<span style="font-size:0.8rem;color:var(--primary);" title="${escapeHtml(p.webhook_url)}">✅ Konfiguriert</span>`
+            : '<span style="color:#94a3b8;font-size:0.8rem;">—</span>';
+
+        return `<tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:10px;"><strong>${escapeHtml(p.company_name || '—')}</strong></td>
+            <td style="padding:10px;">${keyDisplay}</td>
+            <td style="padding:10px;text-align:center;">${webhookDisplay}</td>
+            <td style="padding:10px;text-align:center;">
+                <span class="badge ${p.is_shop_active ? 'badge-confirmed' : 'badge-pending'}">${p.is_shop_active ? 'Aktiv' : 'Inaktiv'}</span>
+            </td>
+            <td style="padding:10px;text-align:center;">—</td>
+        </tr>`;
+    }).join('');
+}
+
+function renderWebhookEvents(events) {
+    const tbody = document.getElementById('webhook-events-body');
+
+    if (events.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:#94a3b8;">Keine Webhook-Events</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = events.map(e => {
+        const eventIcons = {
+            'order_created': '🆕',
+            'order_confirmed': '✅',
+            'order_shipped': '🚚',
+            'order_delivered': '📦',
+            'order_cancelled': '❌',
+        };
+        const icon = eventIcons[e.event_type] || '📡';
+
+        const allSuccess = e.results?.every(r => r.success) ?? true;
+        const statusHtml = allSuccess
+            ? '<span class="badge badge-confirmed">Erfolg</span>'
+            : '<span class="badge badge-cancelled">Fehler</span>';
+
+        const date = e.created_at ? new Date(e.created_at).toLocaleString('de-DE') : '—';
+        const orderNumber = e.payload?.order?.order_number || e.order_id?.substring(0, 8) || '—';
+
+        return `<tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:10px;">${icon} ${escapeHtml(e.event_type)}</td>
+            <td style="padding:10px;">${escapeHtml(e.provider_id?.substring(0, 8) || '—')}</td>
+            <td style="padding:10px;"><code style="font-size:0.8rem;">${escapeHtml(orderNumber)}</code></td>
+            <td style="padding:10px;text-align:center;">${statusHtml}</td>
+            <td style="padding:10px;font-size:0.85rem;color:var(--gray-500);">${date}</td>
+        </tr>`;
+    }).join('');
+}
