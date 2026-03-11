@@ -266,6 +266,9 @@ function navigateToPage(pageName) {
         case 'shop-management':
             loadShopManagement();
             break;
+        case 'payments':
+            loadPayments();
+            break;
     }
 }
 
@@ -5464,6 +5467,171 @@ window.filterShopProviders = function() {
     );
     renderShopProviders(filtered);
 };
+
+// ============================================
+// Zahlungen (Payments) Page
+// ============================================
+
+let allPayments = [];
+let currentPaymentFilter = 'all';
+
+async function loadPayments() {
+    console.log('💳 Lade Zahlungen...');
+    try {
+        // Bestellungen mit Provider-Info laden
+        const { data: orders, error } = await supabaseClient
+            .from('orders')
+            .select('id, order_number, total, commission_amount, payment_status, status, created_at, provider_id, service_providers(name, stripe_account_id)')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        allPayments = orders || [];
+
+        // Stats berechnen
+        const paid = allPayments.filter(o => o.payment_status === 'paid');
+        const pending = allPayments.filter(o => o.payment_status === 'pending');
+        const totalRevenue = paid.reduce((sum, o) => sum + parseFloat(o.total || 0), 0);
+        const totalCommission = paid.reduce((sum, o) => sum + parseFloat(o.commission_amount || 0), 0);
+
+        document.getElementById('payment-total-revenue').textContent = totalRevenue.toFixed(2) + ' €';
+        document.getElementById('payment-total-commission').textContent = totalCommission.toFixed(2) + ' €';
+        document.getElementById('payment-paid-count').textContent = paid.length;
+        document.getElementById('payment-pending-count').textContent = pending.length;
+
+        renderPayments(allPayments);
+        loadStripeAccounts();
+    } catch (err) {
+        console.error('Zahlungen-Fehler:', err);
+        document.getElementById('payments-body').innerHTML =
+            '<tr><td colspan="7" style="text-align:center;padding:40px;color:#ef4444;">Fehler beim Laden: ' + err.message + '</td></tr>';
+    }
+}
+
+function renderPayments(payments) {
+    const tbody = document.getElementById('payments-body');
+    if (!payments || payments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">Keine Zahlungen gefunden</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = payments.map(o => {
+        const providerName = o.service_providers?.name || 'Unbekannt';
+        const date = new Date(o.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const total = parseFloat(o.total || 0).toFixed(2);
+        const commission = parseFloat(o.commission_amount || 0).toFixed(2);
+
+        let statusBadge = '';
+        switch (o.payment_status) {
+            case 'paid':
+                statusBadge = '<span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">Bezahlt</span>';
+                break;
+            case 'pending':
+                statusBadge = '<span style="background:#fef3c7;color:#92400e;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">Ausstehend</span>';
+                break;
+            case 'failed':
+                statusBadge = '<span style="background:#fee2e2;color:#991b1b;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">Fehlgeschlagen</span>';
+                break;
+            case 'refunded':
+                statusBadge = '<span style="background:#f1f5f9;color:#64748b;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">Erstattet</span>';
+                break;
+            default:
+                statusBadge = '<span style="background:#f1f5f9;color:#64748b;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">' + escapeHtml(o.payment_status || '-') + '</span>';
+        }
+
+        let orderStatusBadge = '';
+        switch (o.status) {
+            case 'confirmed':
+                orderStatusBadge = '<span style="background:#dbeafe;color:#1e40af;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">Bestätigt</span>';
+                break;
+            case 'shipped':
+                orderStatusBadge = '<span style="background:#ede9fe;color:#5b21b6;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">Versendet</span>';
+                break;
+            case 'delivered':
+                orderStatusBadge = '<span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">Geliefert</span>';
+                break;
+            case 'cancelled':
+                orderStatusBadge = '<span style="background:#fee2e2;color:#991b1b;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">Storniert</span>';
+                break;
+            default:
+                orderStatusBadge = '<span style="background:#fef3c7;color:#92400e;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">' + escapeHtml(o.status || 'Pending') + '</span>';
+        }
+
+        return '<tr style="border-bottom:1px solid #f1f5f9;">' +
+            '<td style="padding:10px;"><strong>' + escapeHtml(o.order_number || '-') + '</strong></td>' +
+            '<td style="padding:10px;">' + escapeHtml(providerName) + '</td>' +
+            '<td style="padding:10px;text-align:right;font-weight:600;">' + total + ' €</td>' +
+            '<td style="padding:10px;text-align:right;color:#f97316;font-weight:600;">' + commission + ' €</td>' +
+            '<td style="padding:10px;text-align:center;">' + statusBadge + '</td>' +
+            '<td style="padding:10px;text-align:center;">' + orderStatusBadge + '</td>' +
+            '<td style="padding:10px;color:#64748b;font-size:13px;">' + date + '</td>' +
+        '</tr>';
+    }).join('');
+}
+
+window.filterPayments = function(filter) {
+    currentPaymentFilter = filter;
+
+    // Update active filter button
+    document.querySelectorAll('#payment-filter-bar .filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.trim().toLowerCase() === getFilterLabel(filter).toLowerCase());
+    });
+
+    let filtered = allPayments;
+    if (filter !== 'all') {
+        filtered = allPayments.filter(o => o.payment_status === filter);
+    }
+    renderPayments(filtered);
+};
+
+function getFilterLabel(filter) {
+    switch (filter) {
+        case 'all': return 'Alle';
+        case 'paid': return 'Bezahlt';
+        case 'pending': return 'Ausstehend';
+        case 'failed': return 'Fehlgeschlagen';
+        case 'refunded': return 'Erstattet';
+        default: return filter;
+    }
+}
+
+async function loadStripeAccounts() {
+    try {
+        const { data: providers, error } = await supabaseClient
+            .from('service_providers')
+            .select('id, name, city, stripe_account_id, is_shop_active, commission_rate')
+            .not('stripe_account_id', 'is', null)
+            .order('name');
+
+        if (error) throw error;
+
+        const container = document.getElementById('stripe-accounts-list');
+        if (!providers || providers.length === 0) {
+            container.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:20px;">Noch keine Stripe Connect Konten verbunden.</p>';
+            return;
+        }
+
+        container.innerHTML = providers.map(p => {
+            const rate = p.commission_rate != null ? p.commission_rate : 10;
+            return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#f8fafc;border-radius:8px;">' +
+                '<div>' +
+                    '<strong>' + escapeHtml(p.name) + '</strong>' +
+                    (p.city ? '<span style="color:#94a3b8;margin-left:8px;font-size:13px;">' + escapeHtml(p.city) + '</span>' : '') +
+                '</div>' +
+                '<div style="display:flex;align-items:center;gap:16px;">' +
+                    '<span style="font-size:13px;color:#64748b;">Provision: <strong>' + rate + '%</strong></span>' +
+                    '<span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">Stripe verbunden</span>' +
+                    (p.is_shop_active
+                        ? '<span style="background:#dbeafe;color:#1e40af;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">Shop aktiv</span>'
+                        : '<span style="background:#f1f5f9;color:#64748b;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">Shop inaktiv</span>') +
+                '</div>' +
+            '</div>';
+        }).join('');
+    } catch (err) {
+        console.error('Stripe-Konten Fehler:', err);
+    }
+}
+
+// ============================================
 
 function escapeHtml(str) {
     if (!str) return '';

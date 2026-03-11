@@ -68,6 +68,10 @@
                     <span class="icon">🛒</span>
                     Shop-Verwaltung
                 </button>
+                <button class="nav-item" data-page="payments" onclick="window.navigateToPage('payments')">
+                    <span class="icon">💳</span>
+                    Zahlungen
+                </button>
             </nav>
             <div class="sidebar-footer">
                 <button id="logout-btn" class="logout-btn" onclick="window.handleLogout()">
@@ -540,6 +544,81 @@
                             <tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">Laden...</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Zahlungen Page -->
+            <div id="payments-page" class="page">
+                <h1>💳 Zahlungen</h1>
+                <p class="subtitle">Zahlungsübersicht, Umsätze und Provisionen</p>
+
+                <!-- Stats -->
+                <div class="stats-grid" id="payment-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#d1fae5;">💰</div>
+                        <div>
+                            <div class="stat-value" id="payment-total-revenue">0 €</div>
+                            <div class="stat-label">Gesamtumsatz</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#ffedd5;">📊</div>
+                        <div>
+                            <div class="stat-value" id="payment-total-commission">0 €</div>
+                            <div class="stat-label">Provisionen</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#dbeafe;">✅</div>
+                        <div>
+                            <div class="stat-value" id="payment-paid-count">0</div>
+                            <div class="stat-label">Bezahlte Bestellungen</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#fef3c7;">⏳</div>
+                        <div>
+                            <div class="stat-value" id="payment-pending-count">0</div>
+                            <div class="stat-label">Ausstehend</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter -->
+                <div class="filter-bar" id="payment-filter-bar">
+                    <button class="filter-btn active" onclick="window.filterPayments('all')">Alle</button>
+                    <button class="filter-btn" onclick="window.filterPayments('paid')">Bezahlt</button>
+                    <button class="filter-btn" onclick="window.filterPayments('pending')">Ausstehend</button>
+                    <button class="filter-btn" onclick="window.filterPayments('failed')">Fehlgeschlagen</button>
+                    <button class="filter-btn" onclick="window.filterPayments('refunded')">Erstattet</button>
+                </div>
+
+                <!-- Zahlungen-Tabelle -->
+                <div class="card" style="overflow-x:auto;">
+                    <table class="data-table" style="width:100%;border-collapse:collapse;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Bestellung</th>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Provider</th>
+                                <th style="text-align:right;padding:10px;border-bottom:2px solid #e2e8f0;">Betrag</th>
+                                <th style="text-align:right;padding:10px;border-bottom:2px solid #e2e8f0;">Provision</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Zahlung</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Status</th>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Datum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payments-body">
+                            <tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">Laden...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Stripe Connect Übersicht -->
+                <div class="card" style="margin-top:20px;">
+                    <h2 style="margin-bottom:16px;">🔗 Stripe Connect Konten</h2>
+                    <div id="stripe-accounts-list" style="display:flex;flex-direction:column;gap:12px;">
+                        <p style="color:#94a3b8;text-align:center;padding:20px;">Laden...</p>
+                    </div>
                 </div>
             </div>
         </main>
