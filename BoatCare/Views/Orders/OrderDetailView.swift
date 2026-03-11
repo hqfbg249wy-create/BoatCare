@@ -10,9 +10,13 @@ import SwiftUI
 struct OrderDetailView: View {
     let orderId: UUID
 
+    @Environment(AuthService.self) private var authService
+
     @State private var order: Order?
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var showChat = false
+    @State private var chatConversation: Conversation?
 
     var body: some View {
         Group {
@@ -248,7 +252,7 @@ struct OrderDetailView: View {
     // MARK: - Provider
 
     private func providerSection(_ provider: ServiceProviderBasic) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Anbieter")
                 .font(.headline)
 
@@ -265,7 +269,50 @@ struct OrderDetailView: View {
                             .foregroundStyle(AppColors.gray500)
                     }
                 }
+
+                Spacer()
+
+                Button {
+                    Task { await openChat() }
+                } label: {
+                    Label("Kontaktieren", systemImage: "bubble.left")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(AppColors.primary)
+                        .foregroundStyle(.white)
+                        .clipShape(Capsule())
+                }
             }
+        }
+        .sheet(isPresented: $showChat) {
+            if let conv = chatConversation {
+                NavigationStack {
+                    ChatView(conversation: conv)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Schließen") { showChat = false }
+                            }
+                        }
+                }
+            }
+        }
+    }
+
+    // MARK: - Chat
+
+    private func openChat() async {
+        guard let userId = authService.currentUser?.id, let order else { return }
+        do {
+            let conv = try await MessagingService.shared.getOrCreateConversation(
+                userId: userId,
+                providerId: order.providerId
+            )
+            chatConversation = conv
+            showChat = true
+        } catch {
+            print("Open chat error: \(error)")
         }
     }
 

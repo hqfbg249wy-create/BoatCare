@@ -72,6 +72,10 @@
                     <span class="icon">💳</span>
                     Zahlungen
                 </button>
+                <button class="nav-item" data-page="admin-orders" onclick="window.navigateToPage('admin-orders')">
+                    <span class="icon">📦</span>
+                    Bestellungen
+                </button>
             </nav>
             <div class="sidebar-footer">
                 <button id="logout-btn" class="logout-btn" onclick="window.handleLogout()">
@@ -619,6 +623,79 @@
                     <div id="stripe-accounts-list" style="display:flex;flex-direction:column;gap:12px;">
                         <p style="color:#94a3b8;text-align:center;padding:20px;">Laden...</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- Bestellungen (Admin Orders) Page -->
+            <div id="admin-orders-page" class="page">
+                <h1>📦 Bestellungen</h1>
+                <p class="subtitle">Alle Bestellungen im System verwalten</p>
+
+                <!-- Stats -->
+                <div class="stats-grid" id="admin-orders-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon">📦</div>
+                        <div>
+                            <div class="stat-value" id="admin-orders-total">0</div>
+                            <div class="stat-label">Gesamt</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#fef3c7;">⏳</div>
+                        <div>
+                            <div class="stat-value" id="admin-orders-pending">0</div>
+                            <div class="stat-label">Offen</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#ede9fe;">🚚</div>
+                        <div>
+                            <div class="stat-value" id="admin-orders-shipped">0</div>
+                            <div class="stat-label">Versendet</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#d1fae5;">✅</div>
+                        <div>
+                            <div class="stat-value" id="admin-orders-delivered">0</div>
+                            <div class="stat-label">Geliefert</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter -->
+                <div class="filter-bar" id="admin-orders-filter-bar">
+                    <button class="filter-btn active" onclick="window.filterAdminOrders('all')">Alle</button>
+                    <button class="filter-btn" onclick="window.filterAdminOrders('pending')">Offen</button>
+                    <button class="filter-btn" onclick="window.filterAdminOrders('confirmed')">Bestätigt</button>
+                    <button class="filter-btn" onclick="window.filterAdminOrders('shipped')">Versendet</button>
+                    <button class="filter-btn" onclick="window.filterAdminOrders('delivered')">Geliefert</button>
+                    <button class="filter-btn" onclick="window.filterAdminOrders('cancelled')">Storniert</button>
+                </div>
+
+                <!-- Search -->
+                <div class="search-container" style="margin-bottom:16px;">
+                    <input type="text" id="admin-orders-search" placeholder="Bestellung, Provider oder Kunde suchen..." oninput="window.searchAdminOrders()" style="width:100%;padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;">
+                </div>
+
+                <!-- Orders Table -->
+                <div class="card" style="overflow-x:auto;">
+                    <table class="data-table" style="width:100%;border-collapse:collapse;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Bestellung</th>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Provider</th>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Kunde</th>
+                                <th style="text-align:right;padding:10px;border-bottom:2px solid #e2e8f0;">Betrag</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Status</th>
+                                <th style="text-align:center;padding:10px;border-bottom:2px solid #e2e8f0;">Zahlung</th>
+                                <th style="text-align:left;padding:10px;border-bottom:2px solid #e2e8f0;">Datum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-orders-body">
+                            <tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">Laden...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </main>

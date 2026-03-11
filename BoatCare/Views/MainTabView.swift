@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @Environment(CartManager.self) private var cartManager
+    @State private var messagingService = MessagingService.shared
 
     var body: some View {
         TabView {
@@ -24,6 +25,11 @@ struct MainTabView: View {
             Tab("Bestellungen", systemImage: "shippingbox") {
                 OrdersView()
             }
+
+            Tab("Nachrichten", systemImage: "bubble.left.and.bubble.right") {
+                ConversationsView()
+            }
+            .badge(messagingService.unreadCount)
 
             Tab("Profil", systemImage: "person.crop.circle") {
                 ProfileView()

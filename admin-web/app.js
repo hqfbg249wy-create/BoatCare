@@ -269,6 +269,9 @@ function navigateToPage(pageName) {
         case 'payments':
             loadPayments();
             break;
+        case 'admin-orders':
+            loadAdminOrders();
+            break;
     }
 }
 
@@ -5630,6 +5633,123 @@ async function loadStripeAccounts() {
         console.error('Stripe-Konten Fehler:', err);
     }
 }
+
+// ============================================
+// Admin Bestellverwaltung (Admin Orders)
+// ============================================
+
+let allAdminOrders = [];
+let currentAdminOrderFilter = 'all';
+
+async function loadAdminOrders() {
+    console.log('📦 Lade Bestellungen...');
+    try {
+        const { data: orders, error } = await supabaseClient
+            .from('orders')
+            .select('id, order_number, total, commission_amount, status, payment_status, created_at, shipping_name, provider_id, buyer_id, service_providers(name)')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        allAdminOrders = orders || [];
+
+        // Stats
+        const pending = allAdminOrders.filter(o => o.status === 'pending').length;
+        const shipped = allAdminOrders.filter(o => o.status === 'shipped').length;
+        const delivered = allAdminOrders.filter(o => o.status === 'delivered').length;
+
+        document.getElementById('admin-orders-total').textContent = allAdminOrders.length;
+        document.getElementById('admin-orders-pending').textContent = pending;
+        document.getElementById('admin-orders-shipped').textContent = shipped;
+        document.getElementById('admin-orders-delivered').textContent = delivered;
+
+        renderAdminOrders(allAdminOrders);
+    } catch (err) {
+        console.error('Admin-Orders Fehler:', err);
+        document.getElementById('admin-orders-body').innerHTML =
+            '<tr><td colspan="7" style="text-align:center;padding:40px;color:#ef4444;">Fehler: ' + err.message + '</td></tr>';
+    }
+}
+
+function renderAdminOrders(orders) {
+    const tbody = document.getElementById('admin-orders-body');
+    if (!orders || orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">Keine Bestellungen gefunden</td></tr>';
+        return;
+    }
+
+    const statusLabels = {
+        'pending': { label: 'Offen', bg: '#fef3c7', color: '#92400e' },
+        'confirmed': { label: 'Bestätigt', bg: '#dbeafe', color: '#1e40af' },
+        'shipped': { label: 'Versendet', bg: '#ede9fe', color: '#5b21b6' },
+        'delivered': { label: 'Geliefert', bg: '#d1fae5', color: '#065f46' },
+        'cancelled': { label: 'Storniert', bg: '#fee2e2', color: '#991b1b' },
+        'refunded': { label: 'Erstattet', bg: '#f1f5f9', color: '#64748b' },
+    };
+
+    const paymentLabels = {
+        'paid': { label: 'Bezahlt', bg: '#d1fae5', color: '#065f46' },
+        'pending': { label: 'Ausstehend', bg: '#fef3c7', color: '#92400e' },
+        'failed': { label: 'Fehlg.', bg: '#fee2e2', color: '#991b1b' },
+        'refunded': { label: 'Erstattet', bg: '#f1f5f9', color: '#64748b' },
+    };
+
+    tbody.innerHTML = orders.map(o => {
+        const providerName = o.service_providers?.name || 'Unbekannt';
+        const date = new Date(o.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const total = parseFloat(o.total || 0).toFixed(2);
+        const st = statusLabels[o.status] || { label: o.status, bg: '#f1f5f9', color: '#64748b' };
+        const pt = paymentLabels[o.payment_status] || { label: o.payment_status || '-', bg: '#f1f5f9', color: '#64748b' };
+
+        return '<tr style="border-bottom:1px solid #f1f5f9;">' +
+            '<td style="padding:10px;"><strong>' + escapeHtml(o.order_number || '-') + '</strong></td>' +
+            '<td style="padding:10px;">' + escapeHtml(providerName) + '</td>' +
+            '<td style="padding:10px;">' + escapeHtml(o.shipping_name || '-') + '</td>' +
+            '<td style="padding:10px;text-align:right;font-weight:600;">' + total + ' €</td>' +
+            '<td style="padding:10px;text-align:center;"><span style="background:' + st.bg + ';color:' + st.color + ';padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">' + st.label + '</span></td>' +
+            '<td style="padding:10px;text-align:center;"><span style="background:' + pt.bg + ';color:' + pt.color + ';padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">' + pt.label + '</span></td>' +
+            '<td style="padding:10px;color:#64748b;font-size:13px;">' + date + '</td>' +
+        '</tr>';
+    }).join('');
+}
+
+window.filterAdminOrders = function(filter) {
+    currentAdminOrderFilter = filter;
+
+    // Update active filter button
+    document.querySelectorAll('#admin-orders-filter-bar .filter-btn').forEach(btn => {
+        const label = btn.textContent.trim().toLowerCase();
+        const filterLabel = {
+            'all': 'alle', 'pending': 'offen', 'confirmed': 'bestätigt',
+            'shipped': 'versendet', 'delivered': 'geliefert', 'cancelled': 'storniert'
+        }[filter] || filter;
+        btn.classList.toggle('active', label === filterLabel);
+    });
+
+    let filtered = allAdminOrders;
+    if (filter !== 'all') {
+        filtered = allAdminOrders.filter(o => o.status === filter);
+    }
+    renderAdminOrders(filtered);
+};
+
+window.searchAdminOrders = function() {
+    const search = (document.getElementById('admin-orders-search').value || '').toLowerCase();
+    let filtered = allAdminOrders;
+
+    if (currentAdminOrderFilter !== 'all') {
+        filtered = filtered.filter(o => o.status === currentAdminOrderFilter);
+    }
+
+    if (search) {
+        filtered = filtered.filter(o =>
+            (o.order_number || '').toLowerCase().includes(search) ||
+            (o.service_providers?.name || '').toLowerCase().includes(search) ||
+            (o.shipping_name || '').toLowerCase().includes(search)
+        );
+    }
+
+    renderAdminOrders(filtered);
+};
 
 // ============================================
 
