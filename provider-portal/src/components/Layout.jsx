@@ -2,7 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import {
   LayoutDashboard, Package, FileText, Tag,
-  MessageSquare, User, LogOut, Anchor, Menu, X
+  MessageSquare, BarChart3, User, LogOut, Anchor, Menu, X
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/orders', icon: FileText, label: 'Bestellungen' },
   { to: '/promotions', icon: Tag, label: 'Angebote' },
   { to: '/messages', icon: MessageSquare, label: 'Nachrichten' },
+  { to: '/insights', icon: BarChart3, label: 'Marktanalyse' },
   { to: '/profile', icon: User, label: 'Stammdaten' },
 ]
 
