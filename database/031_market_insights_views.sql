@@ -7,11 +7,11 @@
 -- ============================================================
 CREATE OR REPLACE VIEW boat_type_stats AS
 SELECT
-    COALESCE(NULLIF(TRIM(type), ''), 'Unbekannt') AS boat_type,
+    COALESCE(NULLIF(TRIM(boat_type), ''), 'Unbekannt') AS boat_type,
     COUNT(*) AS count
 FROM boats
-WHERE type IS NOT NULL AND TRIM(type) != ''
-GROUP BY COALESCE(NULLIF(TRIM(type), ''), 'Unbekannt')
+WHERE boat_type IS NOT NULL AND TRIM(boat_type) != ''
+GROUP BY COALESCE(NULLIF(TRIM(boat_type), ''), 'Unbekannt')
 ORDER BY count DESC;
 
 -- ============================================================
@@ -56,7 +56,7 @@ ORDER BY count DESC;
 CREATE OR REPLACE VIEW fleet_overview_stats AS
 SELECT
     (SELECT COUNT(*) FROM boats) AS total_boats,
-    (SELECT COUNT(DISTINCT type) FROM boats WHERE type IS NOT NULL AND TRIM(type) != '') AS unique_boat_types,
+    (SELECT COUNT(DISTINCT boat_type) FROM boats WHERE boat_type IS NOT NULL AND TRIM(boat_type) != '') AS unique_boat_types,
     (SELECT COUNT(DISTINCT manufacturer) FROM boats WHERE manufacturer IS NOT NULL AND TRIM(manufacturer) != '') AS unique_boat_manufacturers,
     (SELECT COUNT(*) FROM equipment) AS total_equipment,
     (SELECT COUNT(DISTINCT category) FROM equipment WHERE category IS NOT NULL AND TRIM(category) != '') AS unique_equipment_categories,
