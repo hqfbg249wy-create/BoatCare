@@ -38,7 +38,7 @@ final class ProductService {
             let categories: [ProductCategory] = try await client
                 .from("product_categories")
                 .select()
-                .is("parent_id", value: NSNull())
+                .is("parent_id", value: "null")
                 .order("sort_order")
                 .execute()
                 .value
@@ -86,8 +86,6 @@ final class ProductService {
             .from("metashop_products")
             .select(productSelect)
             .eq("is_active", value: true)
-            .order("created_at", ascending: false)
-            .range(from: offset, to: offset + limit - 1)
 
         if let categoryId {
             query = query.eq("category_id", value: categoryId.uuidString)
@@ -97,7 +95,11 @@ final class ProductService {
             query = query.ilike("name", pattern: "%\(searchQuery)%")
         }
 
-        let products: [Product] = try await query.execute().value
+        let products: [Product] = try await query
+            .order("created_at", ascending: false)
+            .range(from: offset, to: offset + limit - 1)
+            .execute()
+            .value
 
         if useCache {
             let cacheKey = CacheService.Keys.products(0, categoryId, nil)
