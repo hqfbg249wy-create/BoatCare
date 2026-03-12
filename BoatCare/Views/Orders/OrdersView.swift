@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Auth
 
 struct OrdersView: View {
     @Environment(AuthService.self) private var authService

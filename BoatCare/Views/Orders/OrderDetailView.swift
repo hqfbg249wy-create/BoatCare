@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Auth
 
 struct OrderDetailView: View {
     let orderId: UUID

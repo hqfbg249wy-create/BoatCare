@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Auth
 
 struct ChatView: View {
     let conversation: Conversation

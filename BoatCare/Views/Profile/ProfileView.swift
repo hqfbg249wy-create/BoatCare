@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Auth
 import StripePaymentSheet
 import Supabase
 

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Auth
 
 struct ConversationsView: View {
     @Environment(AuthService.self) private var authService
