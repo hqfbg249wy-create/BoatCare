@@ -114,6 +114,11 @@ final class AuthService {
         }
     }
 
+    /// Whether the user profile has all necessary data for shopping
+    var isProfileComplete: Bool {
+        userProfile?.isComplete ?? false
+    }
+
     func updateProfile(_ profile: UserProfile) async throws {
         struct ProfileUpdate: Codable {
             let fullName: String?
@@ -121,6 +126,8 @@ final class AuthService {
             let shippingCity: String?
             let shippingPostalCode: String?
             let shippingCountry: String?
+            let preferredBoatId: UUID?
+            let stripeCustomerId: String?
 
             enum CodingKeys: String, CodingKey {
                 case fullName = "full_name"
@@ -128,6 +135,8 @@ final class AuthService {
                 case shippingCity = "shipping_city"
                 case shippingPostalCode = "shipping_postal_code"
                 case shippingCountry = "shipping_country"
+                case preferredBoatId = "preferred_boat_id"
+                case stripeCustomerId = "stripe_customer_id"
             }
         }
 
@@ -136,7 +145,9 @@ final class AuthService {
             shippingStreet: profile.shippingStreet,
             shippingCity: profile.shippingCity,
             shippingPostalCode: profile.shippingPostalCode,
-            shippingCountry: profile.shippingCountry
+            shippingCountry: profile.shippingCountry,
+            preferredBoatId: profile.preferredBoatId,
+            stripeCustomerId: profile.stripeCustomerId
         )
 
         try await client

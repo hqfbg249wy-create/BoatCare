@@ -102,6 +102,12 @@ struct MainTabView: View {
                 }
             }
             .badge(messagingService.unreadCount)
+
+            // MARK: - Profile Tab
+
+            Tab("Profil", systemImage: "person.crop.circle") {
+                ProfileView()
+            }
         }
         .tint(AppColors.primary)
     }
