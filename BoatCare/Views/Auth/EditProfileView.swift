@@ -99,7 +99,7 @@ struct EditProfileView: View {
     }
     
     private func loadCurrentProfile() {
-        if let profile = authService.currentProfile {
+        if let profile = authService.userProfile {
             fullName = profile.fullName ?? ""
             username = profile.username ?? ""
             website = profile.website ?? ""
