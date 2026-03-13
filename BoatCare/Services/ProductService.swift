@@ -38,7 +38,7 @@ final class ProductService {
             let categories: [ProductCategory] = try await client
                 .from("product_categories")
                 .select()
-                .filter("parent_id", operator: .is, value: "null")
+                .filter("parent_id", operator: "is", value: "null")
                 .order("sort_order")
                 .execute()
                 .value
