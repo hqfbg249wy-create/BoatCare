@@ -166,9 +166,13 @@ final class MessagingService {
     func subscribeToMessages(conversationId: UUID, onNewMessage: @escaping (ChatMessage) -> Void) async {
         let channel = client.realtimeV2.channel("chat-\(conversationId.uuidString)")
 
-        let changes = channel.postgresChange(InsertAction.self, schema: "public", table: "messages", filter: "conversation_id=eq.\(conversationId.uuidString)")
+        let changes = channel.postgresChange(
+            InsertAction.self,
+            table: "messages",
+            filter: .eq("conversation_id", value: conversationId.uuidString)
+        )
 
-        await channel.subscribe()
+        await channel.subscribeWithError()
 
         Task {
             for await change in changes {

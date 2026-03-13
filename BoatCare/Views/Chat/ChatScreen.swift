@@ -5,7 +5,8 @@
 
 import SwiftUI
 
-struct ChatMessage: Identifiable {
+/// Local chat message for the placeholder chat screen (not the shop messaging system)
+struct LocalLocalChatMessage: Identifiable {
     let id = UUID()
     let text: String
     let isUser: Bool
@@ -16,8 +17,8 @@ struct ChatScreen: View {
     @EnvironmentObject var authService: AuthService
     @EnvironmentObject var favoritesManager: FavoritesManager
 
-    @State private var messages: [ChatMessage] = [
-        ChatMessage(text: "chat.welcome".loc, isUser: false)
+    @State private var messages: [LocalChatMessage] = [
+        LocalChatMessage(text: "chat.welcome".loc, isUser: false)
     ]
     @State private var inputText = ""
 
@@ -68,18 +69,18 @@ struct ChatScreen: View {
     private func sendMessage() {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
-        messages.append(ChatMessage(text: text, isUser: true))
+        messages.append(LocalChatMessage(text: text, isUser: true))
         inputText = ""
 
         // Placeholder auto-reply
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            messages.append(ChatMessage(text: "chat.coming_soon".loc, isUser: false))
+            messages.append(LocalChatMessage(text: "chat.coming_soon".loc, isUser: false))
         }
     }
 }
 
 struct MessageBubble: View {
-    let message: ChatMessage
+    let message: LocalChatMessage
 
     var body: some View {
         HStack {
