@@ -6,7 +6,7 @@
 import SwiftUI
 
 /// Local chat message for the placeholder chat screen (not the shop messaging system)
-struct LocalLocalChatMessage: Identifiable {
+struct LocalChatMessage: Identifiable {
     let id = UUID()
     let text: String
     let isUser: Bool

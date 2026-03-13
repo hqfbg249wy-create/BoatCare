@@ -172,7 +172,7 @@ final class MessagingService {
             filter: .eq("conversation_id", value: conversationId.uuidString)
         )
 
-        await channel.subscribeWithError()
+        try await channel.subscribeWithError()
 
         Task {
             for await change in changes {
