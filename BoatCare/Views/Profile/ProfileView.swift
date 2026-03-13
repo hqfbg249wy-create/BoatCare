@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import Auth
 import StripePaymentSheet
 import Supabase
 
@@ -35,7 +34,7 @@ struct BoatInfo: Codable, Identifiable, Sendable {
 }
 
 struct ProfileView: View {
-    @Environment(AuthService.self) private var authService
+    @EnvironmentObject var authService: AuthService
 
     // Personal data
     @State private var fullName = ""

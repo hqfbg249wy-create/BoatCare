@@ -6,12 +6,10 @@
 //
 
 import SwiftUI
-import Auth
-
 struct OrderDetailView: View {
     let orderId: UUID
 
-    @Environment(AuthService.self) private var authService
+    @EnvironmentObject var authService: AuthService
 
     @State private var order: Order?
     @State private var isLoading = true

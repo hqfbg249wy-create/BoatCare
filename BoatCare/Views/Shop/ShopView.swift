@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ShopView: View {
-    @Environment(AuthService.self) private var authService
+    @EnvironmentObject var authService: AuthService
 
     @State private var searchText = ""
     @State private var categories: [ProductCategory] = []

@@ -6,10 +6,8 @@
 //
 
 import SwiftUI
-import Auth
-
 struct ConversationsView: View {
-    @Environment(AuthService.self) private var authService
+    @EnvironmentObject var authService: AuthService
 
     @State private var conversations: [Conversation] = []
     @State private var isLoading = true

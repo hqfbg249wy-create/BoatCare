@@ -6,11 +6,10 @@
 //
 
 import SwiftUI
-import Auth
 import StripePaymentSheet
 
 struct CheckoutView: View {
-    @Environment(AuthService.self) private var authService
+    @EnvironmentObject var authService: AuthService
     @Environment(CartManager.self) private var cartManager
     @Environment(\.dismiss) private var dismiss
 

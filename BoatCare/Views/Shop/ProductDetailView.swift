@@ -10,7 +10,7 @@ import SwiftUI
 struct ProductDetailView: View {
     let product: Product
     @Environment(CartManager.self) private var cartManager
-    @Environment(AuthService.self) private var authService
+    @EnvironmentObject var authService: AuthService
 
     @State private var quantity = 1
     @State private var showAddedToast = false

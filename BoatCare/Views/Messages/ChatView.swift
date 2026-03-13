@@ -6,12 +6,10 @@
 //
 
 import SwiftUI
-import Auth
-
 struct ChatView: View {
     let conversation: Conversation
 
-    @Environment(AuthService.self) private var authService
+    @EnvironmentObject var authService: AuthService
 
     @State private var messages: [ChatMessage] = []
     @State private var newMessage = ""
