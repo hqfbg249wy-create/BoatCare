@@ -67,20 +67,19 @@ final class AuthService {
                 email: email,
                 password: password
             )
-            if let user = response.user {
-                currentUser = user
-                // Create profile
-                try await client.from("profiles")
-                    .insert([
-                        "id": user.id.uuidString,
-                        "email": email,
-                        "full_name": fullName,
-                        "role": "user"
-                    ])
-                    .execute()
-                isAuthenticated = true
-                await loadProfile()
-            }
+            let user = response.user
+            currentUser = user
+            // Create profile
+            try await client.from("profiles")
+                .insert([
+                    "id": user.id.uuidString,
+                    "email": email,
+                    "full_name": fullName,
+                    "role": "user"
+                ])
+                .execute()
+            isAuthenticated = true
+            await loadProfile()
         } catch {
             errorMessage = "Registrierung fehlgeschlagen: \(error.localizedDescription)"
         }
