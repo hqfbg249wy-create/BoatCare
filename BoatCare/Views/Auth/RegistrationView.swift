@@ -2,18 +2,17 @@
 //  RegistrationView.swift
 //  BoatCare
 //
-//  Multi-step registration: Account → Personal Data → Privacy → Payment (optional)
+//  Multi-step registration: Account → Personal Data → Privacy
 //
 
 import SwiftUI
-import StripePaymentSheet
 
 struct RegistrationView: View {
     @EnvironmentObject var authService: AuthService
     @Environment(\.dismiss) private var dismiss
 
     @State private var currentStep = 1
-    private let totalSteps = 4
+    private let totalSteps = 3
 
     // Step 1: Account
     @State private var fullName = ""
@@ -32,10 +31,6 @@ struct RegistrationView: View {
     @State private var privacyAccepted = false
     @State private var termsAccepted = false
     @State private var showPrivacyPolicy = false
-
-    // Step 4: Payment (optional)
-    @State private var paymentSetupSheet: PaymentSheet?
-    @State private var paymentSetupComplete = false
 
     // General
     @State private var isLoading = false
@@ -58,7 +53,6 @@ struct RegistrationView: View {
                     case 1: accountStep
                     case 2: personalDataStep
                     case 3: privacyStep
-                    case 4: paymentStep
                     default: EmptyView()
                     }
                 }
@@ -103,10 +97,9 @@ struct RegistrationView: View {
 
     private var stepTitle: String {
         switch currentStep {
-        case 1: return "Schritt 1 von 4 \u{2013} Konto erstellen"
-        case 2: return "Schritt 2 von 4 \u{2013} Pers\u{00F6}nliche Daten"
-        case 3: return "Schritt 3 von 4 \u{2013} Datenschutz"
-        case 4: return "Schritt 4 von 4 \u{2013} Zahlungsmethode"
+        case 1: return "Schritt 1 von 3 \u{2013} Konto erstellen"
+        case 2: return "Schritt 2 von 3 \u{2013} Pers\u{00F6}nliche Daten"
+        case 3: return "Schritt 3 von 3 \u{2013} Datenschutz"
         default: return ""
         }
     }
@@ -266,61 +259,11 @@ struct RegistrationView: View {
         }
     }
 
-    // MARK: - Step 4: Payment (optional)
-
-    private var paymentStep: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Zahlungsmethode")
-                .font(.title2)
-                .fontWeight(.bold)
-
-            Text("Hinterlege jetzt eine Zahlungsmethode f\u{00FC}r den Shop, oder richte sie sp\u{00E4}ter im Profil ein.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            if paymentSetupComplete {
-                HStack(spacing: 12) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(AppColors.success)
-                    VStack(alignment: .leading) {
-                        Text("Zahlungsmethode gespeichert")
-                            .fontWeight(.semibold)
-                        Text("Du kannst sofort im Shop einkaufen!")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding()
-                .background(AppColors.success.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            } else {
-                Button {
-                    Task { await setupPayment() }
-                } label: {
-                    HStack {
-                        Image(systemName: "creditcard")
-                        Text("Zahlungsmethode hinzuf\u{00FC}gen")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(AppColors.primary)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-
-                Text("Du kannst Kreditkarte, Debitkarte oder SEPA-Lastschrift verwenden.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
     // MARK: - Navigation Buttons
 
     private var navigationButtons: some View {
         HStack(spacing: 16) {
-            if currentStep > 1 && currentStep < 4 {
+            if currentStep > 1 && currentStep < 3 {
                 Button {
                     withAnimation { currentStep -= 1 }
                 } label: {
@@ -361,8 +304,7 @@ struct RegistrationView: View {
         switch currentStep {
         case 1: return "Konto erstellen"
         case 2: return "Weiter"
-        case 3: return "Akzeptieren & Weiter"
-        case 4: return paymentSetupComplete ? "Fertig \u{2013} Los geht's!" : "\u{00DC}berspringen"
+        case 3: return "Akzeptieren & Los geht's!"
         default: return "Weiter"
         }
     }
@@ -372,7 +314,6 @@ struct RegistrationView: View {
         case 1: return !fullName.isEmpty && !email.isEmpty && password.count >= 8 && password == passwordConfirm
         case 2: return true // Personal data is optional at this stage
         case 3: return privacyAccepted && termsAccepted
-        case 4: return true // Payment is optional
         default: return false
         }
     }
@@ -406,12 +347,8 @@ struct RegistrationView: View {
             withAnimation { currentStep = 3 }
 
         case 3:
-            // Accept privacy & terms
+            // Accept privacy & terms, then done
             try? await authService.acceptPrivacy()
-            withAnimation { currentStep = 4 }
-
-        case 4:
-            // Done – dismiss registration
             dismiss()
 
         default:
@@ -419,32 +356,6 @@ struct RegistrationView: View {
         }
 
         isLoading = false
-    }
-
-    private func setupPayment() async {
-        do {
-            let (sheet, customerId) = try await PaymentService.shared.createSetupSheet()
-            paymentSetupSheet = sheet
-
-            if let rootVC = UIApplication.shared.connectedScenes
-                .compactMap({ $0 as? UIWindowScene })
-                .first?.windows.first?.rootViewController {
-                paymentSetupSheet?.present(from: rootVC) { result in
-                    switch result {
-                    case .completed:
-                        paymentSetupComplete = true
-                        if var profile = authService.userProfile {
-                            profile.stripeCustomerId = customerId
-                            Task { try? await authService.updateProfile(profile) }
-                        }
-                    case .canceled, .failed:
-                        break
-                    }
-                }
-            }
-        } catch {
-            errorMessage = "Zahlungs-Setup fehlgeschlagen: \(error.localizedDescription)"
-        }
     }
 
     // MARK: - Helpers

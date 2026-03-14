@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C34BE84B2F634155002AFD4C /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = C3FE65802EF2F7A3001A07D2 /* Supabase */; };
+		C34BE84C2F634155002AFD4C /* StripePaymentSheet in Frameworks */ = {isa = PBXBuildFile; productRef = C3FE65822EF2F7A3001A07D2 /* StripePaymentSheet */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		C3FE65582EF2F7A2001A07D2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +70,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C34BE84C2F634155002AFD4C /* StripePaymentSheet in Frameworks */,
+				C34BE84B2F634155002AFD4C /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -207,6 +214,11 @@
 			knownRegions = (
 				en,
 				Base,
+				fr,
+				nl,
+				de,
+				es,
+				it,
 			);
 			mainGroup = C3FE653D2EF2F7A1001A07D2;
 			minimizedProjectReferenceProxies = 1;
