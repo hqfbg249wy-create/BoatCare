@@ -9,9 +9,8 @@
 import Foundation
 
 enum StripeConfig {
-    // IMPORTANT: Replace these with your actual Stripe keys
     // Test mode publishable key (safe for client-side)
-    static let publishableKey = "pk_test_REPLACE_WITH_YOUR_KEY"
+    static let publishableKey = "pk_test_51TA7UZAKSxHR03mT7pUUxkzinP3uCALPTnpA0uCsTCHffyscoELwNpU1ia3MwwyhBvJQPHahLJT9N5KqtsC9qcyS00C79hUZFl"
 
     // Merchant display name shown in Payment Sheet
     static let merchantDisplayName = "BoatCare"
