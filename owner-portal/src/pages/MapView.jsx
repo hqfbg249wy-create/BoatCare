@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react'
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Heart, Phone, Mail, Globe, Star, Search, Filter, X, Navigation, MapPin, Wrench, ShoppingCart, Fuel, Wind, Anchor, Radio, Waves, Ship, ChevronRight, Tag } from 'lucide-react'
@@ -124,9 +124,15 @@ function createClusterIcon(count) {
   })
 }
 
-function MapController({ center, zoom, bounds }) {
+function MapController({ center, zoom, bounds, onMoveEnd }) {
   const map = useMap()
+  const isFirstRender = useRef(true)
   useEffect(() => {
+    // Skip initial render — MapContainer handles the initial position
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
     if (bounds && bounds.length > 0) {
       const latLngs = bounds.map(b => [b[0], b[1]])
       if (latLngs.length === 1) {
@@ -138,6 +144,20 @@ function MapController({ center, zoom, bounds }) {
       map.flyTo(center, zoom || 12)
     }
   }, [center, zoom, bounds])
+  // Save map position on move
+  useEffect(() => {
+    const handler = () => {
+      const c = map.getCenter()
+      const z = map.getZoom()
+      if (onMoveEnd) onMoveEnd(c.lat, c.lng, z)
+    }
+    map.on('moveend', handler)
+    return () => map.off('moveend', handler)
+  }, [map, onMoveEnd])
+  // Ensure tiles render on mount
+  useEffect(() => {
+    setTimeout(() => map.invalidateSize(), 100)
+  }, [map])
   return null
 }
 
@@ -160,18 +180,45 @@ function StarRating({ rating, count }) {
   )
 }
 
+// ── LocalStorage helpers for map persistence ──
+function getSavedMapPosition() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('boatcare_map_pos'))
+    if (saved && saved.lat && saved.lng && saved.zoom) return saved
+  } catch {}
+  return null
+}
+function saveMapPosition(lat, lng, zoom) {
+  localStorage.setItem('boatcare_map_pos', JSON.stringify({ lat, lng, zoom }))
+}
+function getRecentLocations() {
+  try { return JSON.parse(localStorage.getItem('boatcare_recent_locations') || '[]') } catch { return [] }
+}
+function addRecentLocation(name, lat, lng) {
+  const recents = getRecentLocations().filter(r => r.name !== name)
+  recents.unshift({ name, lat, lng, time: Date.now() })
+  localStorage.setItem('boatcare_recent_locations', JSON.stringify(recents.slice(0, 8)))
+}
+
 export default function MapView() {
   const { user } = useAuth()
   const [providers, setProviders] = useState([])
-  const [allProviders, setAllProviders] = useState([]) // includes providers without coords, for favorites list
+  const [allProviders, setAllProviders] = useState([])
   const [favorites, setFavorites] = useState(new Set())
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('')
-  const [center, setCenter] = useState([50.7, 7.1])
-  const [mapZoom, setMapZoom] = useState(6)
+  const savedPos = useMemo(() => getSavedMapPosition(), [])
+  const [center, setCenter] = useState(savedPos ? [savedPos.lat, savedPos.lng] : [50.7, 7.1])
+  const [mapZoom, setMapZoom] = useState(savedPos ? savedPos.zoom : 6)
   const [mapBounds, setMapBounds] = useState(null)
   const [selectedProvider, setSelectedProvider] = useState(null)
+  const [recentLocations, setRecentLocations] = useState(getRecentLocations())
+  const [showRecents, setShowRecents] = useState(false)
+
+  const handleMapMoveEnd = useCallback((lat, lng, zoom) => {
+    saveMapPosition(lat, lng, zoom)
+  }, [])
 
   useEffect(() => { if (user) loadData() }, [user])
 
@@ -201,7 +248,8 @@ export default function MapView() {
     setFavorites(favSet)
     console.log('Loaded favorites:', favSet.size, 'from', (favs || []).length, 'entries')
 
-    if (navigator.geolocation) {
+    // Only use geolocation if no saved map position
+    if (!getSavedMapPosition() && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         pos => setCenter([pos.coords.latitude, pos.coords.longitude]),
         () => {}
@@ -258,7 +306,11 @@ export default function MapView() {
           if (cls === 'place' || cls === 'boundary' || type === 'city' || type === 'town' || type === 'village' || type === 'administrative') {
             setCenter([parseFloat(lat), parseFloat(lon)])
             setMapZoom(12)
-            setMapBounds(null) // Use center/zoom, not bounds
+            setMapBounds(null)
+            // Save to recent locations
+            const locName = data[0].display_name?.split(',')[0] || s
+            addRecentLocation(locName, parseFloat(lat), parseFloat(lon))
+            setRecentLocations(getRecentLocations())
           }
         }
       } catch (e) {
@@ -290,10 +342,35 @@ export default function MapView() {
       <p className="subtitle">{providers.length} Service-Partner · {favorites.size} Favoriten</p>
 
       <div className="filter-bar">
-        <div className="search-input">
+        <div className="search-input" style={{ position: 'relative' }}>
           <Search size={16} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Name, Ort oder Kategorie..." />
+          <input
+            value={search}
+            onChange={e => { setSearch(e.target.value); setShowRecents(false) }}
+            onFocus={() => { if (!search && recentLocations.length > 0) setShowRecents(true) }}
+            onBlur={() => setTimeout(() => setShowRecents(false), 200)}
+            placeholder="Name, Ort oder Kategorie..."
+          />
           {search && <button className="btn-icon" onClick={() => setSearch('')}><X size={14} /></button>}
+          {/* Recent locations dropdown */}
+          {showRecents && recentLocations.length > 0 && (
+            <div className="search-recents-dropdown">
+              <span className="search-recents-title">Letzte Orte</span>
+              {recentLocations.map((loc, i) => (
+                <button key={i} className="search-recent-item" onMouseDown={(e) => {
+                  e.preventDefault()
+                  setCenter([loc.lat, loc.lng])
+                  setMapZoom(12)
+                  setMapBounds(null)
+                  setSearch(loc.name)
+                  setShowRecents(false)
+                }}>
+                  <MapPin size={14} />
+                  <span>{loc.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <select value={filterCat} onChange={e => setFilterCat(e.target.value)}>
           <option value="">Alle Kategorien</option>
@@ -315,12 +392,12 @@ export default function MapView() {
       </div>
 
       <div className="map-container" style={{ position: 'relative' }}>
-        <MapContainer center={center} zoom={6} style={{ height: '550px', width: '100%', borderRadius: '12px' }}>
+        <MapContainer center={center} zoom={mapZoom} style={{ height: '550px', width: '100%', borderRadius: '12px' }}>
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <MapController center={center} zoom={mapZoom} bounds={mapBounds} />
+          <MapController center={center} zoom={mapZoom} bounds={mapBounds} onMoveEnd={handleMapMoveEnd} />
           <MarkerClusterGroup
             chunkedLoading
             maxClusterRadius={50}
@@ -328,6 +405,7 @@ export default function MapView() {
             showCoverageOnHover={false}
             zoomToBoundsOnClick={true}
             disableClusteringAtZoom={16}
+            iconCreateFunction={(cluster) => createClusterIcon(cluster.getChildCount())}
           >
           {filtered.map(p => (
               <Marker

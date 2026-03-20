@@ -293,6 +293,19 @@ a { color: var(--blue); text-decoration: none; }
 /* Custom pin styles */
 .custom-pin { background: none !important; border: none !important; }
 .cluster-icon { background: none !important; border: none !important; }
+/* Override default cluster styles to prevent question marks */
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background: none !important; }
+.marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div { background: none !important; }
+.marker-cluster { background: none !important; }
+.marker-cluster div { background: none !important; width: auto !important; height: auto !important; margin: 0 !important; }
+.marker-cluster span { display: none !important; }
+
+/* Recent locations dropdown */
+.search-recents-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 0 0 12px 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 100; padding: 8px 0; border: 1px solid var(--gray-200); border-top: none; }
+.search-recents-title { display: block; padding: 6px 14px 4px; font-size: 0.72rem; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.5px; }
+.search-recent-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border: none; background: none; cursor: pointer; font-size: 0.88rem; color: var(--gray-700); text-align: left; transition: background 0.1s; }
+.search-recent-item:hover { background: var(--gray-50); }
+.search-recent-item svg { color: var(--primary); flex-shrink: 0; }
 
 /* Map legend */
 .map-legend { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 10px 16px; background: white; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 12px; font-size: 0.8rem; color: var(--gray-600); }
@@ -304,7 +317,7 @@ a { color: var(--blue); text-decoration: none; }
 .provider-detail-card { position: absolute; bottom: 10px; left: 10px; right: 10px; z-index: 1002; background: white; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); overflow: hidden; overflow-y: auto; max-height: 520px; animation: slideUp 0.3s ease; pointer-events: auto; }
 @media (min-width: 768px) {
   .provider-detail-card { left: auto; right: 12px; bottom: 12px; width: 340px; max-height: 420px; border-radius: 14px; }
-  .provider-detail-card .pdc-cover { height: 64px; }
+  .provider-detail-card .pdc-cover { height: 100px; }
   .provider-detail-card .pdc-body { padding: 14px; }
   .provider-detail-card .pdc-logo, .provider-detail-card .pdc-logo-placeholder { width: 48px; height: 48px; border-radius: 10px; }
   .provider-detail-card .pdc-header { margin-top: -30px; margin-bottom: 10px; gap: 10px; }
@@ -316,7 +329,7 @@ a { color: var(--blue); text-decoration: none; }
   .provider-detail-card .pdc-detail-link { padding: 10px; font-size: 0.82rem; }
 }
 @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-.pdc-cover { height: 80px; position: relative; display: flex; align-items: flex-start; justify-content: flex-end; padding: 12px; gap: 8px; }
+.pdc-cover { height: 120px; aspect-ratio: 4/3; position: relative; display: flex; align-items: flex-start; justify-content: flex-end; padding: 12px; gap: 8px; }
 .pdc-close { width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.3); backdrop-filter: blur(4px); border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .pdc-close:hover { background: rgba(0,0,0,0.5); }
 .pdc-fav { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.9); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
