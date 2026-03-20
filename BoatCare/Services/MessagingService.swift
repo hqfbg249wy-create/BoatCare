@@ -31,7 +31,7 @@ final class MessagingService {
         do {
             let data: [Conversation] = try await client
                 .from("conversations")
-                .select("*, service_providers(id, company_name, city)")
+                .select("*, service_providers(id, name, city)")
                 .eq("user_id", value: userId.uuidString)
                 .order("last_message_at", ascending: false)
                 .execute()
@@ -129,7 +129,7 @@ final class MessagingService {
         // Try to find existing
         let existing: [Conversation] = try await client
             .from("conversations")
-            .select("*, service_providers(id, company_name, city)")
+            .select("*, service_providers(id, name, city)")
             .eq("user_id", value: userId.uuidString)
             .eq("provider_id", value: providerId.uuidString)
             .execute()
@@ -153,7 +153,7 @@ final class MessagingService {
         let conv: Conversation = try await client
             .from("conversations")
             .insert(ConvInsert(userId: userId.uuidString, providerId: providerId.uuidString))
-            .select("*, service_providers(id, company_name, city)")
+            .select("*, service_providers(id, name, city)")
             .single()
             .execute()
             .value

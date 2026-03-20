@@ -458,6 +458,72 @@
                 <h1>🔄 Daten aktualisieren</h1>
                 <p class="subtitle">Bestehende Betriebe mit fehlenden Services/Brands über Google Places ergänzen</p>
 
+                <!-- ========== E-MAIL FINDER ========== -->
+                <div style="padding:20px; background:#eff6ff; border-radius:8px; border:2px solid #3b82f6; margin-bottom:20px;">
+                    <h3 style="margin-top:0;">✉️ E-Mail-Finder</h3>
+                    <p style="font-size:13px; color:#475569; margin-bottom:12px;">
+                        Durchsucht die Websites aller Betriebe ohne E-Mail (inkl. Impressum, Kontakt-Seiten).
+                        Erkennt auch verschleierte Adressen wie <code>[at]</code>, <code>(at)</code>, <code>&#123;at&#125;</code>.
+                    </p>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex:2;">
+                            <label>Filter</label>
+                            <select id="email-finder-filter">
+                                <option value="missing_email">Nur Betriebe ohne E-Mail (mit Website)</option>
+                                <option value="all_with_website">Alle Betriebe mit Website (auch mit E-Mail)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Max. Anzahl</label>
+                            <input type="number" id="email-finder-limit" value="50" min="1" max="500">
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Quelle</label>
+                            <select id="email-finder-source">
+                                <option value="crawl4ai">Crawl4AI (lokal)</option>
+                                <option value="scraper">Scraper Backend</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-top:15px;">
+                        <button onclick="window.startEmailFinder()" class="btn-primary" id="email-finder-btn" style="background:#3b82f6;">
+                            ✉️ E-Mail-Suche starten
+                        </button>
+                        <button onclick="window.stopEmailFinder()" class="btn-secondary" id="email-finder-stop-btn" style="display:none;">
+                            ⏹ Stopp
+                        </button>
+                    </div>
+                </div>
+
+                <!-- E-Mail Finder Progress -->
+                <div id="email-finder-progress" style="display:none; margin-bottom:20px;">
+                    <div style="background:#1e293b; color:#e2e8f0; border-radius:8px; padding:15px; font-family:monospace; font-size:12px; max-height:250px; overflow-y:auto;" id="email-finder-log"></div>
+                    <div style="margin-top:10px;">
+                        <div class="progress-bar"><div id="email-finder-fill" class="progress-fill" style="width:0%; background:#3b82f6;"></div></div>
+                        <p id="email-finder-text" style="font-size:13px; color:#666; margin-top:5px;"></p>
+                    </div>
+                </div>
+
+                <!-- E-Mail Finder Results -->
+                <div id="email-finder-results" style="display:none; margin-bottom:30px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <h3 style="margin:0;">✉️ Gefundene E-Mails</h3>
+                        <div style="display:flex; gap:6px;">
+                            <button onclick="window.selectAllEmails()" class="btn-secondary" style="font-size:12px; padding:5px 10px;">Alle</button>
+                            <button onclick="window.deselectAllEmails()" class="btn-secondary" style="font-size:12px; padding:5px 10px;">Keine</button>
+                            <button onclick="window.applySelectedEmails()" class="btn-primary" id="apply-emails-btn" style="font-size:12px; padding:5px 12px; background:#3b82f6;">
+                                💾 Ausgewählte speichern
+                            </button>
+                        </div>
+                    </div>
+                    <div id="email-finder-list" style="max-height:600px; overflow-y:auto;"></div>
+                </div>
+
+                <hr style="border:none; border-top:2px solid #e2e8f0; margin:30px 0;">
+
+                <!-- ========== ENRICHMENT (Google Places) ========== -->
                 <div style="padding:20px; background:#f0fdf4; border-radius:8px; border:2px solid #10b981; margin-bottom:20px;">
                     <h3 style="margin-top:0;">🔎 Anreicherungs-Filter</h3>
 

@@ -2,7 +2,7 @@
 //  AppColors.swift
 //  BoatCare
 //
-//  Design System Colors
+//  Design System Colors – adaptive for Light & Dark Mode
 //
 
 import SwiftUI
@@ -25,15 +25,19 @@ enum AppColors {
     static let delivered = Color(red: 0.063, green: 0.725, blue: 0.506)    // green
     static let cancelled = Color(red: 0.937, green: 0.267, blue: 0.267)    // red
 
-    // Grays
-    static let gray50 = Color(red: 0.973, green: 0.980, blue: 0.988)
-    static let gray100 = Color(red: 0.945, green: 0.961, blue: 0.976)
-    static let gray200 = Color(red: 0.886, green: 0.910, blue: 0.941)
-    static let gray300 = Color(red: 0.796, green: 0.835, blue: 0.882)
-    static let gray400 = Color(red: 0.596, green: 0.647, blue: 0.718)
-    static let gray500 = Color(red: 0.392, green: 0.455, blue: 0.545)
-    static let gray700 = Color(red: 0.200, green: 0.255, blue: 0.333)
-    static let gray900 = Color(red: 0.059, green: 0.090, blue: 0.165)
+    // Grays – adaptive for Light & Dark Mode
+    static let gray50  = Color(UIColor.secondarySystemBackground)
+    static let gray100 = Color(UIColor.tertiarySystemBackground)
+    static let gray200 = Color(UIColor.systemGray5)
+    static let gray300 = Color(UIColor.systemGray4)
+    static let gray400 = Color(UIColor.systemGray2)
+    static let gray500 = Color(UIColor.secondaryLabel)
+    static let gray700 = Color(UIColor.label)
+    static let gray900 = Color(UIColor.label)
+
+    // Explicit background helpers
+    static let cardBackground = Color(UIColor.secondarySystemBackground)
+    static let background = Color(UIColor.systemBackground)
 
     static func statusColor(for status: String) -> Color {
         switch status.lowercased() {

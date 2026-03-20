@@ -56,34 +56,45 @@ struct Promotion: Codable, Identifiable, Sendable {
             return false
         }
 
-        // Check category filter
+        // Check category filter (flexible: matches slug, displayName, or product name contains)
         if let cats = filterCategories, !cats.isEmpty {
-            if let categoryName = product.category?.displayName {
-                guard cats.contains(where: { $0.localizedCaseInsensitiveCompare(categoryName) == .orderedSame }) else {
-                    return false
-                }
-            } else if let categorySlug = product.category?.slug {
-                guard cats.contains(where: { $0.localizedCaseInsensitiveCompare(categorySlug) == .orderedSame }) else {
-                    return false
-                }
-            } else {
+            let catsLower = cats.map { $0.lowercased() }
+            let slug = (product.category?.slug ?? "").lowercased()
+            let displayName = (product.category?.displayName ?? "").lowercased()
+            let productName = product.name.lowercased()
+
+            let catMatch = catsLower.contains(where: { filter in
+                slug == filter || displayName == filter
+                    || slug.contains(filter) || filter.contains(slug)
+                    || displayName.contains(filter) || filter.contains(displayName)
+                    || productName.contains(filter)
+            })
+            guard catMatch else { return false }
+        }
+
+        // Check boat type filter (skip if product has no boat type info)
+        if let types = filterBoatTypes, !types.isEmpty,
+           let productTypes = product.fitsBoatTypes, !productTypes.isEmpty {
+            guard !Set(types.map { $0.lowercased() }).isDisjoint(with: Set(productTypes.map { $0.lowercased() })) else {
                 return false
             }
         }
 
-        // Check boat type filter
-        if let types = filterBoatTypes, !types.isEmpty {
-            guard let productTypes = product.fitsBoatTypes,
-                  !Set(types.map { $0.lowercased() }).isDisjoint(with: Set(productTypes.map { $0.lowercased() })) else {
-                return false
-            }
-        }
-
-        // Check manufacturer filter
+        // Check manufacturer filter (also checks product name and manufacturer field)
         if let mfgs = filterManufacturers, !mfgs.isEmpty {
-            guard let productMfgs = product.fitsManufacturers,
-                  !Set(mfgs.map { $0.lowercased() }).isDisjoint(with: Set(productMfgs.map { $0.lowercased() })) else {
-                return false
+            let mfgsLower = mfgs.map { $0.lowercased() }
+            let productMfgsLower = (product.fitsManufacturers ?? []).map { $0.lowercased() }
+            let productName = product.name.lowercased()
+            let productMfg = (product.manufacturer ?? "").lowercased()
+
+            let mfgMatch = mfgsLower.contains(where: { filter in
+                productMfgsLower.contains(filter)
+                    || productName.contains(filter)
+                    || productMfg.contains(filter)
+            })
+            // Only reject if product has manufacturer info but doesn't match
+            if !productMfgsLower.isEmpty || !productMfg.isEmpty {
+                guard mfgMatch else { return false }
             }
         }
 

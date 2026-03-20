@@ -68,13 +68,16 @@ final class PaymentService {
         SupabaseManager.shared.client
     }
 
-    /// Shared Stripe appearance for consistent UI
+    /// Shared Stripe appearance – adapts to Light & Dark Mode
     private var boatCareAppearance: PaymentSheet.Appearance {
         var appearance = PaymentSheet.Appearance()
         appearance.colors.primary = UIColor(red: 0.976, green: 0.451, blue: 0.086, alpha: 1) // #f97316
-        appearance.colors.background = .white
-        appearance.colors.componentBackground = UIColor(red: 0.973, green: 0.980, blue: 0.988, alpha: 1)
-        appearance.colors.componentBorder = UIColor(red: 0.886, green: 0.910, blue: 0.941, alpha: 1)
+        appearance.colors.background = .systemBackground
+        appearance.colors.componentBackground = .secondarySystemBackground
+        appearance.colors.componentBorder = .separator
+        appearance.colors.text = .label
+        appearance.colors.textSecondary = .secondaryLabel
+        appearance.colors.componentPlaceholderText = .tertiaryLabel
         appearance.cornerRadius = 12
         appearance.font.base = UIFont.systemFont(ofSize: 16)
         return appearance
@@ -88,24 +91,28 @@ final class PaymentService {
         totalAmount: Double
     ) async throws -> PaymentSheet {
         let session = try await client.auth.session
-        let accessToken = session.accessToken
-
         let orderIds = orders.map { $0.id.uuidString }
 
-        let requestBody: [String: Any] = [
-            "amount": Int(totalAmount * 100),
-            "currency": "eur",
-            "order_ids": orderIds,
-            "metadata": [
-                "buyer_id": session.user.id.uuidString,
-                "order_count": orders.count
-            ]
-        ]
+        struct PaymentRequest: Encodable {
+            let amount: Int
+            let currency: String
+            let order_ids: [String]
+            let metadata: [String: String]
+        }
 
-        let paymentResponse = try await callEdgeFunction(
-            url: StripeConfig.createPaymentIntentURL,
-            body: requestBody,
-            token: accessToken
+        let requestBody = PaymentRequest(
+            amount: Int(totalAmount * 100),
+            currency: "eur",
+            order_ids: orderIds,
+            metadata: [
+                "buyer_id": session.user.id.uuidString,
+                "order_count": "\(orders.count)"
+            ]
+        )
+
+        let paymentResponse: PaymentIntentResponse = try await client.functions.invoke(
+            "create-payment-intent",
+            options: .init(body: requestBody)
         )
 
         var config = PaymentSheet.Configuration()
@@ -148,60 +155,28 @@ final class PaymentService {
     // MARK: - Setup (save payment method without purchasing)
 
     /// Creates a SetupIntent so the user can save a payment method in their profile
-    /// Returns: (CustomerSheet or nil, customer_id to save to profile)
     func createSetupSheet() async throws -> (PaymentSheet, String) {
-        let session = try await client.auth.session
-        let accessToken = session.accessToken
+        struct EmptyBody: Encodable {}
 
-        let setupURL = URL(string: "\(SupabaseConfig.url)/functions/v1/setup-payment-method")!
-
-        let response = try await callEdgeFunction(
-            url: setupURL,
-            body: [:],
-            token: accessToken
+        let paymentResponse: PaymentIntentResponse = try await client.functions.invoke(
+            "setup-payment-method",
+            options: .init(body: EmptyBody())
         )
 
         var config = PaymentSheet.Configuration()
         config.merchantDisplayName = StripeConfig.merchantDisplayName
         config.customer = .init(
-            id: response.customerId,
-            ephemeralKeySecret: response.ephemeralKey
+            id: paymentResponse.customerId,
+            ephemeralKeySecret: paymentResponse.ephemeralKey
         )
         config.appearance = boatCareAppearance
 
         let setupSheet = PaymentSheet(
-            setupIntentClientSecret: response.clientSecret,
+            setupIntentClientSecret: paymentResponse.clientSecret,
             configuration: config
         )
 
-        return (setupSheet, response.customerId)
-    }
-
-    // MARK: - Helpers
-
-    private func callEdgeFunction(
-        url: URL,
-        body: [String: Any],
-        token: String
-    ) async throws -> PaymentIntentResponse {
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
-        request.httpBody = jsonData
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw PaymentError.serverError(errorBody)
-        }
-
-        return try JSONDecoder().decode(PaymentIntentResponse.self, from: data)
+        return (setupSheet, paymentResponse.customerId)
     }
 }
 

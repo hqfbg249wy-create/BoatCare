@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import StripePaymentSheet
 
 @main
 struct BoatCareApp: App {
@@ -14,6 +15,11 @@ struct BoatCareApp: App {
 
     // @Observable services (used by shop screens via @Environment)
     @State private var cartManager = CartManager()
+
+    init() {
+        // Initialize Stripe SDK with publishable key
+        StripeAPI.defaultPublishableKey = StripeConfig.publishableKey
+    }
 
     var body: some Scene {
         WindowGroup {

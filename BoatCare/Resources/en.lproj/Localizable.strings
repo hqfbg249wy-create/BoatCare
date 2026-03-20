@@ -281,7 +281,8 @@
 "suggest_edit.login_required" = "Please sign in first.";
 
 // MARK: - Chat
-"chat.title" = "Chat";
-"chat.welcome" = "Welcome to BoatCare! This section will soon be powered by AI.";
-"chat.input_hint" = "Type a message...";
-"chat.coming_soon" = "AI chat coming soon! 🚢";
+"chat.title" = "Boat Assistant";
+"chat.welcome_ai" = "Ahoy! ⚓ I'm your BoatCare Boat Assistant.\n\nAsk me anything about boats — from engine maintenance to electronics and safety equipment. I'm happy to help!";
+"chat.boat_context" = "I see you have the \"%@\". I'll gladly refer to it!";
+"chat.input_hint" = "Ask a question...";
+"chat.error_prefix" = "Sorry, something went wrong: ";

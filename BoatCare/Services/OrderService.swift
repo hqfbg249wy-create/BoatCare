@@ -17,7 +17,7 @@ final class OrderService {
     }
 
     private let orderSelect = """
-        *, order_items(*), service_providers(id, company_name, city)
+        *, order_items(*), service_providers(id, name, city)
         """
 
     // MARK: - Fetch Orders

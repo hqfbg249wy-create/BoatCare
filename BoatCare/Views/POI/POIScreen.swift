@@ -5,48 +5,104 @@
 
 import SwiftUI
 import MapKit
+import Supabase
 
 struct POIScreen: View {
     @EnvironmentObject var authService: AuthService
     @EnvironmentObject var favoritesManager: FavoritesManager
-    @StateObject private var providerManager = ServiceProviderManager()
-    @State private var selectedProvider: ServiceProvider?
 
-    private var favoriteProviders: [BoatServiceProvider] {
-        providerManager.providers.filter { favoritesManager.isFavorite($0.id) }
-    }
+    @State private var favoriteProviders: [BoatServiceProvider] = []
+    @State private var isLoading = true
+    @State private var errorMessage: String?
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if providerManager.isLoading {
-                    ProgressView("general.loading".loc)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if favoriteProviders.isEmpty {
-                    emptyState
-                } else {
-                    List {
-                        ForEach(favoriteProviders) { provider in
-                            FavoriteRow(provider: provider) {
-                                favoritesManager.toggle(provider.id)
-                            }
-                        }
-                        .onDelete { offsets in
-                            // Swipe-to-delete: Favorit entfernen
-                            for index in offsets {
-                                favoritesManager.toggle(favoriteProviders[index].id)
-                            }
+        Group {
+            if isLoading {
+                ProgressView("general.loading".loc)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error = errorMessage {
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.orange)
+                    Text(error)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                    Button {
+                        Task { await loadFavorites() }
+                    } label: {
+                        Label("Erneut versuchen", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if favoriteProviders.isEmpty {
+                emptyState
+            } else {
+                List {
+                    ForEach(favoriteProviders) { provider in
+                        FavoriteRow(provider: provider) {
+                            favoritesManager.toggle(provider.id)
+                            favoriteProviders.removeAll { $0.id == provider.id }
                         }
                     }
-                    .listStyle(.plain)
+                    .onDelete { offsets in
+                        for index in offsets {
+                            let provider = favoriteProviders[index]
+                            favoritesManager.toggle(provider.id)
+                        }
+                        favoriteProviders.remove(atOffsets: offsets)
+                    }
                 }
-            }
-            .navigationTitle("poi.favorites".loc)
-            .task {
-                providerManager.setSupabase(authService.supabase)
-                await providerManager.loadAllProviders()
+                .listStyle(.plain)
             }
         }
+        .navigationTitle("poi.favorites".loc)
+        .task {
+            await loadFavorites()
+        }
+    }
+
+    // MARK: - Load only favorited providers by ID
+
+    private func loadFavorites() async {
+        let ids = favoritesManager.favoriteIDs
+        guard !ids.isEmpty else {
+            isLoading = false
+            favoriteProviders = []
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let idStrings = ids.map { $0.uuidString }
+            let result: [BoatServiceProvider] = try await authService.supabase
+                .from("service_providers")
+                .select()
+                .in("id", values: idStrings)
+                .execute()
+                .value
+
+            favoriteProviders = result
+            print("✅ POIScreen: \(result.count) Favoriten geladen (von \(ids.count) IDs)")
+
+            // Bereinige IDs die nicht mehr in der DB existieren
+            let foundIDs = Set(result.map { $0.id })
+            let orphanIDs = ids.subtracting(foundIDs)
+            for orphan in orphanIDs {
+                print("⚠️ Favorit \(orphan) nicht mehr in DB - wird entfernt")
+                favoritesManager.toggle(orphan)
+            }
+        } catch {
+            errorMessage = "Fehler beim Laden: \(error.localizedDescription)"
+            print("❌ POIScreen Fehler: \(error)")
+        }
+
+        isLoading = false
     }
 
     private var emptyState: some View {
@@ -62,6 +118,19 @@ struct POIScreen: View {
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
+
+            if favoritesManager.favoriteIDs.isEmpty {
+                Text("Markiere Provider mit ❤️ auf der Karte")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Button {
+                Task { await loadFavorites() }
+            } label: {
+                Label("general.refresh".loc, systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(.bordered)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

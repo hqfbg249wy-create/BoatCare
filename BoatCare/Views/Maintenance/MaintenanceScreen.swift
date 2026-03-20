@@ -6,6 +6,13 @@
 import SwiftUI
 import Supabase
 
+// MARK: - Navigation Target for Maintenance Actions
+enum MaintenanceNavTarget: Hashable {
+    case service(equipmentName: String, category: String)
+    case spareParts(equipmentName: String)
+    case aiAssistant(question: String)
+}
+
 // MARK: - Maintenance Task Model (manuell erstellte Aufgaben)
 struct MaintenanceTask: Identifiable, Codable {
     var id: UUID = UUID()
@@ -95,9 +102,13 @@ enum MaintenanceEntry: Identifiable {
 }
 
 // MARK: - Maintenance Screen
+// NavigationStack is provided by MainTabView - this view is the root content
 struct MaintenanceScreen: View {
     @EnvironmentObject var authService: AuthService
     @EnvironmentObject var favoritesManager: FavoritesManager
+
+    /// Callback for programmatic navigation (avoids NavigationLink in List issue)
+    var onNavigate: ((MaintenanceNavTarget) -> Void)?
 
     @State private var tasks: [MaintenanceTask] = []
     @State private var equipmentItems: [EquipmentMaintenanceItem] = []
@@ -115,54 +126,57 @@ struct MaintenanceScreen: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if entries.isEmpty {
-                    emptyState
-                } else {
-                    List {
-
-                        // Alle Einträge
-                        Section("maintenance.tasks".loc) {
-                            ForEach(entries) { entry in
-                                switch entry {
-                                case .manual(let task):
-                                    MaintenanceTaskRow(task: task) { toggleTask(task) }
-                                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                            Button(role: .destructive) {
-                                                deleteManualTask(task)
-                                            } label: {
-                                                Label("Löschen", systemImage: "trash")
-                                            }
-                                        }
-                                case .equipment(let item):
-                                    EquipmentMaintenanceRow(item: item, isCompleting: completingEquipmentIds.contains(item.id)) {
-                                        Task { await completeEquipmentMaintenance(item) }
-                                    }
+        Group {
+            if entries.isEmpty {
+                emptyState
+            } else {
+                List {
+                    Section("maintenance.tasks".loc) {
+                        ForEach(entries) { entry in
+                            switch entry {
+                            case .manual(let task):
+                                MaintenanceTaskRow(task: task) { toggleTask(task) }
                                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                        Button {
-                                            Task { await completeEquipmentMaintenance(item) }
+                                        Button(role: .destructive) {
+                                            deleteManualTask(task)
                                         } label: {
-                                            Label("Erledigt", systemImage: "checkmark.circle.fill")
+                                            Label("Loeschen", systemImage: "trash")
                                         }
-                                        .tint(.green)
                                     }
+                            case .equipment(let item):
+                                EquipmentMaintenanceRow(
+                                    item: item,
+                                    isCompleting: completingEquipmentIds.contains(item.id),
+                                    onComplete: {
+                                        Task { await completeEquipmentMaintenance(item) }
+                                    },
+                                    onNavigate: { target in
+                                        onNavigate?(target)
+                                    }
+                                )
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button {
+                                        Task { await completeEquipmentMaintenance(item) }
+                                    } label: {
+                                        Label("Erledigt", systemImage: "checkmark.circle.fill")
+                                    }
+                                    .tint(.green)
                                 }
                             }
                         }
                     }
                 }
             }
-            .navigationTitle("maintenance.title".loc)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingAdd = true } label: { Image(systemName: "plus") }
-                }
+        }
+        .navigationTitle("maintenance.title".loc)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showingAdd = true } label: { Image(systemName: "plus") }
             }
-            .sheet(isPresented: $showingAdd) {
-                AddMaintenanceTaskView(boatNames: savedBoatNames) { newTask in
-                    tasks.append(newTask); saveTasks()
-                }
+        }
+        .sheet(isPresented: $showingAdd) {
+            AddMaintenanceTaskView(boatNames: savedBoatNames) { newTask in
+                tasks.append(newTask); saveTasks()
             }
         }
         .onAppear { loadTasks(); loadBoatNames() }
@@ -189,7 +203,6 @@ struct MaintenanceScreen: View {
     private func loadEquipmentMaintenance() async {
         guard authService.isAuthenticated, let userId = authService.currentUser?.id else { return }
         do {
-            // Erst alle Boote des Users laden
             let boats: [Boat] = try await authService.supabase
                 .from("boats").select()
                 .eq("owner_id", value: userId.uuidString)
@@ -205,7 +218,6 @@ struct MaintenanceScreen: View {
                     .execute().value
 
                 for eq in equipment {
-                    // Wartungszyklus AUS → im Wartungsscreen nicht anzeigen
                     guard let cycle = eq.maintenanceCycleYears, cycle > 0 else { continue }
                     guard let nextStr = eq.nextMaintenanceDate,
                           let nextDate = df.date(from: nextStr) else { continue }
@@ -225,8 +237,6 @@ struct MaintenanceScreen: View {
             print("❌ Equipment-Wartung laden: \(error)")
         }
     }
-
-    
 
     // MARK: - Complete Equipment Maintenance (restart cycle)
     private struct EquipmentMaintenanceCompletionUpdate: Encodable {
@@ -258,12 +268,13 @@ struct MaintenanceScreen: View {
 
             await loadEquipmentMaintenance()
         } catch {
-            print("❌ Equipment-Wartung abschließen: \(error)")
+            print("❌ Equipment-Wartung abschliessen: \(error)")
         }
 
         await MainActor.run { completingEquipmentIds.remove(item.id) }
     }
-// MARK: - Boat Names
+
+    // MARK: - Boat Names
     private func loadBoatNames() {
         if authService.isAuthenticated, let userId = authService.currentUser?.id {
             Task {
@@ -295,18 +306,18 @@ struct MaintenanceScreen: View {
         let sorted = entries
         let idsToDelete = offsets.compactMap { idx -> UUID? in
             if case .manual(let t) = sorted[idx] { return t.id }
-            return nil // Equipment-Einträge können nicht gelöscht werden
+            return nil
         }
         tasks.removeAll { idsToDelete.contains($0.id) }
         saveTasks()
     }
 
-        private func deleteManualTask(_ task: MaintenanceTask) {
+    private func deleteManualTask(_ task: MaintenanceTask) {
         tasks.removeAll { $0.id == task.id }
         saveTasks()
     }
 
-private func saveTasks() {
+    private func saveTasks() {
         if let data = try? JSONEncoder().encode(tasks) {
             UserDefaults.standard.set(data, forKey: "maintenanceTasks")
         }
@@ -364,58 +375,120 @@ struct MaintenanceTaskRow: View {
     }
 }
 
-// MARK: - Equipment Maintenance Row (automatisch)
+// MARK: - Equipment Maintenance Row mit Aktions-Buttons (programmatische Navigation)
 struct EquipmentMaintenanceRow: View {
     let item: EquipmentMaintenanceItem
     let isCompleting: Bool
     let onComplete: () -> Void
+    let onNavigate: (MaintenanceNavTarget) -> Void
+
+    @State private var showActions = false
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "gearshape.2.fill")
-                .font(.title2).foregroundStyle(.purple)
-                .frame(width: 32, height: 32)
+        VStack(alignment: .leading, spacing: 0) {
+            // Hauptzeile - Antippen klappt Aktionen auf/zu
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { showActions.toggle() }
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "gearshape.2.fill")
+                        .font(.title2).foregroundStyle(.purple)
+                        .frame(width: 32, height: 32)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.equipmentName).font(.headline)
-                HStack(spacing: 4) {
-                    Text(item.boatName).font(.caption).foregroundStyle(.secondary)
-                    if let cy = item.cycleYears {
-                        Text("(\(cy) " + "equipment.years".loc + ")")
-                            .font(.caption2).foregroundStyle(.tertiary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.equipmentName).font(.headline)
+                            .foregroundStyle(.primary)
+                        HStack(spacing: 4) {
+                            Text(item.boatName).font(.caption).foregroundStyle(.secondary)
+                            if let cy = item.cycleYears {
+                                Text("(\(cy) " + "equipment.years".loc + ")")
+                                    .font(.caption2).foregroundStyle(.tertiary)
+                            }
+                        }
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 6) {
+                        Text(item.status.label).font(.caption2).fontWeight(.semibold)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(item.status.color.opacity(0.15))
+                            .foregroundStyle(item.status.color).cornerRadius(4)
+                        Text(item.nextMaintenanceDate, style: .date).font(.caption2).foregroundStyle(.tertiary)
+                    }
+
+                    Image(systemName: showActions ? "chevron.up" : "chevron.down")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .buttonStyle(.plain)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 6)
+
+            // Aktions-Buttons (aufklappbar) - Buttons statt NavigationLinks!
+            if showActions {
+                HStack(spacing: 8) {
+                    // Service suchen
+                    Button {
+                        onNavigate(.service(equipmentName: item.equipmentName, category: item.category))
+                    } label: {
+                        MaintenanceActionButton(
+                            title: "Service",
+                            icon: "wrench.and.screwdriver.fill",
+                            color: .orange
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    // Ersatzteile suchen
+                    Button {
+                        onNavigate(.spareParts(equipmentName: item.equipmentName))
+                    } label: {
+                        MaintenanceActionButton(
+                            title: "Ersatzteile",
+                            icon: "cart.fill",
+                            color: .purple
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    // KI-Assistent fragen
+                    Button {
+                        let question = "Ich brauche Hilfe mit meinem \(item.equipmentName) (\(item.category)) auf der \(item.boatName). Naechste Wartung: \(item.nextMaintenanceDate.formatted(date: .abbreviated, time: .omitted)). Was empfiehlst du?"
+                        onNavigate(.aiAssistant(question: question))
+                    } label: {
+                        MaintenanceActionButton(
+                            title: "KI-Assistent",
+                            icon: "bubble.left.fill",
+                            color: .blue
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    // Wartung erledigt
+                    if isCompleting {
+                        ProgressView().controlSize(.small)
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        Button(action: onComplete) {
+                            MaintenanceActionButton(
+                                title: "Erledigt",
+                                icon: "checkmark.circle.fill",
+                                color: .green
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 6) {
-                Text(item.status.label).font(.caption2).fontWeight(.semibold)
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(item.status.color.opacity(0.15))
-                    .foregroundStyle(item.status.color).cornerRadius(4)
-                Text(item.nextMaintenanceDate, style: .date).font(.caption2).foregroundStyle(.tertiary)
-            }
-
-            // ✅ Wartung erledigt → neuen Zyklus starten
-            if isCompleting {
-                ProgressView().controlSize(.small)
-                    .padding(.leading, 6)
-            } else {
-                Button(action: onComplete) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                        .accessibilityLabel(Text("Erledigt"))
-                }
-                .buttonStyle(.plain)
-                .padding(.leading, 6)
+                .padding(.horizontal, 10)
+                .padding(.bottom, 8)
+                .padding(.top, 4)
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 6)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                // Equipment: Markierung bezieht sich auf die *nächste* Wartung
                 .stroke(borderColor(for: item.nextMaintenanceDate) ?? .clear,
                         lineWidth: borderColor(for: item.nextMaintenanceDate) == nil ? 0 : 2)
         )
@@ -430,8 +503,32 @@ struct EquipmentMaintenanceRow: View {
     }
 }
 
+// MARK: - Uniform Action Button for Maintenance Row
+struct MaintenanceActionButton: View {
+    let title: String
+    let icon: String
+    let color: Color
 
- // MARK: - Add Maintenance Task
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(.white)
+                .frame(width: 36, height: 36)
+                .background(color)
+                .clipShape(Circle())
+            Text(title)
+                .font(.system(size: 10))
+                .fontWeight(.medium)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Add Maintenance Task
 struct AddMaintenanceTaskView: View {
     let boatNames: [String]
     let onSave: (MaintenanceTask) -> Void

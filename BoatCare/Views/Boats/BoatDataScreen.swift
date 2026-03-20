@@ -455,7 +455,28 @@ struct BoatCardView: View {
                                 .frame(height: 140)
                                 .frame(maxWidth: .infinity)
                                 .clipped()
-                        default:
+                        case .failure:
+                            // Bild konnte nicht geladen werden - Fallback mit Icon
+                            ZStack {
+                                Color(.systemGray5)
+                                VStack(spacing: 4) {
+                                    Image(systemName: "photo.badge.exclamationmark")
+                                        .font(.title2)
+                                        .foregroundStyle(.secondary)
+                                    Text("Bild nicht verfuegbar")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                            .frame(height: 140)
+                        case .empty:
+                            // Noch am Laden
+                            ZStack {
+                                Color(.systemGray5)
+                                ProgressView()
+                            }
+                            .frame(height: 140)
+                        @unknown default:
                             Color(.systemGray5)
                                 .frame(height: 140)
                         }
@@ -562,13 +583,20 @@ struct BoatDetailView: View {
             // Header
             Section {
                 VStack(spacing: 12) {
-                    if let url = boat.imageUrl, let imageURL = URL(string: url) {
+                    if let url = boat.imageUrl, !url.isEmpty, let imageURL = URL(string: url) {
                         AsyncImage(url: imageURL) { phase in
                             switch phase {
                             case .success(let img):
                                 img.resizable().scaledToFill()
                                     .frame(height: 180).clipped()
                                     .cornerRadius(12)
+                            case .failure:
+                                VStack(spacing: 6) {
+                                    headerIcon
+                                    Text("Bild konnte nicht geladen werden")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
                             default:
                                 headerIcon
                             }

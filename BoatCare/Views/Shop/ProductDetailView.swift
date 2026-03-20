@@ -469,7 +469,7 @@ struct ProductDetailView: View {
         }
         .frame(width: 120)
         .padding(8)
-        .background(.white)
+        .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
     }

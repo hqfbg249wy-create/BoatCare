@@ -121,7 +121,7 @@ struct CartView: View {
             }
         }
         .padding(16)
-        .background(.white)
+        .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
     }
@@ -249,6 +249,6 @@ struct CartView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
         }
-        .background(.white)
+        .background(Color(.systemBackground))
     }
 }

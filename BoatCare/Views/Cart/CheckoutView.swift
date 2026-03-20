@@ -7,6 +7,7 @@
 
 import SwiftUI
 import StripePaymentSheet
+import Supabase
 
 struct CheckoutView: View {
     @EnvironmentObject var authService: AuthService
@@ -258,7 +259,7 @@ struct CheckoutView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                     .padding(16)
-                    .background(.white)
+                    .background(Color(.systemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .shadow(color: .black.opacity(0.04), radius: 4, y: 1)
                 }
@@ -301,7 +302,7 @@ struct CheckoutView: View {
                 .foregroundStyle(AppColors.gray400)
                 .padding(.bottom, 8)
             }
-            .background(.white)
+            .background(Color(.systemBackground))
         }
     }
 
@@ -463,6 +464,15 @@ struct CheckoutView: View {
         isPlacingOrder = true
 
         do {
+            // 0. Refresh auth session to ensure valid JWT
+            let supabase = SupabaseManager.shared.client
+            do {
+                _ = try await supabase.auth.refreshSession()
+                print("✅ Session refreshed before checkout")
+            } catch {
+                print("⚠️ Session refresh failed, trying with existing session: \(error)")
+            }
+
             // 1. Create orders in DB
             placedOrders = try await OrderService.shared.createOrders(
                 from: cartManager.groupedByProvider,
@@ -490,6 +500,7 @@ struct CheckoutView: View {
         } catch {
             isPlacingOrder = false
             isPreparingPayment = false
+            print("❌ Checkout error: \(error)")
             errorMessage = "Fehler: \(error.localizedDescription)"
         }
     }

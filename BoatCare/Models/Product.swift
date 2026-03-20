@@ -102,7 +102,7 @@ struct ServiceProviderBasic: Codable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case id
-        case companyName = "company_name"
+        case companyName = "name"
         case city
     }
 }

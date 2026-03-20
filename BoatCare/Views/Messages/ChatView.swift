@@ -121,7 +121,7 @@ struct ChatView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.white)
+        .background(Color(.systemBackground))
         .overlay(alignment: .top) {
             Divider()
         }

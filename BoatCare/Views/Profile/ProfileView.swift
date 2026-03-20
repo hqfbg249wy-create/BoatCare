@@ -64,63 +64,61 @@ struct ProfileView: View {
     private let paymentService = PaymentService.shared
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // MARK: - Profile Completion
-                    if let profile = authService.userProfile, !profile.isComplete {
-                        completionBanner(profile: profile)
-                    }
-
-                    // MARK: - Avatar
-                    avatarSection
-
-                    // MARK: - Personal Data
-                    personalDataSection
-
-                    // MARK: - Shipping Address
-                    shippingSection
-
-                    // MARK: - Boot Selection
-                    boatSelectionSection
-
-                    // MARK: - Payment Methods
-                    paymentSection
-
-                    // MARK: - Save Button
-                    saveButton
-
-                    Divider()
-                        .padding(.horizontal, 16)
-
-                    // MARK: - Logout
-                    logoutButton
-
-                    // Version
-                    Text("BoatCare v1.0 - Testphase")
-                        .font(.caption2)
-                        .foregroundStyle(AppColors.gray400)
-                        .padding(.bottom, 20)
+        ScrollView {
+            VStack(spacing: 24) {
+                // MARK: - Profile Completion
+                if let profile = authService.userProfile, !profile.isComplete {
+                    completionBanner(profile: profile)
                 }
+
+                // MARK: - Avatar
+                avatarSection
+
+                // MARK: - Personal Data
+                personalDataSection
+
+                // MARK: - Shipping Address
+                shippingSection
+
+                // MARK: - Boot Selection
+                boatSelectionSection
+
+                // MARK: - Payment Methods
+                paymentSection
+
+                // MARK: - Save Button
+                saveButton
+
+                Divider()
+                    .padding(.horizontal, 16)
+
+                // MARK: - Logout
+                logoutButton
+
+                // Version
+                Text("BoatCare v1.0 - Testphase")
+                    .font(.caption2)
+                    .foregroundStyle(AppColors.gray400)
+                    .padding(.bottom, 20)
             }
-            .navigationTitle("Profil")
-            .alert("Abmelden?", isPresented: $showLogoutConfirm) {
-                Button("Abmelden", role: .destructive) {
-                    Task { await authService.signOut() }
-                }
-                Button("Abbrechen", role: .cancel) {}
-            } message: {
-                Text("Möchtest Du Dich wirklich abmelden?")
+        }
+        .navigationTitle("Profil")
+        .alert("Abmelden?", isPresented: $showLogoutConfirm) {
+            Button("Abmelden", role: .destructive) {
+                Task { await authService.signOut() }
             }
-            .overlay(alignment: .top) {
-                if showSavedToast {
-                    toastView("Profil gespeichert", icon: "checkmark.circle.fill", color: AppColors.success)
-                }
+            Button("Abbrechen", role: .cancel) {}
+        } message: {
+            Text("Möchtest Du Dich wirklich abmelden?")
+        }
+        .overlay(alignment: .top) {
+            if showSavedToast {
+                toastView("Profil gespeichert", icon: "checkmark.circle.fill", color: AppColors.success)
             }
-            .task {
-                loadProfile()
-                await loadBoats()
-            }
+        }
+        .task {
+            loadProfile()
+            await loadBoats()
         }
     }
 

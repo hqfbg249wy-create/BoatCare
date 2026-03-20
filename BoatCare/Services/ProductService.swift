@@ -62,7 +62,7 @@ final class ProductService {
     // MARK: - Products
 
     private let productSelect = """
-        *, product_categories(*), service_providers(id, company_name, city)
+        *, product_categories(*), service_providers(id, name, city)
         """
 
     func fetchProducts(

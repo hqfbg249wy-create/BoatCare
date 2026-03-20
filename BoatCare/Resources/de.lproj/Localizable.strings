@@ -285,7 +285,8 @@ Ausrüstung unter Boote ergänzen.";
 "suggest_edit.login_required" = "Bitte zuerst anmelden.";
 
 // MARK: - Chat
-"chat.title" = "Chat";
-"chat.welcome" = "Willkommen bei BoatCare! Dieser Bereich wird bald mit KI-Unterstützung ausgestattet.";
-"chat.input_hint" = "Nachricht eingeben...";
-"chat.coming_soon" = "KI-Chat kommt bald! 🚢";
+"chat.title" = "Boots-Assistent";
+"chat.welcome_ai" = "Ahoi! Ich bin dein KI-Assistent fuer alle Fragen rund um dein Boot. Ich kann auf alle deine Ausruestungsgegenstaende zugreifen und dir dazu spezifische Fragen beantworten.";
+"chat.boat_context" = "Deine Boote: %@";
+"chat.input_hint" = "Frage stellen...";
+"chat.error_prefix" = "Entschuldigung, da ist etwas schiefgelaufen: ";

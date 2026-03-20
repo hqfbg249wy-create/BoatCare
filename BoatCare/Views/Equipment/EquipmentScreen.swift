@@ -650,7 +650,8 @@ struct ServiceSearchFromEquipment: View {
     let item: EquipmentItem
     @EnvironmentObject var authService: AuthService
     @StateObject private var locationManager = EquipmentSearchLocationManager()
-    @State private var results: [(provider: BoatServiceProvider, distanceKm: Double)] = []
+    @State private var bestMatches: [(provider: BoatServiceProvider, distanceKm: Double)] = []
+    @State private var otherMatches: [(provider: BoatServiceProvider, distanceKm: Double)] = []
     @State private var isSearching = false
     @State private var locationText = ""
     @State private var selectedRadius: Double = 50
@@ -754,21 +755,35 @@ struct ServiceSearchFromEquipment: View {
 
             Divider()
 
-            // Ergebnis-Anzahl
-            if !results.isEmpty {
+            // Ergebnis-Anzahl + Standort-Hinweis
+            if !bestMatches.isEmpty || !otherMatches.isEmpty {
                 HStack {
-                    Text("\(results.count) " + "equipment.results_found".loc)
+                    Text("\(bestMatches.count + otherMatches.count) " + "equipment.results_found".loc)
                         .font(.caption).foregroundStyle(.secondary)
                     Spacer()
                 }
                 .padding(.horizontal).padding(.vertical, 6)
+
+                // Hinweis wenn kein Standort verfügbar
+                if locationManager.currentLocation == nil && hasSearched {
+                    HStack(spacing: 8) {
+                        Image(systemName: "location.slash.fill")
+                            .foregroundStyle(.orange)
+                        Text("Standort nicht verfügbar – Entfernungen können nicht angezeigt werden. Bitte Ortungsdienste aktivieren.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    .padding(10)
+                    .background(Color.orange.opacity(0.08))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+                }
             }
 
             // Ergebnisse
             if isSearching {
                 ProgressView("general.loading".loc)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if results.isEmpty && hasSearched {
+            } else if bestMatches.isEmpty && otherMatches.isEmpty && hasSearched {
                 VStack(spacing: 12) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 40)).foregroundStyle(.secondary.opacity(0.5))
@@ -780,20 +795,61 @@ struct ServiceSearchFromEquipment: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
-                    ForEach(results, id: \.provider.id) { entry in
-                        NavigationLink {
-                            ServiceProviderDetailView(provider: toServiceProvider(entry.provider))
-                                .environmentObject(FavoritesManager())
-                                .environmentObject(authService)
-                        } label: {
-                            serviceRow(entry)
+                    if !bestMatches.isEmpty {
+                        Section {
+                            ForEach(bestMatches, id: \.provider.id) { entry in
+                                NavigationLink {
+                                    ServiceProviderDetailView(provider: toServiceProvider(entry.provider))
+                                        .environmentObject(FavoritesManager())
+                                        .environmentObject(authService)
+                                } label: {
+                                    serviceRow(entry)
+                                }
+                            }
+                        } header: {
+                            Label("Kategorie & Marke passend", systemImage: "checkmark.seal.fill")
+                                .font(.caption).fontWeight(.semibold)
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                    if !otherMatches.isEmpty {
+                        Section {
+                            ForEach(otherMatches, id: \.provider.id) { entry in
+                                NavigationLink {
+                                    ServiceProviderDetailView(provider: toServiceProvider(entry.provider))
+                                        .environmentObject(FavoritesManager())
+                                        .environmentObject(authService)
+                                } label: {
+                                    serviceRow(entry)
+                                }
+                            }
+                        } header: {
+                            if !bestMatches.isEmpty {
+                                Label("Weitere Anbieter", systemImage: "building.2.fill")
+                                    .font(.caption).fontWeight(.semibold)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
             }
         }
         .navigationTitle("equipment.find_service".loc)
-        .task { await search() }
+        .task {
+            // Wait briefly for location fix before first search
+            for _ in 0..<20 {
+                if locationManager.currentLocation != nil { break }
+                try? await Task.sleep(nanoseconds: 250_000_000)
+            }
+            await search()
+        }
+        .onReceive(locationManager.$currentLocation) { loc in
+            // Re-search when location arrives and results still show 0 distance
+            guard loc != nil, hasSearched,
+                  bestMatches.allSatisfy({ $0.distanceKm == 0 }) && otherMatches.allSatisfy({ $0.distanceKm == 0 })
+            else { return }
+            Task { await search() }
+        }
     }
 
     // MARK: - Service-Zeile
@@ -833,13 +889,15 @@ struct ServiceSearchFromEquipment: View {
 
                 Spacer()
 
-                // Entfernung
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(formatDistance(entry.distanceKm))
-                        .font(.headline).fontWeight(.bold)
-                        .foregroundStyle(.blue)
-                    Text("equipment.distance".loc)
-                        .font(.caption2).foregroundStyle(.tertiary)
+                // Entfernung (nur anzeigen wenn bekannt)
+                if entry.distanceKm >= 0 {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(formatDistance(entry.distanceKm))
+                            .font(.headline).fontWeight(.bold)
+                            .foregroundStyle(.blue)
+                        Text("equipment.distance".loc)
+                            .font(.caption2).foregroundStyle(.tertiary)
+                    }
                 }
             }
 
@@ -915,8 +973,14 @@ struct ServiceSearchFromEquipment: View {
                 .from("service_providers").select()
                 .execute().value
 
-            // Filtern: Kategorie oder Marken (alle 3 Kategorien pruefen)
-            let matched = allProviders.filter { p in
+            // Für jeden Provider: Kategorie-Match und Marken-Match separat berechnen
+            var best: [(BoatServiceProvider, Double)] = []
+            var other: [(BoatServiceProvider, Double)] = []
+
+            for p in allProviders {
+                // Provider mit ungültigen Koordinaten (0,0) überspringen
+                guard abs(p.latitude) > 0.1 || abs(p.longitude) > 0.1 else { continue }
+
                 // 1. Kategorie-Match: pruefe alle Kategorien des Providers
                 let catMatch = p.allCategories.contains { cat in
                     let lower = cat.lowercased()
@@ -928,22 +992,32 @@ struct ServiceSearchFromEquipment: View {
                     $0.localizedCaseInsensitiveContains(item.manufacturer)
                 }
 
-                return catMatch || brandsMatch
-            }
+                guard catMatch || brandsMatch else { continue }
 
-            // Entfernung berechnen und nach Radius filtern
-            if let loc = searchLocation {
-                let withDistance = matched.compactMap { p -> (BoatServiceProvider, Double)? in
+                // Entfernung berechnen (-1 = unbekannt wenn kein Standort)
+                var distKm: Double = -1
+                if let loc = searchLocation {
                     let pLoc = CLLocation(latitude: p.latitude, longitude: p.longitude)
-                    let dist = loc.distance(from: pLoc) / 1000
-                    guard dist <= selectedRadius else { return nil }
-                    return (p, dist)
+                    distKm = loc.distance(from: pLoc) / 1000
+                    guard distKm <= selectedRadius else { continue }
                 }
 
-                // Sortierung: nach Entfernung aufsteigend
-                results = withDistance.sorted { $0.1 < $1.1 }
+                if catMatch && brandsMatch {
+                    best.append((p, distKm))
+                } else {
+                    other.append((p, distKm))
+                }
+            }
+
+            // Sortierung: bei bekannter Entfernung nach Nähe, sonst alphabetisch
+            let hasLocation = searchLocation != nil
+            if hasLocation {
+                bestMatches = best.sorted { $0.1 < $1.1 }
+                otherMatches = other.sorted { $0.1 < $1.1 }
             } else {
-                results = matched.map { ($0, 0) }
+                bestMatches = best.sorted { $0.0.name < $1.0.name }
+                // Ohne Standort: "Weitere Anbieter" auf max. 20 begrenzen
+                otherMatches = Array(other.sorted { $0.0.name < $1.0.name }.prefix(20))
             }
         } catch { print("❌ Service-Suche: \(error)") }
     }
@@ -956,6 +1030,7 @@ struct ServiceSearchFromEquipment: View {
     }
 
     private func formatDistance(_ km: Double) -> String {
+        if km < 0 { return "—" }
         if km < 1 { return String(format: "%.0f m", km * 1000) }
         return String(format: "%.1f km", km)
     }

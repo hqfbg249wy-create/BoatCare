@@ -176,7 +176,7 @@ struct OrdersView: View {
             }
         }
         .padding(16)
-        .background(.white)
+        .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
     }

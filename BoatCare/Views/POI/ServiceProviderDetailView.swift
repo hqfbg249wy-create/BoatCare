@@ -17,6 +17,23 @@ struct ServiceProviderDetailView: View {
     @State private var showingSuggestEdit = false
     @StateObject private var reviewService = ReviewService()
     @StateObject private var suggestionService = EditSuggestionService()
+    @StateObject private var locationManager = LocationManager()
+
+    /// Distance text from user to this provider
+    private var distanceText: String? {
+        guard let userLoc = locationManager.location else { return nil }
+        guard provider.latitude != 0 || provider.longitude != 0 else { return nil }
+        let provLoc = CLLocation(latitude: provider.latitude, longitude: provider.longitude)
+        let distanceMeters = userLoc.distance(from: provLoc)
+        let distanceKm = distanceMeters / 1000.0
+        if distanceKm < 1 {
+            return String(format: "%.0f m", distanceMeters)
+        } else if distanceKm < 100 {
+            return String(format: "%.1f km", distanceKm)
+        } else {
+            return String(format: "%.0f km", distanceKm)
+        }
+    }
 
     private var isFavorite: Bool {
         favoritesManager.isFavorite(provider.id)
@@ -58,8 +75,8 @@ struct ServiceProviderDetailView: View {
                         }
                     }
 
-                    // 4. Adresse
-                    if !provider.displayAddress.isEmpty {
+                    // 4. Adresse + Entfernung
+                    if !provider.displayAddress.isEmpty || distanceText != nil {
                         HStack(spacing: 8) {
                             Image(systemName: "mappin.circle.fill")
                                 .foregroundStyle(.red)
@@ -84,6 +101,22 @@ struct ServiceProviderDetailView: View {
                                         .foregroundStyle(.tertiary)
                                 }
                             }
+                            Spacer()
+                            // Entfernung zum Anbieter
+                            if let dist = distanceText {
+                                VStack(spacing: 2) {
+                                    Image(systemName: "location.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.blue)
+                                    Text(dist)
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.blue)
+                                    Text("Entfernung")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                         }
                     }
 
@@ -95,7 +128,7 @@ struct ServiceProviderDetailView: View {
                     // 5b. Sonderangebot (prominent, direkt nach Kontakt)
                     promotionBanner
 
-                    // 6. Services
+                    // 6. Services → tappable, navigate to provider shop
                     if let services = provider.services, !services.isEmpty {
                         Divider()
                         VStack(alignment: .leading, spacing: 8) {
@@ -103,19 +136,24 @@ struct ServiceProviderDetailView: View {
                                 .font(.headline)
                             FlowLayout(spacing: 8) {
                                 ForEach(services, id: \.self) { service in
-                                    Label(service, systemImage: "checkmark.circle.fill")
-                                        .font(.caption)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 5)
-                                        .background(Color.green.opacity(0.1))
-                                        .foregroundStyle(.green)
-                                        .cornerRadius(6)
+                                    NavigationLink {
+                                        ProviderShopSearchView(providerId: provider.id, providerName: provider.name, searchTerm: service)
+                                    } label: {
+                                        Label(service, systemImage: "checkmark.circle.fill")
+                                            .font(.caption)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 5)
+                                            .background(Color.green.opacity(0.1))
+                                            .foregroundStyle(.green)
+                                            .cornerRadius(6)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }
                     }
 
-                    // 7. Brands / Marken / Produkte
+                    // 7. Brands → tappable, navigate to provider shop filtered by brand
                     if let brands = provider.brands, !brands.isEmpty {
                         Divider()
                         VStack(alignment: .leading, spacing: 8) {
@@ -123,18 +161,24 @@ struct ServiceProviderDetailView: View {
                                 .font(.headline)
                             FlowLayout(spacing: 8) {
                                 ForEach(brands, id: \.self) { brand in
-                                    Label(brand, systemImage: "tag.fill")
-                                        .font(.caption)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 5)
-                                        .background(Color.orange.opacity(0.1))
-                                        .foregroundStyle(.orange)
-                                        .cornerRadius(6)
+                                    NavigationLink {
+                                        ProviderShopSearchView(providerId: provider.id, providerName: provider.name, searchTerm: brand)
+                                    } label: {
+                                        Label(brand, systemImage: "tag.fill")
+                                            .font(.caption)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 5)
+                                            .background(Color.orange.opacity(0.1))
+                                            .foregroundStyle(.orange)
+                                            .cornerRadius(6)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }
                     }
 
+                    // Products → tappable, navigate to provider shop
                     if let products = provider.products, !products.isEmpty {
                         Divider()
                         VStack(alignment: .leading, spacing: 8) {
@@ -142,13 +186,18 @@ struct ServiceProviderDetailView: View {
                                 .font(.headline)
                             FlowLayout(spacing: 8) {
                                 ForEach(products, id: \.self) { product in
-                                    Label(product, systemImage: "shippingbox.fill")
-                                        .font(.caption)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 5)
-                                        .background(Color.purple.opacity(0.1))
-                                        .foregroundStyle(.purple)
-                                        .cornerRadius(6)
+                                    NavigationLink {
+                                        ProviderShopSearchView(providerId: provider.id, providerName: provider.name, searchTerm: product)
+                                    } label: {
+                                        Label(product, systemImage: "shippingbox.fill")
+                                            .font(.caption)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 5)
+                                            .background(Color.purple.opacity(0.1))
+                                            .foregroundStyle(.purple)
+                                            .cornerRadius(6)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }
@@ -242,6 +291,9 @@ struct ServiceProviderDetailView: View {
         }
         .navigationTitle(provider.name)
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            locationManager.requestPermission()
+        }
         .sheet(isPresented: $showingWriteReview) {
             WriteReviewView(
                 providerId: provider.id,

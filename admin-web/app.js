@@ -719,6 +719,12 @@ async function showSuggestionDetails(suggestion) {
                 <button class="btn-secondary" style="background-color: var(--danger-color); color: white;"
                         onclick="rejectSuggestion('${suggestion.id}')">❌ Ablehnen</button>
             </div>
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: center;">
+                <button class="btn-secondary" style="background-color: #991b1b; color: white; font-size: 0.85em;"
+                        onclick="deleteProviderFromSuggestion('${suggestion.provider_id}', '${suggestion.id}')">
+                    🗑️ Provider komplett löschen
+                </button>
+            </div>
         `;
     }
 
@@ -4452,6 +4458,346 @@ async function fetchProviderEmail(btn, encodedUrl) {
 }
 
 // ============================================
+// E-MAIL FINDER
+// ============================================
+
+let emailFinderResults = [];
+let emailFinderAbort = false;
+
+/** Subseiten, die typischerweise E-Mails/Impressum enthalten */
+const EMAIL_SUBPAGES = [
+    '', // Homepage
+    '/impressum',
+    '/kontakt',
+    '/contact',
+    '/about',
+    '/about-us',
+    '/ueber-uns',
+    '/legal',
+    '/imprint',
+    '/contacto',
+    '/contactez-nous',
+    '/contatti',
+];
+
+/**
+ * Extrahiert E-Mail-Adressen aus Text, auch verschleierte Varianten.
+ * Erkennt: info[at]domain.de, info (at) domain.de, info{at}domain.de,
+ *          info AT domain.de, info [dot] de, info(at)domain(dot)de etc.
+ */
+function extractEmailsFromText(text) {
+    if (!text) return [];
+    const found = new Set();
+
+    // 1. Standard-E-Mail-Regex
+    const stdRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/gi;
+    for (const m of text.matchAll(stdRegex)) {
+        found.add(m[0].toLowerCase());
+    }
+
+    // 2. Verschleierte Varianten normalisieren und nochmal suchen
+    let normalized = text
+        // [at] (at) {at} <at> «at» Varianten → @
+        .replace(/\s*[\[(\{<«]\s*at\s*[\])}>»]\s*/gi, '@')
+        // " at " → @
+        .replace(/\s+at\s+/gi, '@')
+        // " AT " → @
+        .replace(/\s+AT\s+/gi, '@')
+        // [dot] (dot) {dot} Varianten → .
+        .replace(/\s*[\[(\{<«]\s*dot\s*[\])}>»]\s*/gi, '.')
+        // " dot " → .
+        .replace(/\s+dot\s+/gi, '.')
+        // [punkt] (punkt) → .
+        .replace(/\s*[\[(\{<«]\s*punkt\s*[\])}>»]\s*/gi, '.')
+        // " punkt " → .
+        .replace(/\s+punkt\s+/gi, '.');
+
+    for (const m of normalized.matchAll(stdRegex)) {
+        found.add(m[0].toLowerCase());
+    }
+
+    // 3. mailto: Links (oft in href Attributen im HTML)
+    const mailtoRegex = /mailto:([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/gi;
+    for (const m of text.matchAll(mailtoRegex)) {
+        found.add(m[1].toLowerCase());
+    }
+
+    // Filter out obvious non-emails (image files, CSS etc.)
+    const excluded = /\.(png|jpg|jpeg|gif|svg|css|js|woff|ttf|eot|ico)$/i;
+    const noreply = /^(noreply|no-reply|mailer-daemon|postmaster)/i;
+    return [...found].filter(e => !excluded.test(e) && !noreply.test(e));
+}
+
+function emailFinderLog(msg, type = 'info') {
+    const log = document.getElementById('email-finder-log');
+    if (!log) return;
+    const colors = { info: '#94a3b8', success: '#10b981', error: '#ef4444', warn: '#f59e0b' };
+    log.innerHTML += `<div style="color:${colors[type] || colors.info};">[${new Date().toLocaleTimeString('de-DE')}] ${msg}</div>`;
+    log.scrollTop = log.scrollHeight;
+}
+
+/**
+ * Crawlt eine URL und gibt den extrahierten Text zurück.
+ * Nutzt Crawl4AI oder den Scraper-Backend.
+ */
+async function crawlPageText(url, source) {
+    if (source === 'crawl4ai') {
+        const resp = await fetch(`${CRAWL4AI_SERVICE_URL}/crawl`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url }),
+            signal: AbortSignal.timeout(15000)
+        });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        if (data.robots_blocked || !data.success) return null;
+        // Crawl4AI gibt structured data zurück – wir brauchen den Rohtext
+        // Zusammensetzen aus allen verfügbaren Feldern
+        return [data.markdown || '', data.raw_text || '', data.email || '', data.description || ''].join('\n');
+    } else {
+        // Scraper-Backend: /api/scrape-website gibt email direkt zurück
+        const resp = await fetch(`${SCRAPER_URL}/api/scrape-website`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url }),
+            signal: AbortSignal.timeout(15000)
+        });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        // Gib den email direkt zurück als Text, damit extractEmailsFromText ihn findet
+        return data.email ? `email: ${data.email}` : (data.raw_text || data.markdown || null);
+    }
+}
+
+/**
+ * Durchsucht die Website eines Providers nach E-Mail-Adressen.
+ * Probiert Homepage + typische Unterseiten (Impressum, Kontakt, etc.)
+ */
+async function findEmailsForProvider(provider, source) {
+    const baseUrl = provider.website.replace(/\/+$/, '');
+    const allEmails = new Set();
+    let foundOnPage = '';
+
+    for (const subpage of EMAIL_SUBPAGES) {
+        if (emailFinderAbort) break;
+        const url = baseUrl + subpage;
+        try {
+            const text = await crawlPageText(url, source);
+            if (!text) continue;
+            const emails = extractEmailsFromText(text);
+            if (emails.length > 0) {
+                for (const e of emails) allEmails.add(e);
+                if (!foundOnPage) foundOnPage = subpage || '/';
+            }
+        } catch {
+            // Subpage nicht erreichbar – weiter
+        }
+        // Wenn wir schon E-Mails gefunden haben und mind. Impressum gecheckt, reicht das
+        if (allEmails.size > 0 && EMAIL_SUBPAGES.indexOf(subpage) >= 2) break;
+    }
+
+    return { emails: [...allEmails], foundOnPage };
+}
+
+async function startEmailFinder() {
+    emailFinderAbort = false;
+    emailFinderResults = [];
+
+    const filter = document.getElementById('email-finder-filter')?.value || 'missing_email';
+    const limit = parseInt(document.getElementById('email-finder-limit')?.value || '50');
+    const source = document.getElementById('email-finder-source')?.value || 'crawl4ai';
+
+    const btn = document.getElementById('email-finder-btn');
+    const stopBtn = document.getElementById('email-finder-stop-btn');
+    if (btn) btn.disabled = true;
+    if (stopBtn) stopBtn.style.display = 'inline-block';
+
+    const progressEl = document.getElementById('email-finder-progress');
+    const resultsEl = document.getElementById('email-finder-results');
+    if (progressEl) progressEl.style.display = 'block';
+    if (resultsEl) resultsEl.style.display = 'none';
+
+    const logEl = document.getElementById('email-finder-log');
+    if (logEl) logEl.innerHTML = '';
+
+    const fillEl = document.getElementById('email-finder-fill');
+    const textEl = document.getElementById('email-finder-text');
+
+    emailFinderLog(`Starte E-Mail-Suche: Filter="${filter}", Max=${limit}, Quelle=${source}`, 'info');
+
+    // 1. Betriebe aus Supabase laden
+    try {
+        let query = supabaseClient.from('service_providers')
+            .select('id, name, category, city, website, email');
+
+        if (filter === 'missing_email') {
+            query = query.not('website', 'is', null).not('website', 'eq', '');
+            // email IS NULL oder leer
+        }
+
+        const { data: providers, error } = await query.limit(500);
+        if (error) throw error;
+
+        // Client-seitiger Filter (Supabase OR-Filter für NULL + leer ist umständlich)
+        let filtered;
+        if (filter === 'missing_email') {
+            filtered = providers.filter(p => p.website && (!p.email || p.email.trim() === ''));
+        } else {
+            filtered = providers.filter(p => p.website && p.website.trim() !== '');
+        }
+
+        // Limit anwenden
+        const toProcess = filtered.slice(0, limit);
+
+        emailFinderLog(`${filtered.length} Betriebe gefunden, verarbeite ${toProcess.length}`, 'info');
+
+        // 2. Für jeden Betrieb E-Mails suchen
+        let found = 0, notFound = 0, errors = 0;
+
+        for (let i = 0; i < toProcess.length; i++) {
+            if (emailFinderAbort) {
+                emailFinderLog('⏹ Abgebrochen durch Benutzer', 'warn');
+                break;
+            }
+
+            const p = toProcess[i];
+            const pct = Math.round(((i + 1) / toProcess.length) * 100);
+            if (fillEl) fillEl.style.width = pct + '%';
+            if (textEl) textEl.textContent = `(${i + 1}/${toProcess.length}) ${p.name}`;
+
+            emailFinderLog(`🔍 ${p.name} – ${p.website}`, 'info');
+
+            try {
+                const result = await findEmailsForProvider(p, source);
+                if (result.emails.length > 0) {
+                    found++;
+                    emailFinderLog(`  ✉️ ${result.emails.join(', ')} (${result.foundOnPage})`, 'success');
+                    emailFinderResults.push({
+                        id: p.id,
+                        name: p.name,
+                        category: p.category,
+                        city: p.city,
+                        website: p.website,
+                        oldEmail: p.email || '',
+                        newEmails: result.emails,
+                        foundOnPage: result.foundOnPage,
+                        selectedEmail: result.emails[0] // Default: erste gefundene
+                    });
+                } else {
+                    notFound++;
+                    emailFinderLog(`  ❌ Keine E-Mail gefunden`, 'info');
+                }
+            } catch (err) {
+                errors++;
+                emailFinderLog(`  ⚠️ Fehler: ${err.message}`, 'error');
+            }
+        }
+
+        if (fillEl) fillEl.style.width = '100%';
+        if (textEl) textEl.textContent = 'Fertig!';
+        emailFinderLog(`\n✅ Ergebnis: ${found} E-Mails gefunden, ${notFound} ohne, ${errors} Fehler`, 'success');
+
+        showEmailFinderResults();
+
+    } catch (err) {
+        emailFinderLog(`❌ Fehler: ${err.message}`, 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+        if (stopBtn) stopBtn.style.display = 'none';
+    }
+}
+
+function stopEmailFinder() {
+    emailFinderAbort = true;
+}
+
+function showEmailFinderResults() {
+    const section = document.getElementById('email-finder-results');
+    const list = document.getElementById('email-finder-list');
+    if (!section || !list) return;
+
+    if (emailFinderResults.length === 0) {
+        section.style.display = 'block';
+        list.innerHTML = '<p style="color:#6b7280; padding:20px;">Keine E-Mails gefunden.</p>';
+        return;
+    }
+
+    section.style.display = 'block';
+    list.innerHTML = emailFinderResults.map((r, idx) => `
+        <div style="background:white; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px; margin-bottom:8px; font-size:13px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <input type="checkbox" class="email-cb" data-idx="${idx}" checked style="width:auto;">
+                <strong style="font-size:14px;">${esc(r.name)}</strong>
+                <span style="background:#dbeafe; color:#1d4ed8; padding:1px 6px; border-radius:10px; font-size:11px;">${esc(r.category)}</span>
+                <span style="color:#6b7280; font-size:12px;">${esc(r.city || '')}</span>
+                <a href="${esc(r.website)}" target="_blank" style="font-size:11px; color:#3b82f6; margin-left:auto;">🌐 Website</a>
+            </div>
+            <div style="margin-left:24px;">
+                ${r.oldEmail ? `<div style="margin-bottom:4px;"><span style="color:#6b7280;">Bisherige E-Mail:</span> <span style="color:#ef4444; text-decoration:line-through;">${esc(r.oldEmail)}</span></div>` : ''}
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-weight:600; color:#374151;">Neue E-Mail:</span>
+                    ${r.newEmails.length === 1
+                        ? `<span style="color:#10b981; font-weight:600;">${esc(r.newEmails[0])}</span>`
+                        : `<select class="email-select" data-idx="${idx}" style="font-size:13px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px;">
+                            ${r.newEmails.map(e => `<option value="${esc(e)}" ${e === r.selectedEmail ? 'selected' : ''}>${esc(e)}</option>`).join('')}
+                           </select>`
+                    }
+                    <span style="color:#94a3b8; font-size:11px;">gefunden auf: ${esc(r.foundOnPage)}</span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    // Dropdown-Event für E-Mail-Auswahl
+    list.querySelectorAll('.email-select').forEach(sel => {
+        sel.addEventListener('change', (e) => {
+            const idx = parseInt(e.target.dataset.idx);
+            emailFinderResults[idx].selectedEmail = e.target.value;
+        });
+    });
+}
+
+function selectAllEmails() {
+    document.querySelectorAll('.email-cb').forEach(cb => cb.checked = true);
+}
+function deselectAllEmails() {
+    document.querySelectorAll('.email-cb').forEach(cb => cb.checked = false);
+}
+
+async function applySelectedEmails() {
+    const selected = [];
+    document.querySelectorAll('.email-cb:checked').forEach(cb => {
+        const idx = parseInt(cb.dataset.idx);
+        if (emailFinderResults[idx]) selected.push(emailFinderResults[idx]);
+    });
+
+    if (selected.length === 0) { alert('Keine E-Mails ausgewählt'); return; }
+    if (!confirm(`${selected.length} E-Mails speichern?`)) return;
+
+    const btn = document.getElementById('apply-emails-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Speichere...'; }
+
+    let ok = 0, fail = 0;
+    for (const r of selected) {
+        const email = r.selectedEmail || r.newEmails[0];
+        try {
+            const { error } = await supabaseClient.from('service_providers').update({ email }).eq('id', r.id);
+            if (error) { console.error(error); fail++; } else { ok++; }
+        } catch { fail++; }
+    }
+
+    alert(`✅ ${ok} E-Mails gespeichert` + (fail > 0 ? `\n❌ ${fail} Fehler` : ''));
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Ausgewählte speichern'; }
+}
+
+// Window-Export für onclick
+window.startEmailFinder = startEmailFinder;
+window.stopEmailFinder = stopEmailFinder;
+window.selectAllEmails = selectAllEmails;
+window.deselectAllEmails = deselectAllEmails;
+window.applySelectedEmails = applySelectedEmails;
+
+// ============================================
 // UPDATE-SUCHE (ENRICHMENT)
 // ============================================
 
@@ -5112,7 +5458,21 @@ function buildMapPopup(provider, color) {
 
     return `
         <div class="map-popup">
-            <h3 style="margin:0 0 6px 0; font-size:15px;">${esc(provider.name)}</h3>
+            ${provider.cover_image_url ? `
+                <div style="margin:-10px -10px 8px -10px; border-radius:8px 8px 0 0; overflow:hidden;">
+                    <img src="${esc(provider.cover_image_url)}"
+                         style="width:100%; height:120px; object-fit:cover; display:block;"
+                         onerror="this.parentElement.style.display='none'" />
+                </div>
+            ` : ''}
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                ${provider.logo_url ? `
+                    <img src="${esc(provider.logo_url)}"
+                         style="width:36px; height:36px; border-radius:6px; object-fit:cover; flex-shrink:0; border:1px solid #e2e8f0;"
+                         onerror="this.style.display='none'" />
+                ` : ''}
+                <h3 style="margin:0; font-size:15px; flex:1;">${esc(provider.name)}</h3>
+            </div>
             <span class="map-popup-category" style="background-color:${color};">
                 ${esc(provider.category || 'Sonstige')}
             </span>
@@ -5156,6 +5516,45 @@ async function deleteProviderFromMap(providerId) {
         applyMapFilters();
     } catch (error) {
         console.error('Karte: Löschen fehlgeschlagen', error);
+        alert('Fehler beim Löschen: ' + error.message);
+    }
+}
+
+/** Provider löschen aus dem Änderungsanfragen-Modal */
+async function deleteProviderFromSuggestion(providerId, suggestionId) {
+    if (!confirm('⚠️ Provider wirklich KOMPLETT löschen?\n\nDer Provider und alle zugehörigen Daten werden unwiderruflich entfernt!')) return;
+
+    try {
+        // Provider löschen
+        const { data, error } = await supabaseClient.rpc('bulk_delete_providers', {
+            provider_ids: [providerId]
+        });
+        if (error) throw error;
+
+        // Änderungsanfrage auf rejected setzen
+        await supabaseClient
+            .from('provider_edit_suggestions')
+            .update({ status: 'rejected' })
+            .eq('id', suggestionId);
+
+        // Modal schließen
+        document.getElementById('suggestion-modal').classList.remove('active');
+
+        alert('✅ Provider wurde gelöscht');
+
+        // Listen neu laden
+        loadSuggestions();
+        loadDashboard();
+
+        // Map aktualisieren falls aktiv
+        if (typeof mapAllProviders !== 'undefined' && mapAllProviders) {
+            mapAllProviders = mapAllProviders.filter(p => p.id !== providerId);
+            if (typeof mapMarkerCluster !== 'undefined' && mapMarkerCluster && typeof applyMapFilters === 'function') {
+                applyMapFilters();
+            }
+        }
+    } catch (error) {
+        console.error('Fehler beim Löschen aus Suggestion:', error);
         alert('Fehler beim Löschen: ' + error.message);
     }
 }

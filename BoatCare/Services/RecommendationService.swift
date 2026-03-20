@@ -21,31 +21,39 @@ final class RecommendationService {
     }
 
     private let productSelect = """
-        *, product_categories(*), service_providers(id, company_name, city)
+        *, product_categories(*), service_providers(id, name, city)
         """
 
     // MARK: - Boat Profile Based Recommendations
 
-    /// Fetch products that match the user's boat type and manufacturer preferences
+    /// Fetch products that match the user's boats, equipment, and manufacturer preferences
     func loadRecommendations(for profile: UserProfile?) async {
-        guard let profile else {
-            recommendedProducts = []
-            return
-        }
-
         isLoading = true
         defer { isLoading = false }
 
         do {
             var allRecommended: [Product] = []
 
-            // Strategy 1: If user has a preferred boat, load boat details and match
-            if let boatId = profile.preferredBoatId {
+            // Strategy 1: Load all user's boats and match products
+            let boats = try await fetchUserBoats()
+            for boat in boats {
+                let boatProducts = try await fetchProductsForBoatInfo(boat)
+                allRecommended.append(contentsOf: boatProducts)
+            }
+
+            // Strategy 2: Match products to user's equipment manufacturers
+            if !boats.isEmpty {
+                let equipmentProducts = try await fetchProductsForEquipment(boatIds: boats.map(\.id))
+                allRecommended.append(contentsOf: equipmentProducts)
+            }
+
+            // Strategy 3: If user has preferred boat, also use that
+            if let boatId = profile?.preferredBoatId, !boats.contains(where: { $0.id == boatId }) {
                 let boatProducts = try await fetchProductsForBoat(boatId: boatId)
                 allRecommended.append(contentsOf: boatProducts)
             }
 
-            // Strategy 2: Load recently added / popular products as fallback
+            // Strategy 4: Load recently added as fallback
             if allRecommended.count < 8 {
                 let recent = try await fetchRecentProducts(excluding: Set(allRecommended.map(\.id)))
                 allRecommended.append(contentsOf: recent)
@@ -65,6 +73,130 @@ final class RecommendationService {
             print("Failed to load recommendations: \(error)")
             recommendedProducts = []
         }
+    }
+
+    // MARK: - Load User's Boats
+
+    private struct UserBoatRow: Codable, Identifiable {
+        let id: UUID
+        let boatType: String?
+        let manufacturer: String?
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case boatType = "boat_type"
+            case manufacturer
+        }
+    }
+
+    private func fetchUserBoats() async throws -> [UserBoatRow] {
+        try await client
+            .from("boats")
+            .select("id, boat_type, manufacturer")
+            .execute()
+            .value
+    }
+
+    private func fetchProductsForBoatInfo(_ boat: UserBoatRow) async throws -> [Product] {
+        var products: [Product] = []
+
+        if let boatType = boat.boatType, !boatType.isEmpty {
+            let typeProducts: [Product] = try await client
+                .from("metashop_products")
+                .select(productSelect)
+                .eq("is_active", value: true)
+                .contains("fits_boat_types", value: [boatType])
+                .order("created_at", ascending: false)
+                .range(from: 0, to: 5)
+                .execute()
+                .value
+            products.append(contentsOf: typeProducts)
+        }
+
+        if let manufacturer = boat.manufacturer, !manufacturer.isEmpty {
+            let mfgProducts: [Product] = try await client
+                .from("metashop_products")
+                .select(productSelect)
+                .eq("is_active", value: true)
+                .contains("fits_manufacturers", value: [manufacturer])
+                .order("created_at", ascending: false)
+                .range(from: 0, to: 3)
+                .execute()
+                .value
+            products.append(contentsOf: mfgProducts)
+        }
+
+        return products
+    }
+
+    // MARK: - Equipment-based Recommendations
+
+    private func fetchProductsForEquipment(boatIds: [UUID]) async throws -> [Product] {
+        struct EquipRow: Codable {
+            let name: String?
+            let manufacturer: String?
+            let category: String?
+        }
+
+        let equipment: [EquipRow] = try await client
+            .from("equipment")
+            .select("name, manufacturer, category")
+            .in("boat_id", values: boatIds.map(\.uuidString))
+            .execute()
+            .value
+
+        var products: [Product] = []
+
+        // Strategy A: Match products by equipment manufacturer
+        let manufacturers = Set(equipment.compactMap(\.manufacturer).filter { !$0.isEmpty })
+        for mfg in manufacturers.prefix(5) {
+            let mfgProducts: [Product] = try await client
+                .from("metashop_products")
+                .select(productSelect)
+                .eq("is_active", value: true)
+                .ilike("manufacturer", pattern: "%\(mfg)%")
+                .order("created_at", ascending: false)
+                .range(from: 0, to: 2)
+                .execute()
+                .value
+            products.append(contentsOf: mfgProducts)
+        }
+
+        // Strategy B: Match products by equipment category keywords in product name/tags
+        let categories = Set(equipment.compactMap(\.category).filter { !$0.isEmpty })
+        for cat in categories.prefix(5) {
+            // Search product names matching equipment category
+            let catProducts: [Product] = try await client
+                .from("metashop_products")
+                .select(productSelect)
+                .eq("is_active", value: true)
+                .ilike("name", pattern: "%\(cat)%")
+                .order("created_at", ascending: false)
+                .range(from: 0, to: 2)
+                .execute()
+                .value
+            products.append(contentsOf: catProducts)
+        }
+
+        // Strategy C: Match products by equipment name (e.g. "Volvo Penta D2-40")
+        let equipNames = Set(equipment.compactMap(\.name).filter { !$0.isEmpty })
+        for name in equipNames.prefix(4) {
+            // Use first word (brand) for broader matching
+            let keyword = name.components(separatedBy: " ").first ?? name
+            guard keyword.count >= 3 else { continue }
+            let nameProducts: [Product] = try await client
+                .from("metashop_products")
+                .select(productSelect)
+                .eq("is_active", value: true)
+                .ilike("name", pattern: "%\(keyword)%")
+                .order("created_at", ascending: false)
+                .range(from: 0, to: 1)
+                .execute()
+                .value
+            products.append(contentsOf: nameProducts)
+        }
+
+        return products
     }
 
     // MARK: - Boat-specific Products
