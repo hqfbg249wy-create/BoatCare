@@ -170,10 +170,18 @@ private let equipmentCategories = [
     "navigation", "safety", "engine", "electrical", "rigging", "anchor", "communication", "other"
 ]
 
+// MARK: - Equipment Navigation Target
+enum EquipmentNavTarget: Hashable {
+    case service(name: String, category: String)
+    case spareParts(name: String, manufacturer: String, model: String, partNumber: String, dimensions: String)
+    case aiAssistant(question: String)
+}
+
 // MARK: - Equipment Screen (Supabase)
 struct EquipmentScreen: View {
     let boatId: UUID
     let boatName: String
+    let onNavigate: ((EquipmentNavTarget) -> Void)?
     @EnvironmentObject var authService: AuthService
 
     @State private var items: [EquipmentItem] = []
@@ -182,6 +190,12 @@ struct EquipmentScreen: View {
     @State private var searchText = ""
     @State private var selectedCategory: String? = nil
     @State private var errorMessage: String?
+
+    init(boatId: UUID, boatName: String, onNavigate: ((EquipmentNavTarget) -> Void)? = nil) {
+        self.boatId = boatId
+        self.boatName = boatName
+        self.onNavigate = onNavigate
+    }
 
     private var filtered: [EquipmentItem] {
         items.filter { item in
@@ -216,16 +230,18 @@ struct EquipmentScreen: View {
             } else {
                 List {
                     ForEach(filtered) { item in
-                        NavigationLink {
-                            EquipmentDetailView(item: item, boatName: boatName, onUpdate: { updated in
-                                Task { await updateItem(updated) }
-                            }, onDelete: {
-                                Task { await deleteItem(item) }
-                            })
-                            .environmentObject(authService)
-                        } label: {
-                            EquipmentRow(item: item)
-                        }
+                        EquipmentExpandableRow(
+                            item: item,
+                            boatName: boatName,
+                            onNavigate: { target in
+                                if let nav = onNavigate {
+                                    nav(target)
+                                }
+                            },
+                            onUpdate: { updated in Task { await updateItem(updated) } },
+                            onDelete: { Task { await deleteItem(item) } }
+                        )
+                        .environmentObject(authService)
                     }
                     .onDelete { offsets in
                         let toDelete = offsets.map { filtered[$0] }
@@ -376,6 +392,216 @@ struct EquipmentRow: View {
                     .cornerRadius(4)
             }
         }.padding(.vertical, 4)
+    }
+}
+
+// MARK: - Expandable Equipment Row (like Maintenance)
+struct EquipmentExpandableRow: View {
+    let item: EquipmentItem
+    let boatName: String
+    let onNavigate: ((EquipmentNavTarget) -> Void)?
+    let onUpdate: (EquipmentItem) -> Void
+    let onDelete: () -> Void
+    @EnvironmentObject var authService: AuthService
+    @State private var showActions = false
+    @State private var showingEdit = false
+    @State private var showingService = false
+    @State private var showingParts = false
+    @State private var showingAI = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Main row — tap to expand/collapse actions
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { showActions.toggle() }
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: item.categoryIcon)
+                        .font(.title2).foregroundStyle(item.categoryColor)
+                        .frame(width: 44, height: 44)
+                        .background(item.categoryColor.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack {
+                            Text(item.name).font(.headline).foregroundStyle(.primary)
+                            if item.maintenanceStatus == .overdue {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.red).font(.caption)
+                            } else if item.maintenanceStatus == .dueSoon {
+                                Image(systemName: "clock.badge.exclamationmark")
+                                    .foregroundStyle(.orange).font(.caption)
+                            }
+                        }
+                        if !item.manufacturer.isEmpty || !item.model.isEmpty {
+                            Text([item.manufacturer, item.model].filter { !$0.isEmpty }.joined(separator: " "))
+                                .font(.subheadline).foregroundStyle(.secondary)
+                        }
+                        if !item.locationOnBoat.isEmpty {
+                            Text(item.locationOnBoat).font(.caption).foregroundStyle(.tertiary)
+                        }
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 4) {
+                        if item.maintenanceStatus != .unknown {
+                            Text(item.maintenanceStatus.label)
+                                .font(.caption2).fontWeight(.semibold)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(item.maintenanceStatus.color.opacity(0.15))
+                                .foregroundStyle(item.maintenanceStatus.color)
+                                .cornerRadius(4)
+                        }
+                    }
+
+                    Image(systemName: showActions ? "chevron.up" : "chevron.down")
+                        .font(.caption2).foregroundStyle(.tertiary)
+                }
+            }
+            .buttonStyle(.plain)
+            .padding(.vertical, 4)
+
+            // Action buttons (expandable) — like Maintenance screen
+            if showActions {
+                HStack(spacing: 8) {
+                    // Service suchen
+                    Button {
+                        if let nav = onNavigate {
+                            nav(.service(name: item.name, category: item.category))
+                        } else {
+                            showingService = true
+                        }
+                    } label: {
+                        EquipmentActionButton(title: "Service", icon: "wrench.and.screwdriver.fill", color: .orange)
+                    }
+                    .buttonStyle(.plain)
+
+                    // Ersatzteile suchen
+                    Button {
+                        if let nav = onNavigate {
+                            nav(.spareParts(
+                                name: item.name, manufacturer: item.manufacturer,
+                                model: item.model, partNumber: item.partNumber, dimensions: item.dimensions
+                            ))
+                        } else {
+                            showingParts = true
+                        }
+                    } label: {
+                        EquipmentActionButton(title: "Ersatzteile", icon: "cart.fill", color: .purple)
+                    }
+                    .buttonStyle(.plain)
+
+                    // KI-Assistent
+                    Button {
+                        let details = [
+                            item.name,
+                            item.manufacturer.isEmpty ? "" : "Hersteller: \(item.manufacturer)",
+                            item.model.isEmpty ? "" : "Modell: \(item.model)",
+                            item.dimensions.isEmpty ? "" : "Abmessungen: \(item.dimensions)",
+                            item.locationOnBoat.isEmpty ? "" : "Ort: \(item.locationOnBoat)",
+                            item.itemDescription.isEmpty ? "" : item.itemDescription
+                        ].filter { !$0.isEmpty }.joined(separator: ", ")
+                        let question = "Ich brauche Hilfe mit meinem Ausruestungsgegenstand auf der \(boatName): \(details). Kategorie: \(item.category). Was empfiehlst du?"
+                        if let nav = onNavigate {
+                            nav(.aiAssistant(question: question))
+                        } else {
+                            showingAI = true
+                        }
+                    } label: {
+                        EquipmentActionButton(title: "KI-Assistent", icon: "bubble.left.fill", color: .blue)
+                    }
+                    .buttonStyle(.plain)
+
+                    // Bearbeiten (statt Erledigt)
+                    Button { showingEdit = true } label: {
+                        EquipmentActionButton(title: "Bearbeiten", icon: "pencil.circle.fill", color: .green)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 4)
+                .padding(.bottom, 8)
+                .padding(.top, 4)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .sheet(isPresented: $showingEdit) {
+            AddEditEquipmentView(boatId: item.boatId, item: item) { updated in
+                onUpdate(updated)
+            }
+        }
+        .sheet(isPresented: $showingService) {
+            NavigationStack {
+                ServiceSearchFromMaintenance(equipmentName: item.name, category: item.category)
+                    .environmentObject(authService)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("Schliessen") { showingService = false }
+                        }
+                    }
+            }
+        }
+        .sheet(isPresented: $showingParts) {
+            NavigationStack {
+                EquipmentPartsSearchView(
+                    name: item.name, manufacturer: item.manufacturer,
+                    model: item.model, partNumber: item.partNumber, dimensions: item.dimensions
+                )
+                .environmentObject(authService)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Schliessen") { showingParts = false }
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingAI) {
+            NavigationStack {
+                ChatScreen(initialQuestion: aiQuestion)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("Schliessen") { showingAI = false }
+                        }
+                    }
+            }
+        }
+    }
+
+    private var aiQuestion: String {
+        let details = [
+            item.name,
+            item.manufacturer.isEmpty ? "" : "Hersteller: \(item.manufacturer)",
+            item.model.isEmpty ? "" : "Modell: \(item.model)",
+            item.dimensions.isEmpty ? "" : "Abmessungen: \(item.dimensions)",
+            item.locationOnBoat.isEmpty ? "" : "Ort: \(item.locationOnBoat)",
+            item.itemDescription.isEmpty ? "" : item.itemDescription
+        ].filter { !$0.isEmpty }.joined(separator: ", ")
+        return "Ich brauche Hilfe mit meinem Ausruestungsgegenstand auf der \(boatName): \(details). Kategorie: \(item.category). Was empfiehlst du?"
+    }
+}
+
+// MARK: - Uniform Action Button for Equipment Row
+struct EquipmentActionButton: View {
+    let title: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(.white)
+                .frame(width: 36, height: 36)
+                .background(color)
+                .clipShape(Circle())
+            Text(title)
+                .font(.system(size: 10))
+                .fontWeight(.medium)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -1368,6 +1594,259 @@ struct MetashopSearchFromEquipment: View {
         } catch {
             print("❌ Metashop-Suche: \(error)")
         }
+    }
+
+    private func searchTag(_ text: String) -> some View {
+        Text(text)
+            .font(.caption).fontWeight(.medium)
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .background(Color.purple.opacity(0.1))
+            .foregroundStyle(.purple).cornerRadius(6)
+    }
+}
+
+// MARK: - Equipment Parts Search with two sections (Exact Parts + Accessories)
+struct EquipmentPartsSearchView: View {
+    let name: String
+    let manufacturer: String
+    let model: String
+    let partNumber: String
+    let dimensions: String
+    @EnvironmentObject var authService: AuthService
+    @State private var exactParts: [MetashopProduct] = []
+    @State private var accessories: [MetashopProduct] = []
+    @State private var isSearching = false
+    @State private var hasSearched = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Search criteria header
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Ersatzteile & Zubehoer fuer:")
+                    .font(.caption).foregroundStyle(.secondary)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        searchTag(name)
+                        if !manufacturer.isEmpty { searchTag(manufacturer) }
+                        if !model.isEmpty { searchTag(model) }
+                        if !partNumber.isEmpty { searchTag("Art.\(partNumber)") }
+                        if !dimensions.isEmpty { searchTag(dimensions) }
+                    }
+                }
+            }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(.systemGray6))
+
+            Divider()
+
+            if isSearching {
+                ProgressView("general.loading".loc)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if exactParts.isEmpty && accessories.isEmpty && hasSearched {
+                VStack(spacing: 16) {
+                    Image(systemName: "cart.badge.questionmark")
+                        .font(.system(size: 48)).foregroundStyle(.purple.opacity(0.3))
+                    Text("equipment.no_shop_found".loc)
+                        .font(.subheadline).foregroundStyle(.secondary)
+
+                    // Fallback: Google search
+                    Button {
+                        let query = [name, manufacturer, model, partNumber, "kaufen", "marine"]
+                            .filter { !$0.isEmpty }.joined(separator: " ")
+                        if let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+                           let url = URL(string: "https://www.google.com/search?q=\(encoded)") {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        Label("equipment.search_online".loc, systemImage: "safari")
+                            .frame(maxWidth: .infinity).padding(.vertical, 12)
+                            .background(Color.purple).foregroundStyle(.white).cornerRadius(10)
+                    }
+                    .padding(.horizontal, 32)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    // Section 1: Exact replacement parts
+                    if !exactParts.isEmpty {
+                        Section {
+                            ForEach(exactParts) { product in
+                                partsProductRow(product)
+                            }
+                        } header: {
+                            Label("Passende Ersatzteile", systemImage: "checkmark.seal.fill")
+                                .font(.subheadline).fontWeight(.semibold)
+                                .foregroundStyle(.purple)
+                        }
+                    }
+
+                    // Section 2: Matching accessories
+                    if !accessories.isEmpty {
+                        Section {
+                            ForEach(accessories) { product in
+                                partsProductRow(product)
+                            }
+                        } header: {
+                            Label("Passendes Zubehoer", systemImage: "plus.circle.fill")
+                                .font(.subheadline).fontWeight(.semibold)
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Ersatzteile")
+        .task { await searchProducts() }
+    }
+
+    // MARK: - Search Logic
+    private func searchProducts() async {
+        isSearching = true
+        defer { isSearching = false; hasSearched = true }
+
+        let searchTerms = [name, manufacturer, model, partNumber]
+            .filter { !$0.isEmpty }
+        guard !searchTerms.isEmpty else { return }
+
+        // Split name into individual words for broader matching
+        let nameWords = name.lowercased().split(separator: " ").map(String.init).filter { $0.count >= 3 }
+
+        do {
+            let allProducts: [MetashopProduct] = try await authService.supabase
+                .from("metashop_products").select()
+                .execute().value
+
+            var exact: [MetashopProduct] = []
+            var accessory: [MetashopProduct] = []
+            let usedIds = Set<UUID>()
+
+            for product in allProducts {
+                let pName = product.name.lowercased()
+                let pMfg = product.manufacturer.lowercased()
+                let pPart = product.partNumber.lowercased()
+                let pDesc = product.description.lowercased()
+                let pCat = product.category.lowercased()
+
+                // Exact part match: part number, or (manufacturer + name/model match)
+                let partMatch = !partNumber.isEmpty && !pPart.isEmpty
+                    && pPart.localizedCaseInsensitiveContains(partNumber)
+
+                let mfgMatch = !manufacturer.isEmpty && !pMfg.isEmpty
+                    && pMfg.localizedCaseInsensitiveContains(manufacturer)
+
+                let nameMatch = searchTerms.contains { term in
+                    pName.localizedCaseInsensitiveContains(term)
+                }
+
+                let modelMatch = !model.isEmpty
+                    && pName.localizedCaseInsensitiveContains(model)
+
+                // Strong matches → exact parts (replacement)
+                if partMatch || (mfgMatch && (nameMatch || modelMatch)) {
+                    exact.append(product)
+                    continue
+                }
+
+                // Weaker matches → accessories (related products)
+                // Match if any name word appears in product name/description/category
+                let wordMatch = nameWords.contains { word in
+                    pName.contains(word) || pDesc.contains(word) || pCat.contains(word)
+                }
+
+                // Dimension-based matching for ropes, sails, chains etc.
+                let dimMatch = !dimensions.isEmpty && !pDesc.isEmpty
+                    && pDesc.localizedCaseInsensitiveContains(dimensions)
+
+                if wordMatch || dimMatch || (mfgMatch && !nameMatch) {
+                    if !usedIds.contains(product.id) {
+                        accessory.append(product)
+                    }
+                }
+            }
+
+            // Sort: in-stock first, then by price
+            let sortFn: (MetashopProduct, MetashopProduct) -> Bool = { a, b in
+                if a.inStock != b.inStock { return a.inStock }
+                let aP = a.price ?? Double.greatestFiniteMagnitude
+                let bP = b.price ?? Double.greatestFiniteMagnitude
+                return aP < bP
+            }
+
+            exactParts = exact.sorted(by: sortFn)
+            accessories = accessory.sorted(by: sortFn)
+
+            // Remove duplicates from accessories that appear in exactParts
+            let exactIds = Set(exactParts.map { $0.id })
+            accessories = accessories.filter { !exactIds.contains($0.id) }
+
+        } catch {
+            print("❌ Equipment Parts Search: \(error)")
+        }
+    }
+
+    @ViewBuilder
+    private func partsProductRow(_ product: MetashopProduct) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                if let imgUrl = product.imageUrl, let url = URL(string: imgUrl) {
+                    AsyncImage(url: url) { phase in
+                        if case .success(let img) = phase {
+                            img.resizable().scaledToFill()
+                        } else {
+                            Image(systemName: "shippingbox.fill").foregroundStyle(.purple)
+                        }
+                    }
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else {
+                    Image(systemName: "shippingbox.fill")
+                        .font(.title3).foregroundStyle(.purple)
+                        .frame(width: 56, height: 56)
+                        .background(Color.purple.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(product.name).font(.subheadline).fontWeight(.semibold).lineLimit(2)
+                    if !product.manufacturer.isEmpty {
+                        Text(product.manufacturer).font(.caption).foregroundStyle(.secondary)
+                    }
+                    if !product.partNumber.isEmpty {
+                        Text("Art.-Nr.: \(product.partNumber)").font(.caption2).foregroundStyle(.tertiary)
+                    }
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    if let priceStr = product.formattedPrice {
+                        Text(priceStr).font(.headline).fontWeight(.bold)
+                    }
+                    HStack(spacing: 3) {
+                        Circle().fill(product.inStock ? .green : .red).frame(width: 6, height: 6)
+                        Text(product.inStock ? "Auf Lager" : "Nicht verfuegbar")
+                            .font(.caption2).foregroundStyle(product.inStock ? .green : .red)
+                    }
+                }
+            }
+
+            // Shop button
+            if !product.shopUrl.isEmpty {
+                Button {
+                    var urlStr = product.shopUrl
+                    if !urlStr.hasPrefix("http") { urlStr = "https://" + urlStr }
+                    if let url = URL(string: urlStr) {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Label("Zum Shop", systemImage: "cart.fill")
+                        .font(.caption).fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                        .background(Color.purple).foregroundStyle(.white).cornerRadius(6)
+                }
+            }
+        }
+        .padding(.vertical, 4)
     }
 
     private func searchTag(_ text: String) -> some View {

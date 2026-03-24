@@ -285,6 +285,7 @@ struct MapScreen: View {
     @State private var showingAddBusiness = false
     @State private var showingLoginRequired = false
     @State private var showingLogin = false
+    @State private var showingAssistant = false
 
     /// Debounce-Task: verzögert den Region-Reload um 0.5 s nach dem letzten Kamera-Stop
     @State private var regionLoadTask: Task<Void, Never>?
@@ -464,6 +465,16 @@ struct MapScreen: View {
                 }
             })
             .environmentObject(authService)
+        }
+        .sheet(isPresented: $showingAssistant) {
+            NavigationStack {
+                ChatScreen()
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("Schliessen") { showingAssistant = false }
+                        }
+                    }
+            }
         }
         .sheet(isPresented: $showingLogin) {
             LoginView()
@@ -751,6 +762,19 @@ struct MapScreen: View {
                 Spacer()
                 
                 VStack(spacing: 12) {
+                    // Boots-Assistent Button
+                    Button {
+                        showingAssistant = true
+                    } label: {
+                        Image(systemName: "bubble.left.and.text.bubble.right.fill")
+                            .font(.title3)
+                            .foregroundStyle(.orange)
+                            .frame(width: 50, height: 50)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                            .shadow(radius: 3)
+                    }
+
                     // Geolokalisierung Button
                     Button {
                         centerOnUserLocation()
@@ -763,7 +787,7 @@ struct MapScreen: View {
                             .clipShape(Circle())
                             .shadow(radius: 3)
                     }
-                    
+
                     // + Button für neue Servicebetriebe
                     Button {
                         if authService.isAuthenticated {
