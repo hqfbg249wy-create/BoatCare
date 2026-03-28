@@ -293,6 +293,12 @@ struct BoatDataScreen: View {
             }
         }
         .task { await waitForSessionAndLoad() }
+        .onAppear {
+            // Beim Zurückkehren aus DetailView Boote aktualisieren (z.B. nach Bild-Upload)
+            if authService.isAuthenticated && !boats.isEmpty {
+                Task { await loadFromSupabase() }
+            }
+        }
         .onChange(of: authService.currentUser) { _, newUser in
             if let _ = newUser {
                 Task {
@@ -472,7 +478,7 @@ struct BoatCardView: View {
                         switch phase {
                         case .success(let img):
                             img.resizable().scaledToFill()
-                                .frame(height: 200)
+                                .frame(height: 180)
                                 .frame(maxWidth: .infinity)
                                 .clipped()
                                 .overlay(alignment: .bottomLeading) {
@@ -490,7 +496,7 @@ struct BoatCardView: View {
                                 Color(.systemGray5)
                                 ProgressView()
                             }
-                            .frame(height: 200)
+                            .frame(height: 180)
                         @unknown default:
                             boatHeaderPlaceholder
                         }
@@ -588,7 +594,7 @@ struct BoatCardView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .frame(height: 200)
+        .frame(height: 180)
         .frame(maxWidth: .infinity)
     }
 
