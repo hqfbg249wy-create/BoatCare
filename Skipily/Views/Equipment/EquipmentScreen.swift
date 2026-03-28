@@ -794,6 +794,9 @@ struct AddEditEquipmentView: View {
     @State private var existingPhotoUrls: [String] = []
     @State private var isUploadingPhotos = false
 
+    // Sail measurement
+    @State private var showingSailForm = false
+
     var body: some View {
         NavigationStack {
             Form {
@@ -928,6 +931,26 @@ struct AddEditEquipmentView: View {
                             .font(.caption)
                     }
                 }
+                // Maßblatt für Segel
+                if isSailCategoryInForm {
+                    Section("Segel-Maßblatt") {
+                        if let existingItem = item {
+                            Button {
+                                showingSailForm = true
+                            } label: {
+                                Label("Maßblatt bearbeiten", systemImage: "doc.text.fill")
+                                    .foregroundStyle(.teal)
+                            }
+                            .sheet(isPresented: $showingSailForm) {
+                                SailTypePicker(equipmentId: existingItem.id, boatName: existingItem.name)
+                            }
+                        } else {
+                            Text("Bitte zuerst speichern, dann Maßblatt ausfüllen")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
                 Section("equipment.notes".loc) {
                     TextField("equipment.notes".loc, text: $notes, axis: .vertical).lineLimit(3...6)
                 }
@@ -967,6 +990,15 @@ struct AddEditEquipmentView: View {
             }
             if let c = e.maintenanceCycleYears { cycleText = String(c) }
         }
+    }
+
+    private var isSailCategoryInForm: Bool {
+        let cat = category.lowercased()
+        let n = name.lowercased()
+        return cat.contains("segel") || cat.contains("sail") || cat.contains("rigg")
+            || n.contains("segel") || n.contains("genua") || n.contains("gennaker")
+            || n.contains("code 0") || n.contains("code0") || n.contains("spinnaker")
+            || n.contains("fock") || n.contains("großsegel") || n.contains("vorsegel")
     }
 
     private func saveWithPhotos() async {
