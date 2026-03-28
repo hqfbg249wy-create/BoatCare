@@ -110,21 +110,56 @@ struct SailMeasurement: Codable, Identifiable {
     var gk_farbe: String = ""
 
     enum CodingKeys: String, CodingKey {
-        case id, sailType, date, sailNumber, notes, equipmentId
-        case gs_P, gs_E, gs_E1, gs_A, gs_G, gs_AL
-        case gs_RB, gs_RU, gs_CB, gs_CU
-        case gs_R1, gs_R2, gs_unterliekstau, gs_vorliekstau, gs_schothornrutscher, gs_mastrutscher
-        case gs_einleinenreff, gs_weicherFussteil, gs_losesUnterliek, gs_segelzeichen, gs_segelnummer, gs_farbe
-        case vs_I, vs_I2, vs_VST, vs_J, vs_J2
-        case vs_VL, vs_AL1, vs_AL2, vs_T1, vs_T2, vs_W, vs_Q, vs_K
-        case vs_H, vs_reffanlage, vs_vorliekstau
-        case vs_rollreff, vs_fenster, vs_uvSchutz, vs_position, vs_farbe
-        case gk_luffLength, gk_leechLength, gk_footLength, gk_midWidth, gk_tackHeight, gk_material, gk_farbe
-
-        var stringValue: String {
-            // Convert to snake_case for Supabase
-            rawValue.replacingOccurrences(of: "([A-Z])", with: "_$1", options: .regularExpression).lowercased()
-        }
+        case id
+        case equipmentId = "equipment_id"
+        case sailType = "sail_type"
+        case date
+        case sailNumber = "sail_number"
+        case notes
+        // Großsegel
+        case gs_P = "gs_p"
+        case gs_E = "gs_e"
+        case gs_E1 = "gs_e1"
+        case gs_A = "gs_a"
+        case gs_G = "gs_g"
+        case gs_AL = "gs_al"
+        case gs_RB = "gs_rb"
+        case gs_RU = "gs_ru"
+        case gs_CB = "gs_cb"
+        case gs_CU = "gs_cu"
+        case gs_R1 = "gs_r1"
+        case gs_R2 = "gs_r2"
+        case gs_unterliekstau, gs_vorliekstau, gs_schothornrutscher, gs_mastrutscher
+        case gs_einleinenreff
+        case gs_weicherFussteil = "gs_weicher_fussteil"
+        case gs_losesUnterliek = "gs_loses_unterliek"
+        case gs_segelzeichen, gs_segelnummer, gs_farbe
+        // Vorsegel
+        case vs_I = "vs_i"
+        case vs_I2 = "vs_i2"
+        case vs_VST = "vs_vst"
+        case vs_J = "vs_j"
+        case vs_J2 = "vs_j2"
+        case vs_VL = "vs_vl"
+        case vs_AL1 = "vs_al1"
+        case vs_AL2 = "vs_al2"
+        case vs_T1 = "vs_t1"
+        case vs_T2 = "vs_t2"
+        case vs_W = "vs_w"
+        case vs_Q = "vs_q"
+        case vs_K = "vs_k"
+        case vs_H = "vs_h"
+        case vs_reffanlage, vs_vorliekstau
+        case vs_rollreff, vs_fenster
+        case vs_uvSchutz = "vs_uv_schutz"
+        case vs_position, vs_farbe
+        // Gennaker/Code0
+        case gk_luffLength = "gk_luff_length"
+        case gk_leechLength = "gk_leech_length"
+        case gk_footLength = "gk_foot_length"
+        case gk_midWidth = "gk_mid_width"
+        case gk_tackHeight = "gk_tack_height"
+        case gk_material, gk_farbe
     }
 }
 
@@ -229,6 +264,7 @@ struct SailMeasurementFormView: View {
                 }
             }
         }
+        .task { await loadExistingMeasurement() }
     }
 
     // MARK: - Großsegel Form
@@ -387,20 +423,43 @@ struct SailMeasurementFormView: View {
 
     private func saveMeasurement() async {
         isSaving = true
-        measurement.date = ISO8601DateFormatter().string(from: Date())
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        measurement.date = df.string(from: Date())
+
+        // Map sail type to DB enum value
+        switch sailType {
+        case .grosssegel: measurement.sailType = "grosssegel"
+        case .vorsegel: measurement.sailType = "vorsegel"
+        case .gennaker: measurement.sailType = "gennaker"
+        case .code0: measurement.sailType = "code0"
+        }
+        measurement.equipmentId = equipmentId
 
         do {
-            // Save as JSON in equipment notes or a separate table
-            let jsonData = try JSONEncoder().encode(measurement)
-            let jsonString = String(data: jsonData, encoding: .utf8) ?? ""
-
-            // Store in equipment item's notes field with prefix
-            // In a production app this would go to a dedicated sail_measurements table
-            try await SupabaseManager.shared.client
-                .from("equipment")
-                .update(["notes": "SAIL_MEASUREMENT:\(jsonString)"])
-                .eq("id", value: equipmentId.uuidString)
+            // Check if measurement already exists for this equipment
+            let existing: [SailMeasurement] = try await SupabaseManager.shared.client
+                .from("sail_measurements")
+                .select()
+                .eq("equipment_id", value: equipmentId.uuidString)
                 .execute()
+                .value
+
+            if let existingMeasurement = existing.first {
+                // Update existing — keep the DB id
+                measurement.id = existingMeasurement.id
+                try await SupabaseManager.shared.client
+                    .from("sail_measurements")
+                    .update(measurement)
+                    .eq("id", value: existingMeasurement.id.uuidString)
+                    .execute()
+            } else {
+                // Insert new
+                try await SupabaseManager.shared.client
+                    .from("sail_measurements")
+                    .insert(measurement)
+                    .execute()
+            }
 
             withAnimation { showSaved = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
@@ -411,6 +470,25 @@ struct SailMeasurementFormView: View {
         }
 
         isSaving = false
+    }
+
+    private func loadExistingMeasurement() async {
+        do {
+            let results: [SailMeasurement] = try await SupabaseManager.shared.client
+                .from("sail_measurements")
+                .select()
+                .eq("equipment_id", value: equipmentId.uuidString)
+                .execute()
+                .value
+
+            if let existing = results.first {
+                await MainActor.run {
+                    measurement = existing
+                }
+            }
+        } catch {
+            print("Load sail measurement error: \(error)")
+        }
     }
 }
 
