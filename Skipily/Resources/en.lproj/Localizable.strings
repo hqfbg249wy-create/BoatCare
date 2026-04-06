@@ -245,8 +245,12 @@
 "equipment.cat.engine" = "Engine";
 "equipment.cat.electrical" = "Electrical";
 "equipment.cat.rigging" = "Rigging";
+"equipment.cat.sails" = "Sails";
 "equipment.cat.anchor" = "Anchor";
 "equipment.cat.communication" = "Communication";
+"equipment.cat.hvac" = "HVAC";
+"equipment.cat.paint" = "Paint";
+"equipment.cat.rope" = "Rope";
 "equipment.cat.other" = "Other";
 
 // MARK: - Marketplace / Shop

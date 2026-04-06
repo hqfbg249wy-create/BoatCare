@@ -249,8 +249,12 @@ Ausrüstung unter Boote ergänzen.";
 "equipment.cat.engine" = "Motor";
 "equipment.cat.electrical" = "Elektrik";
 "equipment.cat.rigging" = "Rigg";
+"equipment.cat.sails" = "Segel";
 "equipment.cat.anchor" = "Anker";
 "equipment.cat.communication" = "Kommunikation";
+"equipment.cat.hvac" = "Heizung/Klima";
+"equipment.cat.paint" = "Farben";
+"equipment.cat.rope" = "Tauwerk";
 "equipment.cat.other" = "Sonstiges";
 
 // MARK: - Marketplace / Shop

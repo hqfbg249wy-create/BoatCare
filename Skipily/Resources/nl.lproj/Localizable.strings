@@ -279,8 +279,12 @@
 "equipment.cat.engine" = "Motor";
 "equipment.cat.electrical" = "Elektrisch";
 "equipment.cat.rigging" = "Tuigage";
+"equipment.cat.sails" = "Zeilen";
 "equipment.cat.anchor" = "Anker";
 "equipment.cat.communication" = "Communicatie";
+"equipment.cat.hvac" = "Verwarming/Airco";
+"equipment.cat.paint" = "Verf";
+"equipment.cat.rope" = "Touwwerk";
 "equipment.cat.other" = "Overig";
 
 // New keys - Issue fixes

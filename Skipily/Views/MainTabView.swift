@@ -10,7 +10,7 @@ import SwiftUI
 import CoreLocation
 
 enum AppTab: Hashable {
-    case map, boats, maintenance, shop, more
+    case map, boats, maintenance, shop, favorites
 }
 
 struct MainTabView: View {
@@ -26,7 +26,7 @@ struct MainTabView: View {
     // NavigationPaths for tabs with controlled navigation
     @State private var maintenancePath = NavigationPath()
     @State private var shopNavigationPath = NavigationPath()
-    @State private var moreNavigationPath = NavigationPath()
+    @State private var favoritesNavigationPath = NavigationPath()
 
     // Reset IDs for tabs with internal NavigationStacks (Map, Boats)
     @State private var mapResetId = UUID()
@@ -104,20 +104,10 @@ struct MainTabView: View {
             }
             .badge(cartManager.itemCount)
 
-            // MARK: - Mehr
-            Tab("Mehr", systemImage: "ellipsis.circle.fill", value: AppTab.more) {
-                NavigationStack(path: $moreNavigationPath) {
-                    MoreMenuView()
-                        .navigationDestination(for: MoreDestination.self) { dest in
-                            switch dest {
-                            case .favorites:
-                                POIScreen()
-                            case .assistant:
-                                ChatScreen()
-                            case .profile:
-                                ProfileView()
-                            }
-                        }
+            // MARK: - Favoriten
+            Tab("Favoriten", systemImage: "heart.fill", value: AppTab.favorites) {
+                NavigationStack(path: $favoritesNavigationPath) {
+                    POIScreen()
                 }
             }
         }
@@ -157,7 +147,7 @@ struct MainTabView: View {
                 // Reset ALL navigation paths to root
                 maintenancePath = NavigationPath()
                 shopNavigationPath = NavigationPath()
-                moreNavigationPath = NavigationPath()
+                favoritesNavigationPath = NavigationPath()
 
                 // Reset tabs with internal NavigationStacks via id change
                 if newTab != selectedTab {
@@ -207,66 +197,3 @@ struct OfflineBanner: View {
     }
 }
 
-// MARK: - More Menu Destinations
-enum MoreDestination: Hashable {
-    case favorites
-    case assistant
-    case profile
-}
-
-// MARK: - More Menu View
-struct MoreMenuView: View {
-    @EnvironmentObject var favoritesManager: FavoritesManager
-
-    var body: some View {
-        List {
-            // Favoriten
-            NavigationLink(value: MoreDestination.favorites) {
-                Label {
-                    VStack(alignment: .leading) {
-                        Text("Favoriten")
-                        if !favoritesManager.favoriteIDs.isEmpty {
-                            Text("\(favoritesManager.favoriteIDs.count) gespeichert")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                } icon: {
-                    Image(systemName: "heart.fill")
-                        .foregroundStyle(.pink)
-                }
-            }
-
-            // Boots-Assistent
-            NavigationLink(value: MoreDestination.assistant) {
-                Label {
-                    VStack(alignment: .leading) {
-                        Text("Boots-Assistent")
-                        Text("KI-Beratung fuer dein Boot")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: "bubble.left.and.text.bubble.right.fill")
-                        .foregroundStyle(.orange)
-                }
-            }
-
-            // Profil
-            NavigationLink(value: MoreDestination.profile) {
-                Label {
-                    VStack(alignment: .leading) {
-                        Text("Profil")
-                        Text("Konto & Einstellungen")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: "person.crop.circle")
-                        .foregroundStyle(.blue)
-                }
-            }
-        }
-        .navigationTitle("Mehr")
-    }
-}

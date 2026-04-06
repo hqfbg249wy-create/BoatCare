@@ -286,6 +286,7 @@ struct MapScreen: View {
     @State private var showingLoginRequired = false
     @State private var showingLogin = false
     @State private var showingAssistant = false
+    @State private var showingProfile = false
 
     /// Debounce-Task: verzögert den Region-Reload um 0.5 s nach dem letzten Kamera-Stop
     @State private var regionLoadTask: Task<Void, Never>?
@@ -480,6 +481,17 @@ struct MapScreen: View {
             LoginView()
                 .environmentObject(authService)
         }
+        .sheet(isPresented: $showingProfile) {
+            NavigationStack {
+                ProfileView()
+                    .environmentObject(authService)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("general.close".loc) { showingProfile = false }
+                        }
+                    }
+            }
+        }
         .alert("map.location_error".loc, isPresented: $showingLocationError) {
             Button("general.ok".loc, role: .cancel) {}
         } message: {
@@ -546,32 +558,38 @@ struct MapScreen: View {
                         .background(.ultraThinMaterial)
                         .clipShape(Capsule())
 
-                        TabView(selection: $selectedProviderIndex) {
-                            ForEach(Array(nearby.enumerated()), id: \.element.id) { index, provider in
-                                ProviderDetailCard(
-                                    provider: provider,
-                                    userLocation: userLocation,
-                                    favoritesManager: favoritesManager,
-                                    onDismiss: {
-                                        self.selectedProvider = nil
-                                        self.clusterProviders = nil
-                                        self.cardZoomLevel = nil
-                                        self.route = nil
-                                        self.showingRoute = false
-                                    },
-                                    onRoute: {
-                                        calculateRouteToProvider(provider)
-                                    }
-                                )
-                                .padding(.horizontal, 16)
-                                .tag(index)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            LazyHStack(spacing: 12) {
+                                ForEach(Array(nearby.enumerated()), id: \.element.id) { index, provider in
+                                    ProviderDetailCard(
+                                        provider: provider,
+                                        userLocation: userLocation,
+                                        favoritesManager: favoritesManager,
+                                        onDismiss: {
+                                            self.selectedProvider = nil
+                                            self.clusterProviders = nil
+                                            self.cardZoomLevel = nil
+                                            self.route = nil
+                                            self.showingRoute = false
+                                        },
+                                        onRoute: {
+                                            calculateRouteToProvider(provider)
+                                        }
+                                    )
+                                    .containerRelativeFrame(.horizontal, count: 1, spacing: 12)
+                                    .id(index)
+                                }
                             }
+                            .scrollTargetLayout()
                         }
-                        .tabViewStyle(.page(indexDisplayMode: .never))
-                        .frame(height: 400)
+                        .scrollTargetBehavior(.viewAligned)
+                        .contentMargins(.horizontal, 32, for: .scrollContent)
+                        .frame(height: 380)
+                        .scrollPosition(id: Binding(
+                            get: { selectedProviderIndex as Int? },
+                            set: { if let v = $0 { selectedProviderIndex = v } }
+                        ))
                         .onChange(of: selectedProviderIndex) { _, newIndex in
-                            // Aktualisiere den ausgewählten Provider beim Swipen
-                            // Kamera zentriert Provider oberhalb der Kachel
                             if newIndex >= 0 && newIndex < nearby.count {
                                 centerOnProvider(nearby[newIndex])
                             }
@@ -762,19 +780,6 @@ struct MapScreen: View {
                 Spacer()
                 
                 VStack(spacing: 12) {
-                    // Boots-Assistent Button
-                    Button {
-                        showingAssistant = true
-                    } label: {
-                        Image(systemName: "bubble.left.and.text.bubble.right.fill")
-                            .font(.title3)
-                            .foregroundStyle(.orange)
-                            .frame(width: 50, height: 50)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                            .shadow(radius: 3)
-                    }
-
                     // Geolokalisierung Button
                     Button {
                         centerOnUserLocation()
@@ -812,21 +817,13 @@ struct MapScreen: View {
     }
     
     private var appIcon: some View {
-        Image(systemName: "sailboat.fill")
-            .font(.title2)
-            .foregroundStyle(.blue.gradient)
-            .frame(width: 44, height: 44)
-            .background(.ultraThinMaterial)
-            .clipShape(Circle())
-            .shadow(radius: 3)
+        SkipilyLogoIcon(size: 44)
     }
     
     private var loginIcon: some View {
         Button {
             if authService.isAuthenticated {
-                Task {
-                    await authService.signOut()
-                }
+                showingProfile = true
             } else {
                 showingLogin = true
             }

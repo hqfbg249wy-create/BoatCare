@@ -279,8 +279,12 @@
 "equipment.cat.engine" = "Motor";
 "equipment.cat.electrical" = "Eléctrica";
 "equipment.cat.rigging" = "Jarcia";
+"equipment.cat.sails" = "Velas";
 "equipment.cat.anchor" = "Ancla";
 "equipment.cat.communication" = "Comunicación";
+"equipment.cat.hvac" = "Calefacción/Clima";
+"equipment.cat.paint" = "Pinturas";
+"equipment.cat.rope" = "Cabos";
 "equipment.cat.other" = "Otros";
 
 // New keys - Issue fixes

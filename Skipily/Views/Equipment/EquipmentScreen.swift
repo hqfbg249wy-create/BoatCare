@@ -93,8 +93,12 @@ struct EquipmentItem: Identifiable, Codable {
         case "engine", "motor": return "engine.combustion.fill"
         case "electrical", "elektrik": return "bolt.fill"
         case "rigging", "rigg": return "arrow.up.and.down.and.arrow.left.and.right"
-        case "anchor", "anker": return "anchor.fill"
+        case "sails", "segel": return "wind"
+        case "anchor", "anker": return "scope"
         case "communication", "kommunikation": return "antenna.radiowaves.left.and.right"
+        case "hvac", "heizung": return "thermometer.sun.fill"
+        case "paint", "farben": return "paintbrush.fill"
+        case "rope", "tauwerk": return "circle.and.line.horizontal.fill"
         default: return "shippingbox.fill"
         }
     }
@@ -105,8 +109,12 @@ struct EquipmentItem: Identifiable, Codable {
         case "engine", "motor": return .orange
         case "electrical", "elektrik": return .yellow
         case "rigging", "rigg": return .purple
+        case "sails", "segel": return .cyan
         case "anchor", "anker": return .brown
         case "communication", "kommunikation": return .teal
+        case "hvac", "heizung": return .orange
+        case "paint", "farben": return .pink
+        case "rope", "tauwerk": return .mint
         default: return .gray
         }
     }
@@ -168,7 +176,8 @@ private struct EquipmentUpdate: Encodable {
 }
 
 private let equipmentCategories = [
-    "navigation", "safety", "engine", "electrical", "rigging", "anchor", "communication", "other"
+    "navigation", "safety", "engine", "electrical", "rigging", "sails", "anchor", "communication",
+    "hvac", "paint", "rope", "other"
 ]
 
 // MARK: - Equipment Navigation Target
@@ -282,11 +291,17 @@ struct EquipmentScreen: View {
 
     private func catChip(_ cat: String?, label: String) -> some View {
         let isSel = selectedCategory == cat
+        let icon: String? = if let cat {
+            EquipmentItem(id: UUID(), boatId: UUID(), name: "", category: cat).categoryIcon
+        } else { nil as String? }
         return Button { selectedCategory = cat } label: {
-            Text(label).font(.subheadline)
-                .padding(.horizontal, 12).padding(.vertical, 6)
-                .background(isSel ? Color.blue : Color(.systemGray6))
-                .foregroundStyle(isSel ? .white : .primary).cornerRadius(16)
+            HStack(spacing: 4) {
+                if let icon { Image(systemName: icon).font(.caption) }
+                Text(label).font(.subheadline)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 6)
+            .background(isSel ? Color.blue : Color(.systemGray6))
+            .foregroundStyle(isSel ? .white : .primary).cornerRadius(16)
         }
     }
 
@@ -637,21 +652,70 @@ struct EquipmentDetailView: View {
     @Environment(\.dismiss) var dismiss
     @State private var showingEdit = false
     @State private var showingDeleteConfirm = false
+    @State private var selectedPhotoIndex = 0
+
+    private var photoURLs: [URL] {
+        let raw = item.photoUrl ?? item.imageUrl ?? ""
+        return raw.components(separatedBy: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .compactMap { URL(string: $0) }
+    }
 
     var body: some View {
         List {
-            // Header
+            // Photo Gallery
+            if !photoURLs.isEmpty {
+                Section {
+                    VStack(spacing: 0) {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            LazyHStack(spacing: 0) {
+                                ForEach(Array(photoURLs.enumerated()), id: \.offset) { index, url in
+                                    AsyncImage(url: url) { phase in
+                                        if case .success(let img) = phase {
+                                            img.resizable().scaledToFill()
+                                                .frame(height: 220)
+                                                .clipped()
+                                        } else if case .failure = phase {
+                                            catIcon
+                                        } else {
+                                            ProgressView()
+                                                .frame(height: 220)
+                                        }
+                                    }
+                                    .containerRelativeFrame(.horizontal)
+                                    .id(index)
+                                }
+                            }
+                            .scrollTargetLayout()
+                        }
+                        .scrollTargetBehavior(.paging)
+                        .frame(height: 220)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .scrollPosition(id: Binding(
+                            get: { selectedPhotoIndex as Int? },
+                            set: { if let v = $0 { selectedPhotoIndex = v } }
+                        ))
+
+                        if photoURLs.count > 1 {
+                            HStack(spacing: 6) {
+                                ForEach(0..<photoURLs.count, id: \.self) { i in
+                                    Circle()
+                                        .fill(i == selectedPhotoIndex ? Color.primary : Color.secondary.opacity(0.4))
+                                        .frame(width: 7, height: 7)
+                                }
+                            }
+                            .padding(.top, 8)
+                        }
+                    }
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                }
+            }
+
+            // Header Info
             Section {
                 HStack(spacing: 16) {
-                    if let url = item.photoUrl ?? item.imageUrl, let imgURL = URL(string: url) {
-                        AsyncImage(url: imgURL) { phase in
-                            if case .success(let img) = phase {
-                                img.resizable().scaledToFill()
-                                    .frame(width: 70, height: 70)
-                                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                            } else { catIcon }
-                        }
-                    } else { catIcon }
+                    if photoURLs.isEmpty { catIcon }
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.name).font(.title3).fontWeight(.bold)
                         Text("equipment.cat.\(item.category)".loc)
@@ -796,10 +860,105 @@ struct AddEditEquipmentView: View {
 
     // Sail measurement
     @State private var showingSailForm = false
+    @State private var headerPhotoIndex = 0
+
+    private var allDisplayPhotos: [(id: String, source: PhotoSource)] {
+        var result: [(String, PhotoSource)] = []
+        for (i, url) in existingPhotoUrls.enumerated() {
+            result.append(("existing_\(i)", .url(url)))
+        }
+        for (i, img) in selectedImages.enumerated() {
+            result.append(("new_\(i)", .image(img)))
+        }
+        return result
+    }
+
+    private enum PhotoSource {
+        case url(String)
+        case image(UIImage)
+    }
 
     var body: some View {
         NavigationStack {
             Form {
+                // Photo header gallery
+                if !allDisplayPhotos.isEmpty {
+                    Section {
+                        VStack(spacing: 0) {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                LazyHStack(spacing: 0) {
+                                    ForEach(Array(allDisplayPhotos.enumerated()), id: \.element.id) { index, photo in
+                                        Group {
+                                            switch photo.source {
+                                            case .url(let urlStr):
+                                                AsyncImage(url: URL(string: urlStr)) { phase in
+                                                    if case .success(let img) = phase {
+                                                        img.resizable().scaledToFill()
+                                                    } else {
+                                                        Rectangle().fill(Color(.systemGray5))
+                                                            .overlay { ProgressView() }
+                                                    }
+                                                }
+                                            case .image(let uiImage):
+                                                Image(uiImage: uiImage)
+                                                    .resizable().scaledToFill()
+                                            }
+                                        }
+                                        .frame(height: 200)
+                                        .clipped()
+                                        .containerRelativeFrame(.horizontal)
+                                        .id(index)
+                                    }
+                                }
+                                .scrollTargetLayout()
+                            }
+                            .scrollTargetBehavior(.paging)
+                            .frame(height: 200)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .scrollPosition(id: Binding(
+                                get: { headerPhotoIndex as Int? },
+                                set: { if let v = $0 { headerPhotoIndex = v } }
+                            ))
+
+                            // Page dots + delete button below gallery
+                            HStack {
+                                if allDisplayPhotos.count > 1 {
+                                    HStack(spacing: 5) {
+                                        ForEach(0..<allDisplayPhotos.count, id: \.self) { i in
+                                            Circle()
+                                                .fill(i == headerPhotoIndex ? Color.primary : Color.secondary.opacity(0.4))
+                                                .frame(width: 7, height: 7)
+                                        }
+                                    }
+                                }
+
+                                Spacer()
+
+                                Button {
+                                    let idx = min(headerPhotoIndex, allDisplayPhotos.count - 1)
+                                    if idx < existingPhotoUrls.count {
+                                        existingPhotoUrls.remove(at: idx)
+                                    } else {
+                                        let newIdx = idx - existingPhotoUrls.count
+                                        if newIdx < selectedImages.count {
+                                            selectedImages.remove(at: newIdx)
+                                        }
+                                    }
+                                    if headerPhotoIndex >= allDisplayPhotos.count {
+                                        headerPhotoIndex = max(0, allDisplayPhotos.count - 1)
+                                    }
+                                } label: {
+                                    Label("Foto löschen", systemImage: "trash")
+                                        .font(.caption)
+                                        .foregroundStyle(.red)
+                                }
+                            }
+                            .padding(.top, 8)
+                        }
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    }
+                }
+
                 Section {
                     TextField("equipment.name".loc, text: $name)
                     Picker("equipment.category".loc, selection: $category) {
@@ -839,63 +998,6 @@ struct AddEditEquipmentView: View {
                 }
                 // Fotos (max 5)
                 Section("Fotos (max. 5)") {
-                    // Existing photos
-                    if !existingPhotoUrls.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(existingPhotoUrls, id: \.self) { urlStr in
-                                    ZStack(alignment: .topTrailing) {
-                                        AsyncImage(url: URL(string: urlStr)) { phase in
-                                            if case .success(let img) = phase {
-                                                img.resizable().scaledToFill()
-                                                    .frame(width: 80, height: 80)
-                                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                            } else {
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .fill(Color(.systemGray5))
-                                                    .frame(width: 80, height: 80)
-                                            }
-                                        }
-                                        Button {
-                                            existingPhotoUrls.removeAll { $0 == urlStr }
-                                        } label: {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .font(.caption)
-                                                .foregroundStyle(.white)
-                                                .background(Circle().fill(.red).frame(width: 16, height: 16))
-                                        }
-                                        .offset(x: 4, y: -4)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // New photos
-                    if !selectedImages.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(selectedImages.indices, id: \.self) { idx in
-                                    ZStack(alignment: .topTrailing) {
-                                        Image(uiImage: selectedImages[idx])
-                                            .resizable().scaledToFill()
-                                            .frame(width: 80, height: 80)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        Button {
-                                            selectedImages.remove(at: idx)
-                                        } label: {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .font(.caption)
-                                                .foregroundStyle(.white)
-                                                .background(Circle().fill(.red).frame(width: 16, height: 16))
-                                        }
-                                        .offset(x: 4, y: -4)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
                     let totalPhotos = existingPhotoUrls.count + selectedImages.count
                     if totalPhotos < 5 {
                         PhotosPicker(
