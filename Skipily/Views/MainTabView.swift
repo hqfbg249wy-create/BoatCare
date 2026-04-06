@@ -24,7 +24,6 @@ struct MainTabView: View {
     @State private var selectedTab: AppTab = .map
 
     // NavigationPaths for tabs with controlled navigation
-    @State private var maintenancePath = NavigationPath()
     @State private var shopNavigationPath = NavigationPath()
     @State private var favoritesNavigationPath = NavigationPath()
 
@@ -46,26 +45,10 @@ struct MainTabView: View {
                     .id(boatsResetId)
             }
 
-            // MARK: - Wartung (NavigationStack controlled from here)
+            // MARK: - Wartung
             Tab("Wartung", systemImage: "wrench.and.screwdriver.fill", value: AppTab.maintenance) {
-                NavigationStack(path: $maintenancePath) {
-                    MaintenanceScreen(onNavigate: { target in
-                        maintenancePath.append(target)
-                    })
-                    .navigationDestination(for: MaintenanceNavTarget.self) { target in
-                        switch target {
-                        case .service(let name, let cat):
-                            ServiceSearchFromMaintenance(equipmentName: name, category: cat)
-                        case .spareParts(let name):
-                            ProviderShopSearchView(
-                                providerId: UUID(),
-                                providerName: "Alle",
-                                searchTerm: name
-                            )
-                        case .aiAssistant(let question):
-                            ChatScreen(initialQuestion: question)
-                        }
-                    }
+                NavigationStack {
+                    MaintenanceScreen()
                 }
             }
 
@@ -145,7 +128,6 @@ struct MainTabView: View {
             get: { selectedTab },
             set: { newTab in
                 // Reset ALL navigation paths to root
-                maintenancePath = NavigationPath()
                 shopNavigationPath = NavigationPath()
                 favoritesNavigationPath = NavigationPath()
 

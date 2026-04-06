@@ -13,6 +13,12 @@ enum MaintenanceNavTarget: Hashable {
     case aiAssistant(question: String)
 }
 
+// Per-row nav wrapper for state-driven navigationDestination(item:)
+struct MaintenanceRowNav: Identifiable, Hashable {
+    let id = UUID()
+    let target: MaintenanceNavTarget
+}
+
 // MARK: - Maintenance Task Model (manuell erstellte Aufgaben)
 struct MaintenanceTask: Identifiable, Codable {
     var id: UUID = UUID()
@@ -149,9 +155,6 @@ struct MaintenanceScreen: View {
                                     isCompleting: completingEquipmentIds.contains(item.id),
                                     onComplete: {
                                         Task { await completeEquipmentMaintenance(item) }
-                                    },
-                                    onNavigate: { target in
-                                        onNavigate?(target)
                                     }
                                 )
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -375,14 +378,15 @@ struct MaintenanceTaskRow: View {
     }
 }
 
-// MARK: - Equipment Maintenance Row mit Aktions-Buttons (programmatische Navigation)
+// MARK: - Equipment Maintenance Row mit Aktions-Buttons (state-driven Navigation pro Row)
 struct EquipmentMaintenanceRow: View {
     let item: EquipmentMaintenanceItem
     let isCompleting: Bool
     let onComplete: () -> Void
-    let onNavigate: (MaintenanceNavTarget) -> Void
 
+    @EnvironmentObject var authService: AuthService
     @State private var showActions = false
+    @State private var rowNavigation: MaintenanceRowNav?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -431,7 +435,8 @@ struct EquipmentMaintenanceRow: View {
                 HStack(spacing: 8) {
                     // Service suchen
                     Button {
-                        onNavigate(.service(equipmentName: item.equipmentName, category: item.category))
+                        rowNavigation = MaintenanceRowNav(target:
+                            .service(equipmentName: item.equipmentName, category: item.category))
                     } label: {
                         MaintenanceActionButton(
                             title: "Service",
@@ -439,11 +444,12 @@ struct EquipmentMaintenanceRow: View {
                             color: .orange
                         )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.borderless)
 
                     // Ersatzteile suchen
                     Button {
-                        onNavigate(.spareParts(equipmentName: item.equipmentName))
+                        rowNavigation = MaintenanceRowNav(target:
+                            .spareParts(equipmentName: item.equipmentName))
                     } label: {
                         MaintenanceActionButton(
                             title: "Ersatzteile",
@@ -451,12 +457,12 @@ struct EquipmentMaintenanceRow: View {
                             color: .purple
                         )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.borderless)
 
                     // KI-Assistent fragen
                     Button {
                         let question = "Ich brauche Hilfe mit meinem \(item.equipmentName) (\(item.category)) auf der \(item.boatName). Naechste Wartung: \(item.nextMaintenanceDate.formatted(date: .abbreviated, time: .omitted)). Was empfiehlst du?"
-                        onNavigate(.aiAssistant(question: question))
+                        rowNavigation = MaintenanceRowNav(target: .aiAssistant(question: question))
                     } label: {
                         MaintenanceActionButton(
                             title: "KI-Assistent",
@@ -464,7 +470,7 @@ struct EquipmentMaintenanceRow: View {
                             color: .blue
                         )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.borderless)
 
                     // Wartung erledigt
                     if isCompleting {
@@ -478,7 +484,7 @@ struct EquipmentMaintenanceRow: View {
                                 color: .green
                             )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.borderless)
                     }
                 }
                 .padding(.horizontal, 10)
@@ -492,6 +498,21 @@ struct EquipmentMaintenanceRow: View {
                 .stroke(borderColor(for: item.nextMaintenanceDate) ?? .clear,
                         lineWidth: borderColor(for: item.nextMaintenanceDate) == nil ? 0 : 2)
         )
+        .navigationDestination(item: $rowNavigation) { nav in
+            switch nav.target {
+            case .service(let name, let cat):
+                ServiceSearchFromMaintenance(equipmentName: name, category: cat)
+                    .environmentObject(authService)
+            case .spareParts(let name):
+                ProviderShopSearchView(
+                    providerId: UUID(),
+                    providerName: "Alle",
+                    searchTerm: name
+                )
+            case .aiAssistant(let question):
+                ChatScreen(initialQuestion: question)
+            }
+        }
     }
 
     private func borderColor(for due: Date) -> Color? {

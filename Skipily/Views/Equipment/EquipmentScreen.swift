@@ -187,6 +187,12 @@ enum EquipmentNavTarget: Hashable {
     case aiAssistant(question: String)
 }
 
+// Per-row navigation state — using Identifiable wrapper for unique identity
+struct EquipmentRowNav: Identifiable, Hashable {
+    let id = UUID()
+    let target: EquipmentNavTarget
+}
+
 // MARK: - Equipment Screen (Supabase)
 struct EquipmentScreen: View {
     let boatId: UUID
@@ -416,6 +422,7 @@ struct EquipmentExpandableRow: View {
     @State private var showActions = false
     @State private var showingEdit = false
     @State private var showingSailForm = false
+    @State private var rowNavigation: EquipmentRowNav?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -470,56 +477,70 @@ struct EquipmentExpandableRow: View {
             .buttonStyle(.plain)
             .padding(.vertical, 4)
 
-            // Action buttons (expandable) — like Maintenance screen
+            // Action buttons (expandable) — state-driven navigation per row
             if showActions {
                 HStack(spacing: 8) {
                     // Service suchen
-                    NavigationLink {
-                        ServiceSearchFromMaintenance(equipmentName: item.name, category: item.category)
-                            .environmentObject(authService)
+                    Button {
+                        rowNavigation = EquipmentRowNav(target:
+                            .service(name: item.name, category: item.category))
                     } label: {
                         EquipmentActionButton(title: "Service", icon: "wrench.and.screwdriver.fill", color: .orange)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.borderless)
 
                     // Ersatzteile suchen
-                    NavigationLink {
-                        EquipmentPartsSearchView(
-                            name: item.name, manufacturer: item.manufacturer,
-                            model: item.model, partNumber: item.partNumber, dimensions: item.dimensions
-                        )
-                        .environmentObject(authService)
+                    Button {
+                        rowNavigation = EquipmentRowNav(target:
+                            .spareParts(name: item.name, manufacturer: item.manufacturer,
+                                        model: item.model, partNumber: item.partNumber,
+                                        dimensions: item.dimensions))
                     } label: {
                         EquipmentActionButton(title: "Ersatzteile", icon: "cart.fill", color: .purple)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.borderless)
 
                     // KI-Assistent
-                    NavigationLink {
-                        ChatScreen(initialQuestion: aiQuestion)
+                    Button {
+                        rowNavigation = EquipmentRowNav(target: .aiAssistant(question: aiQuestion))
                     } label: {
                         EquipmentActionButton(title: "KI-Assistent", icon: "bubble.left.fill", color: .blue)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.borderless)
 
                     // Maßblatt (nur für Segel-Kategorie)
                     if isSailCategory {
                         Button { showingSailForm = true } label: {
                             EquipmentActionButton(title: "Maßblatt", icon: "doc.text.fill", color: .teal)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.borderless)
                     }
 
                     // Bearbeiten (statt Erledigt)
                     Button { showingEdit = true } label: {
                         EquipmentActionButton(title: "Bearbeiten", icon: "pencil.circle.fill", color: .green)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.borderless)
                 }
                 .padding(.horizontal, 4)
                 .padding(.bottom, 8)
                 .padding(.top, 4)
                 .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .navigationDestination(item: $rowNavigation) { nav in
+            switch nav.target {
+            case .service(let name, let category):
+                ServiceSearchFromMaintenance(equipmentName: name, category: category)
+                    .environmentObject(authService)
+            case .spareParts(let name, let manufacturer, let model, let partNumber, let dimensions):
+                EquipmentPartsSearchView(
+                    name: name, manufacturer: manufacturer,
+                    model: model, partNumber: partNumber, dimensions: dimensions
+                )
+                .environmentObject(authService)
+            case .aiAssistant(let question):
+                ChatScreen(initialQuestion: question)
             }
         }
         .sheet(isPresented: $showingEdit) {
