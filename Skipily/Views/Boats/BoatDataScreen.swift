@@ -177,10 +177,9 @@ struct BoatDataScreen: View {
     @State private var showingLoginRequired = false
     @State private var showingLogin = false
     @State private var errorMessage: String?
-    @State private var equipmentNavPath = NavigationPath()
 
     var body: some View {
-        NavigationStack(path: $equipmentNavPath) {
+        NavigationStack {
             Group {
                 if isLoading {
                     ProgressView("general.loading".loc)
@@ -201,10 +200,8 @@ struct BoatDataScreen: View {
 
                                     // Equipment-Button direkt unter der Karte
                                     NavigationLink {
-                                        EquipmentScreen(boatId: boat.id, boatName: boat.name) { target in
-                                            equipmentNavPath.append(target)
-                                        }
-                                        .environmentObject(authService)
+                                        EquipmentScreen(boatId: boat.id, boatName: boat.name)
+                                            .environmentObject(authService)
                                     } label: {
                                         HStack(spacing: 8) {
                                             Image(systemName: "wrench.and.screwdriver")
@@ -235,23 +232,6 @@ struct BoatDataScreen: View {
                         .padding(.horizontal)
                         .padding(.top, 8)
                     }
-                }
-            }
-            .navigationDestination(for: EquipmentNavTarget.self) { target in
-                switch target {
-                case .service(let name, let cat):
-                    ServiceSearchFromMaintenance(equipmentName: name, category: cat)
-                case .spareParts(let name, let manufacturer, let model, let partNumber, let dimensions):
-                    EquipmentPartsSearchView(
-                        name: name,
-                        manufacturer: manufacturer,
-                        model: model,
-                        partNumber: partNumber,
-                        dimensions: dimensions
-                    )
-                    .environmentObject(authService)
-                case .aiAssistant(let question):
-                    ChatScreen(initialQuestion: question)
                 }
             }
             .navigationTitle("boats.title".loc)

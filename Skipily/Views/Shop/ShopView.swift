@@ -87,7 +87,26 @@ struct ShopView: View {
 
                     // Section title
                     if selectedCategory != nil || !searchText.isEmpty {
-                        HStack {
+                        HStack(spacing: 8) {
+                            if selectedCategory != nil || selectedSubcategory != nil {
+                                Button {
+                                    if selectedSubcategory != nil {
+                                        selectedSubcategory = nil
+                                    } else {
+                                        selectedCategory = nil
+                                    }
+                                    Task { await loadProducts() }
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "chevron.left")
+                                            .font(.subheadline.weight(.semibold))
+                                        Text("Zurück")
+                                            .font(.subheadline)
+                                    }
+                                    .foregroundStyle(AppColors.primary)
+                                }
+                                .buttonStyle(.plain)
+                            }
                             Text(sectionTitle)
                                 .font(.headline)
                             Spacer()

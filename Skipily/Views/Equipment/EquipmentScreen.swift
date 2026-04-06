@@ -243,11 +243,6 @@ struct EquipmentScreen: View {
                         EquipmentExpandableRow(
                             item: item,
                             boatName: boatName,
-                            onNavigate: { target in
-                                if let nav = onNavigate {
-                                    nav(target)
-                                }
-                            },
                             onUpdate: { updated in Task { await updateItem(updated) } },
                             onDelete: { Task { await deleteItem(item) } }
                         )
@@ -415,15 +410,11 @@ struct EquipmentRow: View {
 struct EquipmentExpandableRow: View {
     let item: EquipmentItem
     let boatName: String
-    let onNavigate: ((EquipmentNavTarget) -> Void)?
     let onUpdate: (EquipmentItem) -> Void
     let onDelete: () -> Void
     @EnvironmentObject var authService: AuthService
     @State private var showActions = false
     @State private var showingEdit = false
-    @State private var showingService = false
-    @State private var showingParts = false
-    @State private var showingAI = false
     @State private var showingSailForm = false
 
     var body: some View {
@@ -483,48 +474,29 @@ struct EquipmentExpandableRow: View {
             if showActions {
                 HStack(spacing: 8) {
                     // Service suchen
-                    Button {
-                        if let nav = onNavigate {
-                            nav(.service(name: item.name, category: item.category))
-                        } else {
-                            showingService = true
-                        }
+                    NavigationLink {
+                        ServiceSearchFromMaintenance(equipmentName: item.name, category: item.category)
+                            .environmentObject(authService)
                     } label: {
                         EquipmentActionButton(title: "Service", icon: "wrench.and.screwdriver.fill", color: .orange)
                     }
                     .buttonStyle(.plain)
 
                     // Ersatzteile suchen
-                    Button {
-                        if let nav = onNavigate {
-                            nav(.spareParts(
-                                name: item.name, manufacturer: item.manufacturer,
-                                model: item.model, partNumber: item.partNumber, dimensions: item.dimensions
-                            ))
-                        } else {
-                            showingParts = true
-                        }
+                    NavigationLink {
+                        EquipmentPartsSearchView(
+                            name: item.name, manufacturer: item.manufacturer,
+                            model: item.model, partNumber: item.partNumber, dimensions: item.dimensions
+                        )
+                        .environmentObject(authService)
                     } label: {
                         EquipmentActionButton(title: "Ersatzteile", icon: "cart.fill", color: .purple)
                     }
                     .buttonStyle(.plain)
 
                     // KI-Assistent
-                    Button {
-                        let details = [
-                            item.name,
-                            item.manufacturer.isEmpty ? "" : "Hersteller: \(item.manufacturer)",
-                            item.model.isEmpty ? "" : "Modell: \(item.model)",
-                            item.dimensions.isEmpty ? "" : "Abmessungen: \(item.dimensions)",
-                            item.locationOnBoat.isEmpty ? "" : "Ort: \(item.locationOnBoat)",
-                            item.itemDescription.isEmpty ? "" : item.itemDescription
-                        ].filter { !$0.isEmpty }.joined(separator: ", ")
-                        let question = "Ich brauche Hilfe mit meinem Ausruestungsgegenstand auf der \(boatName): \(details). Kategorie: \(item.category). Was empfiehlst du?"
-                        if let nav = onNavigate {
-                            nav(.aiAssistant(question: question))
-                        } else {
-                            showingAI = true
-                        }
+                    NavigationLink {
+                        ChatScreen(initialQuestion: aiQuestion)
                     } label: {
                         EquipmentActionButton(title: "KI-Assistent", icon: "bubble.left.fill", color: .blue)
                     }
@@ -553,41 +525,6 @@ struct EquipmentExpandableRow: View {
         .sheet(isPresented: $showingEdit) {
             AddEditEquipmentView(boatId: item.boatId, item: item) { updated in
                 onUpdate(updated)
-            }
-        }
-        .sheet(isPresented: $showingService) {
-            NavigationStack {
-                ServiceSearchFromMaintenance(equipmentName: item.name, category: item.category)
-                    .environmentObject(authService)
-                    .toolbar {
-                        ToolbarItem(placement: .topBarLeading) {
-                            Button("Schliessen") { showingService = false }
-                        }
-                    }
-            }
-        }
-        .sheet(isPresented: $showingParts) {
-            NavigationStack {
-                EquipmentPartsSearchView(
-                    name: item.name, manufacturer: item.manufacturer,
-                    model: item.model, partNumber: item.partNumber, dimensions: item.dimensions
-                )
-                .environmentObject(authService)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("Schliessen") { showingParts = false }
-                    }
-                }
-            }
-        }
-        .sheet(isPresented: $showingAI) {
-            NavigationStack {
-                ChatScreen(initialQuestion: aiQuestion)
-                    .toolbar {
-                        ToolbarItem(placement: .topBarLeading) {
-                            Button("Schliessen") { showingAI = false }
-                        }
-                    }
             }
         }
         .sheet(isPresented: $showingSailForm) {

@@ -780,6 +780,19 @@ struct MapScreen: View {
                 Spacer()
                 
                 VStack(spacing: 12) {
+                    // Boots-Assistent Button
+                    Button {
+                        showingAssistant = true
+                    } label: {
+                        Image(systemName: "bubble.left.and.text.bubble.right.fill")
+                            .font(.title3)
+                            .foregroundStyle(.orange)
+                            .frame(width: 50, height: 50)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                            .shadow(radius: 3)
+                    }
+
                     // Geolokalisierung Button
                     Button {
                         centerOnUserLocation()
