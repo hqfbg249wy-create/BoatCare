@@ -2,31 +2,24 @@
 //  ImageURLSanitizing.swift
 //  Skipily
 //
-//  Many service_providers rows were populated from Google Places v1 photo
-//  URLs of the form:
-//    https://places.googleapis.com/v1/places/.../photos/.../media?...
-//
-//  Google's photo reference tokens are only valid for a limited time after
-//  the Places lookup that produced them. Once cached in our DB they expire
-//  and the endpoint starts returning HTTP 400 "The photo resource in the
-//  request is invalid", which makes AsyncImage hang on the spinner forever.
-//
-//  Until the DB is cleaned up (see database/037_clear_google_places_urls.sql)
-//  we filter these URLs out on the client so the category-icon fallback is
-//  shown instantly instead.
+//  Lightweight sanity check for strings that should hold an http(s) image URL.
+//  Does NOT filter specific hosts — Google Places photo URLs are valid when
+//  loaded from the iOS app because the API key is restricted to the Skipily
+//  bundle ID. Rejecting them here would hide working images.
 //
 
 import Foundation
 
 extension String {
-    /// True if the string looks like a usable image URL. Rejects empty
-    /// strings, non-http(s) schemes, and expiring Google Places photo URLs.
+    /// True if the string is a non-empty, http(s) URL that can be passed to
+    /// AsyncImage. Does not attempt to validate the host or content.
     var isUsableImageURL: Bool {
         guard !isEmpty else { return false }
-        guard let url = URL(string: self), let scheme = url.scheme?.lowercased(),
-              scheme == "http" || scheme == "https" else { return false }
-        if contains("places.googleapis.com") { return false }
-        if contains("maps.googleapis.com/maps/api/place/photo") { return false }
+        guard let url = URL(string: self),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https" else {
+            return false
+        }
         return true
     }
 

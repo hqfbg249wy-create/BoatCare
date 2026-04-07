@@ -373,6 +373,24 @@ struct ServiceProviderDetailView: View {
                                 .padding(9)
                                 .background(Circle().fill(.black.opacity(0.3)))
                         }
+
+                        // Bilder bearbeiten – sichtbar für authentifizierte User;
+                        // der Upload wird serverseitig per RLS auf den Provider-
+                        // Owner beschränkt.
+                        NavigationLink {
+                            ProviderImageEditView(
+                                providerId: provider.id,
+                                providerName: provider.name,
+                                initialLogoUrl: provider.logoUrl,
+                                initialCoverUrl: provider.coverImageUrl
+                            )
+                        } label: {
+                            Image(systemName: "photo.on.rectangle.angled")
+                                .font(.title3)
+                                .foregroundStyle(.white)
+                                .padding(9)
+                                .background(Circle().fill(.black.opacity(0.3)))
+                        }
                     }
                 }
                 .padding(12)
