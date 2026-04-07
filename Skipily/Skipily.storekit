@@ -1,0 +1,97 @@
+{
+  "identifier" : "A1B2C3D4-SKIP-ILY0-0000-000000000001",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "de_DE",
+    "_storefront" : "DEU",
+    "_storeKitErrors" : []
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21000001",
+      "localizations" : [
+        { "description" : "Skipily Premium", "displayName" : "Skipily Premium", "locale" : "de_DE" }
+      ],
+      "name" : "Skipily Premium",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "31000001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            { "description" : "Skipily Plus – erweiterte Features für Hobby-Skipper", "displayName" : "Plus (Monat)", "locale" : "de_DE" }
+          ],
+          "productID" : "skipily.plus.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Plus Monthly",
+          "subscriptionGroupID" : "21000001",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "49.00",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "31000002",
+          "introductoryOffer" : null,
+          "localizations" : [
+            { "description" : "Skipily Plus – 12 Monate (Jahresvorteil)", "displayName" : "Plus (Jahr)", "locale" : "de_DE" }
+          ],
+          "productID" : "skipily.plus.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Plus Yearly",
+          "subscriptionGroupID" : "21000001",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "9.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "31000003",
+          "introductoryOffer" : null,
+          "localizations" : [
+            { "description" : "Skipily Pro – alle Features, für Vielsegler", "displayName" : "Pro (Monat)", "locale" : "de_DE" }
+          ],
+          "productID" : "skipily.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Pro Monthly",
+          "subscriptionGroupID" : "21000001",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "99.00",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "31000004",
+          "introductoryOffer" : null,
+          "localizations" : [
+            { "description" : "Skipily Pro – 12 Monate (Jahresvorteil)", "displayName" : "Pro (Jahr)", "locale" : "de_DE" }
+          ],
+          "productID" : "skipily.pro.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Pro Yearly",
+          "subscriptionGroupID" : "21000001",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

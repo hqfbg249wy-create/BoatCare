@@ -1139,9 +1139,7 @@ struct MapScreen: View {
         guard let userLocation = userLocation else { return }
         
         let request = MKDirections.Request()
-        // iOS 26: Use CLLocation with address parameter
-        let userLocationCL = CLLocation(latitude: userLocation.latitude, longitude: userLocation.longitude)
-        request.source = MKMapItem(location: userLocationCL, address: nil)
+        request.source = MKMapItem(placemark: MKPlacemark(coordinate: userLocation))
         request.destination = item
         request.transportType = .automobile
         
@@ -1168,14 +1166,11 @@ struct MapScreen: View {
         guard let userLocation = userLocation else { return }
         
         let destination = CLLocationCoordinate2D(latitude: provider.latitude, longitude: provider.longitude)
-        // iOS 26: Use CLLocation with address parameter
-        let destinationCL = CLLocation(latitude: destination.latitude, longitude: destination.longitude)
-        let destinationItem = MKMapItem(location: destinationCL, address: nil)
+        let destinationItem = MKMapItem(placemark: MKPlacemark(coordinate: destination))
         destinationItem.name = provider.name
-        
+
         let request = MKDirections.Request()
-        let userLocationCL = CLLocation(latitude: userLocation.latitude, longitude: userLocation.longitude)
-        request.source = MKMapItem(location: userLocationCL, address: nil)
+        request.source = MKMapItem(placemark: MKPlacemark(coordinate: userLocation))
         request.destination = destinationItem
         request.transportType = .automobile
         

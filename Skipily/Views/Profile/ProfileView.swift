@@ -65,7 +65,16 @@ struct ProfileView: View {
     @State private var isSaving = false
     @State private var showSavedToast = false
     @State private var showLogoutConfirm = false
+    @State private var showDeleteAccountConfirm = false
+    @State private var showDeleteAccountFinalConfirm = false
+    @State private var isDeletingAccount = false
     @State private var errorMessage: String?
+
+    private var appVersionString: String {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        return "Skipily \(v) (\(b))"
+    }
 
     private let paymentService = PaymentService.shared
 
@@ -101,8 +110,11 @@ struct ProfileView: View {
                 // MARK: - Logout
                 logoutButton
 
+                // MARK: - Delete Account
+                deleteAccountButton
+
                 // Version
-                Text("Skipily v1.0 - Testphase")
+                Text(appVersionString)
                     .font(.caption2)
                     .foregroundStyle(AppColors.gray400)
                     .padding(.bottom, 20)
@@ -116,6 +128,22 @@ struct ProfileView: View {
             Button("Abbrechen", role: .cancel) {}
         } message: {
             Text("Möchtest Du Dich wirklich abmelden?")
+        }
+        .alert("Konto wirklich löschen?", isPresented: $showDeleteAccountConfirm) {
+            Button("Weiter", role: .destructive) {
+                showDeleteAccountFinalConfirm = true
+            }
+            Button("Abbrechen", role: .cancel) {}
+        } message: {
+            Text("Dein Konto und ALLE zugehörigen Daten (Boote, Ausrüstung, Wartung, Nachrichten, Bestellungen, Fotos) werden unwiderruflich gelöscht.")
+        }
+        .alert("Letzte Bestätigung", isPresented: $showDeleteAccountFinalConfirm) {
+            Button("Endgültig löschen", role: .destructive) {
+                Task { await deleteAccount() }
+            }
+            Button("Abbrechen", role: .cancel) {}
+        } message: {
+            Text("Diese Aktion kann nicht rückgängig gemacht werden. Alle Daten werden sofort gelöscht.")
         }
         .overlay(alignment: .top) {
             if showSavedToast {
@@ -548,6 +576,53 @@ struct ProfileView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .padding(.horizontal, 16)
+    }
+
+    // MARK: - Delete Account Button
+
+    private var deleteAccountButton: some View {
+        VStack(spacing: 8) {
+            Button(role: .destructive) {
+                showDeleteAccountConfirm = true
+            } label: {
+                HStack {
+                    if isDeletingAccount {
+                        ProgressView().tint(AppColors.error)
+                    } else {
+                        Image(systemName: "trash")
+                        Text("Konto löschen")
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(AppColors.error.opacity(0.08))
+                .foregroundStyle(AppColors.error)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(AppColors.error.opacity(0.4), lineWidth: 1)
+                )
+            }
+            .disabled(isDeletingAccount)
+
+            Text("Dein Konto und alle zugehörigen Daten werden unwiderruflich gelöscht.")
+                .font(.caption2)
+                .foregroundStyle(AppColors.gray400)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 16)
+    }
+
+    private func deleteAccount() async {
+        isDeletingAccount = true
+        errorMessage = nil
+        do {
+            try await authService.deleteAccount()
+        } catch {
+            errorMessage = "Löschen fehlgeschlagen: \(error.localizedDescription)"
+            print("Delete account error: \(error)")
+        }
+        isDeletingAccount = false
     }
 
     // MARK: - Helpers

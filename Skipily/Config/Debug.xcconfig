@@ -1,0 +1,12 @@
+// Skipily - Debug build configuration
+// Attach in Xcode: Project > Info > Configurations > Debug > set to Debug.xcconfig
+//
+// Stripe test publishable key (safe to expose; used only in development).
+STRIPE_PUBLISHABLE_KEY = pk_test_51TA7UZAKSxHR03mT7pUUxkzinP3uCALPTnpA0uCsTCHffyscoELwNpU1ia3MwwyhBvJQPHahLJT9N5KqtsC9qcyS00C79hUZFl
+
+// Supabase (copy from your project settings; override locally if needed)
+// SUPABASE_URL = https://YOUR-PROJECT.supabase.co
+// SUPABASE_ANON_KEY = eyJ...
+
+// Build settings
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) DEBUG

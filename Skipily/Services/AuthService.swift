@@ -84,6 +84,26 @@ class AuthService: ObservableObject {
         userProfile = nil
     }
 
+    /// Permanently delete the current user's account and all associated data.
+    /// Calls the Supabase RPC `delete_user_account` which cascades through
+    /// profiles, boats, equipment, maintenance, favorites, reviews, orders,
+    /// conversations, messages and storage objects, then removes the auth user.
+    func deleteAccount() async throws {
+        guard currentUser != nil else {
+            throw NSError(domain: "AuthService", code: 401,
+                          userInfo: [NSLocalizedDescriptionKey: "Nicht angemeldet"])
+        }
+        // Server-side cascade delete (SECURITY DEFINER function)
+        try await supabase.rpc("delete_user_account").execute()
+        // Local sign-out + state reset
+        try? await supabase.auth.signOut()
+        await MainActor.run {
+            self.isAuthenticated = false
+            self.currentUser = nil
+            self.userProfile = nil
+        }
+    }
+
     func resetPassword(email: String) async throws {
         try await supabase.auth.resetPasswordForEmail(email)
     }
