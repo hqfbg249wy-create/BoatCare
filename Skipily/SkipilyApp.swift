@@ -19,6 +19,17 @@ struct SkipilyApp: App {
     init() {
         // Initialize Stripe SDK with publishable key
         StripeAPI.defaultPublishableKey = StripeConfig.publishableKey
+
+        // Configure a generous shared URL cache so AsyncImage (and URLSession
+        // based loaders) can reuse provider logos, boat photos and product
+        // images across screens without re-downloading them every time.
+        //   memory: 64 MB · disk: 512 MB
+        let cache = URLCache(
+            memoryCapacity: 64 * 1024 * 1024,
+            diskCapacity: 512 * 1024 * 1024,
+            directory: nil
+        )
+        URLCache.shared = cache
     }
 
     var body: some Scene {
@@ -43,9 +54,14 @@ struct RootView: View {
         if showSplash {
             SplashView()
                 .task {
-                    await authService.restoreSession()
-                    try? await Task.sleep(nanoseconds: 1_000_000_000)
-                    withAnimation(.easeInOut(duration: 0.4)) {
+                    // Previously we slept a hard 1 s on top of the network
+                    // restoreSession() which made cold starts feel sluggish.
+                    // Now we dismiss as soon as the session is known, but
+                    // keep a tiny 200 ms minimum so the splash doesn't flash.
+                    async let restore: Void = authService.restoreSession()
+                    async let minDisplay: Void = Task.sleep(nanoseconds: 200_000_000)
+                    _ = try? await (restore, minDisplay)
+                    withAnimation(.easeInOut(duration: 0.3)) {
                         showSplash = false
                     }
                 }

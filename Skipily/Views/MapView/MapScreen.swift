@@ -1021,13 +1021,15 @@ struct MapScreen: View {
         }
     }
 
-    /// Debounced Region-Reload: bricht vorherigen Task ab, wartet 0.5 s, lädt dann.
+    /// Debounced Region-Reload: bricht vorherigen Task ab, wartet kurz, lädt dann.
     /// Verhindert unnötige DB-Aufrufe während das Scrollen/Zoomen noch läuft.
     private func scheduleRegionLoad(for region: MKCoordinateRegion) {
         regionLoadTask?.cancel()
         regionLoadTask = Task {
-            // 0.5 s warten bevor der Fetch ausgelöst wird
-            try? await Task.sleep(nanoseconds: 500_000_000)
+            // 0.2 s Debounce — kurz genug, dass Provider-Logos nicht spürbar
+            // verzögert werden, lang genug um doppelte Fetches beim Scrollen
+            // zu vermeiden.
+            try? await Task.sleep(nanoseconds: 200_000_000)
             guard !Task.isCancelled else { return }
 
             // Prüfe ob sich die Region wesentlich verändert hat (> 10 % des Spans)
