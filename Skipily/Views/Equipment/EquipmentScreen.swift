@@ -533,10 +533,13 @@ struct EquipmentExpandableRow: View {
             case .service(let name, let category):
                 ServiceSearchFromMaintenance(equipmentName: name, category: category)
                     .environmentObject(authService)
-            case .spareParts(let name, let manufacturer, let model, let partNumber, let dimensions):
-                EquipmentPartsSearchView(
-                    name: name, manufacturer: manufacturer,
-                    model: model, partNumber: partNumber, dimensions: dimensions
+            case .spareParts(let name, let manufacturer, let model, _, _):
+                ProviderShopSearchView(
+                    providerId: UUID(),
+                    providerName: "Alle",
+                    searchTerm: [name, manufacturer, model]
+                        .filter { !$0.isEmpty }
+                        .joined(separator: " ")
                 )
                 .environmentObject(authService)
             case .aiAssistant(let question):
