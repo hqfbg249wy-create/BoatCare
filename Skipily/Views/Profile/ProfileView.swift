@@ -723,8 +723,16 @@ struct ProfileView: View {
             let (sheet, customerId) = try await paymentService.createSetupSheet()
             paymentSetupSheet = sheet
 
-            // Present the PaymentSheet
-            paymentSetupSheet?.present(from: UIApplication.shared.rootViewController!) { result in
+            // Present the PaymentSheet from the actually visible view controller.
+            // Force-unwrapping rootViewController crashed on iPad / multi-scene
+            // and when the Profile tab was nested in a NavigationStack.
+            guard let presenter = UIApplication.shared.topMostViewController else {
+                errorMessage = "Zahlungs-Sheet konnte nicht angezeigt werden."
+                isSettingUpPayment = false
+                return
+            }
+
+            paymentSetupSheet?.present(from: presenter) { result in
                 Task { @MainActor in
                     switch result {
                     case .completed:
@@ -754,14 +762,38 @@ struct ProfileView: View {
     }
 }
 
-// MARK: - UIApplication extension for root view controller
+// MARK: - UIApplication extension for top-most view controller
 
 extension UIApplication {
+    /// Root VC of the key window (may be nil right after launch).
     var rootViewController: UIViewController? {
         connectedScenes
             .compactMap { $0 as? UIWindowScene }
+            .filter { $0.activationState == .foregroundActive }
             .flatMap { $0.windows }
             .first(where: { $0.isKeyWindow })?
             .rootViewController
+            ?? connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap { $0.windows }
+                .first?.rootViewController
+    }
+
+    /// Walks up presentedViewController / nav / tab hierarchy so we always
+    /// hand Stripe the actually visible VC. Required because the profile
+    /// lives inside a TabView + NavigationStack and presenting from the
+    /// raw rootVC throws "view not in window hierarchy" → crash.
+    var topMostViewController: UIViewController? {
+        var top = rootViewController
+        while let presented = top?.presentedViewController {
+            top = presented
+        }
+        if let nav = top as? UINavigationController {
+            return nav.visibleViewController ?? nav
+        }
+        if let tab = top as? UITabBarController, let selected = tab.selectedViewController {
+            return selected
+        }
+        return top
     }
 }
