@@ -279,7 +279,7 @@ export default function Profile() {
       // Public URL (bucket is public)
       const { data: pub } = supabase.storage
         .from(PROVIDER_IMAGES_BUCKET)
-        .getPublicURL(path)
+        .getPublicUrl(path)
 
       // Bust any CDN cache by appending a short timestamp — the URL itself
       // stays stable on the DB side (upsert overwrote the object).
