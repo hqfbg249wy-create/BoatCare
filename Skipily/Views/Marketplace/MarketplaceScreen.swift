@@ -162,7 +162,7 @@ struct PromotionCard: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header: Logo + Name + Kategorie
             HStack(spacing: 12) {
-                if let logoUrl = provider.logo_url, let url = URL(string: logoUrl) {
+                if let url = provider.logo_url.usableImageURL {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .success(let img):

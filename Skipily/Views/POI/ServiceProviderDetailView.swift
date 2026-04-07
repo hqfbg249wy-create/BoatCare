@@ -325,13 +325,17 @@ struct ServiceProviderDetailView: View {
         VStack(spacing: 12) {
             // Header-Foto (volle Breite) mit Overlay-Buttons
             Group {
-                if let cover = provider.coverImageUrl, let coverUrl = URL(string: cover) {
+                if let coverUrl = provider.coverImageUrl.usableImageURL {
                     AsyncImage(url: coverUrl) { phase in
                         switch phase {
                         case .success(let image):
                             image.resizable().scaledToFill()
                         default:
-                            Color(.systemGray5)
+                            LinearGradient(
+                                colors: [Color.blue.opacity(0.3), Color.blue.opacity(0.1)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         }
                     }
                     .frame(height: 200)
@@ -376,7 +380,7 @@ struct ServiceProviderDetailView: View {
 
             // Logo unterhalb des Bildes – voll sichtbar, zentriert
             Group {
-                if let logoUrl = provider.logoUrl, let url = URL(string: logoUrl) {
+                if let url = provider.logoUrl.usableImageURL {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .success(let img):

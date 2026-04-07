@@ -1970,8 +1970,8 @@ struct ProviderDetailCard: View {
             VStack(spacing: 12) {
                 // Header mit Logo, Name, Rating und Buttons
                 HStack {
-                    // Logo
-                    if let logoUrl = provider.logo_url, let url = URL(string: logoUrl) {
+                    // Logo (skip expired Google Places URLs)
+                    if let url = provider.logo_url.usableImageURL {
                         AsyncImage(url: url) { phase in
                             switch phase {
                             case .success(let image):
@@ -1986,6 +1986,13 @@ struct ProviderDetailCard: View {
                         .frame(width: 48, height: 48)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .shadow(color: .black.opacity(0.1), radius: 2)
+                    } else {
+                        Image(systemName: "building.2.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(.blue.opacity(0.6))
+                            .frame(width: 48, height: 48)
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
 
                     VStack(alignment: .leading, spacing: 6) {

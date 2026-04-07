@@ -178,7 +178,7 @@ struct ServiceProviderSearchRow: View {
     var body: some View {
         HStack(spacing: 12) {
             // Logo or icon
-            if let logoUrl = provider.logoUrl, let url = URL(string: logoUrl) {
+            if let url = provider.logoUrl.usableImageURL {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):

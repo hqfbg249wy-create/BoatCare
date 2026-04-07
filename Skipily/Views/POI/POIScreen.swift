@@ -148,7 +148,7 @@ struct FavoriteRow: View {
             // MARK: Header: Logo + Name + Adresse + Herz-Button
             HStack(spacing: 12) {
                 // Logo
-                if let logoUrl = provider.logo_url, let url = URL(string: logoUrl) {
+                if let url = provider.logo_url.usableImageURL {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .success(let img):

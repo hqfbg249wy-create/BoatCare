@@ -1329,7 +1329,7 @@ struct ServiceSearchFromEquipment: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 12) {
                 // Logo
-                if let logoUrl = entry.provider.logo_url, let url = URL(string: logoUrl) {
+                if let url = entry.provider.logo_url.usableImageURL {
                     AsyncImage(url: url) { phase in
                         if case .success(let img) = phase {
                             img.resizable().scaledToFill()
