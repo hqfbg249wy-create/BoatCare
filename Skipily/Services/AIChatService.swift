@@ -137,6 +137,44 @@ class AIChatService {
         }
     }
 
+    /// Fragt Claude nach alternativen Suchbegriffen, wenn die direkte Produkt-
+    /// Suche im Shop leer bleibt. Gibt eine Liste von bis zu 5 kurzen
+    /// deutschen Keywords/Kategorien zurück (z.B. "Impeller", "Seewasserpumpe",
+    /// "Kühlkreislauf"), mit denen der Aufrufer erneut suchen kann.
+    func suggestSearchAlternatives(
+        originalQuery: String,
+        equipmentContext: String? = nil
+    ) async throws -> [String] {
+        let contextLine = equipmentContext.map { "\nDetails: \($0)" } ?? ""
+        let userPrompt = """
+        Ein Nutzer sucht im Bootsshop nach Ersatzteilen/Zubehör für dieses Gerät:
+        "\(originalQuery)"\(contextLine)
+
+        Die direkte Suche lieferte keine Treffer. Gib mir genau 5 kurze, deutsche
+        Alternativ-Suchbegriffe, mit denen ich nochmal suchen soll. Wähle:
+        - Generische Oberbegriffe (z.B. "Impeller" statt "Volvo Penta Impeller")
+        - Typische Verschleißteile / Zubehör dieses Geräts
+        - Branchenübliche Synonyme
+
+        Antworte AUSSCHLIESSLICH mit einer durch Kommas getrennten Liste, ohne
+        Einleitung, ohne Nummerierung, ohne Erklärungen.
+        Beispiel: Impeller, Seewasserpumpe, Zinkanode, Kühlwasserfilter, Thermostat
+        """
+
+        let messages = [AIChatMessage(role: "user", content: userPrompt)]
+        let reply = try await sendMessage(messages: messages, boatContext: nil)
+
+        // Parse: Komma-separiert, trimmen, auf 2–40 Zeichen pro Token beschränken.
+        let tokens = reply
+            .replacingOccurrences(of: "\n", with: ",")
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { $0.count >= 2 && $0.count <= 40 }
+            .prefix(5)
+
+        return Array(tokens)
+    }
+
     /// Lädt vollständigen Boot- und Equipment-Kontext des eingeloggten Users
     func loadBoatContext() async -> AIChatContext? {
         do {

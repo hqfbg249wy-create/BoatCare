@@ -113,7 +113,7 @@ async function handleGet(supabase: any, url: URL) {
     fits_boat_types, fits_manufacturers, compatible_equipment,
     tags, images, created_at, updated_at,
     product_categories(id, slug, name_de, name_en),
-    service_providers(id, company_name, city)
+    service_providers(id, name, city)
   `;
 
   // Single product

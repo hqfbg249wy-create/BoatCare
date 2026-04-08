@@ -109,6 +109,71 @@ final class ProductService {
         return products
     }
 
+    /// Breitere Volltextsuche über mehrere Produktfelder (name, manufacturer,
+    /// description, part_number, tags). Splittet die Query an Whitespace und
+    /// sucht jedes Wort per ILIKE in allen Feldern. Wird vor allem von der
+    /// "Ersatzteile aus Equipment"-Suche benutzt, weil dort meistens mehrere
+    /// Tokens kombiniert ankommen (z.B. "Volvo Penta D2-40").
+    func searchProductsBroad(query: String, limit: Int = 40) async throws -> [Product] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+
+        // Tokens mit min. 2 Zeichen; max. 6 damit die OR-Kette handlich bleibt.
+        let tokens = trimmed
+            .split(whereSeparator: { $0.isWhitespace })
+            .map(String.init)
+            .filter { $0.count >= 2 }
+            .prefix(6)
+
+        guard !tokens.isEmpty else { return [] }
+
+        // PostgREST erwartet: or=(name.ilike.*foo*,manufacturer.ilike.*foo*,...)
+        // Wir verbinden alle Token-Matches ebenfalls per OR, nicht AND, um
+        // möglichst viele Kandidaten zu liefern — Ranking erfolgt clientseitig.
+        let fields = ["name", "manufacturer", "description", "part_number"]
+        var orParts: [String] = []
+        for token in tokens {
+            let sanitized = token
+                .replacingOccurrences(of: ",", with: " ")
+                .replacingOccurrences(of: "(", with: " ")
+                .replacingOccurrences(of: ")", with: " ")
+            for field in fields {
+                orParts.append("\(field).ilike.*\(sanitized)*")
+            }
+        }
+        let orClause = orParts.joined(separator: ",")
+
+        let products: [Product] = try await client
+            .from("metashop_products")
+            .select(productSelect)
+            .eq("is_active", value: true)
+            .or(orClause)
+            .order("created_at", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+
+        // Clientseitiges Ranking: mehr Token-Treffer = höheres Gewicht.
+        let lowerTokens = tokens.map { $0.lowercased() }
+        let ranked = products.map { p -> (Product, Int) in
+            var score = 0
+            let haystack = [
+                p.name,
+                p.manufacturer ?? "",
+                p.description ?? "",
+                p.partNumber ?? ""
+            ].joined(separator: " ").lowercased()
+            for t in lowerTokens where haystack.contains(t) {
+                score += haystack.contains(" \(t) ") || haystack.hasPrefix(t) ? 2 : 1
+            }
+            return (p, score)
+        }
+
+        return ranked
+            .sorted { $0.1 > $1.1 }
+            .map { $0.0 }
+    }
+
     func fetchProduct(id: UUID) async throws -> Product {
         try await cache.getOrFetch(CacheService.Keys.product(id), ttl: 180) {
             let product: Product = try await client
