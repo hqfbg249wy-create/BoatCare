@@ -201,7 +201,7 @@ enum ServiceCategory: String, CaseIterable {
 // MARK: - Main Container with Bottom Navigation
 struct MainContainerView: View {
     @EnvironmentObject var authService: AuthService
-    @StateObject private var favoritesManager = FavoritesManager()
+    @EnvironmentObject var favoritesManager: FavoritesManager
     @State private var selectedTab: MainTab = .map
     
     var body: some View {

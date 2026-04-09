@@ -1120,6 +1120,7 @@ struct AddEditEquipmentView: View {
 struct ServiceSearchFromEquipment: View {
     let item: EquipmentItem
     @EnvironmentObject var authService: AuthService
+    @EnvironmentObject var favoritesManager: FavoritesManager
     @StateObject private var locationManager = EquipmentSearchLocationManager()
     @State private var bestMatches: [(provider: BoatServiceProvider, distanceKm: Double)] = []
     @State private var otherMatches: [(provider: BoatServiceProvider, distanceKm: Double)] = []
@@ -1271,7 +1272,7 @@ struct ServiceSearchFromEquipment: View {
                             ForEach(bestMatches, id: \.provider.id) { entry in
                                 NavigationLink {
                                     ServiceProviderDetailView(provider: toServiceProvider(entry.provider))
-                                        .environmentObject(FavoritesManager())
+                                        .environmentObject(favoritesManager)
                                         .environmentObject(authService)
                                 } label: {
                                     serviceRow(entry)
@@ -1288,7 +1289,7 @@ struct ServiceSearchFromEquipment: View {
                             ForEach(otherMatches, id: \.provider.id) { entry in
                                 NavigationLink {
                                     ServiceProviderDetailView(provider: toServiceProvider(entry.provider))
-                                        .environmentObject(FavoritesManager())
+                                        .environmentObject(favoritesManager)
                                         .environmentObject(authService)
                                 } label: {
                                     serviceRow(entry)

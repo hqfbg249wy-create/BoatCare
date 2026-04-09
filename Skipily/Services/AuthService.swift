@@ -59,19 +59,34 @@ class AuthService: ObservableObject {
         isLoading = true
         defer { isLoading = false }
 
-        let response = try await supabase.auth.signUp(email: email, password: password)
+        // full_name direkt beim Sign-Up als Metadata mitschicken — der
+        // DB-Trigger handle_new_user() (Migration 041) legt die profiles-
+        // Zeile serverseitig an und zieht full_name aus raw_user_meta_data.
+        let response = try await supabase.auth.signUp(
+            email: email,
+            password: password,
+            data: ["full_name": .string(fullName)]
+        )
         let user = response.user
         currentUser = AppUser(id: user.id, email: user.email ?? email)
 
-        // Create profile row
-        try await supabase.from("profiles")
-            .insert([
-                "id": user.id.uuidString,
-                "email": email,
-                "full_name": fullName,
-                "role": "user"
-            ])
-            .execute()
+        // Belt-and-suspenders: falls der Trigger aus irgendeinem Grund nicht
+        // greift (z.B. alte DB ohne Migration 041), upserten wir die Zeile
+        // noch einmal clientseitig. Ein Fehler hier darf die Registrierung
+        // aber NICHT komplett scheitern lassen — der Auth-User existiert ja
+        // bereits, und beim nächsten Login wird das Profil ohnehin geladen.
+        do {
+            try await supabase.from("profiles")
+                .upsert([
+                    "id": user.id.uuidString,
+                    "email": email,
+                    "full_name": fullName,
+                    "role": "user"
+                ])
+                .execute()
+        } catch {
+            print("⚠️ profiles-upsert nach signUp fehlgeschlagen (vermutlich RLS; Trigger sollte übernommen haben): \(error)")
+        }
 
         isAuthenticated = true
         await loadProfile()

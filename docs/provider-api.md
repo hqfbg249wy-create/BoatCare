@@ -54,7 +54,7 @@ Ohne Deployment kann **kein einziger Provider** die API benutzen.
 
 | # | Schritt | Wo | Dauer |
 |---|---|---|---|
-| 1 | Konto im Provider-Portal anlegen (Email + Passwort) | https://portal.skipily.com/ (TBD) | 2 min |
+| 1 | Konto im Provider-Portal anlegen (Email + Passwort) | https://portal.skipily.app/ (TBD) | 2 min |
 | 2 | Stammdaten vervollständigen: Firma, Adresse, Kontakt, USt-IdNr. | `Stammdaten` | 5 min |
 | 3 | **`is_shop_active = true` setzen** (wird aktuell vom Admin freigeschaltet, nicht self-service) | Admin setzt per SQL | — |
 | 4 | API-Schlüssel generieren | `Stammdaten → API & Integration → API-Schlüssel generieren` | 10 s |
