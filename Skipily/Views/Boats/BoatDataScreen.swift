@@ -733,6 +733,7 @@ struct AddEditBoatView: View {
     @State private var isUploading = false
     @State private var showingImageSource = false
     @State private var showingCamera = false
+    @State private var uploadError: String?
 
     var body: some View {
         NavigationStack {
@@ -789,6 +790,21 @@ struct AddEditBoatView: View {
                         if isUploading {
                             ProgressView("boats.uploading_photo".loc)
                                 .font(.caption)
+                        }
+
+                        if let err = uploadError {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.red)
+                                Text(err)
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
+                                    .lineLimit(3)
+                            }
+                            .padding(8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.red.opacity(0.1))
+                            .cornerRadius(8)
                         }
                     }
                     .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
@@ -894,8 +910,16 @@ struct AddEditBoatView: View {
         var finalImageUrl = imageUrl
         if let image = selectedImage {
             isUploading = true
+            uploadError = nil
             if let uploadedUrl = await uploadBoatImage(image, boatId: boatId) {
                 finalImageUrl = uploadedUrl
+                print("✅ Boat image uploaded: \(uploadedUrl)")
+            } else {
+                // Upload fehlgeschlagen — Fehlermeldung anzeigen und NICHT speichern,
+                // damit der User den Retry-Button sieht. Sonst landet ein Boot ohne
+                // Foto in der Liste und der User wundert sich.
+                isUploading = false
+                return
             }
             isUploading = false
         }
@@ -922,7 +946,10 @@ struct AddEditBoatView: View {
     }
 
     private func uploadBoatImage(_ image: UIImage, boatId: UUID) async -> String? {
-        guard let jpegData = image.jpegData(compressionQuality: 0.7) else { return nil }
+        guard let jpegData = image.jpegData(compressionQuality: 0.7) else {
+            await MainActor.run { uploadError = "boats.upload_encode_failed".loc }
+            return nil
+        }
         let fileName = "boats/\(boatId.uuidString)/photo_\(Int(Date().timeIntervalSince1970)).jpg"
 
         do {
@@ -934,9 +961,16 @@ struct AddEditBoatView: View {
                 .from("boat-images")
                 .getPublicURL(path: fileName)
 
-            return publicUrl.absoluteString
+            // Cache-Busting: verhindert dass AsyncImage das alte Bild aus dem
+            // URLCache zieht, wenn derselbe Dateiname in einer anderen Session
+            // ersetzt wurde.
+            let busted = publicUrl.absoluteString + "?t=\(Int(Date().timeIntervalSince1970))"
+            return busted
         } catch {
-            print("❌ Upload-Fehler: \(error)")
+            print("❌ Boat-Image Upload-Fehler: \(error)")
+            await MainActor.run {
+                uploadError = "Upload fehlgeschlagen: \(error.localizedDescription)"
+            }
             return nil
         }
     }

@@ -66,6 +66,28 @@ struct ServiceSearchFromMaintenance: View {
             locationManager.requestPermission()
             await loadProviders()
         }
+        .onChange(of: locationManager.location) { _, newLoc in
+            // Beim ersten Eintreffen der Position (oder signifikanter Änderung)
+            // neu sortieren, damit nächster Anbieter oben steht.
+            guard newLoc != nil else { return }
+            Task { await resortByDistance() }
+        }
+    }
+
+    /// Re-sort the already-loaded providers by distance once the user's
+    /// location becomes available. Called reactively via onChange.
+    @MainActor
+    private func resortByDistance() async {
+        guard let loc = locationManager.location else { return }
+        let matchCategories = categoryKeywords(for: category)
+        providers = providers.sorted { a, b in
+            let aMatch = providerMatchesCategory(a, keywords: matchCategories)
+            let bMatch = providerMatchesCategory(b, keywords: matchCategories)
+            if aMatch != bMatch { return aMatch }
+            let distA = loc.distance(from: CLLocation(latitude: a.latitude, longitude: a.longitude))
+            let distB = loc.distance(from: CLLocation(latitude: b.latitude, longitude: b.longitude))
+            return distA < distB
+        }
     }
 
     private func loadProviders() async {

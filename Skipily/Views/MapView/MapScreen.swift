@@ -1578,10 +1578,25 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
+        // Wenn der User die Permission in einer früheren Session bereits
+        // erteilt hat, startet iOS die Updates NICHT automatisch — wir müssen
+        // das hier explizit tun, sonst bleibt `location` ewig nil und
+        // Entfernungen werden nie berechnet.
+        if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
+            manager.startUpdatingLocation()
+        }
     }
-    
+
     func requestPermission() {
-        manager.requestWhenInUseAuthorization()
+        switch authorizationStatus {
+        case .notDetermined:
+            manager.requestWhenInUseAuthorization()
+        case .authorizedWhenInUse, .authorizedAlways:
+            // Schon erlaubt — sicherstellen dass Updates laufen
+            manager.startUpdatingLocation()
+        default:
+            break
+        }
     }
     
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
