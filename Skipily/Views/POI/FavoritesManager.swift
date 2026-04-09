@@ -59,6 +59,26 @@ final class FavoritesManager: ObservableObject {
         toggle(card.id)
     }
 
+    /// Löscht ALLE Favoriten des aktuell angemeldeten Users – in Supabase
+    /// UND lokal. Wird vom POIScreen als "Zurücksetzen"-Funktion angeboten,
+    /// damit User historisch verschmutzte Einträge (z.B. aus der Zeit vor
+    /// dem per-user-scoping-Fix) selbst bereinigen können.
+    func clearAllForCurrentUser() async {
+        guard let userId = currentUserId else { return }
+        do {
+            try await SupabaseManager.shared.client
+                .from("user_favorites")
+                .delete()
+                .eq("user_id", value: userId.uuidString)
+                .execute()
+            favoriteIDs = []
+            saveCache()
+            print("✅ FavoritesManager: alle Favoriten für User \(userId) gelöscht")
+        } catch {
+            print("❌ FavoritesManager clearAll error: \(error)")
+        }
+    }
+
     // MARK: - Auth state handling
 
     private func startAuthListener() {

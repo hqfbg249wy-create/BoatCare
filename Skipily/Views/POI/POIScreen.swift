@@ -14,6 +14,7 @@ struct POIScreen: View {
     @State private var favoriteProviders: [BoatServiceProvider] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var showingResetConfirm = false
 
     var body: some View {
         Group {
@@ -60,6 +61,32 @@ struct POIScreen: View {
             }
         }
         .navigationTitle("poi.favorites".loc)
+        .toolbar {
+            if !favoritesManager.favoriteIDs.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(role: .destructive) {
+                        showingResetConfirm = true
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                }
+            }
+        }
+        .confirmationDialog(
+            "Alle Favoriten zurücksetzen?",
+            isPresented: $showingResetConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Alle löschen", role: .destructive) {
+                Task {
+                    await favoritesManager.clearAllForCurrentUser()
+                    favoriteProviders = []
+                }
+            }
+            Button("Abbrechen", role: .cancel) {}
+        } message: {
+            Text("Entfernt ALLE markierten Anbieter aus deinem Profil. Diese Aktion kann nicht rückgängig gemacht werden.")
+        }
         .task {
             await loadFavorites()
         }
