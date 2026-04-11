@@ -2,7 +2,9 @@
 //  ServiceSearchFromMaintenance.swift
 //  Skipily
 //
-//  Shows service providers relevant to a specific equipment item from the maintenance screen
+//  Shows service providers relevant to a specific equipment item.
+//  Filters by category keywords AND manufacturer/brand matching,
+//  with filter chips the user can toggle.
 //
 
 import SwiftUI
@@ -12,25 +14,68 @@ import CoreLocation
 struct ServiceSearchFromMaintenance: View {
     let equipmentName: String
     let category: String
+    let manufacturer: String
 
     @EnvironmentObject var authService: AuthService
     @EnvironmentObject var favoritesManager: FavoritesManager
     @StateObject private var locationManager = LocationManager()
 
-    @State private var providers: [ServiceProvider] = []
+    @State private var allProviders: [ServiceProvider] = []
     @State private var isLoading = true
     @State private var searchText = ""
+    @State private var filterByCategory = true
+    @State private var filterByBrand = true
+
+    // MARK: - Derived provider list
+
+    /// Available categories extracted from the DB to offer as chip filters
+    private var availableCategories: [String] {
+        var cats = Set<String>()
+        for p in allProviders {
+            for c in p.allCategories { cats.insert(c) }
+        }
+        return cats.sorted()
+    }
+
+    /// The equipment's manufacturer tokens (lowercased) for brand matching.
+    private var manufacturerTokens: [String] {
+        guard !manufacturer.isEmpty else { return [] }
+        // Split "Volvo Penta" → ["volvo", "penta"], "Yanmar" → ["yanmar"]
+        return manufacturer
+            .lowercased()
+            .split(separator: " ")
+            .map(String.init)
+            .filter { $0.count >= 3 }
+    }
+
+    private var categoryKeywordList: [String] {
+        categoryKeywords(for: category)
+    }
 
     private var filteredProviders: [ServiceProvider] {
-        var result = providers
+        var result = allProviders
 
-        // Apply search filter
+        // Filter: category match
+        if filterByCategory && !categoryKeywordList.isEmpty {
+            let matches = result.filter { providerMatchesCategory($0, keywords: categoryKeywordList) }
+            // Only filter down if there are actual matches; otherwise show all
+            if !matches.isEmpty { result = matches }
+        }
+
+        // Filter: brand match (provider.brands contains manufacturer tokens)
+        if filterByBrand && !manufacturerTokens.isEmpty {
+            let matches = result.filter { providerMatchesBrand($0) }
+            if !matches.isEmpty { result = matches }
+        }
+
+        // Free-text search
         if !searchText.isEmpty {
             let term = searchText.lowercased()
             result = result.filter {
                 $0.name.lowercased().contains(term) ||
                 $0.category.lowercased().contains(term) ||
                 ($0.services ?? []).contains(where: { $0.lowercased().contains(term) }) ||
+                ($0.brands ?? []).contains(where: { $0.lowercased().contains(term) }) ||
                 ($0.city ?? "").lowercased().contains(term)
             }
         }
@@ -38,92 +83,134 @@ struct ServiceSearchFromMaintenance: View {
         return result
     }
 
+    // MARK: - Body
+
     var body: some View {
-        Group {
-            if isLoading {
-                ProgressView("Service-Anbieter laden...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if filteredProviders.isEmpty {
-                emptyState
-            } else {
-                List(filteredProviders) { provider in
-                    NavigationLink {
-                        ServiceProviderDetailView(provider: provider)
-                    } label: {
-                        ServiceProviderSearchRow(
-                            provider: provider,
-                            userLocation: locationManager.location
-                        )
+        VStack(spacing: 0) {
+            // Filter chips
+            if !categoryKeywordList.isEmpty || !manufacturerTokens.isEmpty {
+                filterChips
+            }
+
+            // Results
+            Group {
+                if isLoading {
+                    ProgressView("Service-Anbieter laden...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if filteredProviders.isEmpty {
+                    emptyState
+                } else {
+                    List(filteredProviders) { provider in
+                        NavigationLink {
+                            ServiceProviderDetailView(provider: provider)
+                        } label: {
+                            ServiceProviderSearchRow(
+                                provider: provider,
+                                userLocation: locationManager.location
+                            )
+                        }
                     }
+                    .listStyle(.plain)
                 }
-                .listStyle(.plain)
             }
         }
         .navigationTitle("Service: \(equipmentName)")
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $searchText, prompt: "Anbieter suchen...")
+        .searchable(text: $searchText, prompt: "Anbieter, Marke oder Ort suchen...")
         .task {
             locationManager.requestPermission()
             await loadProviders()
         }
         .onChange(of: locationManager.location) { _, newLoc in
-            // Beim ersten Eintreffen der Position (oder signifikanter Änderung)
-            // neu sortieren, damit nächster Anbieter oben steht.
             guard newLoc != nil else { return }
-            Task { await resortByDistance() }
+            sortProviders()
         }
     }
 
-    /// Re-sort the already-loaded providers by distance once the user's
-    /// location becomes available. Called reactively via onChange.
-    @MainActor
-    private func resortByDistance() async {
-        guard let loc = locationManager.location else { return }
-        let matchCategories = categoryKeywords(for: category)
-        providers = providers.sorted { a, b in
-            let aMatch = providerMatchesCategory(a, keywords: matchCategories)
-            let bMatch = providerMatchesCategory(b, keywords: matchCategories)
-            if aMatch != bMatch { return aMatch }
-            let distA = loc.distance(from: CLLocation(latitude: a.latitude, longitude: a.longitude))
-            let distB = loc.distance(from: CLLocation(latitude: b.latitude, longitude: b.longitude))
-            return distA < distB
+    // MARK: - Filter Chips
+
+    private var filterChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                // Category chip
+                if !categoryKeywordList.isEmpty {
+                    FilterChip(
+                        label: categoryDisplayName(for: category),
+                        icon: "tag.fill",
+                        isActive: $filterByCategory
+                    )
+                }
+
+                // Brand chip
+                if !manufacturerTokens.isEmpty {
+                    FilterChip(
+                        label: manufacturer,
+                        icon: "building.2.fill",
+                        isActive: $filterByBrand
+                    )
+                }
+
+                // Result count
+                Spacer()
+                Text("\(filteredProviders.count) Ergebnis\(filteredProviders.count == 1 ? "" : "se")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
         }
+        .background(Color(.systemGroupedBackground))
     }
+
+    // MARK: - Data Loading
 
     private func loadProviders() async {
         isLoading = true
         do {
-            let allProviders: [ServiceProvider] = try await authService.supabase
+            let providers: [ServiceProvider] = try await authService.supabase
                 .from("service_providers")
                 .select()
                 .execute()
                 .value
 
-            // Sort: matching categories first, then by distance (if location available), then by rating
-            let matchCategories = categoryKeywords(for: category)
-            let userLoc = locationManager.location
-
-            let sorted = allProviders.sorted { a, b in
-                let aMatch = providerMatchesCategory(a, keywords: matchCategories)
-                let bMatch = providerMatchesCategory(b, keywords: matchCategories)
-                if aMatch != bMatch { return aMatch }
-
-                // If both match (or both don't), sort by distance
-                if let loc = userLoc {
-                    let distA = loc.distance(from: CLLocation(latitude: a.latitude, longitude: a.longitude))
-                    let distB = loc.distance(from: CLLocation(latitude: b.latitude, longitude: b.longitude))
-                    return distA < distB
-                }
-
-                return (a.rating ?? 0) > (b.rating ?? 0)
+            await MainActor.run {
+                allProviders = providers
+                sortProviders()
             }
-
-            await MainActor.run { providers = sorted }
         } catch {
             print("❌ Service-Anbieter laden: \(error)")
         }
         isLoading = false
     }
+
+    /// Sort: best matches first (category + brand), then by distance, then by rating
+    private func sortProviders() {
+        let keywords = categoryKeywordList
+        let userLoc = locationManager.location
+
+        allProviders.sort { a, b in
+            let aCategory = providerMatchesCategory(a, keywords: keywords)
+            let bCategory = providerMatchesCategory(b, keywords: keywords)
+            let aBrand = providerMatchesBrand(a)
+            let bBrand = providerMatchesBrand(b)
+
+            // Score: +2 for category, +2 for brand
+            let aScore = (aCategory ? 2 : 0) + (aBrand ? 2 : 0)
+            let bScore = (bCategory ? 2 : 0) + (bBrand ? 2 : 0)
+            if aScore != bScore { return aScore > bScore }
+
+            // Same score → sort by distance
+            if let loc = userLoc {
+                let distA = loc.distance(from: CLLocation(latitude: a.latitude, longitude: a.longitude))
+                let distB = loc.distance(from: CLLocation(latitude: b.latitude, longitude: b.longitude))
+                return distA < distB
+            }
+
+            return (a.rating ?? 0) > (b.rating ?? 0)
+        }
+    }
+
+    // MARK: - Matching Logic
 
     private func providerMatchesCategory(_ provider: ServiceProvider, keywords: [String]) -> Bool {
         guard !keywords.isEmpty else { return false }
@@ -137,25 +224,56 @@ struct ServiceSearchFromMaintenance: View {
         })
     }
 
+    private func providerMatchesBrand(_ provider: ServiceProvider) -> Bool {
+        guard !manufacturerTokens.isEmpty else { return false }
+        let provBrands = (provider.brands ?? []).map { $0.lowercased() }
+        let provName = provider.name.lowercased()
+        let provServices = (provider.services ?? []).map { $0.lowercased() }
+
+        return manufacturerTokens.contains(where: { token in
+            provBrands.contains(where: { $0.contains(token) }) ||
+            provName.contains(token) ||
+            provServices.contains(where: { $0.contains(token) })
+        })
+    }
+
+    // MARK: - Category Keywords
+
     private func categoryKeywords(for equipmentCategory: String) -> [String] {
         let cat = equipmentCategory.lowercased()
         if cat.contains("motor") || cat.contains("engine") || cat.contains("antrieb") {
-            return ["motor", "werkstatt", "engine", "mechani"]
+            return ["motor", "werkstatt", "engine", "mechani", "repair"]
         } else if cat.contains("elektr") || cat.contains("electronic") || cat.contains("navigation") || cat.contains("instrument") {
             return ["elektr", "electronic", "instrument", "navigation"]
         } else if cat.contains("segel") || cat.contains("sail") || cat.contains("rigg") {
-            return ["segel", "sail", "rigg"]
+            return ["segel", "sail", "rigg", "sailmaker"]
         } else if cat.contains("sicherheit") || cat.contains("safety") || cat.contains("rettung") {
             return ["sicherheit", "safety", "rettung"]
-        } else if cat.contains("sanitaer") || cat.contains("wasser") || cat.contains("pump") {
+        } else if cat.contains("sanitaer") || cat.contains("sanit") || cat.contains("wasser") || cat.contains("pump") {
             return ["sanitaer", "sanit", "pump", "wasser"]
         } else if cat.contains("lack") || cat.contains("paint") || cat.contains("antifouling") {
             return ["lack", "paint", "werft", "yard"]
         } else if cat.contains("heiz") || cat.contains("klima") {
             return ["heiz", "klima", "heat"]
+        } else if cat.contains("deck") || cat.contains("rumpf") || cat.contains("hull") || cat.contains("osmose") {
+            return ["werft", "yard", "rumpf", "hull", "osmose", "bootsbau"]
+        } else if cat.contains("anker") || cat.contains("anchor") || cat.contains("kette") {
+            return ["anker", "anchor", "zubeh"]
+        } else if cat.contains("komm") || cat.contains("funk") || cat.contains("radio") || cat.contains("comm") {
+            return ["elektr", "electronic", "funk", "radio", "kommunikation"]
+        }
+        // Fallback: nutze den Kategorie-String selbst als Keyword
+        if !cat.isEmpty && cat != "other" && cat != "sonstiges" {
+            return [cat]
         }
         return []
     }
+
+    private func categoryDisplayName(for cat: String) -> String {
+        LanguageManager.shared.localizedCategory(cat)
+    }
+
+    // MARK: - Empty State
 
     private var emptyState: some View {
         VStack(spacing: 16) {
@@ -165,13 +283,56 @@ struct ServiceSearchFromMaintenance: View {
             Text("Keine Service-Anbieter gefunden")
                 .font(.headline)
                 .foregroundStyle(.secondary)
-            Text("Fuer \(equipmentName) (\(category)) wurden noch keine passenden Anbieter hinterlegt.")
+            Text("Fuer \(equipmentName) (\(category)\(!manufacturer.isEmpty ? ", \(manufacturer)" : "")) wurden keine passenden Anbieter gefunden.")
                 .font(.subheadline)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
+
+            // Hint: disable filters
+            if filterByCategory || filterByBrand {
+                Button {
+                    filterByCategory = false
+                    filterByBrand = false
+                } label: {
+                    Label("Alle Anbieter anzeigen", systemImage: "line.3.horizontal.decrease.circle")
+                }
+                .buttonStyle(.bordered)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Filter Chip
+struct FilterChip: View {
+    let label: String
+    let icon: String
+    @Binding var isActive: Bool
+
+    var body: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) { isActive.toggle() }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.caption2)
+                Text(label)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                if isActive {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 8, weight: .bold))
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(isActive ? Color.blue.opacity(0.15) : Color(.systemGray5))
+            .foregroundStyle(isActive ? .blue : .secondary)
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(isActive ? Color.blue.opacity(0.3) : .clear, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -241,18 +402,37 @@ struct ServiceProviderSearchRow: View {
                     }
                 }
 
-                // Services
-                if let services = provider.services, !services.isEmpty {
-                    Text(services.prefix(3).joined(separator: " · "))
-                        .font(.caption2)
-                        .foregroundStyle(.blue)
-                        .lineLimit(1)
+                // Brands + Services
+                let brandChips = (provider.brands ?? []).prefix(3)
+                let serviceChips = (provider.services ?? []).prefix(3)
+                if !brandChips.isEmpty || !serviceChips.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(Array(brandChips), id: \.self) { brand in
+                            Text(brand)
+                                .font(.system(size: 9))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color.orange.opacity(0.1))
+                                .foregroundStyle(.orange)
+                                .clipShape(Capsule())
+                        }
+                        ForEach(Array(serviceChips), id: \.self) { svc in
+                            Text(svc)
+                                .font(.system(size: 9))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color.blue.opacity(0.1))
+                                .foregroundStyle(.blue)
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .lineLimit(1)
                 }
             }
 
             Spacer()
 
-            // Rating + Distance column
+            // Rating
             VStack(alignment: .trailing, spacing: 4) {
                 if let rating = provider.rating, rating > 0 {
                     HStack(spacing: 2) {

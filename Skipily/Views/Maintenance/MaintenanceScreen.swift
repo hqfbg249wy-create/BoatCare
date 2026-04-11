@@ -8,7 +8,7 @@ import Supabase
 
 // MARK: - Navigation Target for Maintenance Actions
 enum MaintenanceNavTarget: Hashable {
-    case service(equipmentName: String, category: String)
+    case service(equipmentName: String, category: String, manufacturer: String)
     case spareParts(equipmentName: String)
     case aiAssistant(question: String)
 }
@@ -61,6 +61,7 @@ struct EquipmentMaintenanceItem: Identifiable {
     let equipmentName: String
     let boatName: String
     let category: String
+    let manufacturer: String
     let nextMaintenanceDate: Date
     let cycleYears: Int?
 
@@ -230,6 +231,7 @@ struct MaintenanceScreen: View {
                         equipmentName: eq.name,
                         boatName: boat.name,
                         category: eq.category,
+                        manufacturer: eq.manufacturer,
                         nextMaintenanceDate: nextDate,
                         cycleYears: cycle
                     ))
@@ -436,7 +438,7 @@ struct EquipmentMaintenanceRow: View {
                     // Service suchen
                     Button {
                         rowNavigation = MaintenanceRowNav(target:
-                            .service(equipmentName: item.equipmentName, category: item.category))
+                            .service(equipmentName: item.equipmentName, category: item.category, manufacturer: item.manufacturer))
                     } label: {
                         MaintenanceActionButton(
                             title: "Service",
@@ -500,8 +502,8 @@ struct EquipmentMaintenanceRow: View {
         )
         .navigationDestination(item: $rowNavigation) { nav in
             switch nav.target {
-            case .service(let name, let cat):
-                ServiceSearchFromMaintenance(equipmentName: name, category: cat)
+            case .service(let name, let cat, let mfr):
+                ServiceSearchFromMaintenance(equipmentName: name, category: cat, manufacturer: mfr)
                     .environmentObject(authService)
             case .spareParts(let name):
                 ProviderShopSearchView(

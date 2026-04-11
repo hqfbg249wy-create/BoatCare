@@ -182,7 +182,7 @@ private let equipmentCategories = [
 
 // MARK: - Equipment Navigation Target
 enum EquipmentNavTarget: Hashable {
-    case service(name: String, category: String)
+    case service(name: String, category: String, manufacturer: String)
     case spareParts(name: String, manufacturer: String, model: String, partNumber: String, dimensions: String)
     case aiAssistant(question: String)
 }
@@ -483,7 +483,7 @@ struct EquipmentExpandableRow: View {
                     // Service suchen
                     Button {
                         rowNavigation = EquipmentRowNav(target:
-                            .service(name: item.name, category: item.category))
+                            .service(name: item.name, category: item.category, manufacturer: item.manufacturer))
                     } label: {
                         EquipmentActionButton(title: "Service", icon: "wrench.and.screwdriver.fill", color: .orange)
                     }
@@ -530,8 +530,8 @@ struct EquipmentExpandableRow: View {
         }
         .navigationDestination(item: $rowNavigation) { nav in
             switch nav.target {
-            case .service(let name, let category):
-                ServiceSearchFromMaintenance(equipmentName: name, category: category)
+            case .service(let name, let category, let manufacturer):
+                ServiceSearchFromMaintenance(equipmentName: name, category: category, manufacturer: manufacturer)
                     .environmentObject(authService)
             case .spareParts(let name, let manufacturer, let model, _, _):
                 ProviderShopSearchView(
