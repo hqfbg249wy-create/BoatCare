@@ -3,7 +3,7 @@
 //
 // IMPORTANT: Replace with your LIVE Stripe publishable key before shipping.
 // Live keys start with pk_live_. Never commit secret keys (sk_live_/sk_test_).
-STRIPE_PUBLISHABLE_KEY = pk_live_REPLACE_ME_BEFORE_RELEASE
+STRIPE_PUBLISHABLE_KEY = pk_live_51TA7UFAZ46LbepTP1EEkyCEEe6nNuXmHFtCvRQYDIPPsX8xkZ0tB1rNNy9NbdV4f1oIWyVTFBb6iKg7Vevm4Q3tu0003rEpdjW
 
 // Supabase (production)
 // SUPABASE_URL = https://YOUR-PROJECT.supabase.co
