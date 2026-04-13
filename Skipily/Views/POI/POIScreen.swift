@@ -115,18 +115,18 @@ struct POIScreen: View {
                 .value
 
             favoriteProviders = result
-            print("✅ POIScreen: \(result.count) Favoriten geladen (von \(ids.count) IDs)")
+            AppLog.debug("POIScreen: \(result.count) Favoriten geladen (von \(ids.count) IDs)")
 
             // Bereinige IDs die nicht mehr in der DB existieren
             let foundIDs = Set(result.map { $0.id })
             let orphanIDs = ids.subtracting(foundIDs)
             for orphan in orphanIDs {
-                print("⚠️ Favorit \(orphan) nicht mehr in DB - wird entfernt")
+                AppLog.warning("Favorit \(orphan) nicht mehr in DB - wird entfernt")
                 favoritesManager.toggle(orphan)
             }
         } catch {
             errorMessage = "Fehler beim Laden: \(error.localizedDescription)"
-            print("❌ POIScreen Fehler: \(error)")
+            AppLog.error("POIScreen Fehler: \(error)")
         }
 
         isLoading = false

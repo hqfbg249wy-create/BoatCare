@@ -18,7 +18,7 @@ struct PrivacyPolicyView: View {
                         title: "1. Verantwortlicher",
                         content: """
                         Skipily App
-                        E-Mail: datenschutz@boatcare.de
+                        E-Mail: info@skipily.app
 
                         F\u{00FC}r die Verarbeitung personenbezogener Daten im Rahmen \
                         der Skipily-App ist der oben genannte Verantwortliche zust\u{00E4}ndig.
@@ -111,14 +111,25 @@ struct PrivacyPolicyView: View {
                         \u{2022} **Widerspruch** (Art. 21 DSGVO): Widerspruch gegen die Verarbeitung
                         \u{2022} **Widerruf** der Einwilligung jederzeit m\u{00F6}glich
 
-                        Kontakt: datenschutz@boatcare.de
+                        Kontakt: info@skipily.app
 
                         Sie haben zudem das Recht, sich bei einer Datenschutz-Aufsichtsbeh\u{00F6}rde \
                         zu beschweren.
                         """
                     )
 
-                    Text("Stand: M\u{00E4}rz 2026")
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Vollst\u{00E4}ndige Datenschutzerkl\u{00E4}rung:")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Link("https://skipily.app/datenschutz",
+                             destination: URL(string: "https://skipily.app/datenschutz")!)
+                            .font(.caption)
+                    }
+
+                    Text("Stand: April 2026")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .padding(.top, 8)

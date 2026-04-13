@@ -589,13 +589,13 @@ struct ProductDetailView: View {
         do {
             similarProducts = try await recommendationService.fetchSimilarProducts(to: product)
         } catch {
-            print("Failed to load similar products: \(error)")
+            AppLog.error("Failed to load similar products: \(error)")
         }
 
         do {
             providerProducts = try await recommendationService.fetchProviderProducts(for: product)
         } catch {
-            print("Failed to load provider products: \(error)")
+            AppLog.error("Failed to load provider products: \(error)")
         }
     }
 }

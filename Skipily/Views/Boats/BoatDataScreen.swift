@@ -382,7 +382,7 @@ struct BoatDataScreen: View {
             boats = result
             await migrateLocalBoatsIfNeeded(userId: userId)
         } catch {
-            print("❌ Error loading boats: \(error)")
+            AppLog.error("Error loading boats: \(error)")
             errorMessage = error.localizedDescription
         }
     }
@@ -400,7 +400,7 @@ struct BoatDataScreen: View {
             try await authService.supabase.from("boats").insert(inserts).execute()
             UserDefaults.standard.set(true, forKey: key)
             await loadFromSupabase()
-        } catch { print("❌ Migration failed: \(error)") }
+        } catch { AppLog.error("Migration failed: \(error)") }
     }
 
     // MARK: - CRUD
@@ -409,7 +409,7 @@ struct BoatDataScreen: View {
         do {
             try await authService.supabase.from("boats").insert(makeInsert(userId: userId, boat: boat)).execute()
             await loadFromSupabase()
-        } catch { print("❌ Error adding boat: \(error)") }
+        } catch { AppLog.error("Error adding boat: \(error)") }
     }
 
     private func updateBoat(_ boat: Boat) async {
@@ -418,7 +418,7 @@ struct BoatDataScreen: View {
                 .update(makeUpdate(boat: boat))
                 .eq("id", value: boat.id.uuidString).execute()
             await loadFromSupabase()
-        } catch { print("❌ Error updating boat: \(error)") }
+        } catch { AppLog.error("Error updating boat: \(error)") }
     }
 
     private func saveToUserDefaults() {
@@ -913,7 +913,7 @@ struct AddEditBoatView: View {
             uploadError = nil
             if let uploadedUrl = await uploadBoatImage(image, boatId: boatId) {
                 finalImageUrl = uploadedUrl
-                print("✅ Boat image uploaded: \(uploadedUrl)")
+                AppLog.debug("Boat image uploaded: \(uploadedUrl)")
             } else {
                 // Upload fehlgeschlagen — Fehlermeldung anzeigen und NICHT speichern,
                 // damit der User den Retry-Button sieht. Sonst landet ein Boot ohne
@@ -967,7 +967,7 @@ struct AddEditBoatView: View {
             let busted = publicUrl.absoluteString + "?t=\(Int(Date().timeIntervalSince1970))"
             return busted
         } catch {
-            print("❌ Boat-Image Upload-Fehler: \(error)")
+            AppLog.error("Boat-Image Upload-Fehler: \(error)")
             await MainActor.run {
                 uploadError = "Upload fehlgeschlagen: \(error.localizedDescription)"
             }

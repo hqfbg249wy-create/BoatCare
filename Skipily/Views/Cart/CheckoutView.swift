@@ -468,9 +468,9 @@ struct CheckoutView: View {
             let supabase = SupabaseManager.shared.client
             do {
                 _ = try await supabase.auth.refreshSession()
-                print("✅ Session refreshed before checkout")
+                AppLog.debug("Session refreshed before checkout")
             } catch {
-                print("⚠️ Session refresh failed, trying with existing session: \(error)")
+                AppLog.warning("Session refresh failed, trying with existing session: \(error)")
             }
 
             // 1. Create orders in DB
@@ -500,7 +500,7 @@ struct CheckoutView: View {
         } catch {
             isPlacingOrder = false
             isPreparingPayment = false
-            print("❌ Checkout error: \(error)")
+            AppLog.error("Checkout error: \(error)")
             errorMessage = "Fehler: \(error.localizedDescription)"
         }
     }

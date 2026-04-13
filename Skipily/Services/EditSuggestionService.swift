@@ -71,7 +71,7 @@ class EditSuggestionService: ObservableObject {
             hasPendingSuggestion = true
             return true
         } catch {
-            print("EditSuggestionService: Fehler beim Einreichen: \(error)")
+            AppLog.error("EditSuggestionService: Fehler beim Einreichen: \(error)")
             errorMessage = error.localizedDescription
             isLoading = false
             return false

@@ -258,7 +258,7 @@ class AIChatService {
 
             return AIChatContext(boats: chatBoats)
         } catch {
-            print("⚠️ Boot-Kontext konnte nicht geladen werden: \(error)")
+            AppLog.warning("Boot-Kontext konnte nicht geladen werden: \(error)")
             return nil
         }
     }

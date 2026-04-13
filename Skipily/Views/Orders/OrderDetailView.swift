@@ -311,7 +311,7 @@ struct OrderDetailView: View {
             chatConversation = conv
             showChat = true
         } catch {
-            print("Open chat error: \(error)")
+            AppLog.error("Open chat error: \(error)")
         }
     }
 

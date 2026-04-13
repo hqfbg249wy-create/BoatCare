@@ -112,7 +112,7 @@ struct MarketplaceScreen: View {
             promotionProviders = try await providerManager.loadProvidersWithPromotionThrowing()
         } catch {
             loadError = error.localizedDescription
-            print("❌ Marketplace-Fehler: \(error)")
+            AppLog.error("Marketplace-Fehler: \(error)")
         }
         isLoading = false
     }

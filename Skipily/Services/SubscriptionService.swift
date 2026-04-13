@@ -78,7 +78,7 @@ final class SubscriptionService: ObservableObject {
             await refreshEntitlements()
         } catch {
             lastError = "Produkte konnten nicht geladen werden: \(error.localizedDescription)"
-            print("SubscriptionService.loadProducts error: \(error)")
+            AppLog.error("SubscriptionService.loadProducts error: \(error)")
         }
     }
 
@@ -104,7 +104,7 @@ final class SubscriptionService: ObservableObject {
             }
         } catch {
             lastError = "Kauf fehlgeschlagen: \(error.localizedDescription)"
-            print("SubscriptionService.purchase error: \(error)")
+            AppLog.error("SubscriptionService.purchase error: \(error)")
             return false
         }
     }

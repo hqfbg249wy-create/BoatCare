@@ -964,9 +964,9 @@ struct MapScreen: View {
             currentRegion = region
             currentZoomLevel = savedZoom
             
-            print("📍 Restored camera position: \(savedLat), \(savedLon) with zoom: \(savedZoom)")
+            AppLog.debug("📍 Restored camera position: \(savedLat), \(savedLon) with zoom: \(savedZoom)")
         } else {
-            print("📍 No saved camera position found, using default")
+            AppLog.debug("📍 No saved camera position found, using default")
         }
     }
     
@@ -993,14 +993,14 @@ struct MapScreen: View {
 
     /// Initiales Laden: Startet die Kamera und lädt Provider der Startregion.
     private func loadSupabaseProviders() {
-        print("🔍 MapScreen: Initializing region-based provider loading...")
+        AppLog.debug("🔍 MapScreen: Initializing region-based provider loading...")
 
         Task {
             await MainActor.run {
                 let hasSavedPosition = UserDefaults.standard.double(forKey: cameraLatKey) != 0
 
                 if hasSavedPosition {
-                    print("   📍 Using restored camera position")
+                    AppLog.debug("   📍 Using restored camera position")
                     // Region wird über onMapCameraChange->scheduleRegionLoad getriggert
                 } else if userLocation != nil {
                     centerOnUserLocation()
@@ -1010,7 +1010,7 @@ struct MapScreen: View {
                         center: CLLocationCoordinate2D(latitude: 51.1657, longitude: 10.4515),
                         span: MKCoordinateSpan(latitudeDelta: 8.0, longitudeDelta: 8.0)
                     ))
-                    print("   📍 Camera centered on Germany (fallback)")
+                    AppLog.debug("   📍 Camera centered on Germany (fallback)")
                 }
 
                 // Starte sofortigen Load für die aktuelle Region (ohne Debounce)
@@ -1046,7 +1046,7 @@ struct MapScreen: View {
 
             lastLoadedRegion = region
             await providerManager.loadProviders(in: region)
-            print("🗺️ Region reloaded: center=(\(String(format:"%.3f",region.center.latitude)),\(String(format:"%.3f",region.center.longitude))) span=\(String(format:"%.3f",region.span.latitudeDelta))°")
+            AppLog.debug("🗺️ Region reloaded: center=(\(String(format:"%.3f",region.center.latitude)),\(String(format:"%.3f",region.center.longitude))) span=\(String(format:"%.3f",region.span.latitudeDelta))°")
         }
     }
     
@@ -1071,7 +1071,7 @@ struct MapScreen: View {
     
     private func centerOnUserLocation() {
         guard let location = userLocation else { return }
-        print("🎥 Camera: Centering on user location")
+        AppLog.debug("🎥 Camera: Centering on user location")
         cameraPosition = .region(MKCoordinateRegion(
             center: location,
             span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
@@ -1148,7 +1148,7 @@ struct MapScreen: View {
         let directions = MKDirections(request: request)
         directions.calculate { response, error in
             if let error = error {
-                print("Routenberechnung fehlgeschlagen: \(error.localizedDescription)")
+                AppLog.error("Routenberechnung fehlgeschlagen: \(error.localizedDescription)")
                 return
             }
             
@@ -1179,7 +1179,7 @@ struct MapScreen: View {
         let directions = MKDirections(request: request)
         directions.calculate { response, error in
             if let error = error {
-                print("Routenberechnung fehlgeschlagen: \(error.localizedDescription)")
+                AppLog.error("Routenberechnung fehlgeschlagen: \(error.localizedDescription)")
                 return
             }
             
@@ -1617,7 +1617,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Standortfehler: \(error.localizedDescription)")
+        AppLog.error("Standortfehler: \(error.localizedDescription)")
     }
 }
 
@@ -1839,7 +1839,7 @@ struct AddBusinessView: View {
             
             if let error = error {
                 geocodingError = "Adresse konnte nicht gefunden werden"
-                print("Geocoding Error: \(error)")
+                AppLog.error("Geocoding Error: \(error)")
                 return
             }
             
@@ -2201,7 +2201,7 @@ struct ProviderDetailCard: View {
                 serviceNames = fetched
             }
         } catch {
-            print("❌ Error loading services: \(error)")
+            AppLog.error("Error loading services: \(error)")
         }
     }
     

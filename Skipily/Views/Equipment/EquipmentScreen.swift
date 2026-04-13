@@ -317,7 +317,7 @@ struct EquipmentScreen: View {
                 .execute().value
             items = result
         } catch {
-            print("❌ Equipment laden: \(error)")
+            AppLog.error("Equipment laden: \(error)")
             errorMessage = error.localizedDescription
         }
     }
@@ -338,7 +338,7 @@ struct EquipmentScreen: View {
         do {
             try await authService.supabase.from("equipment").insert(ins).execute()
             await loadItems()
-        } catch { print("❌ Equipment hinzufügen: \(error)") }
+        } catch { AppLog.error("Equipment hinzufügen: \(error)") }
     }
 
     private func updateItem(_ item: EquipmentItem) async {
@@ -358,7 +358,7 @@ struct EquipmentScreen: View {
             try await authService.supabase.from("equipment")
                 .update(upd).eq("id", value: item.id.uuidString).execute()
             await loadItems()
-        } catch { print("❌ Equipment aktualisieren: \(error)") }
+        } catch { AppLog.error("Equipment aktualisieren: \(error)") }
     }
 
     private func deleteItem(_ item: EquipmentItem) async {
@@ -366,7 +366,7 @@ struct EquipmentScreen: View {
         do {
             try await authService.supabase.from("equipment")
                 .delete().eq("id", value: item.id.uuidString).execute()
-        } catch { print("❌ Equipment löschen: \(error)") }
+        } catch { AppLog.error("Equipment löschen: \(error)") }
     }
 }
 
@@ -1082,7 +1082,7 @@ struct AddEditEquipmentView: View {
                     .getPublicURL(path: path)
                 allPhotoUrls.append(publicURL.absoluteString)
             } catch {
-                print("Photo upload error: \(error)")
+                AppLog.error("Photo upload error: \(error)")
             }
         }
 
@@ -1491,7 +1491,7 @@ struct ServiceSearchFromEquipment: View {
                 // Ohne Standort: "Weitere Anbieter" auf max. 20 begrenzen
                 otherMatches = Array(other.sorted { $0.0.name < $1.0.name }.prefix(20))
             }
-        } catch { print("❌ Service-Suche: \(error)") }
+        } catch { AppLog.error("Service-Suche: \(error)") }
     }
 
     private func geocode(_ address: String) async -> CLLocation? {
@@ -1838,7 +1838,7 @@ struct MetashopSearchFromEquipment: View {
                 return aPrice < bPrice
             }
         } catch {
-            print("❌ Metashop-Suche: \(error)")
+            AppLog.error("Metashop-Suche: \(error)")
         }
     }
 
@@ -2027,7 +2027,7 @@ struct EquipmentPartsSearchView: View {
             accessories = accessories.filter { !exactIds.contains($0.id) }
 
         } catch {
-            print("❌ Equipment Parts Search: \(error)")
+            AppLog.error("Equipment Parts Search: \(error)")
         }
     }
 

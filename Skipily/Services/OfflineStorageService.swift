@@ -115,7 +115,7 @@ final class OfflineStorageService {
                 }
             }
         } catch {
-            print("Offline: Geocoding fehlgeschlagen: \(error.localizedDescription)")
+            AppLog.error("Offline: Geocoding fehlgeschlagen: \(error.localizedDescription)")
         }
     }
 
@@ -161,9 +161,9 @@ final class OfflineStorageService {
             let data = try JSONEncoder().encode(providers)
             try data.write(to: providersFile)
 
-            print("Offline: \(providers.count) Provider gecacht (Land: \(currentCountryCode ?? "alle"))")
+            AppLog.debug("Offline: \(providers.count) Provider gecacht (Land: \(currentCountryCode ?? "alle"))")
         } catch {
-            print("Offline: Provider-Sync fehlgeschlagen: \(error.localizedDescription)")
+            AppLog.error("Offline: Provider-Sync fehlgeschlagen: \(error.localizedDescription)")
         }
     }
 
@@ -186,9 +186,9 @@ final class OfflineStorageService {
             let data = try encoder.encode(products)
             try data.write(to: productsFile)
 
-            print("Offline: \(products.count) Produkte gecacht")
+            AppLog.debug("Offline: \(products.count) Produkte gecacht")
         } catch {
-            print("Offline: Produkt-Sync fehlgeschlagen: \(error.localizedDescription)")
+            AppLog.error("Offline: Produkt-Sync fehlgeschlagen: \(error.localizedDescription)")
         }
     }
 

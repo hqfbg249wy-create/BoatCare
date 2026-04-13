@@ -239,7 +239,7 @@ struct MaintenanceScreen: View {
             }
             await MainActor.run { equipmentItems = allItems.sorted(by: { $0.nextMaintenanceDate < $1.nextMaintenanceDate }) }
         } catch {
-            print("❌ Equipment-Wartung laden: \(error)")
+            AppLog.error("Equipment-Wartung laden: \(error)")
         }
     }
 
@@ -273,7 +273,7 @@ struct MaintenanceScreen: View {
 
             await loadEquipmentMaintenance()
         } catch {
-            print("❌ Equipment-Wartung abschliessen: \(error)")
+            AppLog.error("Equipment-Wartung abschliessen: \(error)")
         }
 
         await MainActor.run { completingEquipmentIds.remove(item.id) }

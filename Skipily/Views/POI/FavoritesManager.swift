@@ -73,9 +73,9 @@ final class FavoritesManager: ObservableObject {
                 .execute()
             favoriteIDs = []
             saveCache()
-            print("✅ FavoritesManager: alle Favoriten für User \(userId) gelöscht")
+            AppLog.debug("FavoritesManager: alle Favoriten für User \(userId) gelöscht")
         } catch {
-            print("❌ FavoritesManager clearAll error: \(error)")
+            AppLog.error("FavoritesManager clearAll error: \(error)")
         }
     }
 
@@ -156,7 +156,7 @@ final class FavoritesManager: ObservableObject {
             self.favoriteIDs = remoteIDs
             self.saveCache()
         } catch {
-            print("FavoritesManager sync error: \(error)")
+            AppLog.error("FavoritesManager sync error: \(error)")
             // Keep whatever's in cache as the last known good state
         }
     }
@@ -171,7 +171,7 @@ final class FavoritesManager: ObservableObject {
                 )
                 .execute()
         } catch {
-            print("FavoritesManager add error: \(error)")
+            AppLog.error("FavoritesManager add error: \(error)")
         }
     }
 
@@ -184,7 +184,7 @@ final class FavoritesManager: ObservableObject {
                 .eq("provider_id", value: providerId.uuidString)
                 .execute()
         } catch {
-            print("FavoritesManager remove error: \(error)")
+            AppLog.error("FavoritesManager remove error: \(error)")
         }
     }
 }

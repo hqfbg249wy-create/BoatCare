@@ -178,7 +178,7 @@ struct ServiceSearchFromMaintenance: View {
                 sortProviders()
             }
         } catch {
-            print("❌ Service-Anbieter laden: \(error)")
+            AppLog.error("Service-Anbieter laden: \(error)")
         }
         isLoading = false
     }

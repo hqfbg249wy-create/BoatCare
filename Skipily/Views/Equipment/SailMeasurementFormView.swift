@@ -466,7 +466,7 @@ struct SailMeasurementFormView: View {
                 dismiss()
             }
         } catch {
-            print("Save sail measurement error: \(error)")
+            AppLog.error("Save sail measurement error: \(error)")
         }
 
         isSaving = false
@@ -487,7 +487,7 @@ struct SailMeasurementFormView: View {
                 }
             }
         } catch {
-            print("Load sail measurement error: \(error)")
+            AppLog.error("Load sail measurement error: \(error)")
         }
     }
 }

@@ -40,7 +40,7 @@ final class MessagingService {
             conversations = data
             await loadUnreadCount(userId: userId)
         } catch {
-            print("Load conversations error: \(error)")
+            AppLog.error("Load conversations error: \(error)")
         }
         isLoading = false
     }
@@ -58,7 +58,7 @@ final class MessagingService {
 
             unreadCount = response.count ?? 0
         } catch {
-            print("Unread count error: \(error)")
+            AppLog.error("Unread count error: \(error)")
         }
     }
 
@@ -176,7 +176,7 @@ final class MessagingService {
         do {
             try await channel.subscribeWithError()
         } catch {
-            print("Realtime subscribe error: \(error)")
+            AppLog.error("Realtime subscribe error: \(error)")
         }
 
         Task {

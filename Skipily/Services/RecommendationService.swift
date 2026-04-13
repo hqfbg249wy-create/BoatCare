@@ -70,7 +70,7 @@ final class RecommendationService {
             .map { $0 }
 
         } catch {
-            print("Failed to load recommendations: \(error)")
+            AppLog.error("Failed to load recommendations: \(error)")
             recommendedProducts = []
         }
     }
@@ -257,7 +257,7 @@ final class RecommendationService {
             return products
         } catch {
             // Boat table might not exist yet, silently fail
-            print("Could not fetch boat info: \(error)")
+            AppLog.error("Could not fetch boat info: \(error)")
             return []
         }
     }

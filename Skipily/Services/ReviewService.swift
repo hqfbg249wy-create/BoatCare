@@ -106,7 +106,7 @@ class ReviewService: ObservableObject {
             
             reviews = response
         } catch {
-            print("Reviews: Fehler beim Laden: \(error)")
+            AppLog.error("Reviews: Fehler beim Laden: \(error)")
             errorMessage = error.localizedDescription
             reviews = []
         }
@@ -136,7 +136,7 @@ class ReviewService: ObservableObject {
             isLoading = false
             return true
         } catch {
-            print("ReviewService: Fehler beim Speichern: \(error)")
+            AppLog.error("ReviewService: Fehler beim Speichern: \(error)")
             errorMessage = error.localizedDescription
             isLoading = false
             return false

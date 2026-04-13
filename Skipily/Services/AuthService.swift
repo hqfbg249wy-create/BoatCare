@@ -85,7 +85,7 @@ class AuthService: ObservableObject {
                 ])
                 .execute()
         } catch {
-            print("⚠️ profiles-upsert nach signUp fehlgeschlagen (vermutlich RLS; Trigger sollte übernommen haben): \(error)")
+            AppLog.warning("profiles-upsert nach signUp fehlgeschlagen (vermutlich RLS; Trigger sollte übernommen haben): \(error)")
         }
 
         isAuthenticated = true
@@ -137,7 +137,7 @@ class AuthService: ObservableObject {
                 .value
             userProfile = profile
         } catch {
-            print("Failed to load profile: \(error)")
+            AppLog.error("Failed to load profile: \(error)")
         }
     }
 

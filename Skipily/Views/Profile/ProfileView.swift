@@ -304,7 +304,7 @@ struct ProfileView: View {
                 try await authService.updateProfile(profile)
             }
         } catch {
-            print("Avatar upload error: \(error)")
+            AppLog.error("Avatar upload error: \(error)")
         }
 
         await MainActor.run { isUploadingPhoto = false }
@@ -620,7 +620,7 @@ struct ProfileView: View {
             try await authService.deleteAccount()
         } catch {
             errorMessage = "Löschen fehlgeschlagen: \(error.localizedDescription)"
-            print("Delete account error: \(error)")
+            AppLog.error("Delete account error: \(error)")
         }
         isDeletingAccount = false
     }
@@ -681,7 +681,7 @@ struct ProfileView: View {
                 .value
             boats = data
         } catch {
-            print("Failed to load boats: \(error)")
+            AppLog.error("Failed to load boats: \(error)")
         }
         isLoadingBoats = false
     }
@@ -708,7 +708,7 @@ struct ProfileView: View {
                 withAnimation { showSavedToast = false }
             }
         } catch {
-            print("Save profile error: \(error)")
+            AppLog.error("Save profile error: \(error)")
         }
         isSaving = false
     }

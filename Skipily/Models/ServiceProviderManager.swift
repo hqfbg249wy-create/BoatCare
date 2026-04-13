@@ -184,10 +184,10 @@ class ServiceProviderManager: ObservableObject {
             }
             
             providers = filtered
-            print("✅ \(providers.count) Betriebe geladen")
+            AppLog.debug("\(providers.count) Betriebe geladen")
         } catch {
             errorMessage = "Fehler beim Laden: \(error.localizedDescription)"
-            print("❌ Fehler beim Laden der Betriebe: \(error)")
+            AppLog.error("Fehler beim Laden der Betriebe: \(error)")
         }
         
         isLoading = false
@@ -221,10 +221,10 @@ class ServiceProviderManager: ObservableObject {
             }
             
             providers = filtered
-            print("✅ \(providers.count) Betriebe in Kategorie '\(category)' geladen")
+            AppLog.debug("\(providers.count) Betriebe in Kategorie '\(category)' geladen")
         } catch {
             errorMessage = "Fehler beim Laden: \(error.localizedDescription)"
-            print("❌ Fehler: \(error)")
+            AppLog.error("Fehler: \(error)")
         }
         
         isLoading = false
@@ -262,10 +262,10 @@ class ServiceProviderManager: ObservableObject {
                 .value
 
             providers = result
-            print("✅ \(providers.count) Betriebe in Region geladen (BBox: \(String(format:"%.2f",minLat))–\(String(format:"%.2f",maxLat)), \(String(format:"%.2f",minLon))–\(String(format:"%.2f",maxLon)))")
+            AppLog.debug("\(providers.count) Betriebe in Region geladen (BBox: \(String(format:"%.2f",minLat))–\(String(format:"%.2f",maxLat)), \(String(format:"%.2f",minLon))–\(String(format:"%.2f",maxLon)))")
         } catch {
             errorMessage = "Fehler beim Laden: \(error.localizedDescription)"
-            print("❌ Region-Fetch-Fehler: \(error)")
+            AppLog.error("Region-Fetch-Fehler: \(error)")
         }
 
         isLoading = false
@@ -274,7 +274,7 @@ class ServiceProviderManager: ObservableObject {
     func loadAllProviders() async {
         guard let supabase = supabase else {
             errorMessage = "Supabase nicht initialisiert"
-            print("❌ ServiceProviderManager: supabase client is nil")
+            AppLog.error("ServiceProviderManager: supabase client is nil")
             return
         }
 
@@ -289,35 +289,35 @@ class ServiceProviderManager: ObservableObject {
                 .value
 
             providers = result
-            print("✅ \(providers.count) Betriebe geladen (alle)")
+            AppLog.debug("\(providers.count) Betriebe geladen (alle)")
 
             if providers.isEmpty {
-                print("⚠️ Keine Provider gefunden – RLS-Policy oder leere DB?")
+                AppLog.warning("Keine Provider gefunden – RLS-Policy oder leere DB?")
             }
         } catch let decodingError as DecodingError {
             // Detailliertes Decoding-Fehler-Logging
             switch decodingError {
             case .typeMismatch(let type, let context):
-                print("❌ Type mismatch: \(type) at \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-                print("   Debug: \(context.debugDescription)")
+                AppLog.error("Type mismatch: \(type) at \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                AppLog.debug("   Debug: \(context.debugDescription)")
                 errorMessage = "Decode-Fehler: Typ-Mismatch bei \(context.codingPath.last?.stringValue ?? "?")"
             case .keyNotFound(let key, let context):
-                print("❌ Key not found: \(key.stringValue) at \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                AppLog.error("Key not found: \(key.stringValue) at \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
                 errorMessage = "Decode-Fehler: Feld '\(key.stringValue)' fehlt"
             case .valueNotFound(let type, let context):
-                print("❌ Value not found: \(type) at \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                AppLog.error("Value not found: \(type) at \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
                 errorMessage = "Decode-Fehler: Wert fehlt bei \(context.codingPath.last?.stringValue ?? "?")"
             case .dataCorrupted(let context):
-                print("❌ Data corrupted at \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-                print("   Debug: \(context.debugDescription)")
+                AppLog.error("Data corrupted at \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                AppLog.debug("   Debug: \(context.debugDescription)")
                 errorMessage = "Decode-Fehler: Daten beschädigt"
             @unknown default:
-                print("❌ Unbekannter Decode-Fehler: \(decodingError)")
+                AppLog.error("Unbekannter Decode-Fehler: \(decodingError)")
                 errorMessage = "Decode-Fehler: \(decodingError.localizedDescription)"
             }
         } catch {
             errorMessage = "Fehler beim Laden: \(error.localizedDescription)"
-            print("❌ Fetch-Fehler: \(error)")
+            AppLog.error("Fetch-Fehler: \(error)")
         }
 
         isLoading = false
@@ -335,7 +335,7 @@ class ServiceProviderManager: ObservableObject {
                 .value
             return result
         } catch {
-            print("❌ Promotion-Fehler: \(error)")
+            AppLog.error("Promotion-Fehler: \(error)")
             return []
         }
     }

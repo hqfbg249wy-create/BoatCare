@@ -688,7 +688,7 @@ struct ShopView: View {
             }
             await MainActor.run { equipmentKeywords = Array(keywords).sorted().prefix(8).map { $0 } }
         } catch {
-            print("Equipment-Keywords laden: \(error)")
+            AppLog.error("Equipment-Keywords laden: \(error)")
         }
     }
 
@@ -852,7 +852,7 @@ struct ShopView: View {
         do {
             categories = try await productService.fetchParentCategories()
         } catch {
-            print("Failed to load categories: \(error)")
+            AppLog.error("Failed to load categories: \(error)")
         }
     }
 
@@ -919,7 +919,7 @@ struct ShopView: View {
             products.append(contentsOf: moreProducts)
             hasMoreProducts = moreProducts.count >= pageSize
         } catch {
-            print("Failed to load more products: \(error)")
+            AppLog.error("Failed to load more products: \(error)")
         }
         isLoadingMore = false
     }
@@ -1000,7 +1000,7 @@ struct ShopView: View {
 
             equipmentDealProducts = Array(unique.prefix(10))
         } catch {
-            print("Equipment deals laden: \(error)")
+            AppLog.error("Equipment deals laden: \(error)")
         }
     }
 }

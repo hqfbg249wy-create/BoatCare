@@ -60,7 +60,7 @@ final class PromotionService {
 
             isLoaded = true
         } catch {
-            print("Failed to load promotions: \(error)")
+            AppLog.error("Failed to load promotions: \(error)")
         }
     }
 
