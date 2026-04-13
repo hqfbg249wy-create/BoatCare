@@ -5,6 +5,9 @@
 
 import SwiftUI
 import StripePaymentSheet
+#if canImport(Sentry)
+import Sentry
+#endif
 
 @main
 struct SkipilyApp: App {
@@ -19,6 +22,24 @@ struct SkipilyApp: App {
     init() {
         // Initialize Stripe SDK with publishable key
         StripeAPI.defaultPublishableKey = StripeConfig.publishableKey
+
+        // Initialize Sentry crash reporting
+        #if canImport(Sentry)
+        SentrySDK.start { options in
+            options.dsn = "https://f90cbb08e245c681c63857d55977ec18@o4511213037879296.ingest.de.sentry.io/4511213040042064"
+            options.tracesSampleRate = 0.2  // 20% Performance-Traces
+            options.profilesSampleRate = 0.1
+            #if DEBUG
+            options.debug = true
+            options.environment = "debug"
+            #else
+            options.environment = "production"
+            #endif
+            options.enableAutoSessionTracking = true
+            options.attachScreenshot = true
+            options.enableUserInteractionTracing = true
+        }
+        #endif
 
         // Configure a generous shared URL cache so AsyncImage (and URLSession
         // based loaders) can reuse provider logos, boat photos and product
