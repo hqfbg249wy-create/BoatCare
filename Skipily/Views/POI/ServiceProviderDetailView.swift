@@ -525,7 +525,7 @@ struct ServiceProviderDetailView: View {
                         .padding(.horizontal, 20)
                         .padding(.vertical, 10)
                         .frame(maxWidth: .infinity)
-                        .background(Color.white)
+                        .background(Color(.systemBackground))
                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                     .buttonStyle(.plain)

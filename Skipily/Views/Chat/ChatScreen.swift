@@ -231,7 +231,7 @@ struct TypingIndicator: View {
             HStack(spacing: 5) {
                 ForEach(0..<3) { i in
                     Circle()
-                        .fill(Color.gray)
+                        .fill(Color(.systemGray))
                         .frame(width: 8, height: 8)
                         .scaleEffect(animating ? 1.0 : 0.5)
                         .opacity(animating ? 1.0 : 0.3)

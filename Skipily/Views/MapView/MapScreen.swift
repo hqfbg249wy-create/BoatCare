@@ -1539,7 +1539,7 @@ struct ServiceProviderPin: View {
                     .padding(.vertical, isHighlighted ? 3 : 2)
                     .background {
                         if isHighlighted {
-                            Color.white
+                            Color(.systemBackground)
                         } else {
                             Rectangle().fill(.ultraThinMaterial)
                         }
