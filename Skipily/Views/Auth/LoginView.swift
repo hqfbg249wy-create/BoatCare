@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AuthenticationServices
 
 struct LoginView: View {
     @EnvironmentObject var authService: AuthService
@@ -92,8 +93,27 @@ struct LoginView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        Divider()
-                            .padding(.vertical, 4)
+                        // Divider with "oder"
+                        HStack {
+                            Rectangle().frame(height: 1).foregroundStyle(.secondary.opacity(0.3))
+                            Text("oder").font(.caption).foregroundStyle(.secondary)
+                            Rectangle().frame(height: 1).foregroundStyle(.secondary.opacity(0.3))
+                        }
+                        .padding(.vertical, 4)
+
+                        // Sign in with Apple
+                        SignInWithAppleButton(.signIn) { request in
+                            let appleRequest = authService.prepareAppleSignIn()
+                            request.requestedScopes = appleRequest.requestedScopes
+                            request.nonce = appleRequest.nonce
+                        } onCompletion: { result in
+                            Task { await authService.handleAppleSignIn(result: result) }
+                        }
+                        .signInWithAppleButtonStyle(
+                            UITraitCollection.current.userInterfaceStyle == .dark ? .white : .black
+                        )
+                        .frame(height: 50)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
 
                         // Register
                         NavigationLink(destination: RegistrationView()) {

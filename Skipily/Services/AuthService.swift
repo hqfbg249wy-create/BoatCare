@@ -10,6 +10,8 @@ import Foundation
 import SwiftUI
 import Combine
 import Supabase
+import AuthenticationServices
+import CryptoKit
 
 @MainActor
 class AuthService: ObservableObject {
@@ -121,6 +123,118 @@ class AuthService: ObservableObject {
 
     func resetPassword(email: String) async throws {
         try await supabase.auth.resetPasswordForEmail(email)
+    }
+
+    // MARK: - Sign in with Apple
+
+    /// Stores the nonce for the current Apple Sign-In flow
+    private var currentNonce: String?
+
+    /// Generates a cryptographically random nonce for Apple Sign-In
+    private func randomNonce(length: Int = 32) -> String {
+        let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        var result = ""
+        var remaining = length
+        while remaining > 0 {
+            let randoms: [UInt8] = (0..<16).map { _ in
+                var random: UInt8 = 0
+                let status = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
+                guard status == errSecSuccess else { return 0 }
+                return random
+            }
+            for random in randoms {
+                guard remaining > 0 else { break }
+                result.append(charset[Int(random) % charset.count])
+                remaining -= 1
+            }
+        }
+        return result
+    }
+
+    /// SHA256 hash of the nonce (Apple requires this)
+    private func sha256(_ input: String) -> String {
+        let data = Data(input.utf8)
+        let hash = SHA256.hash(data: data)
+        return hash.map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Starts the Apple Sign-In flow. Returns the ASAuthorizationAppleIDRequest
+    /// configured with the correct nonce.
+    func prepareAppleSignIn() -> ASAuthorizationAppleIDRequest {
+        let nonce = randomNonce()
+        currentNonce = nonce
+        let provider = ASAuthorizationAppleIDProvider()
+        let request = provider.createRequest()
+        request.requestedScopes = [.fullName, .email]
+        request.nonce = sha256(nonce)
+        return request
+    }
+
+    /// Handles the Apple Sign-In response and authenticates with Supabase
+    func handleAppleSignIn(result: Result<ASAuthorization, Error>) async {
+        errorMessage = nil
+        isLoading = true
+        defer { isLoading = false }
+
+        switch result {
+        case .success(let authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                  let identityToken = credential.identityToken,
+                  let idTokenString = String(data: identityToken, encoding: .utf8),
+                  let nonce = currentNonce else {
+                errorMessage = "Apple Sign-In fehlgeschlagen: Token nicht erhalten."
+                return
+            }
+
+            do {
+                let session = try await supabase.auth.signInWithIdToken(
+                    credentials: .init(
+                        provider: .apple,
+                        idToken: idTokenString,
+                        nonce: nonce
+                    )
+                )
+
+                let user = session.user
+                currentUser = AppUser(id: user.id, email: user.email ?? "")
+                isAuthenticated = true
+
+                // Apple liefert den Namen nur beim ERSTEN Login
+                let fullName = [
+                    credential.fullName?.givenName,
+                    credential.fullName?.familyName
+                ].compactMap { $0 }.joined(separator: " ")
+
+                if !fullName.isEmpty {
+                    do {
+                        try await supabase.from("profiles")
+                            .upsert([
+                                "id": user.id.uuidString,
+                                "email": user.email ?? "",
+                                "full_name": fullName,
+                                "role": "user"
+                            ])
+                            .execute()
+                    } catch {
+                        AppLog.warning("Profile-Upsert nach Apple Sign-In: \(error)")
+                    }
+                }
+
+                await loadProfile()
+                AppLog.info("Apple Sign-In erfolgreich: \(user.email ?? "no email")")
+            } catch {
+                errorMessage = "Anmeldung fehlgeschlagen: \(error.localizedDescription)"
+                AppLog.error("Apple Sign-In Supabase error: \(error)")
+            }
+
+        case .failure(let error):
+            if (error as NSError).code == ASAuthorizationError.canceled.rawValue {
+                // User abgebrochen — kein Fehler anzeigen
+                return
+            }
+            errorMessage = "Apple Sign-In abgebrochen: \(error.localizedDescription)"
+        }
+        currentNonce = nil
     }
 
     // MARK: - Profile

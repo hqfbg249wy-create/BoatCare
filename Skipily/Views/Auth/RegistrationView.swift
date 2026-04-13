@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AuthenticationServices
 
 struct RegistrationView: View {
     @EnvironmentObject var authService: AuthService
@@ -111,6 +112,26 @@ struct RegistrationView: View {
             Text("Erstelle dein Skipily-Konto")
                 .font(.title2)
                 .fontWeight(.bold)
+
+            // Sign in with Apple — schnelle Registrierung
+            SignInWithAppleButton(.signUp) { request in
+                let appleRequest = authService.prepareAppleSignIn()
+                request.requestedScopes = appleRequest.requestedScopes
+                request.nonce = appleRequest.nonce
+            } onCompletion: { result in
+                Task { await authService.handleAppleSignIn(result: result) }
+            }
+            .signInWithAppleButtonStyle(
+                UITraitCollection.current.userInterfaceStyle == .dark ? .white : .black
+            )
+            .frame(height: 50)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            HStack {
+                Rectangle().frame(height: 1).foregroundStyle(.secondary.opacity(0.3))
+                Text("oder mit E-Mail").font(.caption).foregroundStyle(.secondary)
+                Rectangle().frame(height: 1).foregroundStyle(.secondary.opacity(0.3))
+            }
 
             fieldLabel("Vollst\u{00E4}ndiger Name")
             TextField("Max Mustermann", text: $fullName)
