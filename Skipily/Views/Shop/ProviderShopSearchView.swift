@@ -51,7 +51,7 @@ struct ProviderShopSearchView: View {
                 .padding(.horizontal)
 
                 if isLoading {
-                    ProgressView("Produkte laden...")
+                    ProgressView("shop.loading".loc)
                         .frame(maxWidth: .infinity)
                         .padding(.top, 60)
                 } else if let error = errorMessage {
@@ -62,7 +62,7 @@ struct ProviderShopSearchView: View {
                         Text(error)
                             .font(.callout)
                             .foregroundStyle(.secondary)
-                        Button("Erneut versuchen") {
+                        Button("general.retry".loc) {
                             Task { await loadProducts() }
                         }
                     }
@@ -104,10 +104,10 @@ struct ProviderShopSearchView: View {
                 Image(systemName: "shippingbox")
                     .font(.system(size: 48))
                     .foregroundStyle(.gray.opacity(0.3))
-                Text("Keine direkten Treffer")
+                Text("shop.no_exact_match".loc)
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                Text("Zu „\(searchTerm)“ haben wir nichts exakt Passendes gefunden.")
+                Text(String(format: "shop.no_exact_match_hint".loc, searchTerm))
                     .font(.callout)
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
@@ -117,7 +117,7 @@ struct ProviderShopSearchView: View {
             if isLoadingAI {
                 VStack(spacing: 8) {
                     ProgressView()
-                    Text("KI sucht passende Alternativen…")
+                    Text("shop.ai_searching".loc)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -127,7 +127,7 @@ struct ProviderShopSearchView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "sparkles")
                             .foregroundStyle(.orange)
-                        Text("KI-Vorschläge für dich")
+                        Text("shop.ai_suggestions".loc)
                             .font(.headline)
                         Spacer()
                     }

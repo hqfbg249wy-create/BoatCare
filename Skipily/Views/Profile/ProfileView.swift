@@ -120,34 +120,34 @@ struct ProfileView: View {
                     .padding(.bottom, 20)
             }
         }
-        .navigationTitle("Profil")
-        .alert("Abmelden?", isPresented: $showLogoutConfirm) {
-            Button("Abmelden", role: .destructive) {
+        .navigationTitle("profile.title".loc)
+        .alert("profile.logout_question".loc, isPresented: $showLogoutConfirm) {
+            Button("profile.logout".loc, role: .destructive) {
                 Task { await authService.signOut() }
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("general.cancel".loc, role: .cancel) {}
         } message: {
-            Text("Möchtest Du Dich wirklich abmelden?")
+            Text("profile.logout_confirm_message".loc)
         }
-        .alert("Konto wirklich löschen?", isPresented: $showDeleteAccountConfirm) {
-            Button("Weiter", role: .destructive) {
+        .alert("profile.delete_account_confirm".loc, isPresented: $showDeleteAccountConfirm) {
+            Button("profile.continue".loc, role: .destructive) {
                 showDeleteAccountFinalConfirm = true
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("general.cancel".loc, role: .cancel) {}
         } message: {
-            Text("Dein Konto und ALLE zugehörigen Daten (Boote, Ausrüstung, Wartung, Nachrichten, Bestellungen, Fotos) werden unwiderruflich gelöscht.")
+            Text("profile.delete_account_message".loc)
         }
-        .alert("Letzte Bestätigung", isPresented: $showDeleteAccountFinalConfirm) {
-            Button("Endgültig löschen", role: .destructive) {
+        .alert("profile.delete_account_final".loc, isPresented: $showDeleteAccountFinalConfirm) {
+            Button("profile.delete_account_final_button".loc, role: .destructive) {
                 Task { await deleteAccount() }
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("general.cancel".loc, role: .cancel) {}
         } message: {
-            Text("Diese Aktion kann nicht rückgängig gemacht werden. Alle Daten werden sofort gelöscht.")
+            Text("profile.delete_account_final_message".loc)
         }
         .overlay(alignment: .top) {
             if showSavedToast {
-                toastView("Profil gespeichert", icon: "checkmark.circle.fill", color: AppColors.success)
+                toastView("profile.saved_toast".loc, icon: "checkmark.circle.fill", color: AppColors.success)
             }
         }
         .task {
@@ -163,7 +163,7 @@ struct ProfileView: View {
             HStack {
                 Image(systemName: "person.badge.clock")
                     .foregroundStyle(AppColors.primary)
-                Text("Profil vervollständigen")
+                Text("profile.complete".loc)
                     .font(.headline)
                 Spacer()
                 Text("\(Int(profile.completionProgress * 100))%")
@@ -250,11 +250,11 @@ struct ProfileView: View {
             }
 
             if isUploadingPhoto {
-                ProgressView("Foto wird hochgeladen...")
+                ProgressView("profile.uploading_photo".loc)
                     .font(.caption)
             }
 
-            Text(authService.userProfile?.fullName ?? "Benutzer")
+            Text(authService.userProfile?.fullName ?? "profile.user_default".loc)
                 .font(.title3)
                 .fontWeight(.semibold)
 
@@ -370,12 +370,12 @@ struct ProfileView: View {
 
     private var boatSelectionSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionHeader("Mein Boot", icon: "sailboat.fill")
+            sectionHeader("profile.my_boat".loc, icon: "sailboat.fill")
 
             if isLoadingBoats {
                 HStack {
                     ProgressView()
-                    Text("Boote laden...")
+                    Text("profile.loading_boats".loc)
                         .font(.subheadline)
                         .foregroundStyle(AppColors.gray500)
                 }
@@ -383,7 +383,7 @@ struct ProfileView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "info.circle")
                         .foregroundStyle(AppColors.info)
-                    Text("Noch keine Boote registriert. Füge Dein Boot im Boote-Tab hinzu.")
+                    Text("profile.no_boats_hint".loc)
                         .font(.subheadline)
                         .foregroundStyle(AppColors.gray500)
                 }
@@ -391,8 +391,8 @@ struct ProfileView: View {
                 .background(AppColors.gray50)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             } else {
-                Picker("Boot auswählen", selection: $selectedBoatId) {
-                    Text("Kein Boot ausgewählt").tag(nil as UUID?)
+                Picker("profile.select_boat".loc, selection: $selectedBoatId) {
+                    Text("profile.no_boat_selected".loc).tag(nil as UUID?)
                     ForEach(boats) { boat in
                         Text(boat.displayName).tag(boat.id as UUID?)
                     }
@@ -424,7 +424,7 @@ struct ProfileView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
 
-                Text("Dein ausgewähltes Boot wird für passende Shop-Empfehlungen verwendet.")
+                Text("profile.boat_shop_hint".loc)
                     .font(.caption)
                     .foregroundStyle(AppColors.gray400)
             }
@@ -436,7 +436,7 @@ struct ProfileView: View {
 
     private var paymentSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionHeader("Zahlungsmethode", icon: "creditcard.fill")
+            sectionHeader("profile.payment_method".loc, icon: "creditcard.fill")
 
             if let profile = authService.userProfile, profile.hasPaymentMethod {
                 // Has saved payment method
@@ -446,10 +446,10 @@ struct ProfileView: View {
                         .font(.title3)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Zahlungsmethode hinterlegt")
+                        Text("profile.payment_saved".loc)
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        Text("Deine Karte ist für schnelle Zahlungen gespeichert")
+                        Text("profile.payment_saved_hint".loc)
                             .font(.caption)
                             .foregroundStyle(AppColors.gray500)
                     }
@@ -469,7 +469,7 @@ struct ProfileView: View {
                             ProgressView().tint(AppColors.primary)
                         } else {
                             Image(systemName: "arrow.triangle.2.circlepath")
-                            Text("Zahlungsmethode ändern")
+                            Text("profile.payment_change".loc)
                         }
                     }
                     .font(.subheadline)
@@ -484,10 +484,10 @@ struct ProfileView: View {
                         .font(.title3)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Keine Zahlungsmethode")
+                        Text("profile.no_payment".loc)
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        Text("Hinterlege eine Karte für schnellere Bestellungen")
+                        Text("profile.no_payment_hint".loc)
                             .font(.caption)
                             .foregroundStyle(AppColors.gray500)
                     }
@@ -504,7 +504,7 @@ struct ProfileView: View {
                             ProgressView().tint(.white)
                         } else {
                             Image(systemName: "plus.circle.fill")
-                            Text("Zahlungsmethode hinzufügen")
+                            Text("profile.payment_add".loc)
                                 .fontWeight(.medium)
                         }
                     }
@@ -526,7 +526,7 @@ struct ProfileView: View {
             HStack(spacing: 4) {
                 Image(systemName: "lock.shield.fill")
                     .font(.caption2)
-                Text("Zahlungsdaten werden sicher bei Stripe gespeichert")
+                Text("profile.payment_stripe_hint".loc)
                     .font(.caption2)
             }
             .foregroundStyle(AppColors.gray400)
@@ -545,7 +545,7 @@ struct ProfileView: View {
                     ProgressView().tint(.white)
                 } else {
                     Image(systemName: "checkmark")
-                    Text("Speichern")
+                    Text("general.save".loc)
                         .fontWeight(.semibold)
                 }
             }
@@ -567,7 +567,7 @@ struct ProfileView: View {
         } label: {
             HStack {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
-                Text("Abmelden")
+                Text("profile.logout".loc)
             }
             .frame(maxWidth: .infinity)
             .frame(height: 50)
@@ -590,7 +590,7 @@ struct ProfileView: View {
                         ProgressView().tint(AppColors.error)
                     } else {
                         Image(systemName: "trash")
-                        Text("Konto löschen")
+                        Text("profile.delete_account".loc)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -605,7 +605,7 @@ struct ProfileView: View {
             }
             .disabled(isDeletingAccount)
 
-            Text("Dein Konto und alle zugehörigen Daten werden unwiderruflich gelöscht.")
+            Text("profile.delete_account_final_message".loc)
                 .font(.caption2)
                 .foregroundStyle(AppColors.gray400)
                 .multilineTextAlignment(.center)

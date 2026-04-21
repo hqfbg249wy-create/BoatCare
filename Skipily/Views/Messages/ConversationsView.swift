@@ -25,7 +25,7 @@ struct ConversationsView: View {
         NavigationStack {
             Group {
                 if isLoading {
-                    ProgressView("Nachrichten laden...")
+                    ProgressView("messages.loading".loc)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if filteredConversations.isEmpty {
                     emptyView
@@ -33,8 +33,8 @@ struct ConversationsView: View {
                     conversationList
                 }
             }
-            .navigationTitle("Nachrichten")
-            .searchable(text: $searchText, prompt: "Anbieter suchen...")
+            .navigationTitle("messages.title".loc)
+            .searchable(text: $searchText, prompt: "messages.search_prompt".loc)
             .task {
                 await loadConversations()
             }
@@ -98,10 +98,10 @@ struct ConversationsView: View {
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 48))
                 .foregroundStyle(AppColors.gray300)
-            Text("Keine Nachrichten")
+            Text("messages.empty_title".loc)
                 .font(.title3)
                 .fontWeight(.semibold)
-            Text("Starte eine Konversation aus\neiner Bestellung heraus")
+            Text("messages.empty_hint".loc)
                 .font(.callout)
                 .foregroundStyle(AppColors.gray500)
                 .multilineTextAlignment(.center)

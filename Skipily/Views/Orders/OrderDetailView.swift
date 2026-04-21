@@ -20,7 +20,7 @@ struct OrderDetailView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("Bestellung laden...")
+                ProgressView("orders.loading_detail".loc)
             } else if let order {
                 orderContent(order)
             } else if let error = errorMessage {
@@ -74,7 +74,7 @@ struct OrderDetailView: View {
 
     private func statusTimeline(_ order: Order) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Bestellstatus")
+            Text("orders.status".loc)
                 .font(.headline)
                 .padding(.bottom, 12)
 
@@ -136,7 +136,7 @@ struct OrderDetailView: View {
 
     private func trackingSection(tracking: String, url: String?) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Sendungsverfolgung")
+            Text("orders.tracking".loc)
                 .font(.headline)
 
             HStack {
@@ -197,7 +197,7 @@ struct OrderDetailView: View {
     private func priceSection(_ order: Order) -> some View {
         VStack(spacing: 6) {
             HStack {
-                Text("Zwischensumme")
+                Text("cart.subtotal".loc)
                     .foregroundStyle(AppColors.gray500)
                 Spacer()
                 Text(String(format: "%.2f €", order.subtotal).replacingOccurrences(of: ".", with: ","))
@@ -206,7 +206,7 @@ struct OrderDetailView: View {
 
             if let shipping = order.shippingCost {
                 HStack {
-                    Text("Versand")
+                    Text("cart.shipping".loc)
                         .foregroundStyle(AppColors.gray500)
                     Spacer()
                     Text(shipping == 0 ? "Kostenlos" : String(format: "%.2f €", shipping).replacingOccurrences(of: ".", with: ","))
@@ -218,7 +218,7 @@ struct OrderDetailView: View {
             Divider()
 
             HStack {
-                Text("Gesamt")
+                Text("cart.total".loc)
                     .font(.headline)
                 Spacer()
                 Text(order.displayTotal)
@@ -233,7 +233,7 @@ struct OrderDetailView: View {
 
     private func addressSection(_ order: Order) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Lieferadresse")
+            Text("checkout.delivery_address".loc)
                 .font(.headline)
             Group {
                 if let name = order.shippingName { Text(name) }
@@ -291,7 +291,7 @@ struct OrderDetailView: View {
                     ChatView(conversation: conv)
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
-                                Button("Schließen") { showChat = false }
+                                Button("general.close".loc) { showChat = false }
                             }
                         }
                 }

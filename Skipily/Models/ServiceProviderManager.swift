@@ -258,6 +258,7 @@ class ServiceProviderManager: ObservableObject {
                 .lte("latitude",  value: maxLat)
                 .gte("longitude", value: minLon)
                 .lte("longitude", value: maxLon)
+                .limit(300)
                 .execute()
                 .value
 

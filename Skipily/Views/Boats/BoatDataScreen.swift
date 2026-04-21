@@ -569,7 +569,7 @@ struct BoatCardView: View {
                 Image(systemName: boatTypeIcon)
                     .font(.system(size: 40))
                     .foregroundStyle(.blue.opacity(0.4))
-                Text("Tippe hier, um Details zu sehen")
+                Text("boats.tap_hint".loc)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -614,7 +614,7 @@ struct BoatDetailView: View {
                             case .failure:
                                 VStack(spacing: 6) {
                                     headerIcon
-                                    Text("Bild konnte nicht geladen werden")
+                                    Text("boats.image_load_error".loc)
                                         .font(.caption2)
                                         .foregroundStyle(.tertiary)
                                 }
@@ -969,7 +969,7 @@ struct AddEditBoatView: View {
         } catch {
             AppLog.error("Boat-Image Upload-Fehler: \(error)")
             await MainActor.run {
-                uploadError = "Upload fehlgeschlagen: \(error.localizedDescription)"
+                uploadError = String(format: "boats.upload_failed".loc, error.localizedDescription)
             }
             return nil
         }

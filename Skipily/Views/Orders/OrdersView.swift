@@ -23,7 +23,7 @@ struct OrdersView: View {
                 filterChips
 
                 if isLoading {
-                    ProgressView("Bestellungen laden...")
+                    ProgressView("orders.loading".loc)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if filteredOrders.isEmpty {
                     emptyView
@@ -31,7 +31,7 @@ struct OrdersView: View {
                     orderList
                 }
             }
-            .navigationTitle("Bestellungen")
+            .navigationTitle("orders.title".loc)
             .task {
                 await loadOrders()
             }
@@ -54,7 +54,7 @@ struct OrdersView: View {
                 Button {
                     selectedFilter = nil
                 } label: {
-                    Text("Alle")
+                    Text("equipment.all".loc)
                         .font(.caption)
                         .fontWeight(.medium)
                         .padding(.horizontal, 12)
@@ -188,10 +188,10 @@ struct OrdersView: View {
             Image(systemName: "shippingbox")
                 .font(.system(size: 48))
                 .foregroundStyle(AppColors.gray300)
-            Text("Keine Bestellungen")
+            Text("orders.empty".loc)
                 .font(.title3)
                 .fontWeight(.semibold)
-            Text("Deine Bestellungen erscheinen hier,\nsobald Du etwas bestellst")
+            Text("orders.empty_hint".loc)
                 .font(.callout)
                 .foregroundStyle(AppColors.gray500)
                 .multilineTextAlignment(.center)

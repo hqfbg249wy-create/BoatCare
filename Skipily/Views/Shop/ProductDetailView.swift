@@ -98,7 +98,7 @@ struct ProductDetailView: View {
                     // Description
                     if let description = product.description {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Beschreibung")
+                            Text("shop.description".loc)
                                 .font(.headline)
                             Text(description)
                                 .font(.body)
@@ -324,7 +324,7 @@ struct ProductDetailView: View {
                 HStack {
                     Image(systemName: "doc.text.magnifyingglass")
                         .foregroundStyle(AppColors.info)
-                    Text("Technische Informationen")
+                    Text("shop.tech_info".loc)
                         .font(.headline)
                         .foregroundStyle(.primary)
                     Spacer()
@@ -357,7 +357,7 @@ struct ProductDetailView: View {
                     // Tags als Stichworte
                     if let tags = product.tags, !tags.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Stichworte")
+                            Text("shop.keywords".loc)
                                 .font(.caption)
                                 .foregroundStyle(AppColors.gray400)
                             FlowLayoutCompat(tags: tags)
@@ -369,7 +369,7 @@ struct ProductDetailView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundStyle(AppColors.warning)
-                            Text("Gefahrstoff — Sicherheitsdatenblatt beachten")
+                            Text("shop.hazardous".loc)
                                 .font(.caption)
                                 .foregroundStyle(AppColors.warning)
                         }
@@ -405,7 +405,7 @@ struct ProductDetailView: View {
         Group {
             if product.fitsBoatTypes != nil || product.fitsManufacturers != nil {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Kompatibilität")
+                    Text("shop.compatibility".loc)
                         .font(.headline)
 
                     if let types = product.fitsBoatTypes, !types.isEmpty {
@@ -439,7 +439,7 @@ struct ProductDetailView: View {
     private var addToCartSection: some View {
         VStack(spacing: 12) {
             HStack {
-                Text("Menge")
+                Text("shop.quantity".loc)
                     .font(.subheadline)
                     .foregroundStyle(AppColors.gray500)
 
@@ -463,7 +463,7 @@ struct ProductDetailView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "cart.badge.plus")
-                    Text("In den Warenkorb")
+                    Text("shop.add_to_cart".loc)
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
@@ -481,7 +481,7 @@ struct ProductDetailView: View {
 
     private var similarProductsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Ähnliche Produkte")
+            Text("shop.similar_products".loc)
                 .font(.headline)
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -503,7 +503,7 @@ struct ProductDetailView: View {
     private var providerProductsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Mehr von \(product.provider?.companyName ?? "diesem Anbieter")")
+                Text(String(format: "shop.more_from".loc, product.provider?.companyName ?? ""))
                     .font(.headline)
                 Spacer()
             }
@@ -570,7 +570,7 @@ struct ProductDetailView: View {
     private var toastView: some View {
         HStack(spacing: 8) {
             Image(systemName: "checkmark.circle.fill")
-            Text("Zum Warenkorb hinzugefügt")
+            Text("shop.added_to_cart".loc)
                 .fontWeight(.medium)
         }
         .font(.subheadline)

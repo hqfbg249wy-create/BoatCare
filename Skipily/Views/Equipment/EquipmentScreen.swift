@@ -485,7 +485,7 @@ struct EquipmentExpandableRow: View {
                         rowNavigation = EquipmentRowNav(target:
                             .service(name: item.name, category: item.category, manufacturer: item.manufacturer))
                     } label: {
-                        EquipmentActionButton(title: "Service", icon: "wrench.and.screwdriver.fill", color: .orange)
+                        EquipmentActionButton(title: "equipment.action_service".loc, icon: "wrench.and.screwdriver.fill", color: .orange)
                     }
                     .buttonStyle(.borderless)
 
@@ -496,7 +496,7 @@ struct EquipmentExpandableRow: View {
                                         model: item.model, partNumber: item.partNumber,
                                         dimensions: item.dimensions))
                     } label: {
-                        EquipmentActionButton(title: "Ersatzteile", icon: "cart.fill", color: .purple)
+                        EquipmentActionButton(title: "equipment.action_spare_parts".loc, icon: "cart.fill", color: .purple)
                     }
                     .buttonStyle(.borderless)
 
@@ -504,21 +504,21 @@ struct EquipmentExpandableRow: View {
                     Button {
                         rowNavigation = EquipmentRowNav(target: .aiAssistant(question: aiQuestion))
                     } label: {
-                        EquipmentActionButton(title: "KI-Assistent", icon: "bubble.left.fill", color: .blue)
+                        EquipmentActionButton(title: "equipment.action_ai".loc, icon: "bubble.left.fill", color: .blue)
                     }
                     .buttonStyle(.borderless)
 
                     // Maßblatt (nur für Segel-Kategorie)
                     if isSailCategory {
                         Button { showingSailForm = true } label: {
-                            EquipmentActionButton(title: "Maßblatt", icon: "doc.text.fill", color: .teal)
+                            EquipmentActionButton(title: "equipment.action_sail_form".loc, icon: "doc.text.fill", color: .teal)
                         }
                         .buttonStyle(.borderless)
                     }
 
                     // Bearbeiten (statt Erledigt)
                     Button { showingEdit = true } label: {
-                        EquipmentActionButton(title: "Bearbeiten", icon: "pencil.circle.fill", color: .green)
+                        EquipmentActionButton(title: "equipment.action_edit".loc, icon: "pencil.circle.fill", color: .green)
                     }
                     .buttonStyle(.borderless)
                 }
@@ -984,31 +984,31 @@ struct AddEditEquipmentView: View {
                             }
                         }
                     } else {
-                        Text("Maximum 5 Fotos erreicht")
+                        Text("equipment.max_photos".loc)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
 
                     if isUploadingPhotos {
-                        ProgressView("Fotos werden hochgeladen...")
+                        ProgressView("equipment.uploading_photos".loc)
                             .font(.caption)
                     }
                 }
                 // Maßblatt für Segel
                 if isSailCategoryInForm {
-                    Section("Segel-Maßblatt") {
+                    Section("equipment.sail_form_section".loc) {
                         if let existingItem = item {
                             Button {
                                 showingSailForm = true
                             } label: {
-                                Label("Maßblatt bearbeiten", systemImage: "doc.text.fill")
+                                Label("equipment.sail_form_edit".loc, systemImage: "doc.text.fill")
                                     .foregroundStyle(.teal)
                             }
                             .sheet(isPresented: $showingSailForm) {
                                 SailTypePicker(equipmentId: existingItem.id, boatName: existingItem.name)
                             }
                         } else {
-                            Text("Bitte zuerst speichern, dann Maßblatt ausfüllen")
+                            Text("equipment.sail_form_save_first".loc)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -1241,7 +1241,7 @@ struct ServiceSearchFromEquipment: View {
                     HStack(spacing: 8) {
                         Image(systemName: "location.slash.fill")
                             .foregroundStyle(.orange)
-                        Text("Standort nicht verfügbar – Entfernungen können nicht angezeigt werden. Bitte Ortungsdienste aktivieren.")
+                        Text("equipment.location_unavailable".loc)
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     .padding(10)
@@ -1868,7 +1868,7 @@ struct EquipmentPartsSearchView: View {
         VStack(spacing: 0) {
             // Search criteria header
             VStack(alignment: .leading, spacing: 8) {
-                Text("Ersatzteile & Zubehoer fuer:")
+                Text("equipment.spare_parts_for".loc)
                     .font(.caption).foregroundStyle(.secondary)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
@@ -1934,7 +1934,7 @@ struct EquipmentPartsSearchView: View {
                                 partsProductRow(product)
                             }
                         } header: {
-                            Label("Passendes Zubehoer", systemImage: "plus.circle.fill")
+                            Label("equipment.matching_accessories".loc, systemImage: "plus.circle.fill")
                                 .font(.subheadline).fontWeight(.semibold)
                                 .foregroundStyle(.blue)
                         }
@@ -1942,7 +1942,7 @@ struct EquipmentPartsSearchView: View {
                 }
             }
         }
-        .navigationTitle("Ersatzteile")
+        .navigationTitle("equipment.spare_parts_title".loc)
         .task { await searchProducts() }
     }
 

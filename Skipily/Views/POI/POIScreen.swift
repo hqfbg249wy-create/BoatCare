@@ -34,7 +34,7 @@ struct POIScreen: View {
                     Button {
                         Task { await loadFavorites() }
                     } label: {
-                        Label("Erneut versuchen", systemImage: "arrow.clockwise")
+                        Label("general.retry".loc, systemImage: "arrow.clockwise")
                     }
                     .buttonStyle(.bordered)
                 }
@@ -73,19 +73,19 @@ struct POIScreen: View {
             }
         }
         .confirmationDialog(
-            "Alle Favoriten zurücksetzen?",
+            "poi.reset_confirm".loc,
             isPresented: $showingResetConfirm,
             titleVisibility: .visible
         ) {
-            Button("Alle löschen", role: .destructive) {
+            Button("poi.delete_all".loc, role: .destructive) {
                 Task {
                     await favoritesManager.clearAllForCurrentUser()
                     favoriteProviders = []
                 }
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("general.cancel".loc, role: .cancel) {}
         } message: {
-            Text("Entfernt ALLE markierten Anbieter aus deinem Profil. Diese Aktion kann nicht rückgängig gemacht werden.")
+            Text("poi.reset_message".loc)
         }
         .task {
             await loadFavorites()
@@ -147,7 +147,7 @@ struct POIScreen: View {
                 .padding(.horizontal)
 
             if favoritesManager.favoriteIDs.isEmpty {
-                Text("Markiere Provider mit ❤️ auf der Karte")
+                Text("poi.mark_hint".loc)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }

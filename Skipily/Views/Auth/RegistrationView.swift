@@ -63,7 +63,7 @@ struct RegistrationView: View {
             // Navigation buttons
             navigationButtons
         }
-        .navigationTitle("Registrierung")
+        .navigationTitle("auth.registration".loc)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showPrivacyPolicy) {
             PrivacyPolicyView()
@@ -98,9 +98,9 @@ struct RegistrationView: View {
 
     private var stepTitle: String {
         switch currentStep {
-        case 1: return "Schritt 1 von 3 \u{2013} Konto erstellen"
-        case 2: return "Schritt 2 von 3 \u{2013} Pers\u{00F6}nliche Daten"
-        case 3: return "Schritt 3 von 3 \u{2013} Datenschutz"
+        case 1: return "auth.step_1".loc
+        case 2: return "auth.step_2".loc
+        case 3: return "auth.step_3".loc
         default: return ""
         }
     }
@@ -109,7 +109,7 @@ struct RegistrationView: View {
 
     private var accountStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Erstelle dein Skipily-Konto")
+            Text("auth.create_account_title".loc)
                 .font(.title2)
                 .fontWeight(.bold)
 
@@ -129,16 +129,16 @@ struct RegistrationView: View {
 
             HStack {
                 Rectangle().frame(height: 1).foregroundStyle(.secondary.opacity(0.3))
-                Text("oder mit E-Mail").font(.caption).foregroundStyle(.secondary)
+                Text("auth.or_email".loc).font(.caption).foregroundStyle(.secondary)
                 Rectangle().frame(height: 1).foregroundStyle(.secondary.opacity(0.3))
             }
 
-            fieldLabel("Vollst\u{00E4}ndiger Name")
+            fieldLabel("auth.full_name_label".loc)
             TextField("Max Mustermann", text: $fullName)
                 .textContentType(.name)
                 .textFieldStyle(.roundedBorder)
 
-            fieldLabel("E-Mail-Adresse")
+            fieldLabel("auth.email_label".loc)
             TextField("max@beispiel.de", text: $email)
                 .textContentType(.emailAddress)
                 .keyboardType(.emailAddress)
@@ -146,18 +146,18 @@ struct RegistrationView: View {
                 .textInputAutocapitalization(.never)
                 .textFieldStyle(.roundedBorder)
 
-            fieldLabel("Passwort")
-            SecureField("Mindestens 8 Zeichen", text: $password)
+            fieldLabel("auth.password_label".loc)
+            SecureField("auth.password_min".loc, text: $password)
                 .textContentType(.newPassword)
                 .textFieldStyle(.roundedBorder)
 
-            fieldLabel("Passwort best\u{00E4}tigen")
-            SecureField("Passwort wiederholen", text: $passwordConfirm)
+            fieldLabel("auth.password_confirm_label".loc)
+            SecureField("auth.password_repeat".loc, text: $passwordConfirm)
                 .textContentType(.newPassword)
                 .textFieldStyle(.roundedBorder)
 
             if password != passwordConfirm && !passwordConfirm.isEmpty {
-                Text("Passw\u{00F6}rter stimmen nicht \u{00FC}berein")
+                Text("auth.passwords_mismatch".loc)
                     .font(.caption)
                     .foregroundStyle(AppColors.error)
             }
@@ -174,28 +174,28 @@ struct RegistrationView: View {
 
     private var personalDataStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Pers\u{00F6}nliche Daten")
+            Text("auth.personal_data".loc)
                 .font(.title2)
                 .fontWeight(.bold)
 
-            Text("F\u{00FC}r Lieferungen und Kontaktaufnahme")
+            Text("auth.personal_data_hint".loc)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            fieldLabel("Telefonnummer (optional)")
+            fieldLabel("auth.phone_optional".loc)
             TextField("+49 ...", text: $phoneNumber)
                 .textContentType(.telephoneNumber)
                 .keyboardType(.phonePad)
                 .textFieldStyle(.roundedBorder)
 
-            fieldLabel("Stra\u{00DF}e & Hausnummer")
+            fieldLabel("auth.street_label".loc)
             TextField("Hafenstra\u{00DF}e 1", text: $street)
                 .textContentType(.streetAddressLine1)
                 .textFieldStyle(.roundedBorder)
 
             HStack(spacing: 12) {
                 VStack(alignment: .leading) {
-                    fieldLabel("PLZ")
+                    fieldLabel("auth.postal_code_label".loc)
                     TextField("12345", text: $postalCode)
                         .textContentType(.postalCode)
                         .keyboardType(.numberPad)
@@ -204,17 +204,17 @@ struct RegistrationView: View {
                 .frame(width: 100)
 
                 VStack(alignment: .leading) {
-                    fieldLabel("Stadt")
+                    fieldLabel("auth.city_label".loc)
                     TextField("Hamburg", text: $city)
                         .textContentType(.addressCity)
                         .textFieldStyle(.roundedBorder)
                 }
             }
 
-            fieldLabel("Land")
-            Picker("Land", selection: $country) {
-                ForEach(countries, id: \.0) { code, name in
-                    Text(name).tag(code)
+            fieldLabel("auth.country_label".loc)
+            Picker("auth.country_label".loc, selection: $country) {
+                ForEach(countries, id: \.0) { code, _ in
+                    Text("country.\(code)".loc).tag(code)
                 }
             }
             .pickerStyle(.menu)
@@ -228,11 +228,11 @@ struct RegistrationView: View {
 
     private var privacyStep: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Datenschutz & AGB")
+            Text("auth.privacy_terms".loc)
                 .font(.title2)
                 .fontWeight(.bold)
 
-            Text("Bitte lies und akzeptiere unsere Datenschutzerkl\u{00E4}rung und Allgemeinen Gesch\u{00E4}ftsbedingungen.")
+            Text("auth.privacy_terms_hint".loc)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -243,7 +243,7 @@ struct RegistrationView: View {
                 } label: {
                     HStack {
                         Image(systemName: "doc.text")
-                        Text("Datenschutzerkl\u{00E4}rung lesen")
+                        Text("auth.read_privacy".loc)
                         Spacer()
                         Image(systemName: "chevron.right")
                     }
@@ -254,14 +254,14 @@ struct RegistrationView: View {
                 .foregroundStyle(.primary)
 
                 Toggle(isOn: $privacyAccepted) {
-                    Text("Ich habe die **Datenschutzerkl\u{00E4}rung** gelesen und stimme der Verarbeitung meiner Daten zu.")
+                    Text("auth.accept_privacy".loc)
                         .font(.callout)
                 }
                 .toggleStyle(.switch)
                 .tint(AppColors.primary)
 
                 Toggle(isOn: $termsAccepted) {
-                    Text("Ich akzeptiere die **Allgemeinen Gesch\u{00E4}ftsbedingungen** von Skipily.")
+                    Text("auth.accept_terms".loc)
                         .font(.callout)
                 }
                 .toggleStyle(.switch)
@@ -272,7 +272,7 @@ struct RegistrationView: View {
                 HStack {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(AppColors.warning)
-                    Text("Beide Zustimmungen sind f\u{00FC}r die Nutzung erforderlich.")
+                    Text("auth.consent_required".loc)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -288,7 +288,7 @@ struct RegistrationView: View {
                 Button {
                     withAnimation { currentStep -= 1 }
                 } label: {
-                    Text("Zur\u{00FC}ck")
+                    Text("auth.back".loc)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
                         .background(AppColors.gray100)
@@ -323,10 +323,10 @@ struct RegistrationView: View {
 
     private var nextButtonTitle: String {
         switch currentStep {
-        case 1: return "Konto erstellen"
-        case 2: return "Weiter"
-        case 3: return "Akzeptieren & Los geht's!"
-        default: return "Weiter"
+        case 1: return "auth.create_account_btn".loc
+        case 2: return "auth.continue_btn".loc
+        case 3: return "auth.accept_go".loc
+        default: return "auth.continue_btn".loc
         }
     }
 
@@ -352,7 +352,7 @@ struct RegistrationView: View {
                 try await authService.signUp(email: email, password: password, fullName: fullName)
                 withAnimation { currentStep = 2 }
             } catch {
-                errorMessage = "Registrierung fehlgeschlagen: \(error.localizedDescription)"
+                errorMessage = "\("auth.registration_failed".loc): \(error.localizedDescription)"
             }
 
         case 2:

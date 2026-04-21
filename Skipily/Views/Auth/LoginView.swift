@@ -31,7 +31,7 @@ struct LoginView: View {
                             showSlogan: true
                         )
 
-                        Text("Willkommen zur\u{00FC}ck")
+                        Text("auth.welcome_back".loc)
                             .font(.title3)
                             .foregroundStyle(.secondary)
                     }
@@ -71,7 +71,7 @@ struct LoginView: View {
                                 if isLoading {
                                     ProgressView().tint(.white)
                                 } else {
-                                    Text("Anmelden")
+                                    Text("auth.sign_in".loc)
                                         .fontWeight(.semibold)
                                 }
                             }
@@ -88,7 +88,7 @@ struct LoginView: View {
                             resetEmail = email
                             showResetPassword = true
                         } label: {
-                            Text("Passwort vergessen?")
+                            Text("auth.forgot_password".loc)
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
                         }
@@ -96,7 +96,7 @@ struct LoginView: View {
                         // Divider with "oder"
                         HStack {
                             Rectangle().frame(height: 1).foregroundStyle(.secondary.opacity(0.3))
-                            Text("oder").font(.caption).foregroundStyle(.secondary)
+                            Text("auth.or".loc).font(.caption).foregroundStyle(.secondary)
                             Rectangle().frame(height: 1).foregroundStyle(.secondary.opacity(0.3))
                         }
                         .padding(.vertical, 4)
@@ -117,7 +117,7 @@ struct LoginView: View {
 
                         // Register
                         NavigationLink(destination: RegistrationView()) {
-                            Text("Neues Konto erstellen")
+                            Text("auth.new_account".loc)
                                 .fontWeight(.semibold)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 50)
@@ -130,22 +130,22 @@ struct LoginView: View {
                 }
             }
             .navigationBarHidden(true)
-            .alert("Passwort zur\u{00FC}cksetzen", isPresented: $showResetPassword) {
-                TextField("E-Mail", text: $resetEmail)
-                Button("Abbrechen", role: .cancel) {}
-                Button("Senden") {
+            .alert("auth.forgot_password_title".loc, isPresented: $showResetPassword) {
+                TextField("auth.email".loc, text: $resetEmail)
+                Button("general.cancel".loc, role: .cancel) {}
+                Button("auth.send".loc) {
                     Task {
                         try? await authService.resetPassword(email: resetEmail)
                         resetSent = true
                     }
                 }
             } message: {
-                Text("Wir senden dir einen Link zum Zur\u{00FC}cksetzen.")
+                Text("auth.reset_link_hint".loc)
             }
-            .alert("E-Mail gesendet", isPresented: $resetSent) {
+            .alert("auth.email_sent".loc, isPresented: $resetSent) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("Pr\u{00FC}fe dein Postfach f\u{00FC}r den Reset-Link.")
+                Text("auth.email_sent_hint".loc)
             }
         }
     }

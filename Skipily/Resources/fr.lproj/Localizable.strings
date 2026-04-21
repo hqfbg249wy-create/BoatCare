@@ -1,4 +1,4 @@
-/* BoatCare - Français */
+/* Skipily - Français */
 
 // MARK: - Navigation Tabs
 "tab.map" = "Carte";
@@ -187,7 +187,7 @@
 
 // MARK: - Chat
 "chat.title" = "Chat";
-"chat.welcome" = "Bienvenue sur BoatCare ! Cette section sera bientôt alimentée par l'IA.";
+"chat.welcome" = "Bienvenue sur Skipily ! Cette section sera bientôt alimentée par l'IA.";
 "chat.input_hint" = "Écrire un message...";
 "chat.coming_soon" = "Chat IA bientôt disponible ! 🚢";
 
@@ -295,6 +295,8 @@
 "boats.take_photo" = "Prendre une photo";
 "boats.add_photo" = "Ajouter une photo";
 "boats.uploading_photo" = "Téléchargement de la photo...";
+"boats.upload_failed" = "Échec du téléchargement : %@";
+"boats.upload_encode_failed" = "Impossible d'encoder l'image.";
 "boats.equipment_count" = "Équipement (%d)";
 "boats.delete_confirm" = "Supprimer le bateau ?";
 "boats.delete_message" = "Voulez-vous vraiment supprimer ce bateau ?";
@@ -305,3 +307,235 @@
 "review.edit_hint" = "Votre avis existant sera mis à jour.";
 "review.own" = "Votre avis";
 "provider.google_rating" = "Avis Google";
+
+// MARK: - Profile (extended)
+"profile.complete" = "Compléter votre profil";
+"profile.uploading_photo" = "Téléchargement de la photo...";
+"profile.user_default" = "Utilisateur";
+"profile.my_boat" = "Mon Bateau";
+"profile.loading_boats" = "Chargement des bateaux...";
+"profile.no_boats_hint" = "Aucun bateau enregistré. Ajoutez votre bateau dans l'onglet Bateaux.";
+"profile.select_boat" = "Sélectionner un bateau";
+"profile.no_boat_selected" = "Aucun bateau sélectionné";
+"profile.boat_shop_hint" = "Votre bateau sélectionné est utilisé pour les recommandations de la boutique.";
+"profile.payment_method" = "Mode de paiement";
+"profile.payment_saved" = "Mode de paiement enregistré";
+"profile.payment_saved_hint" = "Votre carte est enregistrée pour les paiements rapides.";
+"profile.payment_change" = "Changer le mode de paiement";
+"profile.no_payment" = "Aucun mode de paiement";
+"profile.no_payment_hint" = "Ajoutez une carte pour des commandes plus rapides.";
+"profile.payment_add" = "Ajouter un mode de paiement";
+"profile.payment_stripe_hint" = "Les données de paiement sont stockées en toute sécurité par Stripe.";
+"profile.logout_question" = "Se déconnecter ?";
+"profile.logout_confirm_message" = "Voulez-vous vraiment vous déconnecter ?";
+"profile.delete_account" = "Supprimer le compte";
+"profile.delete_account_confirm" = "Vraiment supprimer le compte ?";
+"profile.delete_account_message" = "Votre compte et TOUTES les données associées (bateaux, équipement, entretien, messages, commandes, photos) seront définitivement supprimés.";
+"profile.delete_account_final" = "Confirmation finale";
+"profile.delete_account_final_message" = "Cette action est irréversible. Toutes les données seront immédiatement supprimées.";
+"profile.delete_account_final_button" = "Supprimer définitivement";
+"profile.continue" = "Continuer";
+"profile.saved_toast" = "Profil enregistré";
+
+// MARK: - Equipment (extended)
+"equipment.action_service" = "Service";
+"equipment.action_spare_parts" = "Pièces";
+"equipment.action_ai" = "Assistant IA";
+"equipment.action_sail_form" = "Mesures";
+"equipment.action_edit" = "Modifier";
+"equipment.max_photos" = "Maximum 5 photos atteint";
+"equipment.uploading_photos" = "Téléchargement des photos...";
+"equipment.sail_form_section" = "Fiche de mesure voile";
+"equipment.sail_form_edit" = "Modifier la fiche de mesure";
+"equipment.sail_form_save_first" = "Veuillez d'abord enregistrer, puis remplir la fiche de mesure";
+"equipment.location_unavailable" = "Position indisponible — les distances ne peuvent pas être affichées. Veuillez activer les services de localisation.";
+"equipment.spare_parts_for" = "Pièces de rechange et accessoires pour :";
+"equipment.matching_accessories" = "Accessoires correspondants";
+"equipment.spare_parts_title" = "Pièces de rechange";
+
+// MARK: - Service Search
+"service_search.loading" = "Chargement des prestataires...";
+"service_search.search_prompt" = "Rechercher prestataire, marque ou ville...";
+"service_search.no_providers" = "Aucun prestataire trouvé";
+"service_search.no_providers_hint" = "Aucun prestataire trouvé pour %@ (%@%@).";
+"service_search.show_all" = "Afficher tous les prestataires";
+"service_search.results" = "résultat";
+"service_search.results_plural" = "résultats";
+
+// MARK: - Cart
+"cart.title" = "Panier";
+"cart.empty" = "Votre panier est vide";
+"cart.empty_hint" = "Parcourez la boutique et ajoutez\ndes produits";
+"cart.subtotal" = "Sous-total";
+"cart.shipping" = "Livraison";
+"cart.total" = "Total";
+"cart.total_amount" = "Montant total";
+"cart.checkout" = "Commander";
+
+// MARK: - Checkout
+"checkout.title" = "Commande";
+"checkout.delivery_address" = "Adresse de livraison";
+"checkout.country" = "Pays";
+"checkout.note" = "Remarque (facultatif)";
+"checkout.continue_to_summary" = "Continuer vers le récapitulatif";
+"checkout.order_summary" = "Récapitulatif de commande";
+"checkout.change" = "Modifier";
+"checkout.payment_methods" = "Modes de paiement";
+"checkout.test_mode" = "Mode test — Aucun frais réel";
+"checkout.pay_now" = "Payer maintenant";
+"checkout.secure_payment" = "Paiement sécurisé via Stripe";
+"checkout.subtotal" = "Sous-total";
+"checkout.shipping" = "Livraison";
+"checkout.sum" = "Somme";
+"checkout.success" = "Paiement réussi !";
+"checkout.confirmation_email" = "Vous recevrez un e-mail de confirmation.";
+"checkout.paid" = "Payé";
+"checkout.back_to_shop" = "Retour à la boutique";
+
+// MARK: - Orders
+"orders.title" = "Commandes";
+"orders.loading" = "Chargement des commandes...";
+"orders.empty" = "Aucune commande";
+"orders.empty_hint" = "Vos commandes apparaîtront ici\ndès que vous passerez une commande.";
+"orders.status" = "Statut de commande";
+"orders.tracking" = "Suivi de livraison";
+"orders.loading_detail" = "Chargement de la commande...";
+
+// MARK: - Messages
+"messages.title" = "Messages";
+"messages.loading" = "Chargement des messages...";
+"messages.search_prompt" = "Rechercher un prestataire...";
+
+// MARK: - Shop / Products
+"shop.loading" = "Chargement des produits...";
+"shop.description" = "Description";
+"shop.tech_info" = "Informations techniques";
+"shop.keywords" = "Mots-clés";
+"shop.hazardous" = "Produit dangereux — consulter la fiche de sécurité";
+"shop.compatibility" = "Compatibilité";
+"shop.quantity" = "Quantité";
+"shop.add_to_cart" = "Ajouter au panier";
+"shop.similar_products" = "Produits similaires";
+"shop.more_from" = "Plus de %@";
+"shop.added_to_cart" = "Ajouté au panier";
+"shop.no_exact_match" = "Aucune correspondance exacte";
+"shop.no_exact_match_hint" = "Nous n'avons rien trouvé pour « %@ ».";
+"shop.ai_searching" = "L'IA recherche des alternatives…";
+"shop.ai_suggestions" = "Suggestions IA pour vous";
+
+// MARK: - Auth (extended)
+"auth.reset_password" = "Réinitialiser le mot de passe";
+"auth.email_sent" = "E-mail envoyé";
+"auth.privacy_policy" = "Politique de confidentialité";
+"auth.registration" = "Inscription";
+
+// MARK: - Sail Measurement
+"sail.form_title" = "Fiche de mesure";
+"sail.all_in_cm" = "Toutes les dimensions en cm (diamètre en mm)";
+"sail.saved" = "Fiche de mesure enregistrée";
+"sail.select_type" = "Sélectionnez le type de voile pour la fiche de mesure :";
+"sail.select_type_title" = "Sélectionner le type de voile";
+"sail.color_black" = "Noir";
+"sail.color_grey" = "Gris";
+"sail.color_blue" = "Bleu";
+"sail.color_red" = "Rouge";
+"sail.color_white" = "Blanc";
+"sail.port" = "Bâbord";
+"sail.starboard" = "Tribord";
+
+// MARK: - Auth (Login / Registration)
+"auth.welcome_back" = "Bon retour";
+"auth.sign_in" = "Se connecter";
+"auth.forgot_password_title" = "Réinitialiser le mot de passe";
+"auth.send" = "Envoyer";
+"auth.reset_link_hint" = "Nous t'envoyons un lien de réinitialisation.";
+"auth.email_sent_hint" = "Vérifie ta boîte mail pour le lien de réinitialisation.";
+"auth.new_account" = "Créer un nouveau compte";
+"auth.or" = "ou";
+"auth.or_email" = "ou par e-mail";
+"auth.create_account_title" = "Crée ton compte Skipily";
+"auth.full_name_label" = "Nom complet";
+"auth.email_label" = "Adresse e-mail";
+"auth.password_label" = "Mot de passe";
+"auth.password_confirm_label" = "Confirmer le mot de passe";
+"auth.password_min" = "Au moins 8 caractères";
+"auth.password_repeat" = "Répéter le mot de passe";
+"auth.passwords_mismatch" = "Les mots de passe ne correspondent pas";
+"auth.step_1" = "Étape 1 sur 3 – Créer un compte";
+"auth.step_2" = "Étape 2 sur 3 – Données personnelles";
+"auth.step_3" = "Étape 3 sur 3 – Confidentialité";
+"auth.personal_data" = "Données personnelles";
+"auth.personal_data_hint" = "Pour les livraisons et le contact";
+"auth.phone_optional" = "Numéro de téléphone (facultatif)";
+"auth.street_label" = "Rue et numéro";
+"auth.postal_code_label" = "Code postal";
+"auth.city_label" = "Ville";
+"auth.country_label" = "Pays";
+"auth.privacy_terms" = "Confidentialité et CGV";
+"auth.privacy_terms_hint" = "Veuillez lire et accepter notre politique de confidentialité et nos conditions générales.";
+"auth.read_privacy" = "Lire la politique de confidentialité";
+"auth.accept_privacy" = "J'ai lu la **politique de confidentialité** et j'accepte le traitement de mes données.";
+"auth.accept_terms" = "J'accepte les **conditions générales** de Skipily.";
+"auth.consent_required" = "Les deux consentements sont nécessaires pour utiliser l'application.";
+"auth.back" = "Retour";
+"auth.create_account_btn" = "Créer un compte";
+"auth.continue_btn" = "Continuer";
+"auth.accept_go" = "Accepter & C'est parti !";
+"auth.registration_failed" = "Échec de l'inscription";
+"auth.privacy_title" = "Politique de confidentialité";
+"auth.privacy_full_link" = "Politique de confidentialité complète :";
+"auth.privacy_date" = "Mise à jour : avril 2026";
+"auth.privacy_close" = "Fermer";
+
+// MARK: - POI (extended)
+"poi.reset_confirm" = "Réinitialiser tous les favoris ?";
+"poi.delete_all" = "Tout supprimer";
+"poi.reset_message" = "Supprime TOUS les prestataires enregistrés de ton profil. Cette action est irréversible.";
+"poi.mark_hint" = "Marque les prestataires avec ❤️ sur la carte";
+
+// MARK: - Offline
+"offline.mode" = "Mode hors ligne";
+"offline.as_of" = "Mis à jour : %@";
+"offline.providers" = "%d Prestataires";
+"offline.products" = "%d Produits";
+
+// MARK: - Messages (extended)
+"messages.no_messages" = "Pas encore de messages";
+"messages.placeholder" = "Message...";
+"messages.empty_title" = "Aucun message";
+"messages.empty_hint" = "Démarre une conversation à partir\nd'une commande";
+
+// MARK: - Shop (extended)
+"shop.search_placeholder" = "Rechercher des produits...";
+"shop.recent_searches" = "Recherches récentes";
+"shop.valid_until" = "Jusqu'au %@";
+"shop.clear" = "Effacer";
+"shop.equipment_match" = "Adapté à ton équipement";
+"shop.price_range" = "Gamme de prix";
+"shop.products_loading" = "Chargement des produits...";
+"shop.no_products" = "Aucun produit trouvé";
+"shop.try_other_search" = "Essaie un autre terme de recherche";
+"shop.search_results" = "Résultats de recherche";
+"shop.all_products" = "Tous les produits";
+"shop.back" = "Retour";
+"shop.products_count" = "%d Produits";
+"shop.in_cart" = "Dans le panier";
+"shop.recommended" = "Recommandé pour toi";
+"shop.equipment_deals" = "Offres pour ton équipement";
+"shop.error_loading" = "Erreur de chargement";
+"shop.added_toast" = "%@ ajouté";
+
+// MARK: - Boats (extended)
+"boats.tap_hint" = "Appuie ici pour voir les détails";
+"boats.image_load_error" = "L'image n'a pas pu être chargée";
+
+// MARK: - Countries
+"country.DE" = "Allemagne";
+"country.AT" = "Autriche";
+"country.CH" = "Suisse";
+"country.NL" = "Pays-Bas";
+"country.FR" = "France";
+"country.IT" = "Italie";
+"country.ES" = "Espagne";
+"country.HR" = "Croatie";
+"country.GR" = "Grèce";

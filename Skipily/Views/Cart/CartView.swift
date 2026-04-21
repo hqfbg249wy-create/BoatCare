@@ -20,7 +20,7 @@ struct CartView: View {
                     cartContent
                 }
             }
-            .navigationTitle("Warenkorb")
+            .navigationTitle("cart.title".loc)
             .navigationDestination(isPresented: $showCheckout) {
                 CheckoutView()
             }
@@ -35,11 +35,11 @@ struct CartView: View {
                 .font(.system(size: 60))
                 .foregroundStyle(AppColors.gray300)
 
-            Text("Dein Warenkorb ist leer")
+            Text("cart.empty".loc)
                 .font(.title3)
                 .fontWeight(.semibold)
 
-            Text("Stöbere im Shop und füge\nProdukte hinzu")
+            Text("cart.empty_hint".loc)
                 .font(.callout)
                 .foregroundStyle(AppColors.gray500)
                 .multilineTextAlignment(.center)
@@ -93,7 +93,7 @@ struct CartView: View {
             // Subtotals
             VStack(spacing: 4) {
                 HStack {
-                    Text("Zwischensumme")
+                    Text("cart.subtotal".loc)
                         .font(.subheadline)
                         .foregroundStyle(AppColors.gray500)
                     Spacer()
@@ -101,7 +101,7 @@ struct CartView: View {
                         .font(.subheadline)
                 }
                 HStack {
-                    Text("Versand")
+                    Text("cart.shipping".loc)
                         .font(.subheadline)
                         .foregroundStyle(AppColors.gray500)
                     Spacer()
@@ -111,7 +111,7 @@ struct CartView: View {
                 }
                 Divider()
                 HStack {
-                    Text("Gesamt")
+                    Text("cart.total".loc)
                         .font(.headline)
                     Spacer()
                     Text(group.displayTotal)
@@ -220,7 +220,7 @@ struct CartView: View {
 
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Gesamtbetrag")
+                    Text("cart.total_amount".loc)
                         .font(.caption)
                         .foregroundStyle(AppColors.gray500)
                     Text(cartManager.displayGrandTotal)
@@ -235,7 +235,7 @@ struct CartView: View {
                     showCheckout = true
                 } label: {
                     HStack(spacing: 6) {
-                        Text("Zur Kasse")
+                        Text("cart.checkout".loc)
                             .fontWeight(.semibold)
                         Image(systemName: "arrow.right")
                     }

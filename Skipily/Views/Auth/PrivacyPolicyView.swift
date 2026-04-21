@@ -121,7 +121,7 @@ struct PrivacyPolicyView: View {
                     Divider()
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Vollst\u{00E4}ndige Datenschutzerkl\u{00E4}rung:")
+                        Text("auth.privacy_full_link".loc)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Link("https://skipily.app/datenschutz",
@@ -129,18 +129,18 @@ struct PrivacyPolicyView: View {
                             .font(.caption)
                     }
 
-                    Text("Stand: April 2026")
+                    Text("auth.privacy_date".loc)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .padding(.top, 8)
                 }
                 .padding(24)
             }
-            .navigationTitle("Datenschutzerkl\u{00E4}rung")
+            .navigationTitle("auth.privacy_title".loc)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Schlie\u{00DF}en") {
+                    Button("auth.privacy_close".loc) {
                         dismiss()
                     }
                 }

@@ -52,7 +52,7 @@ struct ChatView: View {
                             Image(systemName: "bubble.left.and.bubble.right")
                                 .font(.system(size: 32))
                                 .foregroundStyle(AppColors.gray300)
-                            Text("Noch keine Nachrichten")
+                            Text("messages.no_messages".loc)
                                 .font(.callout)
                                 .foregroundStyle(AppColors.gray400)
                         }
@@ -102,7 +102,7 @@ struct ChatView: View {
 
     private var inputBar: some View {
         HStack(spacing: 10) {
-            TextField("Nachricht...", text: $newMessage, axis: .vertical)
+            TextField("messages.placeholder".loc, text: $newMessage, axis: .vertical)
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)

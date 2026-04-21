@@ -194,14 +194,14 @@ struct SailMeasurementFormView: View {
                                 .font(.title)
                                 .foregroundStyle(AppColors.primary)
                             VStack(alignment: .leading) {
-                                Text("Maßblatt \(sailType.rawValue)")
+                                Text("\("sail.form_title".loc) \(sailType.rawValue)")
                                     .font(.headline)
                                 Text(boatName)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        Text("Alle Angaben in cm (Durchmesser in mm)")
+                        Text("sail.all_in_cm".loc)
                             .font(.caption2)
                             .foregroundStyle(AppColors.gray400)
                     }
@@ -226,11 +226,11 @@ struct SailMeasurementFormView: View {
                     code0Form
                 }
             }
-            .navigationTitle("Maßblatt")
+            .navigationTitle("sail.form_title".loc)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Abbrechen") { dismiss() }
+                    Button("general.cancel".loc) { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -239,7 +239,7 @@ struct SailMeasurementFormView: View {
                         if isSaving {
                             ProgressView()
                         } else {
-                            Text("Speichern").fontWeight(.semibold)
+                            Text("general.save".loc).fontWeight(.semibold)
                         }
                     }
                     .disabled(isSaving)
@@ -249,7 +249,7 @@ struct SailMeasurementFormView: View {
                 if showSaved {
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
-                        Text("Maßblatt gespeichert")
+                        Text("sail.saved".loc)
                             .fontWeight(.medium)
                     }
                     .font(.subheadline)
@@ -304,11 +304,11 @@ struct SailMeasurementFormView: View {
             Toggle("Segelzeichen", isOn: $measurement.gs_segelzeichen)
             Toggle("Segelnummer", isOn: $measurement.gs_segelnummer)
             Picker("Farbe", selection: $measurement.gs_farbe) {
-                Text("Schwarz").tag("schwarz")
-                Text("Grau").tag("grau")
-                Text("Blau").tag("blau")
-                Text("Rot").tag("rot")
-                Text("Weiß").tag("weiss")
+                Text("sail.color_black".loc).tag("schwarz")
+                Text("sail.color_grey".loc).tag("grau")
+                Text("sail.color_blue".loc).tag("blau")
+                Text("sail.color_red".loc).tag("rot")
+                Text("sail.color_white".loc).tag("weiss")
             }
         }
     }
@@ -347,13 +347,13 @@ struct SailMeasurementFormView: View {
             Toggle("Fenster", isOn: $measurement.vs_fenster)
             Toggle("UV Schutz", isOn: $measurement.vs_uvSchutz)
             Picker("Position", selection: $measurement.vs_position) {
-                Text("Backbord").tag("BB")
-                Text("Steuerbord").tag("STB")
+                Text("sail.port".loc).tag("BB")
+                Text("sail.starboard".loc).tag("STB")
             }
             Picker("Farbe", selection: $measurement.vs_farbe) {
-                Text("Grau").tag("grau")
-                Text("Blau").tag("blau")
-                Text("Weiß").tag("weiss")
+                Text("sail.color_grey".loc).tag("grau")
+                Text("sail.color_blue".loc).tag("blau")
+                Text("sail.color_white".loc).tag("weiss")
             }
         }
     }
@@ -504,7 +504,7 @@ struct SailTypePicker: View {
         NavigationStack {
             List {
                 Section {
-                    Text("Wähle den Segeltyp für das Maßblatt:")
+                    Text("sail.select_type".loc)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -535,11 +535,11 @@ struct SailTypePicker: View {
                     }
                 }
             }
-            .navigationTitle("Segeltyp wählen")
+            .navigationTitle("sail.select_type_title".loc)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Abbrechen") { dismiss() }
+                    Button("general.cancel".loc) { dismiss() }
                 }
             }
             .sheet(item: $selectedSailType) { type in

@@ -34,19 +34,19 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: tabSelection) {
             // MARK: - Karte
-            Tab("Karte", systemImage: "map.fill", value: AppTab.map) {
+            Tab("tab.map".loc, systemImage: "map.fill", value: AppTab.map) {
                 MapScreen()
                     .id(mapResetId)
             }
 
             // MARK: - Boote
-            Tab("Boote", systemImage: "sailboat.fill", value: AppTab.boats) {
+            Tab("tab.boats".loc, systemImage: "sailboat.fill", value: AppTab.boats) {
                 BoatDataScreen()
                     .id(boatsResetId)
             }
 
             // MARK: - Wartung
-            Tab("Wartung", systemImage: "wrench.and.screwdriver.fill", value: AppTab.maintenance) {
+            Tab("maintenance.title".loc, systemImage: "wrench.and.screwdriver.fill", value: AppTab.maintenance) {
                 NavigationStack {
                     MaintenanceScreen()
                 }
@@ -54,6 +54,7 @@ struct MainTabView: View {
 
             // MARK: - Shop
             Tab("Shop", systemImage: "storefront.fill", value: AppTab.shop) {
+                // "Shop" is universal — no localization needed
                 NavigationStack(path: $shopNavigationPath) {
                     ShopView()
                         .toolbar {
@@ -88,7 +89,7 @@ struct MainTabView: View {
             .badge(cartManager.itemCount)
 
             // MARK: - Favoriten
-            Tab("Favoriten", systemImage: "heart.fill", value: AppTab.favorites) {
+            Tab("favorites.title".loc, systemImage: "heart.fill", value: AppTab.favorites) {
                 NavigationStack(path: $favoritesNavigationPath) {
                     POIScreen()
                 }
@@ -154,19 +155,19 @@ struct OfflineBanner: View {
             HStack(spacing: 8) {
                 Image(systemName: "wifi.slash")
                     .font(.subheadline)
-                Text("Offline-Modus")
+                Text("offline.mode".loc)
                     .font(.subheadline)
                     .fontWeight(.semibold)
                 Spacer()
                 if let age = cacheAge {
-                    Text("Stand: \(age)")
+                    Text(String(format: "offline.as_of".loc, age))
                         .font(.caption)
                 }
             }
             HStack(spacing: 12) {
-                Label("\(cachedProviders) Anbieter", systemImage: "building.2")
+                Label(String(format: "offline.providers".loc, cachedProviders), systemImage: "building.2")
                     .font(.caption2)
-                Label("\(cachedProducts) Produkte", systemImage: "shippingbox")
+                Label(String(format: "offline.products".loc, cachedProducts), systemImage: "shippingbox")
                     .font(.caption2)
                 Spacer()
             }

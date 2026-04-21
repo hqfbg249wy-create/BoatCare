@@ -100,7 +100,7 @@ struct ShopView: View {
                                     HStack(spacing: 4) {
                                         Image(systemName: "chevron.left")
                                             .font(.subheadline.weight(.semibold))
-                                        Text("Zurück")
+                                        Text("shop.back".loc)
                                             .font(.subheadline)
                                     }
                                     .foregroundStyle(AppColors.primary)
@@ -110,7 +110,7 @@ struct ShopView: View {
                             Text(sectionTitle)
                                 .font(.headline)
                             Spacer()
-                            Text("\(products.count) Produkte")
+                            Text(String(format: "shop.products_count".loc, products.count))
                                 .font(.caption)
                                 .foregroundStyle(AppColors.gray400)
                         }
@@ -145,7 +145,7 @@ struct ShopView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "cart.fill")
                         .foregroundStyle(.white)
-                    Text("\(toast) hinzugefuegt")
+                    Text(String(format: "shop.added_toast".loc, toast))
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundStyle(.white)
@@ -165,13 +165,13 @@ struct ShopView: View {
 
     private var sectionTitle: String {
         if !searchText.isEmpty {
-            return "Suchergebnisse"
+            return "shop.search_results".loc
         } else if let sub = selectedSubcategory {
             return sub.displayName
         } else if let cat = selectedCategory {
             return cat.displayName
         }
-        return "Alle Produkte"
+        return "shop.all_products".loc
     }
 
     // MARK: - Promotions Banner
@@ -205,7 +205,7 @@ struct ShopView: View {
 
                             HStack(spacing: 4) {
                                 if let until = promo.validUntil {
-                                    Text("Bis \(until)")
+                                    Text(String(format: "shop.valid_until".loc, until))
                                         .font(.caption2)
                                         .foregroundStyle(.white.opacity(0.7))
                                 }
@@ -239,7 +239,7 @@ struct ShopView: View {
             HStack(spacing: 6) {
                 Image(systemName: "flame.fill")
                     .foregroundStyle(AppColors.error)
-                Text("Angebote fuer deine Ausruestung")
+                Text("shop.equipment_deals".loc)
                     .font(.headline)
                 Spacer()
             }
@@ -348,7 +348,7 @@ struct ShopView: View {
                 HStack(spacing: 4) {
                     Image(systemName: cartManager.contains(productId: product.id) ? "checkmark" : "cart.badge.plus")
                         .font(.caption2)
-                    Text(cartManager.contains(productId: product.id) ? "Im Warenkorb" : "In den Warenkorb")
+                    Text(cartManager.contains(productId: product.id) ? "shop.in_cart".loc : "shop.add_to_cart".loc)
                         .font(.caption2)
                         .fontWeight(.semibold)
                 }
@@ -377,7 +377,7 @@ struct ShopView: View {
             HStack {
                 Image(systemName: "sparkles")
                     .foregroundStyle(AppColors.primary)
-                Text("Empfohlen für Dich")
+                Text("shop.recommended".loc)
                     .font(.headline)
                 Spacer()
             }
@@ -479,7 +479,7 @@ struct ShopView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(AppColors.gray700)
 
-                TextField("Produkte suchen...", text: $searchText)
+                TextField("shop.search_placeholder".loc, text: $searchText)
                     .foregroundStyle(AppColors.gray900)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -524,7 +524,7 @@ struct ShopView: View {
     private var searchHistoryChips: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("Letzte Suchen")
+                Text("shop.recent_searches".loc)
                     .font(.caption)
                     .foregroundStyle(AppColors.gray500)
                 Spacer()
@@ -532,7 +532,7 @@ struct ShopView: View {
                     searchHistory.removeAll()
                     UserDefaults.standard.removeObject(forKey: "shopSearchHistory")
                 } label: {
-                    Text("Loeschen")
+                    Text("shop.clear".loc)
                         .font(.caption2)
                         .foregroundStyle(AppColors.gray400)
                 }
@@ -570,7 +570,7 @@ struct ShopView: View {
                 Image(systemName: "gearshape.2.fill")
                     .foregroundStyle(AppColors.primary)
                     .font(.caption)
-                Text("Passend zu deiner Ausruestung")
+                Text("shop.equipment_match".loc)
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(AppColors.gray700)
@@ -602,7 +602,7 @@ struct ShopView: View {
 
     private var priceFilter: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Preisbereich")
+            Text("shop.price_range".loc)
                 .font(.caption)
                 .foregroundStyle(AppColors.gray500)
             HStack(spacing: 10) {
@@ -803,7 +803,7 @@ struct ShopView: View {
     private var loadingView: some View {
         VStack(spacing: 16) {
             ProgressView()
-            Text("Produkte werden geladen...")
+            Text("shop.products_loading".loc)
                 .font(.callout)
                 .foregroundStyle(AppColors.gray500)
         }
@@ -819,7 +819,7 @@ struct ShopView: View {
             Text(message)
                 .font(.callout)
                 .foregroundStyle(AppColors.gray500)
-            Button("Erneut versuchen") {
+            Button("general.retry".loc) {
                 Task { await loadProducts() }
             }
             .foregroundStyle(AppColors.primary)
@@ -833,11 +833,11 @@ struct ShopView: View {
             Image(systemName: "shippingbox")
                 .font(.system(size: 48))
                 .foregroundStyle(AppColors.gray300)
-            Text("Keine Produkte gefunden")
+            Text("shop.no_products".loc)
                 .font(.headline)
                 .foregroundStyle(AppColors.gray500)
             if !searchText.isEmpty {
-                Text("Versuche einen anderen Suchbegriff")
+                Text("shop.try_other_search".loc)
                     .font(.callout)
                     .foregroundStyle(AppColors.gray400)
             }
@@ -900,7 +900,7 @@ struct ShopView: View {
             products = loaded
             hasMoreProducts = products.count >= pageSize
         } catch {
-            errorMessage = "Fehler beim Laden: \(error.localizedDescription)"
+            errorMessage = "\("shop.error_loading".loc): \(error.localizedDescription)"
         }
         isLoading = false
     }

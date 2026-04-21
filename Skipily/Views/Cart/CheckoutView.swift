@@ -37,7 +37,7 @@ struct CheckoutView: View {
                 confirmationStep
             }
         }
-        .navigationTitle("Checkout")
+        .navigationTitle("checkout.title".loc)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(currentStep == 2)
         .onAppear { loadSavedAddress() }
@@ -93,7 +93,7 @@ struct CheckoutView: View {
     private var addressStep: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Lieferadresse")
+                Text("checkout.delivery_address".loc)
                     .font(.title3)
                     .fontWeight(.bold)
 
@@ -119,11 +119,11 @@ struct CheckoutView: View {
                     }
 
                     HStack {
-                        Text("Land")
+                        Text("checkout.country".loc)
                             .font(.subheadline)
                             .foregroundStyle(AppColors.gray500)
                         Spacer()
-                        Picker("Land", selection: $shippingAddress.country) {
+                        Picker("checkout.country".loc, selection: $shippingAddress.country) {
                             Text("Deutschland").tag("DE")
                             Text("Österreich").tag("AT")
                             Text("Schweiz").tag("CH")
@@ -138,7 +138,7 @@ struct CheckoutView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Anmerkung (optional)")
+                    Text("checkout.note".loc)
                         .font(.subheadline)
                         .foregroundStyle(AppColors.gray500)
                     TextField("z.B. Lieferung an Steg 5, Marina Kiel", text: $buyerNote, axis: .vertical)
@@ -149,7 +149,7 @@ struct CheckoutView: View {
                 Button {
                     withAnimation { currentStep = 1 }
                 } label: {
-                    Text("Weiter zur Bestellübersicht")
+                    Text("checkout.continue_to_summary".loc)
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
@@ -169,7 +169,7 @@ struct CheckoutView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text("Bestellübersicht")
+                    Text("checkout.order_summary".loc)
                         .font(.title3)
                         .fontWeight(.bold)
 
@@ -180,11 +180,11 @@ struct CheckoutView: View {
                                 Image(systemName: "location.fill")
                                     .font(.caption)
                                     .foregroundStyle(AppColors.primary)
-                                Text("Lieferadresse")
+                                Text("checkout.delivery_address".loc)
                                     .font(.headline)
                             }
                             Spacer()
-                            Button("Ändern") {
+                            Button("checkout.change".loc) {
                                 withAnimation { currentStep = 0 }
                             }
                             .font(.caption)
@@ -207,7 +207,7 @@ struct CheckoutView: View {
 
                     // Grand total
                     HStack {
-                        Text("Gesamtbetrag")
+                        Text("cart.total_amount".loc)
                             .font(.title3)
                             .fontWeight(.bold)
                         Spacer()
@@ -235,7 +235,7 @@ struct CheckoutView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "creditcard.fill")
                                 .foregroundStyle(AppColors.info)
-                            Text("Zahlungsmethoden")
+                            Text("checkout.payment_methods".loc)
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                         }
@@ -250,7 +250,7 @@ struct CheckoutView: View {
                             Image(systemName: "testtube.2")
                                 .font(.caption2)
                                 .foregroundStyle(AppColors.warning)
-                            Text("Testmodus – Keine echten Kosten. Testkarte: 4242 4242 4242 4242")
+                            Text("checkout.test_mode".loc + " Testkarte: 4242 4242 4242 4242")
                                 .font(.caption2)
                                 .foregroundStyle(AppColors.gray400)
                         }
@@ -280,7 +280,7 @@ struct CheckoutView: View {
                         } else {
                             Image(systemName: "lock.fill")
                                 .font(.caption)
-                            Text("Jetzt bezahlen – \(cartManager.displayGrandTotal)")
+                            Text("\("checkout.pay_now".loc) – \(cartManager.displayGrandTotal)")
                                 .fontWeight(.semibold)
                         }
                     }
@@ -296,7 +296,7 @@ struct CheckoutView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "lock.shield.fill")
                         .font(.caption2)
-                    Text("Sichere Zahlung über Stripe")
+                    Text("checkout.secure_payment".loc)
                         .font(.caption2)
                 }
                 .foregroundStyle(AppColors.gray400)
@@ -328,7 +328,7 @@ struct CheckoutView: View {
             }
 
             HStack {
-                Text("Versand")
+                Text("cart.shipping".loc)
                     .font(.caption)
                     .foregroundStyle(AppColors.gray500)
                 Spacer()
@@ -338,7 +338,7 @@ struct CheckoutView: View {
             }
 
             HStack {
-                Text("Summe")
+                Text("checkout.sum".loc)
                     .font(.subheadline)
                     .fontWeight(.semibold)
                 Spacer()
@@ -385,7 +385,7 @@ struct CheckoutView: View {
                     .foregroundStyle(AppColors.success)
             }
 
-            Text("Zahlung erfolgreich!")
+            Text("checkout.success".loc)
                 .font(.title2)
                 .fontWeight(.bold)
 
@@ -402,14 +402,14 @@ struct CheckoutView: View {
                 }
             }
 
-            Text("Du erhältst eine Bestätigung per E-Mail.\nDer Anbieter wird Deine Bestellung bearbeiten.")
+            Text("checkout.confirmation_email".loc)
                 .font(.callout)
                 .foregroundStyle(AppColors.gray500)
                 .multilineTextAlignment(.center)
 
             // Total recap
             HStack {
-                Text("Bezahlt")
+                Text("checkout.paid".loc)
                     .font(.subheadline)
                     .foregroundStyle(AppColors.gray500)
                 Spacer()
@@ -429,7 +429,7 @@ struct CheckoutView: View {
             Button {
                 dismiss()
             } label: {
-                Text("Zurück zum Shop")
+                Text("checkout.back_to_shop".loc)
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)

@@ -95,7 +95,7 @@ struct ServiceSearchFromMaintenance: View {
             // Results
             Group {
                 if isLoading {
-                    ProgressView("Service-Anbieter laden...")
+                    ProgressView("service_search.loading".loc)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if filteredProviders.isEmpty {
                     emptyState
@@ -116,7 +116,7 @@ struct ServiceSearchFromMaintenance: View {
         }
         .navigationTitle("Service: \(equipmentName)")
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $searchText, prompt: "Anbieter, Marke oder Ort suchen...")
+        .searchable(text: $searchText, prompt: "service_search.search_prompt".loc)
         .task {
             locationManager.requestPermission()
             await loadProviders()
@@ -152,7 +152,7 @@ struct ServiceSearchFromMaintenance: View {
 
                 // Result count
                 Spacer()
-                Text("\(filteredProviders.count) Ergebnis\(filteredProviders.count == 1 ? "" : "se")")
+                Text("\(filteredProviders.count) \(filteredProviders.count == 1 ? "service_search.results".loc : "service_search.results_plural".loc)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -239,34 +239,41 @@ struct ServiceSearchFromMaintenance: View {
 
     // MARK: - Category Keywords
 
+    /// Maps equipment categories to service-provider search keywords.
+    /// Equipment categories: navigation, safety, engine, electrical, rigging,
+    /// sails, anchor, communication, hvac, paint, rope, other
     private func categoryKeywords(for equipmentCategory: String) -> [String] {
-        let cat = equipmentCategory.lowercased()
-        if cat.contains("motor") || cat.contains("engine") || cat.contains("antrieb") {
-            return ["motor", "werkstatt", "engine", "mechani", "repair"]
-        } else if cat.contains("elektr") || cat.contains("electronic") || cat.contains("navigation") || cat.contains("instrument") {
-            return ["elektr", "electronic", "instrument", "navigation"]
-        } else if cat.contains("segel") || cat.contains("sail") || cat.contains("rigg") {
-            return ["segel", "sail", "rigg", "sailmaker"]
-        } else if cat.contains("sicherheit") || cat.contains("safety") || cat.contains("rettung") {
-            return ["sicherheit", "safety", "rettung"]
-        } else if cat.contains("sanitaer") || cat.contains("sanit") || cat.contains("wasser") || cat.contains("pump") {
-            return ["sanitaer", "sanit", "pump", "wasser"]
-        } else if cat.contains("lack") || cat.contains("paint") || cat.contains("antifouling") {
-            return ["lack", "paint", "werft", "yard"]
-        } else if cat.contains("heiz") || cat.contains("klima") {
-            return ["heiz", "klima", "heat"]
-        } else if cat.contains("deck") || cat.contains("rumpf") || cat.contains("hull") || cat.contains("osmose") {
-            return ["werft", "yard", "rumpf", "hull", "osmose", "bootsbau"]
-        } else if cat.contains("anker") || cat.contains("anchor") || cat.contains("kette") {
-            return ["anker", "anchor", "zubeh"]
-        } else if cat.contains("komm") || cat.contains("funk") || cat.contains("radio") || cat.contains("comm") {
-            return ["elektr", "electronic", "funk", "radio", "kommunikation"]
+        // Exaktes Mapping basierend auf equipmentCategories aus EquipmentScreen
+        switch equipmentCategory.lowercased() {
+        case "engine":
+            return ["motor", "werkstatt", "engine", "mechani", "repair", "motorservice"]
+        case "electrical":
+            return ["elektr", "electronic", "instrumente", "marine electronics"]
+        case "navigation":
+            return ["navigation", "elektr", "electronic", "instrumente", "instrument"]
+        case "sails":
+            return ["segel", "sail", "sailmaker", "segelmacher"]
+        case "rigging":
+            return ["rigg", "rigging", "segel", "sail", "mast"]
+        case "safety":
+            return ["sicherheit", "safety", "rettung", "zubeh"]
+        case "anchor":
+            return ["anker", "anchor", "zubeh", "ausrüstung", "deck"]
+        case "communication":
+            return ["elektr", "electronic", "funk", "radio", "navigation", "kommunikation"]
+        case "hvac":
+            return ["heiz", "klima", "heat", "climate", "heating"]
+        case "paint":
+            return ["lack", "paint", "werft", "yard", "antifouling", "lackier"]
+        case "rope":
+            return ["tau", "rope", "segel", "rigg", "zubeh", "deck"]
+        case "other", "sonstiges":
+            return []
+        default:
+            // Fallback fuer unbekannte Kategorien: Kategorie selbst als Keyword
+            let cat = equipmentCategory.lowercased()
+            return cat.isEmpty ? [] : [cat]
         }
-        // Fallback: nutze den Kategorie-String selbst als Keyword
-        if !cat.isEmpty && cat != "other" && cat != "sonstiges" {
-            return [cat]
-        }
-        return []
     }
 
     private func categoryDisplayName(for cat: String) -> String {
@@ -280,10 +287,10 @@ struct ServiceSearchFromMaintenance: View {
             Image(systemName: "wrench.and.screwdriver.fill")
                 .font(.system(size: 48))
                 .foregroundStyle(.orange.opacity(0.3))
-            Text("Keine Service-Anbieter gefunden")
+            Text("service_search.no_providers".loc)
                 .font(.headline)
                 .foregroundStyle(.secondary)
-            Text("Fuer \(equipmentName) (\(category)\(!manufacturer.isEmpty ? ", \(manufacturer)" : "")) wurden keine passenden Anbieter gefunden.")
+            Text(String(format: "service_search.no_providers_hint".loc, equipmentName, category, !manufacturer.isEmpty ? ", \(manufacturer)" : ""))
                 .font(.subheadline)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
@@ -295,7 +302,7 @@ struct ServiceSearchFromMaintenance: View {
                     filterByCategory = false
                     filterByBrand = false
                 } label: {
-                    Label("Alle Anbieter anzeigen", systemImage: "line.3.horizontal.decrease.circle")
+                    Label("service_search.show_all".loc, systemImage: "line.3.horizontal.decrease.circle")
                 }
                 .buttonStyle(.bordered)
             }

@@ -112,7 +112,7 @@ struct ServiceProviderDetailView: View {
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
                                         .foregroundStyle(.blue)
-                                    Text("Entfernung")
+                                    Text("equipment.distance".loc)
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
                                 }

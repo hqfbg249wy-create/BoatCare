@@ -472,7 +472,7 @@ struct MapScreen: View {
                 ChatScreen()
                     .toolbar {
                         ToolbarItem(placement: .topBarLeading) {
-                            Button("Schliessen") { showingAssistant = false }
+                            Button("general.close".loc) { showingAssistant = false }
                         }
                     }
             }
