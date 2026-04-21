@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import { useLocation } from 'react-router-dom'
 import { Plus, Pencil, Trash2, Tag, X, Save, Loader, BarChart3, TrendingUp, Users, ShoppingCart } from 'lucide-react'
 
 export default function Promotions() {
   const { provider } = useAuth()
+  const location = useLocation()
   const [promotions, setPromotions] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -13,6 +15,27 @@ export default function Promotions() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
   const [analytics, setAnalytics] = useState(null)
+
+  // Prefill from MarketInsights navigation
+  useEffect(() => {
+    if (location.state?.prefill) {
+      const p = location.state.prefill
+      setForm({
+        ...emptyForm(),
+        name: p.name || '',
+        description: p.description || '',
+        filter_categories: p.filter_categories || '',
+        filter_manufacturers: p.filter_manufacturers || '',
+        filter_boat_types: p.filter_boat_types || '',
+        discount_type: 'percent',
+        discount_value: '10',
+        is_active: true,
+      })
+      setEditing('new')
+      // Clear the navigation state
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state])
 
   function emptyForm() {
     return {

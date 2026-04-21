@@ -1,0 +1,541 @@
+/* Skipily - Nederlands */
+
+// MARK: - Navigation Tabs
+"tab.map" = "Kaart";
+"tab.boats" = "Boten";
+"tab.maintenance" = "Onderhoud";
+"tab.favorites" = "Favorieten";
+"tab.chat" = "Chat";
+
+// MARK: - Service Categories
+"category.all" = "Alle";
+"category.repair" = "Werkplaats";
+"category.motor_service" = "Motorservice";
+"category.supplies" = "Nautische Benodigdheden";
+"category.fuel" = "Brandstofstation";
+"category.sailmaker" = "Zeilmakerij";
+"category.rigging" = "Tuigage";
+"category.instruments" = "Maritieme Elektronica";
+"category.marina" = "Jachthaven";
+"category.surveyor" = "Scheepsexpert";
+"category.crane" = "Kraan";
+"category.painting" = "Schilderwerk / Antifouling";
+
+// MARK: - Map Screen
+"map.search_placeholder" = "Zoek servicebedrijven...";
+"map.no_results" = "Geen servicebedrijven gevonden";
+"map.loading" = "Laden...";
+"map.filter_title" = "Filter op categorie";
+"map.radius_label" = "Straal";
+"map.km" = "km";
+"map.my_location" = "Mijn locatie";
+"map.location_error" = "Locatiefout";
+"map.login_required" = "Aanmelding vereist";
+"map.login_required_hint" = "Meld je aan om een bedrijf toe te voegen.";
+"map.call" = "Bellen";
+"map.open_in_maps" = "Openen in Kaarten";
+"map.add_business" = "Bedrijf toevoegen";
+"map.submitted" = "Ingediend!";
+"map.submitted_hint" = "Je bedrijf is ingediend ter beoordeling en verschijnt op de kaart na goedkeuring.";
+"map.section_basic" = "Basisgegevens";
+"map.section_address" = "Adres";
+"map.company_name" = "Bedrijfsnaam *";
+"map.category" = "Categorie";
+"map.category2" = "Categorie 2";
+"map.category3" = "Categorie 3";
+"map.brands_hint" = "Vertegenwoordigde merken (kommagescheiden)";
+"map.street" = "Straat en nummer *";
+"map.postal_code" = "Postcode *";
+"map.get_coordinates" = "Coördinaten bepalen";
+"map.coordinates_found" = "Coördinaten gevonden";
+"map.services_description" = "Diensten & specialiteiten";
+"map.required_fields" = "* Verplichte velden";
+
+// MARK: - Provider Detail
+"provider.contact" = "Contact";
+"provider.phone" = "Telefoon";
+"provider.email" = "E-mail";
+"provider.website" = "Website";
+"provider.route" = "Route";
+"provider.services" = "Diensten & Producten";
+"provider.brands" = "Vertegenwoordigde merken";
+"provider.reviews" = "Beoordelingen";
+"provider.description" = "Omschrijving";
+"provider.opening_hours" = "Openingstijden";
+"provider.no_services" = "Geen diensten vermeld";
+"provider.no_brands" = "Geen merken vermeld";
+"provider.no_reviews" = "Nog geen beoordelingen";
+"provider.write_review" = "Schrijf een beoordeling";
+"provider.verified" = "Geverifieerd";
+"provider.more_details" = "Meer details";
+"provider.special_offer" = "Speciale aanbieding";
+"provider.go_to_shop" = "Naar de winkel";
+"provider.swipe_hint" = "Veeg voor meer aanbieders";
+
+// MARK: - Favorites
+"favorites.title" = "Favorieten";
+"favorites.empty" = "Nog geen favorieten";
+"favorites.add_hint" = "Tik op het hartpictogram van een aanbieder om het op te slaan";
+
+// MARK: - Profile
+"profile.title" = "Profiel";
+"profile.edit" = "Profiel bewerken";
+"profile.logout" = "Uitloggen";
+"profile.logout_confirm" = "Wil je echt uitloggen?";
+"profile.language" = "Taal";
+"profile.personal_info" = "Persoonlijke gegevens";
+"profile.additional_info" = "Aanvullende informatie";
+"profile.full_name" = "Volledige naam";
+"profile.username" = "Gebruikersnaam";
+"profile.phone" = "Telefoon";
+"profile.address" = "Adres";
+"profile.city" = "Stad";
+"profile.country" = "Land";
+"profile.save" = "Opslaan";
+"profile.cancel" = "Annuleren";
+
+// MARK: - Boats
+"boats.title" = "Mijn Boten";
+"boats.add" = "Boot toevoegen";
+"boats.no_boats" = "Nog geen boten toegevoegd";
+"boats.name" = "Bootnaam";
+"boats.type" = "Type";
+"boats.manufacturer" = "Fabrikant";
+"boats.model" = "Model";
+"boats.year" = "Jaar";
+"boats.length" = "Lengte (m)";
+"boats.engine" = "Motor";
+"boats.home_port" = "Thuishaven";
+
+// MARK: - Maintenance
+"maintenance.title" = "Onderhoud";
+"maintenance.due" = "Vervallen";
+"maintenance.overdue" = "Achterstallig";
+"maintenance.upcoming" = "Binnenkort";
+"maintenance.no_tasks" = "Geen onderhoudstaken";
+
+// MARK: - Reviews
+"review.rating" = "Beoordeling";
+"review.title" = "Titel";
+"review.comment" = "Opmerking";
+"review.submit" = "Beoordeling indienen";
+"review.service" = "Service";
+"review.quality" = "Kwaliteit";
+"review.price" = "Prijs";
+
+// MARK: - General
+"general.ok" = "OK";
+"general.cancel" = "Annuleren";
+"general.save" = "Opslaan";
+"general.delete" = "Verwijderen";
+"general.edit" = "Bewerken";
+"general.close" = "Sluiten";
+"general.loading" = "Laden...";
+"general.error" = "Fout";
+"general.retry" = "Opnieuw proberen";
+"general.yes" = "Ja";
+"general.no" = "Nee";
+"general.search" = "Zoeken";
+"general.filter" = "Filteren";
+
+// MARK: - Auth
+"auth.login" = "Inloggen";
+"auth.register" = "Registreren";
+"auth.email" = "E-mail";
+"auth.password" = "Wachtwoord";
+"auth.forgot_password" = "Wachtwoord vergeten?";
+"auth.no_account" = "Nog geen account?";
+"auth.have_account" = "Al een account?";
+
+// MARK: - Boats
+"boats.title" = "Mijn Boten";
+"boats.add" = "Boot toevoegen";
+"boats.no_boats" = "Nog geen boten toegevoegd";
+"boats.name" = "Bootnaam";
+"boats.type" = "Type";
+"boats.manufacturer" = "Fabrikant";
+"boats.model" = "Model";
+"boats.year" = "Bouwjaar";
+"boats.length" = "Lengte (m)";
+"boats.engine" = "Motor";
+"boats.home_port" = "Thuishaven";
+
+// MARK: - POI / Favorites
+"poi.favorites" = "Favorieten";
+"poi.no_favorites" = "Nog geen favorieten";
+"poi.no_favorites_hint" = "Tik op het hartje van een provider om het op te slaan.";
+
+// MARK: - Suggest Edit
+"suggest_edit.title" = "Wijziging voorstellen";
+"suggest_edit.button" = "Wijziging voorstellen";
+"suggest_edit.section_basic" = "Basisgegevens";
+"suggest_edit.section_address" = "Adres";
+"suggest_edit.section_contact" = "Contact";
+"suggest_edit.section_services" = "Diensten & Merken";
+"suggest_edit.section_hours" = "Openingstijden";
+"suggest_edit.section_description" = "Omschrijving";
+"suggest_edit.services_hint" = "Diensten (kommagescheiden)";
+"suggest_edit.brands_hint" = "Merken (kommagescheiden)";
+"suggest_edit.opening_hours_hint" = "Eén regel per dag";
+"suggest_edit.description_hint" = "Beschrijving van het bedrijf";
+"suggest_edit.info_hint" = "Uw suggestie wordt beoordeeld voordat deze wordt toegepast.";
+"suggest_edit.pending_hint" = "U heeft al een openstaande suggestie voor deze aanbieder.";
+"suggest_edit.submit" = "Suggestie indienen";
+"suggest_edit.success" = "Ingediend!";
+"suggest_edit.success_hint" = "Uw suggestie is ingediend ter beoordeling.";
+"suggest_edit.login_required" = "Meld u eerst aan.";
+
+// MARK: - Chat
+"chat.title" = "Chat";
+"chat.welcome" = "Welkom bij Skipily! Deze sectie wordt binnenkort aangedreven door AI.";
+"chat.input_hint" = "Bericht typen...";
+"chat.coming_soon" = "AI-chat komt binnenkort! 🚢";
+
+// MARK: - Provider Detail
+"provider.contact" = "Contact";
+"provider.description" = "Beschrijving";
+"provider.brands" = "Merken";
+
+// MARK: - Equipment
+"equipment.title" = "Uitrusting";
+"equipment.add" = "Uitrusting toevoegen";
+"equipment.no_items" = "Nog geen uitrusting";
+"equipment.all" = "Alles";
+"equipment.name" = "Naam";
+"equipment.category" = "Categorie";
+"equipment.details" = "Details";
+"equipment.serial" = "Serienummer";
+"equipment.working" = "Werkt";
+
+// MARK: - Marketplace / Shop
+"tab.marketplace" = "Aanbiedingen";
+"marketplace.title" = "Aanbiedingen & Winkel";
+"marketplace.offer" = "Speciale aanbieding";
+"marketplace.no_offers" = "Geen aanbiedingen";
+"marketplace.no_offers_hint" = "Nog geen providers met actieve aanbiedingen.";
+"marketplace.valid_until" = "Geldig tot";
+"marketplace.to_shop" = "Bekijk winkel";
+"marketplace.to_website" = "Bezoek website";
+"marketplace.promotion_placeholder" = "Beschrijf de speciale aanbieding...";
+"marketplace.shop_url_placeholder" = "Winkel URL (optioneel)";
+"provider.phone" = "Telefoon";
+"provider.email" = "Email";
+"provider.website" = "Website";
+"profile.country" = "Land";
+
+// MARK: - Equipment Detail / Edit
+"equipment.status_ok" = "Operationeel";
+"equipment.status_defect" = "Defect / Onderhoud nodig";
+"equipment.purchase_date" = "Aankoopdatum";
+"equipment.has_purchase_date" = "Aankoopdatum bekend";
+"equipment.defect_hint" = "Item gemarkeerd als defect";
+"equipment.delete_confirm" = "Uitrusting verwijderen?";
+"equipment.find_service" = "Passende service vinden";
+"equipment.find_parts" = "Onderdelen zoeken";
+"equipment.no_service_found" = "Geen passende aanbieders gevonden";
+"equipment.service_search_hint" = "Zoek op categorie en fabrikant";
+"equipment.results_found" = "resultaten gevonden";
+"equipment.distance" = "Afstand";
+"equipment.metashop_title" = "Onderdelen zoeken";
+"equipment.metashop_hint" = "Zoek op basis van je uitrustingsgegevens";
+"equipment.search_by_name" = "Naam";
+"equipment.search_by_manufacturer" = "Fabrikant";
+"equipment.search_by_model" = "Model";
+"equipment.search_by_part" = "Onderdeelnummer";
+"equipment.search_online" = "Online zoeken";
+"equipment.my_location" = "Mijn locatie";
+"equipment.enter_location" = "Plaats invoeren...";
+"equipment.radius" = "Straal:";
+"equipment.try_larger_radius" = "Probeer een grotere straal of andere locatie.";
+"equipment.no_shop_found" = "Geen passende shops gevonden";
+"equipment.to_shop" = "Naar shop";
+"equipment.to_website" = "Naar website";
+"equipment.in_stock" = "Op voorraad";
+"equipment.out_of_stock" = "Niet beschikbaar";
+"equipment.free_shipping" = "Gratis verzending";
+"equipment.days" = "dagen";
+"equipment.actions" = "Acties";
+"equipment.description" = "Beschrijving";
+"equipment.dates" = "Datums";
+"equipment.maintenance" = "Onderhoud";
+"equipment.installation_date" = "Installatiedatum";
+"equipment.warranty_expiry" = "Garantie verlopen";
+"equipment.has_installation_date" = "Installatiedatum bekend";
+"equipment.has_warranty" = "Garantievervaldatum bekend";
+"equipment.has_last_maintenance" = "Laatste onderhoud bekend";
+"equipment.cycle" = "Onderhoudscyclus (jaren)";
+"equipment.last_maintenance" = "Laatste onderhoud";
+"equipment.next_maintenance" = "Volgend onderhoud";
+"equipment.maintenance_ok" = "OK";
+"equipment.years" = "jaar";
+"equipment.notes" = "Notities";
+"equipment.part_number" = "Onderdeelnummer";
+"equipment.location" = "Positie op de boot";
+"equipment.dimensions" = "Afmetingen";
+"equipment.photo_url" = "Foto-URL";
+"equipment.manage_hint" = "Beheer de uitrusting van je boot";
+"equipment.cat.navigation" = "Navigatie";
+"equipment.cat.safety" = "Veiligheid";
+"equipment.cat.engine" = "Motor";
+"equipment.cat.electrical" = "Elektrisch";
+"equipment.cat.rigging" = "Tuigage";
+"equipment.cat.sails" = "Zeilen";
+"equipment.cat.anchor" = "Anker";
+"equipment.cat.communication" = "Communicatie";
+"equipment.cat.hvac" = "Verwarming/Airco";
+"equipment.cat.paint" = "Verf";
+"equipment.cat.rope" = "Touwwerk";
+"equipment.cat.other" = "Overig";
+
+// New keys - Issue fixes
+"provider.products" = "Producten";
+"boats.login_required" = "Log in om je boten te beheren.";
+"boats.photo" = "Foto";
+"boats.photo_library" = "Fotobibliotheek";
+"boats.take_photo" = "Foto maken";
+"boats.add_photo" = "Foto toevoegen";
+"boats.uploading_photo" = "Foto wordt geüpload...";
+"boats.upload_failed" = "Upload mislukt: %@";
+"boats.upload_encode_failed" = "Afbeelding kon niet worden gecodeerd.";
+"boats.equipment_count" = "Uitrusting (%d)";
+"boats.delete_confirm" = "Boot verwijderen?";
+"boats.delete_message" = "Wil je deze boot echt verwijderen?";
+"maintenance.no_boats_hint" = "Voeg eerst een boot toe om onderhoudstaken toe te wijzen.";
+"general.refresh" = "Vernieuwen";
+"review.coming_soon_hint" = "Beoordelingen indienen komt binnenkort beschikbaar.";
+"review.edit" = "Beoordeling bewerken";
+"review.edit_hint" = "Je bestaande beoordeling wordt bijgewerkt.";
+"review.own" = "Jouw beoordeling";
+"provider.google_rating" = "Google-beoordeling";
+
+// MARK: - Profile (extended)
+"profile.complete" = "Profiel voltooien";
+"profile.uploading_photo" = "Foto wordt geüpload...";
+"profile.user_default" = "Gebruiker";
+"profile.my_boat" = "Mijn Boot";
+"profile.loading_boats" = "Boten laden...";
+"profile.no_boats_hint" = "Geen boten geregistreerd. Voeg je boot toe in het tabblad Boten.";
+"profile.select_boat" = "Boot selecteren";
+"profile.no_boat_selected" = "Geen boot geselecteerd";
+"profile.boat_shop_hint" = "Je geselecteerde boot wordt gebruikt voor shop-aanbevelingen.";
+"profile.payment_method" = "Betaalmethode";
+"profile.payment_saved" = "Betaalmethode opgeslagen";
+"profile.payment_saved_hint" = "Je kaart is opgeslagen voor snelle betalingen.";
+"profile.payment_change" = "Betaalmethode wijzigen";
+"profile.no_payment" = "Geen betaalmethode";
+"profile.no_payment_hint" = "Voeg een kaart toe voor snellere bestellingen.";
+"profile.payment_add" = "Betaalmethode toevoegen";
+"profile.payment_stripe_hint" = "Betalingsgegevens worden veilig opgeslagen door Stripe.";
+"profile.logout_question" = "Uitloggen?";
+"profile.logout_confirm_message" = "Wil je echt uitloggen?";
+"profile.delete_account" = "Account verwijderen";
+"profile.delete_account_confirm" = "Account echt verwijderen?";
+"profile.delete_account_message" = "Je account en ALLE bijbehorende gegevens (boten, uitrusting, onderhoud, berichten, bestellingen, foto's) worden permanent verwijderd.";
+"profile.delete_account_final" = "Laatste bevestiging";
+"profile.delete_account_final_message" = "Deze actie kan niet ongedaan worden gemaakt. Alle gegevens worden direct verwijderd.";
+"profile.delete_account_final_button" = "Definitief verwijderen";
+"profile.continue" = "Doorgaan";
+"profile.saved_toast" = "Profiel opgeslagen";
+
+// MARK: - Equipment (extended)
+"equipment.action_service" = "Service";
+"equipment.action_spare_parts" = "Onderdelen";
+"equipment.action_ai" = "AI-Assistent";
+"equipment.action_sail_form" = "Zeilmaten";
+"equipment.action_edit" = "Bewerken";
+"equipment.max_photos" = "Maximum 5 foto's bereikt";
+"equipment.uploading_photos" = "Foto's worden geüpload...";
+"equipment.sail_form_section" = "Zeil meetblad";
+"equipment.sail_form_edit" = "Meetblad bewerken";
+"equipment.sail_form_save_first" = "Sla eerst op, vul dan het meetblad in";
+"equipment.location_unavailable" = "Locatie niet beschikbaar — afstanden kunnen niet worden getoond. Schakel locatiediensten in.";
+"equipment.spare_parts_for" = "Onderdelen en accessoires voor:";
+"equipment.matching_accessories" = "Bijpassende accessoires";
+"equipment.spare_parts_title" = "Onderdelen";
+
+// MARK: - Service Search
+"service_search.loading" = "Dienstverleners laden...";
+"service_search.search_prompt" = "Zoek aanbieder, merk of stad...";
+"service_search.no_providers" = "Geen dienstverleners gevonden";
+"service_search.no_providers_hint" = "Geen aanbieders gevonden voor %@ (%@%@).";
+"service_search.show_all" = "Alle aanbieders tonen";
+"service_search.results" = "resultaat";
+"service_search.results_plural" = "resultaten";
+
+// MARK: - Cart
+"cart.title" = "Winkelwagen";
+"cart.empty" = "Je winkelwagen is leeg";
+"cart.empty_hint" = "Blader door de shop en voeg\nproducten toe";
+"cart.subtotal" = "Subtotaal";
+"cart.shipping" = "Verzending";
+"cart.total" = "Totaal";
+"cart.total_amount" = "Totaalbedrag";
+"cart.checkout" = "Afrekenen";
+
+// MARK: - Checkout
+"checkout.title" = "Bestelling";
+"checkout.delivery_address" = "Afleveradres";
+"checkout.country" = "Land";
+"checkout.note" = "Opmerking (optioneel)";
+"checkout.continue_to_summary" = "Verder naar besteloverzicht";
+"checkout.order_summary" = "Besteloverzicht";
+"checkout.change" = "Wijzigen";
+"checkout.payment_methods" = "Betaalmethoden";
+"checkout.test_mode" = "Testmodus — Geen echte kosten";
+"checkout.pay_now" = "Nu betalen";
+"checkout.secure_payment" = "Veilige betaling via Stripe";
+"checkout.subtotal" = "Subtotaal";
+"checkout.shipping" = "Verzending";
+"checkout.sum" = "Som";
+"checkout.success" = "Betaling geslaagd!";
+"checkout.confirmation_email" = "Je ontvangt een bevestigingsmail.";
+"checkout.paid" = "Betaald";
+"checkout.back_to_shop" = "Terug naar shop";
+
+// MARK: - Orders
+"orders.title" = "Bestellingen";
+"orders.loading" = "Bestellingen laden...";
+"orders.empty" = "Geen bestellingen";
+"orders.empty_hint" = "Je bestellingen verschijnen hier\nzodra je een bestelling plaatst.";
+"orders.status" = "Bestelstatus";
+"orders.tracking" = "Zendingvolging";
+"orders.loading_detail" = "Bestelling laden...";
+
+// MARK: - Messages
+"messages.title" = "Berichten";
+"messages.loading" = "Berichten laden...";
+"messages.search_prompt" = "Aanbieders zoeken...";
+
+// MARK: - Shop / Products
+"shop.loading" = "Producten laden...";
+"shop.description" = "Beschrijving";
+"shop.tech_info" = "Technische informatie";
+"shop.keywords" = "Trefwoorden";
+"shop.hazardous" = "Gevaarlijke stof — veiligheidsinformatieblad raadplegen";
+"shop.compatibility" = "Compatibiliteit";
+"shop.quantity" = "Aantal";
+"shop.add_to_cart" = "In winkelwagen";
+"shop.similar_products" = "Vergelijkbare producten";
+"shop.more_from" = "Meer van %@";
+"shop.added_to_cart" = "Toegevoegd aan winkelwagen";
+"shop.no_exact_match" = "Geen exacte overeenkomsten";
+"shop.no_exact_match_hint" = "We hebben niets gevonden voor \"%@\".";
+"shop.ai_searching" = "AI zoekt naar alternatieven…";
+"shop.ai_suggestions" = "AI-suggesties voor jou";
+
+// MARK: - Auth (extended)
+"auth.reset_password" = "Wachtwoord resetten";
+"auth.email_sent" = "E-mail verzonden";
+"auth.privacy_policy" = "Privacybeleid";
+"auth.registration" = "Registratie";
+
+// MARK: - Sail Measurement
+"sail.form_title" = "Meetblad";
+"sail.all_in_cm" = "Alle maten in cm (diameter in mm)";
+"sail.saved" = "Meetblad opgeslagen";
+"sail.select_type" = "Selecteer het zeiltype voor het meetblad:";
+"sail.select_type_title" = "Zeiltype selecteren";
+"sail.color_black" = "Zwart";
+"sail.color_grey" = "Grijs";
+"sail.color_blue" = "Blauw";
+"sail.color_red" = "Rood";
+"sail.color_white" = "Wit";
+"sail.port" = "Bakboord";
+"sail.starboard" = "Stuurboord";
+
+// MARK: - Auth (Login / Registration)
+"auth.welcome_back" = "Welkom terug";
+"auth.sign_in" = "Inloggen";
+"auth.forgot_password_title" = "Wachtwoord resetten";
+"auth.send" = "Verzenden";
+"auth.reset_link_hint" = "We sturen je een resetlink.";
+"auth.email_sent_hint" = "Controleer je inbox voor de resetlink.";
+"auth.new_account" = "Nieuw account aanmaken";
+"auth.or" = "of";
+"auth.or_email" = "of met e-mail";
+"auth.create_account_title" = "Maak je Skipily-account aan";
+"auth.full_name_label" = "Volledige naam";
+"auth.email_label" = "E-mailadres";
+"auth.password_label" = "Wachtwoord";
+"auth.password_confirm_label" = "Wachtwoord bevestigen";
+"auth.password_min" = "Minimaal 8 tekens";
+"auth.password_repeat" = "Wachtwoord herhalen";
+"auth.passwords_mismatch" = "Wachtwoorden komen niet overeen";
+"auth.step_1" = "Stap 1 van 3 – Account aanmaken";
+"auth.step_2" = "Stap 2 van 3 – Persoonlijke gegevens";
+"auth.step_3" = "Stap 3 van 3 – Privacy";
+"auth.personal_data" = "Persoonlijke gegevens";
+"auth.personal_data_hint" = "Voor leveringen en contact";
+"auth.phone_optional" = "Telefoonnummer (optioneel)";
+"auth.street_label" = "Straat en huisnummer";
+"auth.postal_code_label" = "Postcode";
+"auth.city_label" = "Stad";
+"auth.country_label" = "Land";
+"auth.privacy_terms" = "Privacy en voorwaarden";
+"auth.privacy_terms_hint" = "Lees en accepteer ons privacybeleid en de algemene voorwaarden.";
+"auth.read_privacy" = "Privacybeleid lezen";
+"auth.accept_privacy" = "Ik heb het **privacybeleid** gelezen en stem in met de verwerking van mijn gegevens.";
+"auth.accept_terms" = "Ik accepteer de **algemene voorwaarden** van Skipily.";
+"auth.consent_required" = "Beide toestemmingen zijn vereist om de app te gebruiken.";
+"auth.back" = "Terug";
+"auth.create_account_btn" = "Account aanmaken";
+"auth.continue_btn" = "Doorgaan";
+"auth.accept_go" = "Accepteren & laten we gaan!";
+"auth.registration_failed" = "Registratie mislukt";
+"auth.privacy_title" = "Privacybeleid";
+"auth.privacy_full_link" = "Volledig privacybeleid:";
+"auth.privacy_date" = "Stand: april 2026";
+"auth.privacy_close" = "Sluiten";
+
+// MARK: - POI (extended)
+"poi.reset_confirm" = "Alle favorieten resetten?";
+"poi.delete_all" = "Alles verwijderen";
+"poi.reset_message" = "Verwijdert ALLE opgeslagen aanbieders uit je profiel. Deze actie kan niet ongedaan worden gemaakt.";
+"poi.mark_hint" = "Markeer aanbieders met ❤️ op de kaart";
+
+// MARK: - Offline
+"offline.mode" = "Offlinemodus";
+"offline.as_of" = "Stand: %@";
+"offline.providers" = "%d Aanbieders";
+"offline.products" = "%d Producten";
+
+// MARK: - Messages (extended)
+"messages.no_messages" = "Nog geen berichten";
+"messages.placeholder" = "Bericht...";
+"messages.empty_title" = "Geen berichten";
+"messages.empty_hint" = "Start een gesprek vanuit\neen bestelling";
+
+// MARK: - Shop (extended)
+"shop.search_placeholder" = "Producten zoeken...";
+"shop.recent_searches" = "Recente zoekopdrachten";
+"shop.valid_until" = "Tot %@";
+"shop.clear" = "Wissen";
+"shop.equipment_match" = "Passend bij jouw uitrusting";
+"shop.price_range" = "Prijsbereik";
+"shop.products_loading" = "Producten laden...";
+"shop.no_products" = "Geen producten gevonden";
+"shop.try_other_search" = "Probeer een andere zoekterm";
+"shop.search_results" = "Zoekresultaten";
+"shop.all_products" = "Alle producten";
+"shop.back" = "Terug";
+"shop.products_count" = "%d Producten";
+"shop.in_cart" = "In winkelwagen";
+"shop.recommended" = "Aanbevolen voor jou";
+"shop.equipment_deals" = "Aanbiedingen voor jouw uitrusting";
+"shop.error_loading" = "Fout bij laden";
+"shop.added_toast" = "%@ toegevoegd";
+
+// MARK: - Boats (extended)
+"boats.tap_hint" = "Tik hier voor details";
+"boats.image_load_error" = "Afbeelding kon niet worden geladen";
+
+// MARK: - Countries
+"country.DE" = "Duitsland";
+"country.AT" = "Oostenrijk";
+"country.CH" = "Zwitserland";
+"country.NL" = "Nederland";
+"country.FR" = "Frankrijk";
+"country.IT" = "Italië";
+"country.ES" = "Spanje";
+"country.HR" = "Kroatië";
+"country.GR" = "Griekenland";

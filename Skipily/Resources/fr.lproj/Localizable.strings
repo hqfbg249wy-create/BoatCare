@@ -1,0 +1,541 @@
+/* Skipily - Français */
+
+// MARK: - Navigation Tabs
+"tab.map" = "Carte";
+"tab.boats" = "Bateaux";
+"tab.maintenance" = "Entretien";
+"tab.favorites" = "Favoris";
+"tab.chat" = "Chat";
+
+// MARK: - Service Categories
+"category.all" = "Tous";
+"category.repair" = "Atelier";
+"category.motor_service" = "Service Moteur";
+"category.supplies" = "Accastillage";
+"category.fuel" = "Station Carburant";
+"category.sailmaker" = "Voilerie";
+"category.rigging" = "Gréement";
+"category.instruments" = "Électronique Marine";
+"category.marina" = "Port de Plaisance";
+"category.surveyor" = "Expert Maritime";
+"category.crane" = "Grue";
+"category.painting" = "Peinture / Antifouling";
+
+// MARK: - Map Screen
+"map.search_placeholder" = "Rechercher un prestataire...";
+"map.no_results" = "Aucun prestataire trouvé";
+"map.loading" = "Chargement...";
+"map.filter_title" = "Filtrer par catégorie";
+"map.radius_label" = "Rayon";
+"map.km" = "km";
+"map.my_location" = "Ma position";
+"map.location_error" = "Erreur de localisation";
+"map.login_required" = "Connexion requise";
+"map.login_required_hint" = "Veuillez vous connecter pour ajouter un prestataire.";
+"map.call" = "Appeler";
+"map.open_in_maps" = "Ouvrir dans Plans";
+"map.add_business" = "Ajouter un prestataire";
+"map.submitted" = "Soumis !";
+"map.submitted_hint" = "Votre prestataire a été soumis pour examen et apparaîtra sur la carte après approbation.";
+"map.section_basic" = "Informations de base";
+"map.section_address" = "Adresse";
+"map.company_name" = "Nom de l'entreprise *";
+"map.category" = "Catégorie";
+"map.category2" = "Catégorie 2";
+"map.category3" = "Catégorie 3";
+"map.brands_hint" = "Marques représentées (séparées par virgule)";
+"map.street" = "Rue & numéro *";
+"map.postal_code" = "Code postal *";
+"map.get_coordinates" = "Obtenir les coordonnées";
+"map.coordinates_found" = "Coordonnées trouvées";
+"map.services_description" = "Services & spécialités";
+"map.required_fields" = "* Champs obligatoires";
+
+// MARK: - Provider Detail
+"provider.contact" = "Contact";
+"provider.phone" = "Téléphone";
+"provider.email" = "E-mail";
+"provider.website" = "Site web";
+"provider.route" = "Itinéraire";
+"provider.services" = "Services & Produits";
+"provider.brands" = "Marques représentées";
+"provider.reviews" = "Avis";
+"provider.description" = "Description";
+"provider.opening_hours" = "Horaires d'ouverture";
+"provider.no_services" = "Aucun service renseigné";
+"provider.no_brands" = "Aucune marque renseignée";
+"provider.no_reviews" = "Pas encore d'avis";
+"provider.write_review" = "Écrire un avis";
+"provider.verified" = "Vérifié";
+"provider.more_details" = "Plus de détails";
+"provider.special_offer" = "Offre spéciale";
+"provider.go_to_shop" = "Vers la boutique";
+"provider.swipe_hint" = "Glisser pour plus de prestataires";
+
+// MARK: - Favorites
+"favorites.title" = "Favoris";
+"favorites.empty" = "Aucun favori pour l'instant";
+"favorites.add_hint" = "Appuyez sur le cœur d'un prestataire pour l'enregistrer";
+
+// MARK: - Profile
+"profile.title" = "Profil";
+"profile.edit" = "Modifier le profil";
+"profile.logout" = "Se déconnecter";
+"profile.logout_confirm" = "Voulez-vous vraiment vous déconnecter ?";
+"profile.language" = "Langue";
+"profile.personal_info" = "Informations personnelles";
+"profile.additional_info" = "Informations complémentaires";
+"profile.full_name" = "Nom complet";
+"profile.username" = "Nom d'utilisateur";
+"profile.phone" = "Téléphone";
+"profile.address" = "Adresse";
+"profile.city" = "Ville";
+"profile.country" = "Pays";
+"profile.save" = "Enregistrer";
+"profile.cancel" = "Annuler";
+
+// MARK: - Boats
+"boats.title" = "Mes Bateaux";
+"boats.add" = "Ajouter un bateau";
+"boats.no_boats" = "Aucun bateau ajouté";
+"boats.name" = "Nom du bateau";
+"boats.type" = "Type";
+"boats.manufacturer" = "Fabricant";
+"boats.model" = "Modèle";
+"boats.year" = "Année";
+"boats.length" = "Longueur (m)";
+"boats.engine" = "Moteur";
+"boats.home_port" = "Port d'attache";
+
+// MARK: - Maintenance
+"maintenance.title" = "Entretien";
+"maintenance.due" = "Dû";
+"maintenance.overdue" = "En retard";
+"maintenance.upcoming" = "À venir";
+"maintenance.no_tasks" = "Aucune tâche d'entretien";
+
+// MARK: - Reviews
+"review.rating" = "Note";
+"review.title" = "Titre";
+"review.comment" = "Commentaire";
+"review.submit" = "Soumettre l'avis";
+"review.service" = "Service";
+"review.quality" = "Qualité";
+"review.price" = "Prix";
+
+// MARK: - General
+"general.ok" = "OK";
+"general.cancel" = "Annuler";
+"general.save" = "Enregistrer";
+"general.delete" = "Supprimer";
+"general.edit" = "Modifier";
+"general.close" = "Fermer";
+"general.loading" = "Chargement...";
+"general.error" = "Erreur";
+"general.retry" = "Réessayer";
+"general.yes" = "Oui";
+"general.no" = "Non";
+"general.search" = "Rechercher";
+"general.filter" = "Filtrer";
+
+// MARK: - Auth
+"auth.login" = "Se connecter";
+"auth.register" = "S'inscrire";
+"auth.email" = "E-mail";
+"auth.password" = "Mot de passe";
+"auth.forgot_password" = "Mot de passe oublié ?";
+"auth.no_account" = "Pas encore de compte ?";
+"auth.have_account" = "Déjà un compte ?";
+
+// MARK: - Boats
+"boats.title" = "Mes Bateaux";
+"boats.add" = "Ajouter un bateau";
+"boats.no_boats" = "Aucun bateau enregistré";
+"boats.name" = "Nom du bateau";
+"boats.type" = "Type";
+"boats.manufacturer" = "Fabricant";
+"boats.model" = "Modèle";
+"boats.year" = "Année";
+"boats.length" = "Longueur (m)";
+"boats.engine" = "Moteur";
+"boats.home_port" = "Port d'attache";
+
+// MARK: - POI / Favorites
+"poi.favorites" = "Favoris";
+"poi.no_favorites" = "Pas encore de favoris";
+"poi.no_favorites_hint" = "Appuyez sur le cœur d'un prestataire pour le sauvegarder.";
+
+// MARK: - Suggest Edit
+"suggest_edit.title" = "Proposer une modification";
+"suggest_edit.button" = "Proposer une modification";
+"suggest_edit.section_basic" = "Informations de base";
+"suggest_edit.section_address" = "Adresse";
+"suggest_edit.section_contact" = "Contact";
+"suggest_edit.section_services" = "Services & Marques";
+"suggest_edit.section_hours" = "Horaires d'ouverture";
+"suggest_edit.section_description" = "Description";
+"suggest_edit.services_hint" = "Services (séparés par virgule)";
+"suggest_edit.brands_hint" = "Marques (séparées par virgule)";
+"suggest_edit.opening_hours_hint" = "Une ligne par jour";
+"suggest_edit.description_hint" = "Description de l'entreprise";
+"suggest_edit.info_hint" = "Votre suggestion sera examinée avant d'être appliquée.";
+"suggest_edit.pending_hint" = "Vous avez déjà une suggestion en attente pour ce prestataire.";
+"suggest_edit.submit" = "Soumettre la suggestion";
+"suggest_edit.success" = "Soumis !";
+"suggest_edit.success_hint" = "Votre suggestion a été soumise pour examen.";
+"suggest_edit.login_required" = "Veuillez d'abord vous connecter.";
+
+// MARK: - Chat
+"chat.title" = "Chat";
+"chat.welcome" = "Bienvenue sur Skipily ! Cette section sera bientôt alimentée par l'IA.";
+"chat.input_hint" = "Écrire un message...";
+"chat.coming_soon" = "Chat IA bientôt disponible ! 🚢";
+
+// MARK: - Provider Detail
+"provider.contact" = "Contact";
+"provider.description" = "Description";
+"provider.brands" = "Marques";
+
+// MARK: - Equipment
+"equipment.title" = "Équipement";
+"equipment.add" = "Ajouter équipement";
+"equipment.no_items" = "Aucun équipement ajouté";
+"equipment.all" = "Tout";
+"equipment.name" = "Nom";
+"equipment.category" = "Catégorie";
+"equipment.details" = "Détails";
+"equipment.serial" = "Numéro de série";
+"equipment.working" = "Fonctionnel";
+
+// MARK: - Marketplace / Shop
+"tab.marketplace" = "Offres";
+"marketplace.title" = "Offres & Boutique";
+"marketplace.offer" = "Offre spéciale";
+"marketplace.no_offers" = "Aucune offre";
+"marketplace.no_offers_hint" = "Aucun prestataire avec des offres actives.";
+"marketplace.valid_until" = "Valable jusqu'au";
+"marketplace.to_shop" = "Voir la boutique";
+"marketplace.to_website" = "Visiter le site";
+"marketplace.promotion_placeholder" = "Décrire l'offre spéciale...";
+"marketplace.shop_url_placeholder" = "URL boutique (optionnel)";
+"provider.phone" = "Téléphone";
+"provider.email" = "Email";
+"provider.website" = "Site web";
+"profile.country" = "Pays";
+
+// MARK: - Equipment Detail / Edit
+"equipment.status_ok" = "Opérationnel";
+"equipment.status_defect" = "Défectueux / Maintenance requise";
+"equipment.purchase_date" = "Date d'achat";
+"equipment.has_purchase_date" = "Date d'achat connue";
+"equipment.defect_hint" = "Article marqué comme défectueux";
+"equipment.delete_confirm" = "Supprimer l'équipement ?";
+"equipment.find_service" = "Trouver un service adapté";
+"equipment.find_parts" = "Chercher des pièces de rechange";
+"equipment.no_service_found" = "Aucun prestataire trouvé";
+"equipment.service_search_hint" = "Recherche par catégorie et fabricant";
+"equipment.results_found" = "résultats trouvés";
+"equipment.distance" = "Distance";
+"equipment.metashop_title" = "Recherche de pièces";
+"equipment.metashop_hint" = "Recherche basée sur vos données d'équipement";
+"equipment.search_by_name" = "Nom";
+"equipment.search_by_manufacturer" = "Fabricant";
+"equipment.search_by_model" = "Modèle";
+"equipment.search_by_part" = "Numéro de pièce";
+"equipment.search_online" = "Rechercher en ligne";
+"equipment.my_location" = "Ma position";
+"equipment.enter_location" = "Entrer un lieu...";
+"equipment.radius" = "Rayon :";
+"equipment.try_larger_radius" = "Essayez un rayon plus grand ou un autre lieu.";
+"equipment.no_shop_found" = "Aucun shop trouvé";
+"equipment.to_shop" = "Vers le shop";
+"equipment.to_website" = "Vers le site";
+"equipment.in_stock" = "En stock";
+"equipment.out_of_stock" = "Indisponible";
+"equipment.free_shipping" = "Livraison gratuite";
+"equipment.days" = "jours";
+"equipment.actions" = "Actions";
+"equipment.description" = "Description";
+"equipment.dates" = "Dates";
+"equipment.maintenance" = "Entretien";
+"equipment.installation_date" = "Date d'installation";
+"equipment.warranty_expiry" = "Fin de garantie";
+"equipment.has_installation_date" = "Date d'installation connue";
+"equipment.has_warranty" = "Fin de garantie connue";
+"equipment.has_last_maintenance" = "Dernier entretien connu";
+"equipment.cycle" = "Cycle d'entretien (ans)";
+"equipment.last_maintenance" = "Dernier entretien";
+"equipment.next_maintenance" = "Prochain entretien";
+"equipment.maintenance_ok" = "OK";
+"equipment.years" = "ans";
+"equipment.notes" = "Notes";
+"equipment.part_number" = "Numéro de pièce";
+"equipment.location" = "Position sur le bateau";
+"equipment.dimensions" = "Dimensions";
+"equipment.photo_url" = "URL de la photo";
+"equipment.manage_hint" = "Gérer l'équipement de votre bateau";
+"equipment.cat.navigation" = "Navigation";
+"equipment.cat.safety" = "Sécurité";
+"equipment.cat.engine" = "Moteur";
+"equipment.cat.electrical" = "Électrique";
+"equipment.cat.rigging" = "Gréement";
+"equipment.cat.sails" = "Voiles";
+"equipment.cat.anchor" = "Ancre";
+"equipment.cat.communication" = "Communication";
+"equipment.cat.hvac" = "Chauffage/Clim";
+"equipment.cat.paint" = "Peintures";
+"equipment.cat.rope" = "Cordage";
+"equipment.cat.other" = "Autre";
+
+// New keys - Issue fixes
+"provider.products" = "Produits";
+"boats.login_required" = "Veuillez vous connecter pour gérer vos bateaux.";
+"boats.photo" = "Photo";
+"boats.photo_library" = "Photothèque";
+"boats.take_photo" = "Prendre une photo";
+"boats.add_photo" = "Ajouter une photo";
+"boats.uploading_photo" = "Téléchargement de la photo...";
+"boats.upload_failed" = "Échec du téléchargement : %@";
+"boats.upload_encode_failed" = "Impossible d'encoder l'image.";
+"boats.equipment_count" = "Équipement (%d)";
+"boats.delete_confirm" = "Supprimer le bateau ?";
+"boats.delete_message" = "Voulez-vous vraiment supprimer ce bateau ?";
+"maintenance.no_boats_hint" = "Ajoutez d'abord un bateau pour assigner des tâches d'entretien.";
+"general.refresh" = "Actualiser";
+"review.coming_soon_hint" = "La soumission d'avis sera bientôt disponible.";
+"review.edit" = "Modifier l'avis";
+"review.edit_hint" = "Votre avis existant sera mis à jour.";
+"review.own" = "Votre avis";
+"provider.google_rating" = "Avis Google";
+
+// MARK: - Profile (extended)
+"profile.complete" = "Compléter votre profil";
+"profile.uploading_photo" = "Téléchargement de la photo...";
+"profile.user_default" = "Utilisateur";
+"profile.my_boat" = "Mon Bateau";
+"profile.loading_boats" = "Chargement des bateaux...";
+"profile.no_boats_hint" = "Aucun bateau enregistré. Ajoutez votre bateau dans l'onglet Bateaux.";
+"profile.select_boat" = "Sélectionner un bateau";
+"profile.no_boat_selected" = "Aucun bateau sélectionné";
+"profile.boat_shop_hint" = "Votre bateau sélectionné est utilisé pour les recommandations de la boutique.";
+"profile.payment_method" = "Mode de paiement";
+"profile.payment_saved" = "Mode de paiement enregistré";
+"profile.payment_saved_hint" = "Votre carte est enregistrée pour les paiements rapides.";
+"profile.payment_change" = "Changer le mode de paiement";
+"profile.no_payment" = "Aucun mode de paiement";
+"profile.no_payment_hint" = "Ajoutez une carte pour des commandes plus rapides.";
+"profile.payment_add" = "Ajouter un mode de paiement";
+"profile.payment_stripe_hint" = "Les données de paiement sont stockées en toute sécurité par Stripe.";
+"profile.logout_question" = "Se déconnecter ?";
+"profile.logout_confirm_message" = "Voulez-vous vraiment vous déconnecter ?";
+"profile.delete_account" = "Supprimer le compte";
+"profile.delete_account_confirm" = "Vraiment supprimer le compte ?";
+"profile.delete_account_message" = "Votre compte et TOUTES les données associées (bateaux, équipement, entretien, messages, commandes, photos) seront définitivement supprimés.";
+"profile.delete_account_final" = "Confirmation finale";
+"profile.delete_account_final_message" = "Cette action est irréversible. Toutes les données seront immédiatement supprimées.";
+"profile.delete_account_final_button" = "Supprimer définitivement";
+"profile.continue" = "Continuer";
+"profile.saved_toast" = "Profil enregistré";
+
+// MARK: - Equipment (extended)
+"equipment.action_service" = "Service";
+"equipment.action_spare_parts" = "Pièces";
+"equipment.action_ai" = "Assistant IA";
+"equipment.action_sail_form" = "Mesures";
+"equipment.action_edit" = "Modifier";
+"equipment.max_photos" = "Maximum 5 photos atteint";
+"equipment.uploading_photos" = "Téléchargement des photos...";
+"equipment.sail_form_section" = "Fiche de mesure voile";
+"equipment.sail_form_edit" = "Modifier la fiche de mesure";
+"equipment.sail_form_save_first" = "Veuillez d'abord enregistrer, puis remplir la fiche de mesure";
+"equipment.location_unavailable" = "Position indisponible — les distances ne peuvent pas être affichées. Veuillez activer les services de localisation.";
+"equipment.spare_parts_for" = "Pièces de rechange et accessoires pour :";
+"equipment.matching_accessories" = "Accessoires correspondants";
+"equipment.spare_parts_title" = "Pièces de rechange";
+
+// MARK: - Service Search
+"service_search.loading" = "Chargement des prestataires...";
+"service_search.search_prompt" = "Rechercher prestataire, marque ou ville...";
+"service_search.no_providers" = "Aucun prestataire trouvé";
+"service_search.no_providers_hint" = "Aucun prestataire trouvé pour %@ (%@%@).";
+"service_search.show_all" = "Afficher tous les prestataires";
+"service_search.results" = "résultat";
+"service_search.results_plural" = "résultats";
+
+// MARK: - Cart
+"cart.title" = "Panier";
+"cart.empty" = "Votre panier est vide";
+"cart.empty_hint" = "Parcourez la boutique et ajoutez\ndes produits";
+"cart.subtotal" = "Sous-total";
+"cart.shipping" = "Livraison";
+"cart.total" = "Total";
+"cart.total_amount" = "Montant total";
+"cart.checkout" = "Commander";
+
+// MARK: - Checkout
+"checkout.title" = "Commande";
+"checkout.delivery_address" = "Adresse de livraison";
+"checkout.country" = "Pays";
+"checkout.note" = "Remarque (facultatif)";
+"checkout.continue_to_summary" = "Continuer vers le récapitulatif";
+"checkout.order_summary" = "Récapitulatif de commande";
+"checkout.change" = "Modifier";
+"checkout.payment_methods" = "Modes de paiement";
+"checkout.test_mode" = "Mode test — Aucun frais réel";
+"checkout.pay_now" = "Payer maintenant";
+"checkout.secure_payment" = "Paiement sécurisé via Stripe";
+"checkout.subtotal" = "Sous-total";
+"checkout.shipping" = "Livraison";
+"checkout.sum" = "Somme";
+"checkout.success" = "Paiement réussi !";
+"checkout.confirmation_email" = "Vous recevrez un e-mail de confirmation.";
+"checkout.paid" = "Payé";
+"checkout.back_to_shop" = "Retour à la boutique";
+
+// MARK: - Orders
+"orders.title" = "Commandes";
+"orders.loading" = "Chargement des commandes...";
+"orders.empty" = "Aucune commande";
+"orders.empty_hint" = "Vos commandes apparaîtront ici\ndès que vous passerez une commande.";
+"orders.status" = "Statut de commande";
+"orders.tracking" = "Suivi de livraison";
+"orders.loading_detail" = "Chargement de la commande...";
+
+// MARK: - Messages
+"messages.title" = "Messages";
+"messages.loading" = "Chargement des messages...";
+"messages.search_prompt" = "Rechercher un prestataire...";
+
+// MARK: - Shop / Products
+"shop.loading" = "Chargement des produits...";
+"shop.description" = "Description";
+"shop.tech_info" = "Informations techniques";
+"shop.keywords" = "Mots-clés";
+"shop.hazardous" = "Produit dangereux — consulter la fiche de sécurité";
+"shop.compatibility" = "Compatibilité";
+"shop.quantity" = "Quantité";
+"shop.add_to_cart" = "Ajouter au panier";
+"shop.similar_products" = "Produits similaires";
+"shop.more_from" = "Plus de %@";
+"shop.added_to_cart" = "Ajouté au panier";
+"shop.no_exact_match" = "Aucune correspondance exacte";
+"shop.no_exact_match_hint" = "Nous n'avons rien trouvé pour « %@ ».";
+"shop.ai_searching" = "L'IA recherche des alternatives…";
+"shop.ai_suggestions" = "Suggestions IA pour vous";
+
+// MARK: - Auth (extended)
+"auth.reset_password" = "Réinitialiser le mot de passe";
+"auth.email_sent" = "E-mail envoyé";
+"auth.privacy_policy" = "Politique de confidentialité";
+"auth.registration" = "Inscription";
+
+// MARK: - Sail Measurement
+"sail.form_title" = "Fiche de mesure";
+"sail.all_in_cm" = "Toutes les dimensions en cm (diamètre en mm)";
+"sail.saved" = "Fiche de mesure enregistrée";
+"sail.select_type" = "Sélectionnez le type de voile pour la fiche de mesure :";
+"sail.select_type_title" = "Sélectionner le type de voile";
+"sail.color_black" = "Noir";
+"sail.color_grey" = "Gris";
+"sail.color_blue" = "Bleu";
+"sail.color_red" = "Rouge";
+"sail.color_white" = "Blanc";
+"sail.port" = "Bâbord";
+"sail.starboard" = "Tribord";
+
+// MARK: - Auth (Login / Registration)
+"auth.welcome_back" = "Bon retour";
+"auth.sign_in" = "Se connecter";
+"auth.forgot_password_title" = "Réinitialiser le mot de passe";
+"auth.send" = "Envoyer";
+"auth.reset_link_hint" = "Nous t'envoyons un lien de réinitialisation.";
+"auth.email_sent_hint" = "Vérifie ta boîte mail pour le lien de réinitialisation.";
+"auth.new_account" = "Créer un nouveau compte";
+"auth.or" = "ou";
+"auth.or_email" = "ou par e-mail";
+"auth.create_account_title" = "Crée ton compte Skipily";
+"auth.full_name_label" = "Nom complet";
+"auth.email_label" = "Adresse e-mail";
+"auth.password_label" = "Mot de passe";
+"auth.password_confirm_label" = "Confirmer le mot de passe";
+"auth.password_min" = "Au moins 8 caractères";
+"auth.password_repeat" = "Répéter le mot de passe";
+"auth.passwords_mismatch" = "Les mots de passe ne correspondent pas";
+"auth.step_1" = "Étape 1 sur 3 – Créer un compte";
+"auth.step_2" = "Étape 2 sur 3 – Données personnelles";
+"auth.step_3" = "Étape 3 sur 3 – Confidentialité";
+"auth.personal_data" = "Données personnelles";
+"auth.personal_data_hint" = "Pour les livraisons et le contact";
+"auth.phone_optional" = "Numéro de téléphone (facultatif)";
+"auth.street_label" = "Rue et numéro";
+"auth.postal_code_label" = "Code postal";
+"auth.city_label" = "Ville";
+"auth.country_label" = "Pays";
+"auth.privacy_terms" = "Confidentialité et CGV";
+"auth.privacy_terms_hint" = "Veuillez lire et accepter notre politique de confidentialité et nos conditions générales.";
+"auth.read_privacy" = "Lire la politique de confidentialité";
+"auth.accept_privacy" = "J'ai lu la **politique de confidentialité** et j'accepte le traitement de mes données.";
+"auth.accept_terms" = "J'accepte les **conditions générales** de Skipily.";
+"auth.consent_required" = "Les deux consentements sont nécessaires pour utiliser l'application.";
+"auth.back" = "Retour";
+"auth.create_account_btn" = "Créer un compte";
+"auth.continue_btn" = "Continuer";
+"auth.accept_go" = "Accepter & C'est parti !";
+"auth.registration_failed" = "Échec de l'inscription";
+"auth.privacy_title" = "Politique de confidentialité";
+"auth.privacy_full_link" = "Politique de confidentialité complète :";
+"auth.privacy_date" = "Mise à jour : avril 2026";
+"auth.privacy_close" = "Fermer";
+
+// MARK: - POI (extended)
+"poi.reset_confirm" = "Réinitialiser tous les favoris ?";
+"poi.delete_all" = "Tout supprimer";
+"poi.reset_message" = "Supprime TOUS les prestataires enregistrés de ton profil. Cette action est irréversible.";
+"poi.mark_hint" = "Marque les prestataires avec ❤️ sur la carte";
+
+// MARK: - Offline
+"offline.mode" = "Mode hors ligne";
+"offline.as_of" = "Mis à jour : %@";
+"offline.providers" = "%d Prestataires";
+"offline.products" = "%d Produits";
+
+// MARK: - Messages (extended)
+"messages.no_messages" = "Pas encore de messages";
+"messages.placeholder" = "Message...";
+"messages.empty_title" = "Aucun message";
+"messages.empty_hint" = "Démarre une conversation à partir\nd'une commande";
+
+// MARK: - Shop (extended)
+"shop.search_placeholder" = "Rechercher des produits...";
+"shop.recent_searches" = "Recherches récentes";
+"shop.valid_until" = "Jusqu'au %@";
+"shop.clear" = "Effacer";
+"shop.equipment_match" = "Adapté à ton équipement";
+"shop.price_range" = "Gamme de prix";
+"shop.products_loading" = "Chargement des produits...";
+"shop.no_products" = "Aucun produit trouvé";
+"shop.try_other_search" = "Essaie un autre terme de recherche";
+"shop.search_results" = "Résultats de recherche";
+"shop.all_products" = "Tous les produits";
+"shop.back" = "Retour";
+"shop.products_count" = "%d Produits";
+"shop.in_cart" = "Dans le panier";
+"shop.recommended" = "Recommandé pour toi";
+"shop.equipment_deals" = "Offres pour ton équipement";
+"shop.error_loading" = "Erreur de chargement";
+"shop.added_toast" = "%@ ajouté";
+
+// MARK: - Boats (extended)
+"boats.tap_hint" = "Appuie ici pour voir les détails";
+"boats.image_load_error" = "L'image n'a pas pu être chargée";
+
+// MARK: - Countries
+"country.DE" = "Allemagne";
+"country.AT" = "Autriche";
+"country.CH" = "Suisse";
+"country.NL" = "Pays-Bas";
+"country.FR" = "France";
+"country.IT" = "Italie";
+"country.ES" = "Espagne";
+"country.HR" = "Croatie";
+"country.GR" = "Grèce";

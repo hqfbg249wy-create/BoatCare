@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe } from 'lucide-react'
+import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe, Image as ImageIcon, Upload, Trash2 } from 'lucide-react'
+
+// Storage bucket created by database/038_provider_images_bucket.sql
+const PROVIDER_IMAGES_BUCKET = 'provider-images'
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5 MB (matches bucket limit)
 
 export default function Profile() {
   const { provider, loadProvider, user } = useAuth()
@@ -20,6 +24,13 @@ export default function Profile() {
   const [webhookUrl, setWebhookUrl] = useState('')
   const [apiKeyCopied, setApiKeyCopied] = useState(false)
   const [generatingKey, setGeneratingKey] = useState(false)
+
+  // Image upload state
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [imageMessage, setImageMessage] = useState(null)
+  const logoInputRef = useRef(null)
+  const coverInputRef = useRef(null)
 
   useEffect(() => {
     if (provider) {
@@ -217,6 +228,136 @@ export default function Profile() {
     }
   }
 
+  // ---------------------------------------------------------------------
+  // Image uploads (logo + cover) → Supabase Storage bucket provider-images
+  // ---------------------------------------------------------------------
+
+  async function handleImageUpload(kind, file) {
+    setImageMessage(null)
+    if (!file) return
+    if (!provider?.id) {
+      setImageMessage({ type: 'error', text: 'Kein Provider-Profil gefunden.' })
+      return
+    }
+
+    // Basic validation
+    if (!file.type.startsWith('image/')) {
+      setImageMessage({ type: 'error', text: 'Bitte eine Bilddatei auswählen.' })
+      return
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setImageMessage({
+        type: 'error',
+        text: `Bild ist größer als 5 MB (${(file.size / 1024 / 1024).toFixed(1)} MB).`,
+      })
+      return
+    }
+
+    const setBusy = kind === 'logo' ? setUploadingLogo : setUploadingCover
+    setBusy(true)
+
+    try {
+      // Extension from mime or filename, fallback to jpg
+      const extFromType = file.type.split('/')[1] || 'jpg'
+      const ext = ['jpeg', 'jpg', 'png', 'webp', 'heic', 'heif'].includes(extFromType)
+        ? (extFromType === 'jpeg' ? 'jpg' : extFromType)
+        : 'jpg'
+
+      const folder = kind === 'logo' ? 'logos' : 'covers'
+      const path = `${folder}/${provider.id}.${ext}`
+
+      const { error: upErr } = await supabase.storage
+        .from(PROVIDER_IMAGES_BUCKET)
+        .upload(path, file, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: file.type,
+        })
+
+      if (upErr) throw upErr
+
+      // Public URL (bucket is public)
+      const { data: pub } = supabase.storage
+        .from(PROVIDER_IMAGES_BUCKET)
+        .getPublicUrl(path)
+
+      // Bust any CDN cache by appending a short timestamp — the URL itself
+      // stays stable on the DB side (upsert overwrote the object).
+      const publicUrl = pub.publicUrl
+
+      // Persist on service_providers
+      const column = kind === 'logo' ? 'logo_url' : 'cover_image_url'
+      const { error: dbErr } = await supabase
+        .from('service_providers')
+        .update({ [column]: publicUrl })
+        .eq('id', provider.id)
+      if (dbErr) throw dbErr
+
+      setImageMessage({
+        type: 'success',
+        text: kind === 'logo' ? 'Logo aktualisiert.' : 'Titelbild aktualisiert.',
+      })
+      loadProvider(user.id)
+    } catch (err) {
+      console.error('image upload error:', err)
+      setImageMessage({
+        type: 'error',
+        text: `Upload fehlgeschlagen: ${err.message || err}`,
+      })
+    } finally {
+      setBusy(false)
+      // Reset input so the same file can be re-uploaded
+      if (kind === 'logo' && logoInputRef.current) logoInputRef.current.value = ''
+      if (kind === 'cover' && coverInputRef.current) coverInputRef.current.value = ''
+    }
+  }
+
+  async function handleImageRemove(kind) {
+    setImageMessage(null)
+    if (!provider?.id) return
+
+    const column = kind === 'logo' ? 'logo_url' : 'cover_image_url'
+    const currentUrl = provider[column]
+    if (!currentUrl) return
+
+    if (!confirm(kind === 'logo' ? 'Logo wirklich entfernen?' : 'Titelbild wirklich entfernen?')) {
+      return
+    }
+
+    const setBusy = kind === 'logo' ? setUploadingLogo : setUploadingCover
+    setBusy(true)
+    try {
+      // Try to delete from storage (only succeeds if the URL points at our bucket)
+      if (currentUrl.includes(`/storage/v1/object/public/${PROVIDER_IMAGES_BUCKET}/`)) {
+        const marker = `/storage/v1/object/public/${PROVIDER_IMAGES_BUCKET}/`
+        const pathInBucket = currentUrl.split(marker)[1]
+        if (pathInBucket) {
+          await supabase.storage.from(PROVIDER_IMAGES_BUCKET).remove([pathInBucket])
+        }
+      }
+
+      const { error: dbErr } = await supabase
+        .from('service_providers')
+        .update({ [column]: null })
+        .eq('id', provider.id)
+      if (dbErr) throw dbErr
+
+      setImageMessage({
+        type: 'success',
+        text: kind === 'logo' ? 'Logo entfernt.' : 'Titelbild entfernt.',
+      })
+      loadProvider(user.id)
+    } catch (err) {
+      console.error('image remove error:', err)
+      setImageMessage({
+        type: 'error',
+        text: `Entfernen fehlgeschlagen: ${err.message || err}`,
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
   function copyApiKey() {
     if (apiKey) {
       navigator.clipboard.writeText(apiKey)
@@ -353,6 +494,154 @@ export default function Profile() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Images: Logo + Cover — only editable by the provider, not by app users */}
+      <div className="card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <ImageIcon size={20} style={{ color: 'var(--primary)' }} />
+          <h2 style={{ margin: 0 }}>Bilder</h2>
+        </div>
+        <p className="hint" style={{ marginBottom: 16 }}>
+          Logo und Titelbild erscheinen auf Ihrem Profil in der BoatCare/Skipily App.
+          Nur Sie als Anbieter können diese Bilder ändern. Max. 5 MB, empfohlen: Logo 512×512 px, Titelbild 1600×900 px.
+        </p>
+
+        {imageMessage && (
+          <div className={`message message-${imageMessage.type}`} style={{ marginBottom: 16 }}>
+            {imageMessage.text}
+          </div>
+        )}
+
+        {/* Logo */}
+        <div className="form-group">
+          <label>Logo</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div
+              style={{
+                width: 96,
+                height: 96,
+                borderRadius: 12,
+                border: '1px solid var(--gray-200)',
+                background: 'var(--gray-50)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                flexShrink: 0,
+              }}
+            >
+              {provider.logo_url ? (
+                <img
+                  src={provider.logo_url}
+                  alt="Logo"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                />
+              ) : (
+                <ImageIcon size={28} style={{ color: 'var(--gray-300)' }} />
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={(e) => handleImageUpload('logo', e.target.files?.[0])}
+              />
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => logoInputRef.current?.click()}
+                disabled={uploadingLogo}
+              >
+                {uploadingLogo
+                  ? <><Loader size={14} className="spin" /> Wird hochgeladen...</>
+                  : <><Upload size={14} /> {provider.logo_url ? 'Logo ersetzen' : 'Logo hochladen'}</>
+                }
+              </button>
+              {provider.logo_url && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => handleImageRemove('logo')}
+                  disabled={uploadingLogo}
+                  title="Logo entfernen"
+                >
+                  <Trash2 size={14} /> Entfernen
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Cover / Titelbild */}
+        <div className="form-group" style={{ marginTop: 20 }}>
+          <label>Titelbild</label>
+          <div
+            style={{
+              width: '100%',
+              aspectRatio: '16 / 9',
+              maxHeight: 260,
+              borderRadius: 12,
+              border: '1px solid var(--gray-200)',
+              background: provider.cover_image_url
+                ? 'var(--gray-50)'
+                : 'linear-gradient(135deg, #e0e7ff 0%, #fce7f3 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              marginBottom: 12,
+            }}
+          >
+            {provider.cover_image_url ? (
+              <img
+                src={provider.cover_image_url}
+                alt="Titelbild"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
+              />
+            ) : (
+              <div style={{ color: 'var(--gray-400)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ImageIcon size={28} />
+                <span>Noch kein Titelbild</span>
+              </div>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={(e) => handleImageUpload('cover', e.target.files?.[0])}
+            />
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => coverInputRef.current?.click()}
+              disabled={uploadingCover}
+            >
+              {uploadingCover
+                ? <><Loader size={14} className="spin" /> Wird hochgeladen...</>
+                : <><Upload size={14} /> {provider.cover_image_url ? 'Titelbild ersetzen' : 'Titelbild hochladen'}</>
+              }
+            </button>
+            {provider.cover_image_url && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => handleImageRemove('cover')}
+                disabled={uploadingCover}
+                title="Titelbild entfernen"
+              >
+                <Trash2 size={14} /> Entfernen
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit}>

@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Xcode user-specific data
+xcuserdata/
+*.xcuserstate
+
+# Node / Vite portals
+node_modules/
+dist/
+.env
+.env.local
+
+# Supabase CLI local cache
+supabase/.temp/
+
+# Claude Code local state
+.claude/

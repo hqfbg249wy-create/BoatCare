@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Plus, Pencil, Trash2, Search, Upload, X, Save, Loader, Image as ImageIcon } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, Upload, X, Save, Loader, Image as ImageIcon, Package } from 'lucide-react'
 
 export default function Products() {
   const { provider } = useAuth()
