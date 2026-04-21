@@ -1,5 +1,7 @@
-// AI Chat Edge Function — BoatCare Boots-Assistent
-// Ruft Claude API auf und gibt fachkundige Antworten zu allen Boots-Themen
+// AI Chat Edge Function — Skipily Boots-Assistent
+// Ruft Claude API auf und gibt fachkundige Antworten zu allen Boots-Themen.
+// Lernschleife: Positiv bewertete Antworten aus der Historie werden als
+// Few-Shot-Beispiele in den System-Prompt eingeblendet.
 
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -7,8 +9,92 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
 const MAX_TOKENS = 2048;
+const MAX_FEWSHOTS = 3;
 
-const SYSTEM_PROMPT = `Du bist der BoatCare Boots-Assistent — ein erfahrener Boots-Techniker und Service-Experte mit jahrzehntelanger Erfahrung in Bootsbau, Wartung und Reparatur.
+// Stopwords fuer die Keyword-Extraktion aus der Nutzerfrage.
+const STOPWORDS = new Set([
+  "und", "oder", "aber", "mit", "ohne", "sowie", "auch", "der", "die", "das",
+  "den", "dem", "des", "ein", "eine", "einer", "einen", "einem", "eines",
+  "ist", "sind", "war", "waren", "wird", "werden", "wurde", "wurden", "hat",
+  "haben", "hatte", "hatten", "kann", "koennen", "konnte", "konnten", "soll",
+  "sollen", "sollte", "sollten", "muss", "muessen", "musste", "mussten",
+  "fuer", "von", "zum", "zur", "bei", "nach", "vor", "ueber", "unter",
+  "auf", "aus", "ins", "ins", "was", "wie", "warum", "wo", "wann", "welche",
+  "welcher", "welches", "welchen", "welchem", "mein", "meine", "meinen",
+  "meinem", "meines", "nicht", "nur", "noch", "sehr", "mehr", "weniger",
+  "the", "and", "or", "of", "to", "in", "on", "for", "with", "is", "are",
+  "was", "were", "be", "been", "has", "have", "had", "my", "your", "our",
+  "how", "why", "what", "when", "where", "which"
+]);
+
+function extractKeywords(text: string, max = 6): string[] {
+  const cleaned = text.toLowerCase().replace(/[^a-zA-Z0-9äöüß\s-]/g, " ");
+  const tokens = cleaned.split(/\s+/).filter((t) =>
+    t.length >= 4 && !STOPWORDS.has(t)
+  );
+  // Deduplizieren, laengste zuerst (spezifischer)
+  const unique = Array.from(new Set(tokens)).sort((a, b) => b.length - a.length);
+  return unique.slice(0, max);
+}
+
+/**
+ * Holt bis zu MAX_FEWSHOTS positiv bewertete Assistent-Antworten aus der
+ * Historie, deren User-Frage Schluesselwoerter mit der aktuellen Frage teilt.
+ * Laeuft als Service-Role, umgeht RLS und nutzt die View ai_chat_top_answers.
+ * Bei jedem Fehler wird still auf leere Liste zurueckgegangen - Chat soll
+ * auch ohne Lern-Kontext funktionieren.
+ */
+async function fetchFewShotExamples(
+  latestUserMessage: string,
+): Promise<Array<{ question: string; answer: string }>> {
+  const keywords = extractKeywords(latestUserMessage);
+  if (keywords.length === 0) return [];
+
+  const serviceUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!serviceUrl || !serviceKey) return [];
+
+  try {
+    const admin = createClient(serviceUrl, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    // OR-Filter ueber Keywords
+    const orFilter = keywords
+      .map((k) => `user_question.ilike.%${k}%`)
+      .join(",");
+
+    const { data, error } = await admin
+      .from("ai_chat_top_answers")
+      .select("user_question, assistant_content, outcome, feedback_at")
+      .or(orFilter)
+      .not("user_question", "is", null)
+      .order("feedback_at", { ascending: false })
+      .limit(MAX_FEWSHOTS * 3); // Oversampling: Duplikate/lange Antworten filtern
+
+    if (error || !data) return [];
+
+    const seen = new Set<string>();
+    const results: Array<{ question: string; answer: string }> = [];
+    for (const row of data as Array<Record<string, unknown>>) {
+      const q = String(row.user_question ?? "").trim();
+      const a = String(row.assistant_content ?? "").trim();
+      if (q.length === 0 || a.length === 0) continue;
+      if (a.length > 1200) continue; // zu lange Antworten ueberspringen
+      const key = q.toLowerCase().slice(0, 80);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      results.push({ question: q, answer: a });
+      if (results.length >= MAX_FEWSHOTS) break;
+    }
+    return results;
+  } catch (err) {
+    console.warn("fetchFewShotExamples failed:", err);
+    return [];
+  }
+}
+
+const SYSTEM_PROMPT = `Du bist der Skipily Boots-Assistent — ein erfahrener Boots-Techniker und Service-Experte mit jahrzehntelanger Erfahrung in Bootsbau, Wartung und Reparatur.
 
 Deine Expertise umfasst:
 - Bootsmotoren (Diesel, Benzin, Elektro): Wartung, Fehlerdiagnose, Ölwechsel, Impeller, Kühlsystem
@@ -111,6 +197,22 @@ Deno.serve(async (req) => {
 - Nutze die konkreten Gerätedaten (Hersteller, Modell, Installationsdatum, Wartungstermine) für spezifische Empfehlungen.
 - Wenn Wartungstermine überfällig sind, weise aktiv darauf hin.
 - Gib Empfehlungen basierend auf dem tatsächlichen Alter und Zustand der Ausrüstung.`;
+    }
+
+    // Lernschleife: Top-bewertete Antworten zu aehnlichen Fragen mitgeben
+    const latestUserMessage = [...messages].reverse().find(
+      (m: { role: string; content: string }) => m.role === "user",
+    );
+    if (latestUserMessage?.content) {
+      const fewShots = await fetchFewShotExamples(latestUserMessage.content);
+      if (fewShots.length > 0) {
+        const block = fewShots
+          .map((ex, i) =>
+            `Beispiel ${i + 1}:\nFrage: ${ex.question}\nHochbewertete Antwort: ${ex.answer}`
+          )
+          .join("\n\n");
+        systemPrompt += `\n\nLernkontext — frueher als hilfreich bewertete Antworten zu aehnlichen Themen. Nutze sie als Qualitaets-Referenz (Tonfall, Detailtiefe, Struktur), uebernimm aber niemals wortwoertlich und passe an den aktuellen Kontext an:\n\n${block}`;
+      }
     }
 
     // Claude API aufrufen

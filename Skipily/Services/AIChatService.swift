@@ -61,6 +61,32 @@ struct AIChatEquipment: Codable {
     }
 }
 
+// MARK: - Persistence Models
+
+/// Kurz-Info einer gespeicherten Chat-Session (fuer Historien-Liste).
+struct ChatSessionSummary: Identifiable, Hashable {
+    let id: UUID
+    let title: String
+    let updatedAt: Date
+    let preview: String?
+}
+
+/// Eine aus der DB geladene Nachricht inkl. Feedback (falls vorhanden).
+struct PersistedChatMessage: Identifiable, Hashable {
+    let id: UUID
+    let role: String        // "user" | "assistant"
+    let content: String
+    let createdAt: Date
+    var feedback: ChatFeedback?
+}
+
+/// Nutzer-Feedback zu einer Assistentenantwort.
+struct ChatFeedback: Codable, Hashable {
+    let rating: String          // "thumbs_up" | "thumbs_down"
+    let outcome: String?        // "solved" | "partial" | "not_solved" | nil
+    let comment: String?
+}
+
 // MARK: - Service
 
 @MainActor
@@ -261,6 +287,226 @@ class AIChatService {
             AppLog.warning("Boot-Kontext konnte nicht geladen werden: \(error)")
             return nil
         }
+    }
+
+    // MARK: - Persistence (Historie + Feedback-Loop)
+
+    /// Legt eine neue Chat-Session an und gibt deren ID zurueck.
+    /// Der Boots-Kontext wird als Snapshot mitgespeichert (JSONB), damit die
+    /// Session spaeter reproduzierbar bleibt, auch wenn sich die Bootsdaten aendern.
+    func createSession(title: String, boatContext: AIChatContext?) async throws -> UUID {
+        guard let userId = SupabaseManager.shared.client.auth.currentUser?.id else {
+            throw AIChatError.notAuthenticated
+        }
+
+        struct InsertRow: Encodable {
+            let user_id: UUID
+            let title: String
+            let boat_context_snapshot: AIChatContext?
+        }
+
+        struct ReturnedRow: Decodable { let id: UUID }
+
+        let row = InsertRow(
+            user_id: userId,
+            title: title.isEmpty ? "Neues Gespraech" : String(title.prefix(120)),
+            boat_context_snapshot: boatContext
+        )
+
+        let result: [ReturnedRow] = try await SupabaseManager.shared.client
+            .from("ai_chat_sessions")
+            .insert(row, returning: .representation)
+            .select("id")
+            .execute()
+            .value
+
+        guard let id = result.first?.id else {
+            throw AIChatError.emptyResponse
+        }
+        return id
+    }
+
+    /// Speichert eine Message und gibt die neu vergebene ID zurueck.
+    /// `role` muss "user" oder "assistant" sein.
+    @discardableResult
+    func saveMessage(sessionId: UUID, role: String, content: String) async throws -> UUID {
+        guard let userId = SupabaseManager.shared.client.auth.currentUser?.id else {
+            throw AIChatError.notAuthenticated
+        }
+
+        struct InsertRow: Encodable {
+            let session_id: UUID
+            let user_id: UUID
+            let role: String
+            let content: String
+        }
+        struct ReturnedRow: Decodable { let id: UUID }
+
+        let row = InsertRow(session_id: sessionId, user_id: userId, role: role, content: content)
+
+        let result: [ReturnedRow] = try await SupabaseManager.shared.client
+            .from("ai_chat_messages")
+            .insert(row, returning: .representation)
+            .select("id")
+            .execute()
+            .value
+
+        guard let id = result.first?.id else {
+            throw AIChatError.emptyResponse
+        }
+        return id
+    }
+
+    /// Aktualisiert den Session-Titel (z.B. aus erster User-Frage abgeleitet).
+    func updateSessionTitle(id: UUID, title: String) async throws {
+        struct UpdateRow: Encodable { let title: String }
+        let trimmed = String(title.prefix(120))
+        try await SupabaseManager.shared.client
+            .from("ai_chat_sessions")
+            .update(UpdateRow(title: trimmed))
+            .eq("id", value: id)
+            .execute()
+    }
+
+    /// Loescht eine komplette Session inklusive aller Messages (Cascade).
+    func deleteSession(id: UUID) async throws {
+        try await SupabaseManager.shared.client
+            .from("ai_chat_sessions")
+            .delete()
+            .eq("id", value: id)
+            .execute()
+    }
+
+    /// Listet alle Sessions des aktuellen Users, neueste zuerst.
+    func listSessions() async throws -> [ChatSessionSummary] {
+        struct Row: Decodable {
+            let id: UUID
+            let title: String
+            let updated_at: Date
+        }
+
+        let rows: [Row] = try await SupabaseManager.shared.client
+            .from("ai_chat_sessions")
+            .select("id, title, updated_at")
+            .order("updated_at", ascending: false)
+            .limit(100)
+            .execute()
+            .value
+
+        // Preview aus letzter User-Nachricht ziehen (1 Query pro Session - OK bei <=100)
+        var summaries: [ChatSessionSummary] = []
+        for row in rows {
+            let preview = (try? await lastUserPreview(sessionId: row.id)) ?? nil
+            summaries.append(ChatSessionSummary(
+                id: row.id,
+                title: row.title,
+                updatedAt: row.updated_at,
+                preview: preview
+            ))
+        }
+        return summaries
+    }
+
+    private func lastUserPreview(sessionId: UUID) async throws -> String? {
+        struct Row: Decodable { let content: String }
+        let rows: [Row] = try await SupabaseManager.shared.client
+            .from("ai_chat_messages")
+            .select("content")
+            .eq("session_id", value: sessionId)
+            .eq("role", value: "user")
+            .order("created_at", ascending: false)
+            .limit(1)
+            .execute()
+            .value
+        return rows.first.map { String($0.content.prefix(140)) }
+    }
+
+    /// Laedt alle Nachrichten einer Session chronologisch, inkl. Feedback.
+    func loadMessages(sessionId: UUID) async throws -> [PersistedChatMessage] {
+        struct MsgRow: Decodable {
+            let id: UUID
+            let role: String
+            let content: String
+            let created_at: Date
+        }
+        let msgs: [MsgRow] = try await SupabaseManager.shared.client
+            .from("ai_chat_messages")
+            .select("id, role, content, created_at")
+            .eq("session_id", value: sessionId)
+            .order("created_at", ascending: true)
+            .execute()
+            .value
+
+        let assistantIds = msgs.filter { $0.role == "assistant" }.map { $0.id }
+        let feedbackMap = assistantIds.isEmpty
+            ? [:]
+            : (try? await loadFeedback(messageIds: assistantIds)) ?? [:]
+
+        return msgs.map { row in
+            PersistedChatMessage(
+                id: row.id,
+                role: row.role,
+                content: row.content,
+                createdAt: row.created_at,
+                feedback: feedbackMap[row.id]
+            )
+        }
+    }
+
+    /// Laedt Feedback fuer eine Menge von Message-IDs.
+    func loadFeedback(messageIds: [UUID]) async throws -> [UUID: ChatFeedback] {
+        guard !messageIds.isEmpty else { return [:] }
+        struct Row: Decodable {
+            let message_id: UUID
+            let rating: String
+            let outcome: String?
+            let comment: String?
+        }
+        let rows: [Row] = try await SupabaseManager.shared.client
+            .from("ai_chat_feedback")
+            .select("message_id, rating, outcome, comment")
+            .in("message_id", values: messageIds.map { $0.uuidString })
+            .execute()
+            .value
+
+        var map: [UUID: ChatFeedback] = [:]
+        for r in rows {
+            map[r.message_id] = ChatFeedback(rating: r.rating, outcome: r.outcome, comment: r.comment)
+        }
+        return map
+    }
+
+    /// Legt Feedback an oder aktualisiert vorhandenes (UNIQUE(message_id, user_id)).
+    func submitFeedback(
+        messageId: UUID,
+        rating: String,
+        outcome: String? = nil,
+        comment: String? = nil
+    ) async throws {
+        guard let userId = SupabaseManager.shared.client.auth.currentUser?.id else {
+            throw AIChatError.notAuthenticated
+        }
+
+        struct UpsertRow: Encodable {
+            let message_id: UUID
+            let user_id: UUID
+            let rating: String
+            let outcome: String?
+            let comment: String?
+        }
+
+        let row = UpsertRow(
+            message_id: messageId,
+            user_id: userId,
+            rating: rating,
+            outcome: outcome,
+            comment: comment?.isEmpty == true ? nil : comment
+        )
+
+        try await SupabaseManager.shared.client
+            .from("ai_chat_feedback")
+            .upsert(row, onConflict: "message_id,user_id")
+            .execute()
     }
 }
 
