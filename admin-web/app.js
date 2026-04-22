@@ -62,7 +62,14 @@ function getCategoryIcon(category) {
 
 // Google Search Scraping Konfiguration
 const USE_GOOGLE_SEARCH_FALLBACK = true; // Feature-Flag
-const GOOGLE_SCRAPER_BACKEND_URL = 'http://localhost:3001';
+// Scraper-Backend: lokal auf 3001, produktiv auf Railway.
+// Override per window.SCRAPER_BACKEND_URL in config.js möglich.
+const GOOGLE_SCRAPER_BACKEND_URL =
+    (typeof window !== 'undefined' && window.SCRAPER_BACKEND_URL)
+        ? window.SCRAPER_BACKEND_URL
+        : (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+            ? 'http://localhost:3001'
+            : 'https://boatcare-production.up.railway.app';
 
 // App-Kategorien (entspricht Localizable.strings — ohne Marina)
 // Der Scraper sucht automatisch alle Kategorien pro Ort
