@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 3001;
 // lokale Entwicklung weiter offen.
 const ALLOWED_ORIGINS = [
     'https://admin.skipily.app',
+    'https://boatcare-production.up.railway.app',
     'http://localhost:5173',
     'http://localhost:8080',
     'http://127.0.0.1:5500',
