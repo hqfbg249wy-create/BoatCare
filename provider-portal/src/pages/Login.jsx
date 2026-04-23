@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Anchor } from 'lucide-react'
 
@@ -29,7 +30,7 @@ export default function Login() {
       <div className="login-card">
         <div className="login-header">
           <Anchor size={40} color="#f97316" />
-          <h1>BoatCare</h1>
+          <h1>Skipily</h1>
           <p>Provider-Portal</p>
         </div>
 
@@ -64,7 +65,7 @@ export default function Login() {
         </form>
 
         <p className="login-hint">
-          Zugang nur für registrierte ServiceProvider.
+          Noch kein Konto? <Link to="/signup">Jetzt als Provider registrieren</Link>
         </p>
       </div>
     </div>

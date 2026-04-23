@@ -56,6 +56,25 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  async function signUp({ email, password, companyName, category, city }) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          is_provider: true,
+          company_name: companyName,
+          category: category || 'repair',
+          city: city || null,
+          country: 'Deutschland',
+        },
+        emailRedirectTo: `${window.location.origin}/`,
+      },
+    })
+    if (error) throw error
+    return data
+  }
+
   async function signOut() {
     await supabase.auth.signOut()
     setUser(null)
@@ -63,7 +82,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, provider, loading, signIn, signOut, loadProvider }}>
+    <AuthContext.Provider value={{ user, provider, loading, signIn, signUp, signOut, loadProvider }}>
       {children}
     </AuthContext.Provider>
   )

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import Layout from './components/Layout'
 import Login from './pages/Login'
+import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
 import Products from './pages/Products'
 import Orders from './pages/Orders'
@@ -22,13 +23,20 @@ function ProtectedRoutes() {
     )
   }
 
-  if (!user) return <Login />
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/signup" element={<Signup />} />
+        <Route path="*" element={<Login />} />
+      </Routes>
+    )
+  }
 
   if (!provider) {
     return (
       <div className="loading-screen">
         <h2>Kein Provider-Profil</h2>
-        <p>Ihr Account ist nicht mit einem ServiceProvider verknüpft.<br />Bitte kontaktieren Sie das BoatCare-Team.</p>
+        <p>Ihr Account ist nicht mit einem ServiceProvider verknüpft.<br />Bitte kontaktieren Sie das Skipily-Team.</p>
         <button className="btn-secondary" onClick={() => window.location.reload()}>Erneut versuchen</button>
       </div>
     )
