@@ -56,6 +56,10 @@
                     <span class="icon">➕</span>
                     Provider hinzufügen
                 </button>
+                <button class="nav-item" data-page="invite-provider" onclick="window.navigateToPage('invite-provider')">
+                    <span class="icon">✉️</span>
+                    Provider einladen
+                </button>
                 <button class="nav-item" data-page="search-automation" onclick="window.navigateToPage('search-automation')">
                     <span class="icon">🔍</span>
                     Betriebe suchen
@@ -917,6 +921,50 @@
                             <tr><td colspan="5" style="text-align:center;padding:40px;color:#94a3b8;">Laden...</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Invite Provider Page -->
+            <div id="invite-provider-page" class="page">
+                <h1>✉️ Provider einladen</h1>
+                <p class="subtitle">Der eingeladene Provider erhält einen Magic-Link per E-Mail und kann sich anschließend selbst registrieren. Das Profil in <code>service_providers</code> wird automatisch angelegt.</p>
+
+                <div class="card" style="max-width:640px;">
+                    <form id="invite-provider-form" onsubmit="return window.handleInviteProvider(event)">
+                        <div class="form-group">
+                            <label for="invite-email">E-Mail *</label>
+                            <input type="email" id="invite-email" name="email" required placeholder="kontakt@muster-werft.de">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="invite-company">Firmenname *</label>
+                            <input type="text" id="invite-company" name="company_name" required placeholder="Musterwerft GmbH">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="invite-category">Kategorie</label>
+                            <select id="invite-category" name="category">
+                                <option value="repair">Reparatur / Werft</option>
+                                <option value="marina">Marina / Liegeplatz</option>
+                                <option value="chandlery">Bootszubehör</option>
+                                <option value="sailmaker">Segelmacher</option>
+                                <option value="engine">Motorenservice</option>
+                                <option value="electric">Elektrik / Elektronik</option>
+                                <option value="other">Sonstiges</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="invite-city">Stadt</label>
+                            <input type="text" id="invite-city" name="city" placeholder="Hamburg">
+                        </div>
+
+                        <button type="submit" class="btn-primary" id="invite-submit-btn">
+                            ✉️ Einladung senden
+                        </button>
+                    </form>
+
+                    <div id="invite-message" style="margin-top:16px;"></div>
                 </div>
             </div>
         </main>

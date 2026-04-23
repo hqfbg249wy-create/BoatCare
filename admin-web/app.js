@@ -6422,3 +6422,63 @@ function renderWebhookEvents(events) {
         </tr>`;
     }).join('');
 }
+
+
+// ═════════════════════════════════════════════════════════════════════
+// PROVIDER EINLADEN — ruft die Supabase Edge Function 'invite-provider' auf
+// ═════════════════════════════════════════════════════════════════════
+window.handleInviteProvider = async function(event) {
+    event.preventDefault();
+
+    const form    = document.getElementById('invite-provider-form');
+    const btn     = document.getElementById('invite-submit-btn');
+    const msgBox  = document.getElementById('invite-message');
+    const data    = Object.fromEntries(new FormData(form).entries());
+
+    msgBox.innerHTML = '';
+    btn.disabled    = true;
+    btn.textContent = 'Sende…';
+
+    try {
+        if (!supabaseClient) throw new Error('Supabase Client nicht initialisiert');
+
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) throw new Error('Bitte zuerst als Admin einloggen.');
+
+        const res = await fetch(
+            `${SUPABASE_CONFIG.url}/functions/v1/invite-provider`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type':  'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'apikey':        SUPABASE_CONFIG.anonKey,
+                },
+                body: JSON.stringify(data),
+            }
+        );
+
+        const result = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            throw new Error(result.error || `Fehler ${res.status}`);
+        }
+
+        msgBox.innerHTML = `
+            <div style="padding:12px 16px;background:#dcfce7;color:#14532d;border-radius:8px;font-size:14px;">
+                ✓ Einladung an <strong>${result.email}</strong> gesendet.<br>
+                <small>User-ID: <code>${result.user_id}</code></small>
+            </div>`;
+        form.reset();
+    } catch (err) {
+        console.error('Invite-Provider Fehler:', err);
+        msgBox.innerHTML = `
+            <div style="padding:12px 16px;background:#fee2e2;color:#7f1d1d;border-radius:8px;font-size:14px;">
+                ✗ ${err.message}
+            </div>`;
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = '✉️ Einladung senden';
+    }
+
+    return false;
+};
