@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Plus, Pencil, Trash2, Search, Upload, X, Save, Loader, Image as ImageIcon, Package } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, Upload, X, Save, Loader, Image as ImageIcon, Package, CheckSquare, Square } from 'lucide-react'
 
 export default function Products() {
   const { provider } = useAuth()
@@ -13,7 +13,19 @@ export default function Products() {
   const [form, setForm] = useState(emptyForm())
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
+  const [selected, setSelected] = useState(() => new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
   const fileInputRef = useRef(null)
+
+  function toggleSelect(id) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+  function clearSelection() { setSelected(new Set()) }
+  function selectAllFiltered(ids) { setSelected(new Set(ids)) }
 
   function emptyForm() {
     return {
@@ -146,6 +158,25 @@ export default function Products() {
       setMessage({ type: 'success', text: 'Produkt gelöscht.' })
     } catch (err) {
       setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+    }
+  }
+
+  async function handleBulkDelete() {
+    const ids = Array.from(selected)
+    if (ids.length === 0) return
+    if (!confirm(`${ids.length} Produkt(e) wirklich löschen? Das kann nicht rückgängig gemacht werden.`)) return
+
+    setBulkDeleting(true)
+    try {
+      const { error } = await supabase.from('metashop_products').delete().in('id', ids)
+      if (error) throw error
+      clearSelection()
+      await loadProducts()
+      setMessage({ type: 'success', text: `${ids.length} Produkt(e) gelöscht.` })
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Fehler beim Löschen: ' + err.message })
+    } finally {
+      setBulkDeleting(false)
     }
   }
 
@@ -323,10 +354,22 @@ export default function Products() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1>Produkte ({products.length})</h1>
-        <button className="btn-primary" onClick={() => { setEditing('new'); setForm(emptyForm()); setMessage(null) }}>
-          <Plus size={16} /> Neues Produkt
-        </button>
+        <h1>Produkte ({products.length}{selected.size > 0 ? `, ${selected.size} ausgewählt` : ''})</h1>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {selected.size > 0 && (
+            <>
+              <button className="btn-secondary" onClick={clearSelection}>
+                <X size={16} /> Auswahl aufheben
+              </button>
+              <button className="btn-danger" onClick={handleBulkDelete} disabled={bulkDeleting}>
+                {bulkDeleting ? <><Loader size={16} className="spin" /> Lösche…</> : <><Trash2 size={16} /> {selected.size} löschen</>}
+              </button>
+            </>
+          )}
+          <button className="btn-primary" onClick={() => { setEditing('new'); setForm(emptyForm()); setMessage(null) }}>
+            <Plus size={16} /> Neues Produkt
+          </button>
+        </div>
       </div>
 
       {message && <div className={`message message-${message.type}`}>{message.text}</div>}
@@ -339,6 +382,26 @@ export default function Products() {
           onChange={e => setSearch(e.target.value)}
         />
       </div>
+
+      {filteredProducts.length > 0 && (
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', margin: '8px 0 16px', fontSize: 14, color: 'var(--text-muted, #64748b)' }}>
+          <button
+            type="button"
+            className="btn-secondary"
+            style={{ padding: '6px 10px' }}
+            onClick={() => {
+              const allIds = filteredProducts.map(p => p.id)
+              const allSelected = allIds.every(id => selected.has(id))
+              if (allSelected) clearSelection()
+              else selectAllFiltered(allIds)
+            }}
+          >
+            {filteredProducts.every(p => selected.has(p.id)) && filteredProducts.length > 0
+              ? <><CheckSquare size={16} /> Alle abwählen</>
+              : <><Square size={16} /> Alle auswählen ({filteredProducts.length})</>}
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="loading">Laden...</div>
@@ -354,8 +417,19 @@ export default function Products() {
         </div>
       ) : (
         <div className="product-grid">
-          {filteredProducts.map(product => (
-            <div key={product.id} className={`product-card ${!product.is_active ? 'inactive' : ''}`}>
+          {filteredProducts.map(product => {
+            const isSel = selected.has(product.id)
+            return (
+            <div key={product.id} className={`product-card ${!product.is_active ? 'inactive' : ''} ${isSel ? 'selected' : ''}`} style={isSel ? { outline: '2px solid #f97316', outlineOffset: 2 } : undefined}>
+              <button
+                type="button"
+                className="btn-icon"
+                onClick={() => toggleSelect(product.id)}
+                title={isSel ? 'Abwählen' : 'Auswählen'}
+                style={{ position: 'absolute', top: 8, left: 8, zIndex: 2, background: 'white', border: '1px solid #e2e8f0' }}
+              >
+                {isSel ? <CheckSquare size={18} color="#f97316" /> : <Square size={18} />}
+              </button>
               <div className="product-image">
                 {product.image_url ? (
                   <img src={product.image_url} alt={product.name} />
@@ -383,7 +457,7 @@ export default function Products() {
                 </button>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>
