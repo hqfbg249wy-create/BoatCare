@@ -47,7 +47,7 @@ export default function Signup() {
       <div className="login-page">
         <div className="login-card">
           <div className="login-header">
-            <Anchor size={40} color="#f97316" />
+            <img src="/icon-192.png" alt="Skipily" style={{ width: 64, height: 64, borderRadius: 14 }} />
             <h1>Skipily</h1>
             <p>Registrierung erfolgreich</p>
           </div>
@@ -68,7 +68,7 @@ export default function Signup() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-header">
-          <Anchor size={40} color="#f97316" />
+          <img src="/icon-192.png" alt="Skipily" style={{ width: 64, height: 64, borderRadius: 14 }} />
           <h1>Skipily</h1>
           <p>Provider-Registrierung</p>
         </div>

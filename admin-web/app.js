@@ -3228,7 +3228,7 @@ function showLogin() {
     document.body.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: var(--bg-color);">
             <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 400px; width: 100%;">
-                <h2 style="margin-bottom: 24px;">⚓ Skipily Admin Login</h2>
+                <h2 style="margin-bottom: 24px; display:flex; align-items:center; gap:10px; justify-content:center;"><img src="/icon-192.png" alt="" style="width:40px;height:40px;border-radius:8px;"> Skipily Admin Login</h2>
                 <div id="login-error" style="display: none; padding: 12px; background: #fee2e2; color: #991b1b; border-radius: 8px; margin-bottom: 16px; font-size: 14px;"></div>
                 <form id="login-form">
                     <div style="margin-bottom: 16px;">
