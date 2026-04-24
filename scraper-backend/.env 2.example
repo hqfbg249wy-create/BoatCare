@@ -1,0 +1,15 @@
+# Skipily Scraper Backend — Environment Variables
+# Lokal: .env.local anlegen und `node --env-file=.env.local server.js` starten
+# Render/Railway: diese Variablen im Dashboard unter "Environment" eintragen.
+
+# Google Places API Key (Google Cloud Console → APIs & Services → Credentials)
+GOOGLE_PLACES_API_KEY=
+
+# Supabase Projekt
+SUPABASE_URL=https://vcjwlyqkfkszumdrfvtm.supabase.co
+SUPABASE_ANON_KEY=
+# Service Role Key (NIEMALS im Frontend verwenden, nur hier serverseitig)
+SUPABASE_SERVICE_KEY=
+
+# Render/Railway setzen PORT automatisch; lokal default 3001
+PORT=3001

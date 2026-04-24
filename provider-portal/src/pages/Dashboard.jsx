@@ -69,7 +69,7 @@ export default function Dashboard() {
 
       {!provider.is_shop_active && (
         <div className="info-banner">
-          Ihr Shop ist noch nicht freigeschaltet. Bitte kontaktieren Sie das BoatCare-Team.
+          Ihr Shop ist noch nicht freigeschaltet. Bitte kontaktieren Sie das Skipily-Team.
         </div>
       )}
 

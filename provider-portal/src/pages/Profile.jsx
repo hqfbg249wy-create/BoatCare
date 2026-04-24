@@ -503,7 +503,7 @@ export default function Profile() {
           <h2 style={{ margin: 0 }}>Bilder</h2>
         </div>
         <p className="hint" style={{ marginBottom: 16 }}>
-          Logo und Titelbild erscheinen auf Ihrem Profil in der BoatCare/Skipily App.
+          Logo und Titelbild erscheinen auf Ihrem Profil in der Skipily App.
           Nur Sie als Anbieter können diese Bilder ändern. Max. 5 MB, empfohlen: Logo 512×512 px, Titelbild 1600×900 px.
         </p>
 

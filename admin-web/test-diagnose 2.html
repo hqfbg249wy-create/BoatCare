@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Diagnose Test</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-result {
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+        }
+        .success { background: #d1fae5; border-color: #10b981; color: #065f46; }
+        .error { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+        .info { background: #dbeafe; border-color: #3b82f6; color: #1e40af; }
+        h1 { color: #1e293b; }
+        h2 { color: #475569; margin-top: 30px; }
+        pre { background: #1e293b; color: #10b981; padding: 15px; border-radius: 6px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Diagnose: Externe Abhängigkeiten</h1>
+
+    <div id="test-results"></div>
+
+    <h2>📋 Detaillierte Logs:</h2>
+    <pre id="logs"></pre>
+
+    <!-- Externe Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+
+    <script>
+        const results = document.getElementById('test-results');
+        const logs = document.getElementById('logs');
+        let logText = '';
+
+        function addLog(message) {
+            console.log(message);
+            logText += message + '\n';
+            logs.textContent = logText;
+        }
+
+        function addResult(title, success, message) {
+            const div = document.createElement('div');
+            div.className = `test-result ${success ? 'success' : 'error'}`;
+            div.innerHTML = `<strong>${success ? '✅' : '❌'} ${title}</strong><br>${message}`;
+            results.appendChild(div);
+            addLog(`${success ? '✅' : '❌'} ${title}: ${message}`);
+        }
+
+        // Start der Tests
+        addLog('🚀 Starte Diagnose...');
+        addLog('Zeit: ' + new Date().toLocaleString());
+        addLog('Browser: ' + navigator.userAgent);
+        addLog('');
+
+        // Test 1: JavaScript
+        addResult('JavaScript', true, 'JavaScript ist aktiv und funktioniert');
+
+        // Test 2: Config.js
+        setTimeout(() => {
+            addLog('📋 Prüfe config.js...');
+
+            if (typeof SUPABASE_CONFIG === 'undefined') {
+                addResult('Config.js laden', false,
+                    'SUPABASE_CONFIG nicht gefunden! Die config.js Datei wurde nicht geladen oder enthält Fehler.');
+            } else {
+                addResult('Config.js laden', true,
+                    `Config erfolgreich geladen<br>URL: ${SUPABASE_CONFIG.url}<br>Key: ${SUPABASE_CONFIG.anonKey.substring(0, 30)}...`);
+                addLog('Config URL: ' + SUPABASE_CONFIG.url);
+                addLog('Config Key (erste 30 Zeichen): ' + SUPABASE_CONFIG.anonKey.substring(0, 30));
+            }
+
+            // Test 3: Supabase Library
+            addLog('');
+            addLog('📦 Prüfe Supabase Library...');
+
+            if (typeof window.supabase === 'undefined') {
+                addResult('Supabase Library laden', false,
+                    'Supabase Library nicht gefunden! Eventuell blockiert ein Adblocker oder die Internetverbindung fehlt.');
+            } else {
+                addResult('Supabase Library laden', true,
+                    'Supabase Library erfolgreich von CDN geladen');
+                addLog('Supabase Version verfügbar: ' + (window.supabase ? 'Ja' : 'Nein'));
+
+                // Test 4: Supabase Client erstellen
+                if (typeof SUPABASE_CONFIG !== 'undefined') {
+                    addLog('');
+                    addLog('🔌 Versuche Supabase Client zu erstellen...');
+
+                    try {
+                        const { createClient } = window.supabase;
+                        const client = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+                        addResult('Supabase Client', true,
+                            'Supabase Client erfolgreich erstellt');
+                        addLog('Client erstellt: ' + (client ? 'Ja' : 'Nein'));
+                        addLog('Client.auth verfügbar: ' + (client.auth ? 'Ja' : 'Nein'));
+
+                        // Test 5: Verbindungstest
+                        addLog('');
+                        addLog('🌐 Teste Datenbankverbindung...');
+
+                        client.from('profiles')
+                            .select('id')
+                            .limit(1)
+                            .then(({ data, error }) => {
+                                if (error) {
+                                    addResult('Datenbankverbindung', false,
+                                        `Fehler bei Datenbankabfrage: ${error.message}`);
+                                    addLog('DB Fehler: ' + error.message);
+                                } else {
+                                    addResult('Datenbankverbindung', true,
+                                        `Datenbank antwortet! Gefundene Einträge: ${data?.length || 0}`);
+                                    addLog('DB Antwort erfolgreich, Einträge: ' + (data?.length || 0));
+
+                                    // Zusammenfassung
+                                    const summary = document.createElement('div');
+                                    summary.className = 'test-result success';
+                                    summary.innerHTML = `
+                                        <strong>🎉 ALLE TESTS ERFOLGREICH!</strong><br>
+                                        Ihre Admin-Website sollte funktionieren.<br>
+                                        Versuchen Sie jetzt <a href="index.html" style="color: #2563eb; font-weight: bold;">index.html</a> oder <a href="debug.html" style="color: #2563eb; font-weight: bold;">debug.html</a> zu öffnen.
+                                    `;
+                                    results.appendChild(summary);
+                                }
+                            })
+                            .catch(err => {
+                                addResult('Datenbankverbindung', false,
+                                    `Exception: ${err.message}`);
+                                addLog('Exception: ' + err.message);
+                            });
+
+                    } catch (error) {
+                        addResult('Supabase Client', false,
+                            `Fehler beim Erstellen: ${error.message}`);
+                        addLog('Client Fehler: ' + error.message);
+                    }
+                }
+            }
+        }, 500); // Warten bis externe Scripts geladen sind
+    </script>
+</body>
+</html>

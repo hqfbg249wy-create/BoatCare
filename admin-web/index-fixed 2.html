@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BoatCare Admin Panel</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="admin-container" id="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>⚓ BoatCare Admin</h2>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-page="dashboard" onclick="window.navigateToPage('dashboard')">
+                    <span class="icon">📊</span>
+                    Dashboard
+                </button>
+                <button class="nav-item" data-page="suggestions" onclick="window.navigateToPage('suggestions')">
+                    <span class="icon">✏️</span>
+                    Änderungsanfragen
+                    <span class="badge" id="suggestions-badge">0</span>
+                </button>
+                <button class="nav-item" data-page="providers" onclick="window.navigateToPage('providers')">
+                    <span class="icon">🏢</span>
+                    ServiceProvider
+                </button>
+                <button class="nav-item" data-page="add-provider" onclick="window.navigateToPage('add-provider')">
+                    <span class="icon">➕</span>
+                    Provider hinzufügen
+                </button>
+                <button class="nav-item" data-page="search-automation" onclick="window.navigateToPage('search-automation')">
+                    <span class="icon">🔍</span>
+                    Auto-Suche
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logout-btn" class="logout-btn" onclick="window.handleLogout()">
+                    <span class="icon">🚪</span>
+                    Abmelden
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Dashboard Page -->
+            <div id="dashboard-page" class="page active">
+                <h1>Dashboard</h1>
+                <p class="subtitle">Willkommen im BoatCare Admin Panel</p>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🏢</div>
+                        <div class="stat-value" id="total-providers">0</div>
+                        <div class="stat-label">ServiceProvider</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-value" id="pending-suggestions">0</div>
+                        <div class="stat-label">Ausstehende Anfragen</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-value" id="approved-today">0</div>
+                        <div class="stat-label">Heute genehmigt</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔍</div>
+                        <div class="stat-value" id="total-searches">0</div>
+                        <div class="stat-label">Suchdurchläufe</div>
+                    </div>
+                </div>
+
+                <h2>Letzte Aktivitäten</h2>
+                <div id="recent-activity-list" class="activity-list">
+                    <p>Keine Aktivitäten</p>
+                </div>
+            </div>
+
+            <!-- Suggestions Page -->
+            <div id="suggestions-page" class="page">
+                <h1>Änderungsanfragen</h1>
+                <div class="filters">
+                    <button class="filter-btn active" data-filter="pending" onclick="window.filterSuggestions('pending')">Ausstehend</button>
+                    <button class="filter-btn" data-filter="approved" onclick="window.filterSuggestions('approved')">Genehmigt</button>
+                    <button class="filter-btn" data-filter="rejected" onclick="window.filterSuggestions('rejected')">Abgelehnt</button>
+                    <button class="filter-btn" data-filter="all" onclick="window.filterSuggestions('all')">Alle</button>
+                </div>
+                <div id="suggestions-list"></div>
+            </div>
+
+            <!-- Providers Page -->
+            <div id="providers-page" class="page">
+                <h1>ServiceProvider</h1>
+                <div class="search-bar">
+                    <input type="text" id="provider-search" placeholder="Suchen nach Name, Stadt oder Kategorie...">
+                    <button id="search-btn" class="btn-primary" onclick="window.searchProviders()">🔍 Suchen</button>
+                </div>
+                <div id="providers-list"></div>
+            </div>
+
+            <!-- Add Provider Page -->
+            <div id="add-provider-page" class="page">
+                <h1>Provider hinzufügen</h1>
+                <form id="add-provider-form" onsubmit="window.handleAddProvider(event)">
+                    <div class="form-group">
+                        <label>Name *</label>
+                        <input type="text" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Kategorie *</label>
+                        <input type="text" name="category" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Beschreibung</label>
+                        <textarea name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Adresse</label>
+                            <input type="text" name="address">
+                        </div>
+                        <div class="form-group">
+                            <label>PLZ</label>
+                            <input type="text" name="postal_code">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Stadt *</label>
+                            <input type="text" name="city" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Land *</label>
+                            <input type="text" name="country" value="Deutschland" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Latitude *</label>
+                            <input type="number" name="latitude" step="any" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Longitude *</label>
+                            <input type="number" name="longitude" step="any" required>
+                        </div>
+                        <button type="button" id="geocode-btn" class="btn-secondary" onclick="window.geocodeAddress()">📍 Geocode</button>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Telefon</label>
+                            <input type="tel" name="phone">
+                        </div>
+                        <div class="form-group">
+                            <label>E-Mail</label>
+                            <input type="email" name="email">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Website</label>
+                        <input type="url" name="website">
+                    </div>
+                    <div class="form-group">
+                        <label>Leistungen (kommagetrennt)</label>
+                        <input type="text" name="services" placeholder="z.B. Reparatur, Wartung, Installation">
+                    </div>
+                    <div class="form-group">
+                        <label>Marken (kommagetrennt)</label>
+                        <input type="text" name="brands" placeholder="z.B. Volvo, Yanmar, Mercruiser">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">➕ Provider hinzufügen</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Auto Search Page -->
+            <div id="search-automation-page" class="page">
+                <h1>Auto-Suche</h1>
+                <p class="subtitle">Automatisches Auffinden von ServiceProvidorn über OpenStreetMap</p>
+
+                <form id="search-form" onsubmit="event.preventDefault(); window.startAutoSearch();">
+                    <div class="form-group">
+                        <label>Startpunkt (Stadt oder Koordinaten)</label>
+                        <input type="text" id="search-start" placeholder="z.B. Hamburg oder 53.5511,9.9937" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Suchradius (km)</label>
+                            <input type="number" id="search-radius" value="5" min="1" max="50">
+                        </div>
+                        <div class="form-group">
+                            <label>Schrittweite (km)</label>
+                            <input type="number" id="search-step" value="10" min="5" max="50">
+                        </div>
+                        <div class="form-group">
+                            <label>Suchbereich (km)</label>
+                            <input type="number" id="search-area" value="50" min="10" max="500">
+                        </div>
+                    </div>
+                    <button type="submit" id="start-search-btn" class="btn-primary">🔍 Suche starten</button>
+                </form>
+
+                <div id="search-progress" style="display: none; margin-top: 20px;">
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                    <p id="progress-text">Suche läuft...</p>
+                </div>
+
+                <div id="search-results"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for Suggestion Details -->
+    <div id="suggestion-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="this.closest('.modal').classList.remove('active')">&times;</span>
+            <div id="suggestion-details"></div>
+        </div>
+    </div>
+
+    <!-- Modal for Provider Details -->
+    <div id="provider-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="this.closest('.modal').classList.remove('active')">&times;</span>
+            <div id="provider-details"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Stelle globale Funktionen bereit für onclick Handler
+        window.navigateToPage = navigateToPage;
+        window.handleLogout = async function() {
+            console.log('Logout clicked');
+            await supabase.auth.signOut();
+            window.location.reload();
+        };
+        window.filterSuggestions = loadSuggestions;
+        window.searchProviders = searchProviders;
+        window.handleAddProvider = handleAddProvider;
+        window.geocodeAddress = geocodeAddress;
+        window.startAutoSearch = startAutoSearch;
+    </script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+{
+  "name": "BoatCare Marine Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "marine-scraper",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "marine-scraper"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body.websites",
+        "options": {}
+      },
+      "id": "2",
+      "name": "Split Websites",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8765/robots-check",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.url }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "3",
+      "name": "Check robots.txt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "robots-allowed",
+              "leftValue": "={{ $json.allowed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4",
+      "name": "Crawling erlaubt?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8765/crawl",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $('Split Websites').item.json.url }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "5",
+      "name": "Crawl4AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Strukturiere die Crawl4AI Daten für Supabase\nconst crawlResult = $input.item.json;\nconst originalItem = $('Split Websites').item.json;\n\nif (!crawlResult.success) {\n  return [{ json: { skipped: true, reason: crawlResult.error || 'Crawl fehlgeschlagen', url: crawlResult.url } }];\n}\n\n// Kategorie aus original Item oder auto-detect\nconst category = originalItem.category || 'Sonstige';\n\n// Adresse parsen\nlet city = originalItem.city || '';\nlet postalCode = crawlResult.postal_code || '';\nlet street = crawlResult.address_hint || '';\n\nreturn [{\n  json: {\n    name: crawlResult.name || originalItem.name || 'Unbekannt',\n    category: category,\n    description: crawlResult.description || '',\n    street: street,\n    postal_code: postalCode,\n    city: city,\n    country: originalItem.country || 'Frankreich',\n    phone: crawlResult.phone || '',\n    email: crawlResult.email || '',\n    website: crawlResult.url,\n    is_verified: false,\n    is_active: true,\n    user_id: null,\n    _source: 'crawl4ai',\n    _robots_ok: true\n  }\n}];"
+      },
+      "id": "6",
+      "name": "Daten aufbereiten",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://vcjwlyqkfkszumdrfvtm.supabase.co/rest/v1/service_providers",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_ANON_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_ANON_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "7",
+      "name": "Supabase Insert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sammle alle Ergebnisse\nconst results = $input.all().map(item => item.json);\nreturn [{ json: { success: true, count: results.length, results } }];"
+      },
+      "id": "8",
+      "name": "Ergebnisse sammeln",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Robots.txt hat gecrawlt verboten → protokollieren\nconst robotsResult = $input.item.json;\nconst originalItem = $('Split Websites').item.json;\n\nreturn [{ json: {\n  skipped: true,\n  reason: robotsResult.reason,\n  url: originalItem.url,\n  robots_url: robotsResult.robotsUrl\n}}];"
+      },
+      "id": "9",
+      "name": "Robots blockiert (Log)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 420]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Split Websites", "type": "main", "index": 0 }]]
+    },
+    "Split Websites": {
+      "main": [[{ "node": "Check robots.txt", "type": "main", "index": 0 }]]
+    },
+    "Check robots.txt": {
+      "main": [[{ "node": "Crawling erlaubt?", "type": "main", "index": 0 }]]
+    },
+    "Crawling erlaubt?": {
+      "main": [
+        [{ "node": "Crawl4AI", "type": "main", "index": 0 }],
+        [{ "node": "Robots blockiert (Log)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Crawl4AI": {
+      "main": [[{ "node": "Daten aufbereiten", "type": "main", "index": 0 }]]
+    },
+    "Daten aufbereiten": {
+      "main": [[{ "node": "Supabase Insert", "type": "main", "index": 0 }]]
+    },
+    "Supabase Insert": {
+      "main": [[{ "node": "Ergebnisse sammeln", "type": "main", "index": 0 }]]
+    },
+    "Robots blockiert (Log)": {
+      "main": [[{ "node": "Ergebnisse sammeln", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["boatcare", "scraping", "marine"],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

@@ -1,0 +1,814 @@
+{
+  "providers": [
+    {
+      "name": "Office de Tourisme",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.2857806,
+        3.445651
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Office de Tourisme",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3149632,
+        3.4709488
+      ],
+      "address": "Place de la Belle Agathoise",
+      "postal_code": "34300",
+      "city": "Agde",
+      "country": "",
+      "phone": "+33 4 67 31 87 50",
+      "website": "https://www.capdagde.com",
+      "source": "overpass"
+    },
+    {
+      "name": "Office de Tourisme",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3974134,
+        3.4171361
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Port Cassafières",
+      "category": "Marina",
+      "coordinates": [
+        43.2915506,
+        3.3712844
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "+33 4 67 90 91 70",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Port de Marseillan-Ville",
+      "category": "Marina",
+      "coordinates": [
+        43.3527834,
+        3.5352648
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Port du Tabarka",
+      "category": "Marina",
+      "coordinates": [
+        43.3553228,
+        3.5348567
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Florensac",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3833557,
+        3.4657571
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Le Boat",
+      "category": "Marina",
+      "coordinates": [
+        43.2919849,
+        3.3717995
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Port de Marseillan-Plage",
+      "category": "Marina",
+      "coordinates": [
+        43.3182353,
+        3.5573617
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Libron Watersports",
+      "category": "Marina",
+      "coordinates": [
+        43.2887108,
+        3.4090918
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Histoire",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3042824,
+        3.3295251
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Le Paradis du Pêcheur",
+      "category": "Zubehör",
+      "coordinates": [
+        43.2741596,
+        3.5104659
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Saint-Thibéry",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3972,
+        3.416051
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Voilerie Vaudolon Marine",
+      "category": "Segelmacher",
+      "coordinates": [
+        43.2791558,
+        3.5143794
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Poseidon",
+      "category": "Zubehör",
+      "coordinates": [
+        43.2849216,
+        3.4458371
+      ],
+      "address": "Rue Jean Jaurès",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Club International de Tennis",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.2899428,
+        3.5097823
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Bleu Marine Plaisance",
+      "category": "Marina",
+      "coordinates": [
+        43.2754284,
+        3.5039845
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "https://www.bleumarine-plaisance.com",
+      "source": "overpass"
+    },
+    {
+      "name": "A Bord Voile",
+      "category": "Segelmacher",
+      "coordinates": [
+        43.2755136,
+        3.5040437
+      ],
+      "address": "Avenue du Passeur Challiès",
+      "postal_code": "34300",
+      "city": "Agde",
+      "country": "",
+      "phone": "",
+      "website": "http://www.abordvoile.com/",
+      "source": "overpass"
+    },
+    {
+      "name": "Belvédère du Mont Saint-Loup",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.2984258,
+        3.5026006
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Belvédère du Mont Saint-Loup",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.2986207,
+        3.5027058
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Belvédère de Bel-Air",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3070729,
+        3.3323205
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Résidence La Bergerie",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.2961267,
+        3.5167602
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Bat'ô loc",
+      "category": "Marina",
+      "coordinates": [
+        43.2848867,
+        3.510675
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "http://www.bat-o-loc.com/fr",
+      "source": "overpass"
+    },
+    {
+      "name": "Le Grand Large",
+      "category": "Zubehör",
+      "coordinates": [
+        43.2783828,
+        3.5130661
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "https://www.jeanneau-capdagde.com/",
+      "source": "overpass"
+    },
+    {
+      "name": "Accastillage Diffusion",
+      "category": "Zubehör",
+      "coordinates": [
+        43.2783786,
+        3.513036
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Belvédère de la Tamarissière",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.2827138,
+        3.4430444
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Belvédère de la Tamarissière",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.2827329,
+        3.4430672
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Circuit Le Clot de Vias",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.2854269,
+        3.4419239
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Grande Traversée du Massif Central à VTT",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.2772888,
+        3.5157611
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Cet escalier a été réalisé en 1950 par Achille Irailles",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.2762665,
+        3.5147623
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Aire marine protégée de la côte agathoise",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.2749244,
+        3.5115816
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Itinéraire de randonnée en mer",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.2744577,
+        3.5113053
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Port de Marseillan-Ville",
+      "category": "Marina",
+      "coordinates": [
+        43.3526565,
+        3.5345614
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Vague S11",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.353383,
+        3.5322815
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Office de Tourisme",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3184958,
+        3.5472716
+      ],
+      "address": "Avenue de la Méditerranée",
+      "postal_code": "34340",
+      "city": "Marseillan Plage",
+      "country": "",
+      "phone": "",
+      "website": "https://www.marseillan.com/",
+      "source": "overpass"
+    },
+    {
+      "name": "Centre historique",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3596015,
+        3.426981
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Informations municipales",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3174912,
+        3.550986
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Informations",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3932608,
+        3.4931005
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "A la découverte",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3042726,
+        3.3295383
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Agde",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3171094,
+        3.4665123
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Les ouvrages du Libron",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3008613,
+        3.4040397
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Les ouvrages du Libron",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3009339,
+        3.4044253
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Les ouvrages du Libron",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3005969,
+        3.4033282
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Lo Mercat",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3852698,
+        3.4727945
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Le Pont de Maïre",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3212344,
+        3.5322866
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Zapa 34",
+      "category": "Zubehör",
+      "coordinates": [
+        43.3128165,
+        3.4179639
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "8. La Redoute du Castellas",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.3364766,
+        3.5761291
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Office de Tourisme",
+      "category": "Werkstatt",
+      "coordinates": [
+        43.2871246,
+        3.509236
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Cap Océan",
+      "category": "Zubehör",
+      "coordinates": [
+        43.2817437,
+        3.5138843
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "agde plaisance",
+      "category": "Zubehör",
+      "coordinates": [
+        43.281891,
+        3.5140473
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Port du Cap d'Agde",
+      "category": "Marina",
+      "coordinates": [
+        43.2845374,
+        3.5117752
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "https://port-capdagde.com/",
+      "source": "overpass"
+    },
+    {
+      "name": "Port Ambonne",
+      "category": "Marina",
+      "coordinates": [
+        43.2845374,
+        3.5117752
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "https://port-capdagde.com/",
+      "source": "overpass"
+    },
+    {
+      "name": "Port d'Agde",
+      "category": "Marina",
+      "coordinates": [
+        43.2845374,
+        3.5117752
+      ],
+      "address": "",
+      "postal_code": "",
+      "city": "Cap d'Agde",
+      "country": "",
+      "phone": "",
+      "website": "",
+      "source": "overpass"
+    },
+    {
+      "name": "Port du Cap d'Agde",
+      "category": "Marina",
+      "coordinates": [
+        43.2783941,
+        3.5082229
+      ],
+      "address": "Avenue des Sergents",
+      "postal_code": "34300",
+      "city": "Agde",
+      "country": "France",
+      "phone": "",
+      "website": "",
+      "source": "nominatim"
+    }
+  ]
+}

@@ -1,0 +1,340 @@
+/* BoatCare - Italiano */
+
+// MARK: - Navigation Tabs
+"tab.map" = "Mappa";
+"tab.boats" = "Barche";
+"tab.maintenance" = "Manutenzione";
+"tab.favorites" = "Preferiti";
+"tab.chat" = "Chat";
+
+// MARK: - Service Categories
+"category.all" = "Tutti";
+"category.repair" = "Cantiere";
+"category.motor_service" = "Servizio Motore";
+"category.supplies" = "Accessori Nautici";
+"category.fuel" = "Distributore Carburante";
+"category.sailmaker" = "Veleria";
+"category.rigging" = "Attrezzatura";
+"category.instruments" = "Elettronica Marina";
+"category.marina" = "Porto Turistico";
+"category.surveyor" = "Perito Navale";
+"category.crane" = "Gru";
+"category.painting" = "Verniciatura / Antivegetativa";
+
+// MARK: - Map Screen
+"map.search_placeholder" = "Cerca fornitori di servizi...";
+"map.no_results" = "Nessun fornitore trovato";
+"map.loading" = "Caricamento...";
+"map.filter_title" = "Filtra per categoria";
+"map.radius_label" = "Raggio";
+"map.km" = "km";
+"map.my_location" = "La mia posizione";
+"map.location_error" = "Errore di posizione";
+"map.login_required" = "Accesso richiesto";
+"map.login_required_hint" = "Accedi per aggiungere un fornitore.";
+"map.call" = "Chiama";
+"map.open_in_maps" = "Apri in Mappe";
+"map.add_business" = "Aggiungi fornitore";
+"map.submitted" = "Inviato!";
+"map.submitted_hint" = "Il tuo fornitore è stato inviato per la revisione e apparirà sulla mappa dopo l'approvazione.";
+"map.section_basic" = "Informazioni base";
+"map.section_address" = "Indirizzo";
+"map.company_name" = "Nome azienda *";
+"map.category" = "Categoria";
+"map.category2" = "Categoria 2";
+"map.category3" = "Categoria 3";
+"map.brands_hint" = "Marchi rappresentati (separati da virgola)";
+"map.street" = "Via e numero *";
+"map.postal_code" = "CAP *";
+"map.get_coordinates" = "Ottieni coordinate";
+"map.coordinates_found" = "Coordinate trovate";
+"map.services_description" = "Servizi e specialità";
+"map.required_fields" = "* Campi obbligatori";
+
+// MARK: - Provider Detail
+"provider.contact" = "Contatto";
+"provider.phone" = "Telefono";
+"provider.email" = "Email";
+"provider.website" = "Sito web";
+"provider.route" = "Percorso";
+"provider.services" = "Servizi e Prodotti";
+"provider.brands" = "Marchi rappresentati";
+"provider.reviews" = "Recensioni";
+"provider.description" = "Descrizione";
+"provider.opening_hours" = "Orari di apertura";
+"provider.no_services" = "Nessun servizio inserito";
+"provider.no_brands" = "Nessun marchio inserito";
+"provider.no_reviews" = "Ancora nessuna recensione";
+"provider.write_review" = "Scrivi una recensione";
+"provider.verified" = "Verificato";
+"provider.more_details" = "Maggiori dettagli";
+"provider.special_offer" = "Offerta speciale";
+"provider.go_to_shop" = "Vai al negozio";
+"provider.swipe_hint" = "Scorri per altri fornitori";
+
+// MARK: - Favorites
+"favorites.title" = "Preferiti";
+"favorites.empty" = "Nessun preferito ancora";
+"favorites.add_hint" = "Tocca il cuore di un fornitore per salvarlo";
+
+// MARK: - Profile
+"profile.title" = "Profilo";
+"profile.edit" = "Modifica profilo";
+"profile.logout" = "Disconnettersi";
+"profile.logout_confirm" = "Vuoi davvero disconnetterti?";
+"profile.language" = "Lingua";
+"profile.personal_info" = "Informazioni personali";
+"profile.additional_info" = "Informazioni aggiuntive";
+"profile.full_name" = "Nome completo";
+"profile.username" = "Nome utente";
+"profile.phone" = "Telefono";
+"profile.address" = "Indirizzo";
+"profile.city" = "Città";
+"profile.country" = "Paese";
+"profile.save" = "Salva";
+"profile.cancel" = "Annulla";
+
+// MARK: - Boats
+"boats.title" = "Le Mie Barche";
+"boats.add" = "Aggiungi barca";
+"boats.no_boats" = "Nessuna barca aggiunta";
+"boats.name" = "Nome barca";
+"boats.type" = "Tipo";
+"boats.manufacturer" = "Produttore";
+"boats.model" = "Modello";
+"boats.year" = "Anno";
+"boats.length" = "Lunghezza (m)";
+"boats.engine" = "Motore";
+"boats.home_port" = "Porto di base";
+
+// MARK: - Maintenance
+"maintenance.title" = "Manutenzione";
+"maintenance.due" = "Scaduto";
+"maintenance.overdue" = "In ritardo";
+"maintenance.upcoming" = "Prossimo";
+"maintenance.no_tasks" = "Nessun'attività di manutenzione";
+
+// MARK: - Reviews
+"review.rating" = "Valutazione";
+"review.title" = "Titolo";
+"review.comment" = "Commento";
+"review.submit" = "Invia recensione";
+"review.service" = "Servizio";
+"review.quality" = "Qualità";
+"review.price" = "Prezzo";
+
+// MARK: - General
+"general.ok" = "OK";
+"general.cancel" = "Annulla";
+"general.save" = "Salva";
+"general.delete" = "Elimina";
+"general.edit" = "Modifica";
+"general.close" = "Chiudi";
+"general.loading" = "Caricamento...";
+"general.error" = "Errore";
+"general.retry" = "Riprova";
+"general.yes" = "Sì";
+"general.no" = "No";
+"general.search" = "Cerca";
+"general.filter" = "Filtra";
+
+// MARK: - Auth
+"auth.login" = "Accedi";
+"auth.register" = "Registrati";
+"auth.email" = "Email";
+"auth.password" = "Password";
+"auth.forgot_password" = "Password dimenticata?";
+"auth.no_account" = "Non hai un account?";
+"auth.have_account" = "Hai già un account?";
+
+// MARK: - Boats
+"boats.title" = "Le mie barche";
+"boats.add" = "Aggiungi barca";
+"boats.no_boats" = "Nessuna barca aggiunta";
+"boats.name" = "Nome della barca";
+"boats.type" = "Tipo";
+"boats.manufacturer" = "Produttore";
+"boats.model" = "Modello";
+"boats.year" = "Anno";
+"boats.length" = "Lunghezza (m)";
+"boats.engine" = "Motore";
+"boats.home_port" = "Porto di origine";
+
+// MARK: - POI / Favorites
+"poi.favorites" = "Preferiti";
+"poi.no_favorites" = "Nessun preferito";
+"poi.no_favorites_hint" = "Tocca il cuore di un fornitore per salvarlo qui.";
+
+// MARK: - Suggest Edit
+"suggest_edit.title" = "Suggerisci modifica";
+"suggest_edit.button" = "Suggerisci modifica";
+"suggest_edit.section_basic" = "Informazioni base";
+"suggest_edit.section_address" = "Indirizzo";
+"suggest_edit.section_contact" = "Contatto";
+"suggest_edit.section_services" = "Servizi e Marchi";
+"suggest_edit.section_hours" = "Orari di apertura";
+"suggest_edit.section_description" = "Descrizione";
+"suggest_edit.services_hint" = "Servizi (separati da virgola)";
+"suggest_edit.brands_hint" = "Marchi (separati da virgola)";
+"suggest_edit.opening_hours_hint" = "Una riga per giorno";
+"suggest_edit.description_hint" = "Descrizione dell'attività";
+"suggest_edit.info_hint" = "Il tuo suggerimento verrà esaminato prima di essere applicato.";
+"suggest_edit.pending_hint" = "Hai già un suggerimento in sospeso per questo fornitore.";
+"suggest_edit.submit" = "Invia suggerimento";
+"suggest_edit.success" = "Inviato!";
+"suggest_edit.success_hint" = "Il tuo suggerimento è stato inviato per la revisione.";
+"suggest_edit.login_required" = "Effettua prima il login.";
+
+// MARK: - Chat
+"chat.title" = "Chat";
+"chat.welcome" = "Benvenuto in BoatCare! Questa sezione sarà presto alimentata dall'IA.";
+"chat.input_hint" = "Scrivi un messaggio...";
+"chat.coming_soon" = "Chat AI in arrivo! 🚢";
+
+// MARK: - Provider Detail
+"provider.contact" = "Contatto";
+"provider.description" = "Descrizione";
+"provider.brands" = "Marchi";
+
+// MARK: - Equipment
+"equipment.title" = "Attrezzatura";
+"equipment.add" = "Aggiungi attrezzatura";
+"equipment.no_items" = "Nessuna attrezzatura";
+"equipment.all" = "Tutti";
+"equipment.name" = "Nome";
+"equipment.category" = "Categoria";
+"equipment.details" = "Dettagli";
+"equipment.serial" = "Numero di serie";
+"equipment.working" = "Funzionante";
+
+// MARK: - Marketplace / Shop
+"tab.marketplace" = "Offerte";
+"marketplace.title" = "Offerte & Negozio";
+"marketplace.offer" = "Offerta speciale";
+"marketplace.no_offers" = "Nessuna offerta";
+"marketplace.no_offers_hint" = "Nessun fornitore con offerte attive.";
+"marketplace.valid_until" = "Valido fino al";
+"marketplace.to_shop" = "Vai al negozio";
+"marketplace.to_website" = "Visita il sito";
+"marketplace.promotion_placeholder" = "Descrivere l'offerta speciale...";
+"marketplace.shop_url_placeholder" = "URL negozio (opzionale)";
+"provider.phone" = "Telefono";
+"provider.email" = "Email";
+"provider.website" = "Sito web";
+"profile.country" = "Paese";
+
+// MARK: - Equipment Detail / Edit
+"equipment.status_ok" = "Operativo";
+"equipment.status_defect" = "Difettoso / Manutenzione necessaria";
+"equipment.purchase_date" = "Data di acquisto";
+"equipment.has_purchase_date" = "Data di acquisto nota";
+"equipment.defect_hint" = "Articolo contrassegnato come difettoso";
+"equipment.delete_confirm" = "Eliminare l'attrezzatura?";
+"equipment.find_service" = "Trova servizio adatto";
+"equipment.find_parts" = "Cerca ricambi";
+"equipment.no_service_found" = "Nessun fornitore trovato";
+"equipment.service_search_hint" = "Ricerca per categoria e produttore";
+"equipment.results_found" = "risultati trovati";
+"equipment.distance" = "Distanza";
+"equipment.metashop_title" = "Ricerca ricambi";
+"equipment.metashop_hint" = "Ricerca basata sui dati della tua attrezzatura";
+"equipment.search_by_name" = "Nome";
+"equipment.search_by_manufacturer" = "Produttore";
+"equipment.search_by_model" = "Modello";
+"equipment.search_by_part" = "Numero di parte";
+"equipment.search_online" = "Cerca online";
+"equipment.my_location" = "La mia posizione";
+"equipment.enter_location" = "Inserisci luogo...";
+"equipment.radius" = "Raggio:";
+"equipment.try_larger_radius" = "Prova un raggio maggiore o un'altra posizione.";
+"equipment.no_shop_found" = "Nessun negozio trovato";
+"equipment.to_shop" = "Al negozio";
+"equipment.to_website" = "Al sito web";
+"equipment.in_stock" = "Disponibile";
+"equipment.out_of_stock" = "Non disponibile";
+"equipment.free_shipping" = "Spedizione gratuita";
+"equipment.days" = "giorni";
+"equipment.actions" = "Azioni";
+"equipment.description" = "Descrizione";
+"equipment.dates" = "Date";
+"equipment.maintenance" = "Manutenzione";
+"equipment.installation_date" = "Data di installazione";
+"equipment.warranty_expiry" = "Scadenza garanzia";
+"equipment.has_installation_date" = "Data installazione nota";
+"equipment.has_warranty" = "Scadenza garanzia nota";
+"equipment.has_last_maintenance" = "Ultima manutenzione nota";
+"equipment.cycle" = "Ciclo di manutenzione (anni)";
+"equipment.last_maintenance" = "Ultima manutenzione";
+"equipment.next_maintenance" = "Prossima manutenzione";
+"equipment.maintenance_ok" = "OK";
+"equipment.years" = "anni";
+"equipment.notes" = "Note";
+"equipment.part_number" = "Numero di parte";
+"equipment.location" = "Posizione sulla barca";
+"equipment.dimensions" = "Dimensioni";
+"equipment.photo_url" = "URL foto";
+"equipment.manage_hint" = "Gestisci l'attrezzatura della tua barca";
+"equipment.cat.navigation" = "Navigazione";
+"equipment.cat.safety" = "Sicurezza";
+"equipment.cat.engine" = "Motore";
+"equipment.cat.electrical" = "Elettrica";
+"equipment.cat.rigging" = "Sartiame";
+"equipment.cat.anchor" = "Ancora";
+"equipment.cat.communication" = "Comunicazione";
+"equipment.cat.other" = "Altro";
+
+// New keys - Issue fixes
+"provider.products" = "Prodotti";
+"boats.login_required" = "Effettua il login per gestire le tue barche.";
+"boats.photo" = "Foto";
+"boats.photo_library" = "Libreria foto";
+"boats.take_photo" = "Scatta foto";
+"boats.add_photo" = "Aggiungi foto";
+"boats.uploading_photo" = "Caricamento foto...";
+"boats.equipment_count" = "Attrezzatura (%d)";
+"boats.delete_confirm" = "Eliminare la barca?";
+"boats.delete_message" = "Vuoi davvero eliminare questa barca?";
+"maintenance.no_boats_hint" = "Aggiungi prima una barca per assegnare attività di manutenzione.";
+"general.refresh" = "Aggiorna";
+"review.coming_soon_hint" = "L'invio delle recensioni sarà presto disponibile.";
+"review.edit" = "Modifica recensione";
+"review.edit_hint" = "La tua recensione esistente verrà aggiornata.";
+"review.own" = "La tua recensione";
+"provider.google_rating" = "Valutazione Google";
+
+// MARK: - Consigli di manutenzione IA
+"tips.title" = "Consigli di manutenzione";
+"tips.analyzing" = "Analisi dei tuoi dati...";
+"tips.analyzing_hint" = "I dati della tua barca e delle attrezzature vengono analizzati per creare raccomandazioni personalizzate.";
+"tips.error_loading" = "Impossibile caricare i consigli. Riprova.";
+"tips.header_title" = "I tuoi consigli di manutenzione personalizzati";
+"tips.header_subtitle" = "Basati sui dati della tua barca e attrezzatura";
+"tips.last_updated" = "Ultimo aggiornamento: %@";
+"tips.section_urgent" = "Urgente";
+"tips.section_important" = "Importante";
+"tips.section_suggestions" = "Raccomandazioni";
+"tips.priority_urgent" = "Urgente";
+"tips.priority_important" = "Importante";
+"tips.priority_suggestion" = "Consiglio";
+"tips.no_boats_title" = "Nessuna barca aggiunta";
+"tips.no_boats_hint" = "Aggiungi prima una barca e registra la tua attrezzatura per ricevere consigli di manutenzione personalizzati.";
+"tips.overdue_title" = "Manutenzione in ritardo: %@";
+"tips.overdue_text" = "La manutenzione di %@ sulla tua barca %@ è in ritardo di %d giorni. Ti consigliamo di fissare un appuntamento al più presto per mantenere tutto in perfette condizioni.";
+"tips.due_soon_title" = "Manutenzione in scadenza: %@";
+"tips.due_soon_text" = "La prossima manutenzione di %@ su %@ è prevista tra %d giorni. Un buon momento per pianificare un appuntamento.";
+"tips.warranty_title" = "Garanzia in scadenza: %@";
+"tips.warranty_text" = "La garanzia di %@ scade tra %d giorni. Verifica se ci sono reclami di garanzia da presentare prima della scadenza.";
+"tips.missing_date_title" = "Data di manutenzione mancante: %@";
+"tips.missing_date_text" = "È stato impostato un ciclo di manutenzione per %@ su %@, ma non è stata inserita una data specifica. Aggiungi la data dell'ultima manutenzione per ricevere promemoria tempestivi.";
+"tips.old_boat_title" = "Controllo annuale per %@";
+"tips.old_boat_text" = "La tua barca %@ ha già %d anni. Per le barche più vecchie, raccomandiamo un controllo annuale approfondito: scafo, attrezzatura, carena e tutti i sistemi di sicurezza meritano particolare attenzione.";
+"tips.engine_title" = "Manutenzione motore: %@";
+"tips.engine_text" = "Ricorda di effettuare la manutenzione del %@ su %@ regolarmente: cambio olio, girante, filtro acqua di raffreddamento e anodi di zinco sono essenziali all'inizio della stagione.";
+"tips.safety_title" = "Attrezzatura di sicurezza: %@";
+"tips.safety_text" = "Non è stata registrata attrezzatura di sicurezza per %@. Giubbotti di salvataggio, estintori e dispositivi di segnalazione devono essere controllati regolarmente.";
+"tips.spring_title" = "Controllo primaverile";
+"tips.spring_text" = "La primavera è arrivata! È il momento di preparare %@ per la stagione: antivegetativa, controllo motore, ispezione dell'attrezzatura e verifica della sicurezza.";
+"tips.winter_title" = "Preparazione per il rimessaggio invernale";
+"tips.winter_text" = "La stagione sta per finire. Prepara %@ per il rimessaggio invernale in tempo: conservare il motore, svuotare l'impianto idrico, controllare il telo.";
+"tips.all_good_title" = "Tutto a posto!";
+"tips.all_good_text" = "Ben curato! Al momento non ci sono note di manutenzione urgenti per le tue barche. Continua così!";

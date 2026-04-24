@@ -1,0 +1,82 @@
+{
+  "providers": [
+    {
+      "name": "Sud Croisaire",
+      "city": "Cap d'Agde",
+      "country": "France",
+      "category": "Werkstatt",
+      "description": "Werft und Bootsservice, Accastillage",
+      "coordinates": [43.2953, 3.5142],
+      "address": "Quai Jean Miquel",
+      "postal_code": "34300",
+      "website": "http://www.sudcroisaire.com",
+      "services": ["Werft", "Bootsservice", "Accastillage", "Equipements nautiques"]
+    },
+    {
+      "name": "Navicap",
+      "city": "Cap d'Agde",
+      "country": "France",
+      "category": "Zubehör",
+      "description": "Bootsservice und Zubehör, Shipchandler",
+      "coordinates": [43.2951, 3.5145],
+      "address": "Port Richelieu",
+      "postal_code": "34300",
+      "services": ["Bootsservice", "Accastillage", "Shipchandler", "Zubehör"]
+    },
+    {
+      "name": "Nav-Elec",
+      "city": "Cap d'Agde",
+      "country": "France",
+      "category": "Instrumente",
+      "description": "Elektronik, Elektrik, Instrumente",
+      "coordinates": [43.2948, 3.5148],
+      "address": "Port Richelieu",
+      "postal_code": "34300",
+      "services": ["Elektronik", "Elektrik", "Instrumente", "GPS", "Radar", "VHF"]
+    },
+    {
+      "name": "Chantier Naval Cap d'Agde",
+      "city": "Cap d'Agde",
+      "country": "France",
+      "category": "Werkstatt",
+      "description": "Werft und Reparaturen",
+      "coordinates": [43.2955, 3.5140],
+      "address": "Port Richelieu",
+      "postal_code": "34300",
+      "services": ["Werft", "Réparations", "Entretien", "Carénage"]
+    },
+    {
+      "name": "Accastillage Diffusion Cap d'Agde",
+      "city": "Cap d'Agde",
+      "country": "France",
+      "category": "Zubehör",
+      "description": "Accastillage et équipements nautiques",
+      "coordinates": [43.2950, 3.5143],
+      "address": "Port Richelieu",
+      "postal_code": "34300",
+      "services": ["Accastillage", "Vêtements marins", "Equipements"]
+    },
+    {
+      "name": "Le Grand Large",
+      "city": "Cap d'Agde",
+      "country": "France",
+      "category": "Werkstatt",
+      "description": "Bootsservice",
+      "coordinates": [43.2784, 3.5131],
+      "address": "Port Richelieu",
+      "postal_code": "34300",
+      "services": ["Bootsservice", "Wartung", "Reparaturen"]
+    },
+    {
+      "name": "Marine Center Cap Agde",
+      "city": "Cap d'Agde",
+      "country": "France",
+      "category": "Zubehör",
+      "description": "Bootsservice und Bootsverkauf",
+      "coordinates": [43.2845, 3.5142],
+      "address": "Port Richelieu",
+      "postal_code": "34300",
+      "services": ["Bootsservice", "Bootsverkauf", "Zubehör"]
+    }
+  ]
+}

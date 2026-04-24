@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: skipily-scraper
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        value: https://vcjwlyqkfkszumdrfvtm.supabase.co
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>BoatCare Admin - Direct</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        h1 { color: #1e293b; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .nav { background: #1e293b; color: white; padding: 15px 20px; margin-bottom: 20px; border-radius: 8px; }
+        .nav button { background: #334155; margin-right: 10px; padding: 10px 20px; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        .nav button:hover { background: #475569; }
+        button { padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        button:hover { background: #1d4ed8; }
+        input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; margin: 5px 0 15px 0; }
+        .list-item { padding: 15px; border-bottom: 1px solid #e5e7eb; }
+        .hidden { display: none; }
+        .error { background: #fee2e2; color: #991b1b; padding: 10px; border-radius: 6px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="login-section">
+            <div class="card" style="max-width: 400px; margin: 100px auto;">
+                <h1>⚓ BoatCare Admin</h1>
+                <div id="login-error" class="error hidden"></div>
+                <input type="email" id="login-email" placeholder="E-Mail">
+                <input type="password" id="login-password" placeholder="Passwort">
+                <button onclick="doLogin()">Anmelden</button>
+            </div>
+        </div>
+
+        <div id="app-section" class="hidden">
+            <div class="nav">
+                <span style="font-size: 1.2em; font-weight: bold;">⚓ BoatCare Admin</span>
+                <button onclick="showPage('dashboard')">Dashboard</button>
+                <button onclick="showPage('providers')">Provider</button>
+                <button onclick="logout()" style="float: right; background: #dc2626;">Abmelden</button>
+            </div>
+
+            <div id="page-dashboard">
+                <h1>Dashboard</h1>
+                <div class="card">
+                    <h3>ServiceProvider: <span id="provider-count">0</span></h3>
+                </div>
+                <div class="card">
+                    <button onclick="loadData()">Daten laden</button>
+                </div>
+            </div>
+
+            <div id="page-providers" class="hidden">
+                <h1>ServiceProvider</h1>
+                <div class="card" id="providers-list">
+                    Keine Daten
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        console.log('Script wird geladen...');
+
+        const SUPABASE_URL = 'https://vcjwlyqkfkszumdrfvtm.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjandseXFrZmtzenVtZHJmdnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMDQ4NTksImV4cCI6MjA4NDY4MDg1OX0.VOlhRdvShU325xG18SSSTWdFfGEdyeX-7CAovE2vesQ';
+
+        let supabase = null;
+        let currentUser = null;
+
+        // Warte auf Supabase Library
+        let initAttempts = 0;
+        const initInterval = setInterval(() => {
+            initAttempts++;
+            console.log('Versuch', initAttempts, '- Supabase verfügbar:', typeof window.supabase);
+
+            if (typeof window.supabase !== 'undefined') {
+                clearInterval(initInterval);
+                initSupabase();
+            } else if (initAttempts > 20) {
+                clearInterval(initInterval);
+                document.getElementById('login-error').textContent = 'Fehler: Supabase konnte nicht geladen werden. Bitte Browser wechseln (Chrome verwenden).';
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }, 500);
+
+        function initSupabase() {
+            console.log('Initialisiere Supabase...');
+            try {
+                const { createClient } = window.supabase;
+                supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+                console.log('✅ Supabase initialisiert');
+
+                // Prüfe ob bereits eingeloggt
+                supabase.auth.getSession().then(({ data: { session } }) => {
+                    if (session) {
+                        console.log('Session gefunden:', session.user.email);
+                        currentUser = session.user;
+                        showApp();
+                    }
+                });
+            } catch (error) {
+                console.error('Fehler bei Supabase Init:', error);
+                document.getElementById('login-error').textContent = 'Fehler: ' + error.message;
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        function doLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            if (!email || !password) {
+                document.getElementById('login-error').textContent = 'Bitte E-Mail und Passwort eingeben';
+                document.getElementById('login-error').classList.remove('hidden');
+                return;
+            }
+
+            if (!supabase) {
+                document.getElementById('login-error').textContent = 'Supabase noch nicht geladen...';
+                document.getElementById('login-error').classList.remove('hidden');
+                return;
+            }
+
+            console.log('Login-Versuch:', email);
+            document.getElementById('login-error').classList.add('hidden');
+
+            supabase.auth.signInWithPassword({ email, password })
+                .then(({ data, error }) => {
+                    if (error) {
+                        console.error('Login-Fehler:', error);
+                        document.getElementById('login-error').textContent = 'Login fehlgeschlagen: ' + error.message;
+                        document.getElementById('login-error').classList.remove('hidden');
+                    } else {
+                        console.log('✅ Login erfolgreich');
+                        currentUser = data.user;
+                        showApp();
+                    }
+                })
+                .catch(error => {
+                    console.error('Exception:', error);
+                    document.getElementById('login-error').textContent = 'Fehler: ' + error.message;
+                    document.getElementById('login-error').classList.remove('hidden');
+                });
+        }
+
+        function showApp() {
+            console.log('Zeige App...');
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('app-section').classList.remove('hidden');
+            loadData();
+        }
+
+        function logout() {
+            supabase.auth.signOut().then(() => {
+                location.reload();
+            });
+        }
+
+        function showPage(page) {
+            console.log('Zeige Seite:', page);
+            document.getElementById('page-dashboard').classList.add('hidden');
+            document.getElementById('page-providers').classList.add('hidden');
+            document.getElementById('page-' + page).classList.remove('hidden');
+
+            if (page === 'providers') {
+                loadProviders();
+            }
+        }
+
+        function loadData() {
+            console.log('Lade Dashboard-Daten...');
+            supabase.from('service_providers')
+                .select('id', { count: 'exact', head: true })
+                .then(({ count, error }) => {
+                    if (error) {
+                        console.error('Fehler:', error);
+                        document.getElementById('provider-count').textContent = 'Fehler: ' + error.message;
+                    } else {
+                        console.log('✅ Providers:', count);
+                        document.getElementById('provider-count').textContent = count || 0;
+                    }
+                });
+        }
+
+        function loadProviders() {
+            console.log('Lade Provider-Liste...');
+            supabase.from('service_providers')
+                .select('*')
+                .order('name')
+                .limit(50)
+                .then(({ data, error }) => {
+                    if (error) {
+                        console.error('Fehler:', error);
+                        document.getElementById('providers-list').innerHTML = '<p class="error">Fehler: ' + error.message + '</p>';
+                    } else {
+                        console.log('✅ Provider geladen:', data.length);
+                        const html = data && data.length > 0
+                            ? data.map(p => `<div class="list-item"><strong>${p.name}</strong> - ${p.city || '-'}</div>`).join('')
+                            : '<p>Keine Provider gefunden</p>';
+                        document.getElementById('providers-list').innerHTML = html;
+                    }
+                });
+        }
+
+        console.log('✅ Script geladen');
+    </script>
+</body>
+</html>

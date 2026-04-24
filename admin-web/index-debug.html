@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BoatCare Admin - Debug Mode</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Debug Console am unteren Bildschirmrand */
+        #debug-console {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #1e293b;
+            color: #10b981;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            border-top: 3px solid #10b981;
+            z-index: 10000;
+        }
+        #debug-console .error {
+            color: #ef4444;
+        }
+        #debug-console .warning {
+            color: #f59e0b;
+        }
+        #debug-console .success {
+            color: #10b981;
+        }
+        #debug-toggle {
+            position: fixed;
+            bottom: 210px;
+            right: 10px;
+            padding: 8px 16px;
+            background: #1e293b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            z-index: 10001;
+        }
+    </style>
+</head>
+<body>
+    <!-- Debug Console Toggle -->
+    <button id="debug-toggle" onclick="toggleDebug()">Debug Console 🐛</button>
+
+    <!-- Debug Console -->
+    <div id="debug-console"></div>
+
+    <!-- Supabase Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+
+    <!-- Debug Logger -->
+    <script>
+        const debugConsole = document.getElementById('debug-console');
+        let debugVisible = true;
+
+        function toggleDebug() {
+            debugVisible = !debugVisible;
+            debugConsole.style.display = debugVisible ? 'block' : 'none';
+        }
+
+        function logDebug(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.className = type;
+            line.textContent = `[${time}] ${message}`;
+            debugConsole.appendChild(line);
+            debugConsole.scrollTop = debugConsole.scrollHeight;
+            console.log(message);
+        }
+
+        // Override console methods
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            logDebug(args.join(' '), 'info');
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            logDebug('ERROR: ' + args.join(' '), 'error');
+        };
+
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            logDebug('WARNING: ' + args.join(' '), 'warning');
+        };
+
+        // Catch unhandled errors
+        window.addEventListener('error', (e) => {
+            logDebug(`UNCAUGHT ERROR: ${e.message} at ${e.filename}:${e.lineno}`, 'error');
+        });
+
+        window.addEventListener('unhandledrejection', (e) => {
+            logDebug(`UNHANDLED PROMISE REJECTION: ${e.reason}`, 'error');
+        });
+
+        logDebug('🚀 Debug Mode gestartet');
+        logDebug('Browser: ' + navigator.userAgent);
+    </script>
+
+    <!-- Main App -->
+    <script src="app.js"></script>
+
+    <script>
+        // Zusätzliche Debug-Info nach App-Load
+        window.addEventListener('load', () => {
+            logDebug('✅ Seite vollständig geladen', 'success');
+            logDebug('Supabase verfügbar: ' + (typeof window.supabase !== 'undefined'));
+            logDebug('Config verfügbar: ' + (typeof SUPABASE_CONFIG !== 'undefined'));
+
+            if (typeof SUPABASE_CONFIG !== 'undefined') {
+                logDebug('Config URL: ' + SUPABASE_CONFIG.url);
+            }
+        });
+    </script>
+</body>
+</html>

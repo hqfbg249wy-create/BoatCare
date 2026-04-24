@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BoatCare Admin Panel - YachtService Fokus</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Zusätzliches Styling für die neuen Felder */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .full-width { grid-column: span 2; }
+        .badge-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+        .badge-item { background: #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+    </style>
+</head>
+<body>
+    <div class="admin-container" id="app-container">
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>⚓ BoatCare Admin</h2>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-page="dashboard" onclick="window.navigateToPage('dashboard')">
+                    <span class="icon">📊</span> Dashboard
+                </button>
+                <button class="nav-item" data-page="new-providers" onclick="window.navigateToPage('new-providers')">
+                    <span class="icon">🆕</span> Neue Betriebe <span class="badge" id="new-providers-badge">0</span>
+                </button>
+                <button class="nav-item" data-page="providers" onclick="window.navigateToPage('providers')">
+                    <span class="icon">🏢</span> ServiceProvider
+                </button>
+                <button class="nav-item" data-page="add-provider" onclick="window.navigateToPage('add-provider')">
+                    <span class="icon">➕</span> Provider hinzufügen
+                </button>
+                <button class="nav-item" data-page="search-automation" onclick="window.navigateToPage('search-automation')">
+                    <span class="icon">🔍</span> Marina-Umfeld Suche
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logout-btn" class="logout-btn" onclick="window.handleLogout()">
+                    <span class="icon">🚪</span> Abmelden
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            
+            <div id="providers-page" class="page">
+                <h1>Yacht-Service Betriebe</h1>
+                <div class="search-bar">
+                    <input type="text" id="provider-search" placeholder="Name, Marke (z.B. Volvo) oder Leistung (z.B. Antifouling)...">
+                    <button id="search-btn" class="btn-primary" onclick="window.searchProviders()">🔍 Suchen</button>
+                </div>
+                <div id="providers-list"></div>
+            </div>
+
+            <div id="add-provider-page" class="page">
+                <h1>Provider Details</h1>
+                <form id="add-provider-form" onsubmit="window.handleAddProvider(event)">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Name des Betriebs *</label>
+                            <input type="text" name="name" required placeholder="z.B. Yachtservice Müller">
+                        </div>
+                        <div class="form-group">
+                            <label>Kategorie *</label>
+                            <select name="category" required>
+                                <option value="Werkstatt">⚙️ Motoren- & Technik-Service</option>
+                                <option value="Segelmacher">⛵ Segelmacher & Persenning</option>
+                                <option value="Rigg">🪝 Rigg- & Mastbau</option>
+                                <option value="Instrumente">📡 Elektronik & Navigation</option>
+                                <option value="Zubehör">⚓ Yacht- & Bootszubehör</option>
+                                <option value="Lackierung">🎨 Lack & Antifouling</option>
+                                <option value="Tischler">🪵 Innenausbau & Holz</option>
+                                <option value="Sonstige">🛠️ Sonstige Dienstleistungen</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Slogan / Kurzbeschreibung</label>
+                            <input type="text" name="slogan" placeholder="z.B. Ihr Partner für Refit an der Ostsee">
+                        </div>
+                        <div class="form-group">
+                            <label>Logo URL</label>
+                            <input type="url" name="logo_url" placeholder="https://...">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Ausführliche Beschreibung</label>
+                            <textarea name="description" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Straße & Nr.</label>
+                            <input type="text" name="street">
+                        </div>
+                        <div class="form-group">
+                            <label>PLZ</label>
+                            <input type="text" name="postal_code">
+                        </div>
+                        <div class="form-group">
+                            <label>Stadt *</label>
+                            <input type="text" name="city" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Land *</label>
+                            <input type="text" name="country" value="Deutschland" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Vertretene Marken (kommagetrennt)</label>
+                            <input type="text" name="brands" placeholder="z.B. Volvo Penta, Raymarine, North Sails">
+                        </div>
+                        <div class="form-group">
+                            <label>Leistungen / Produkte (kommagetrennt)</label>
+                            <input type="text" name="services" placeholder="z.B. Motorwartung, GFK-Reparatur, Winterlager">
+                        </div>
+
+                        <div class="form-group">
+                            <label>E-Mail</label>
+                            <input type="email" name="email">
+                        </div>
+                        <div class="form-group">
+                            <label>Website</label>
+                            <input type="url" name="website">
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions" style="margin-top: 20px;">
+                        <button type="submit" class="btn-primary">💾 Betrieb in Datenbank speichern</button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="search-automation-page" class="page">
+                <h1>Marina-Umfeld Suche</h1>
+                <p class="subtitle">Sucht gezielt nach Service-Betrieben im Umkreis von Häfen (exklusive der Marinas selbst).</p>
+                
+                <div style="padding: 20px; background: #f0f9ff; border-radius: 8px; border: 2px solid #0ea5e9;">
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2;">
+                            <label>Marina Standort (Name oder Koordinaten)</label>
+                            <input type="text" id="places-location" placeholder="z.B. Marina Port Grimaud">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Suchradius (km)</label>
+                            <input type="number" id="places-radius" value="10">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>Gezielte Suche nach:</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px;">
+                            <label><input type="checkbox" checked value="boat repair"> Bootsreparatur & Werften</label>
+                            <label><input type="checkbox" checked value="marine engine"> Motorenservice</label>
+                            <label><input type="checkbox" checked value="sailmaker"> Segelmacher</label>
+                            <label><input type="checkbox" checked value="marine supply"> Yachtzubehör</label>
+                        </div>
+                    </div>
+
+                    <button onclick="window.startPlacesScraping()" class="btn-primary" style="margin-top: 15px; width: 100%;">
+                        🚀 Umkreis-Scan starten
+                    </button>
+                </div>
+
+                <div id="places-results-section" style="display: none; margin-top: 20px;">
+                    <h3>Gefundene Yacht-Service Betriebe</h3>
+                    <div id="places-provider-list" class="results-grid">
+                        </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

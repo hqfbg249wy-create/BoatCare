@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Minimal Test</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 40px;
+            background: #f5f5f5;
+        }
+        .box {
+            padding: 20px;
+            margin: 20px 0;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        .output {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 6px;
+            min-height: 50px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Absolut Minimaler Test</h1>
+
+    <div class="box">
+        <h2>Schritt 1: Button Test (ohne externe Dateien)</h2>
+        <p>Dieser Test benötigt KEINE externen Dateien (kein config.js, kein Supabase)</p>
+        <button onclick="buttonClicked()">KLICK MICH!</button>
+        <div id="output1" class="output">Warte auf Klick...</div>
+    </div>
+
+    <div class="box">
+        <h2>Browser-Informationen:</h2>
+        <div id="browser-info" class="output"></div>
+    </div>
+
+    <script>
+        // Diese Funktion wird aufgerufen wenn der Button geklickt wird
+        function buttonClicked() {
+            const output = document.getElementById('output1');
+            const now = new Date().toLocaleTimeString();
+            output.innerHTML = '✅ <strong>ERFOLG!</strong><br>Button wurde geklickt um ' + now;
+            output.style.background = '#d1fae5';
+            output.style.color = '#065f46';
+            alert('Button funktioniert! ✅');
+        }
+
+        // Zeige Browser-Informationen
+        window.onload = function() {
+            const info = document.getElementById('browser-info');
+            info.innerHTML = `
+                <strong>Browser:</strong> ${navigator.userAgent}<br>
+                <strong>Plattform:</strong> ${navigator.platform}<br>
+                <strong>JavaScript:</strong> ✅ Aktiv<br>
+                <strong>Seite geladen:</strong> ${new Date().toLocaleString()}
+            `;
+        };
+    </script>
+</body>
+</html>

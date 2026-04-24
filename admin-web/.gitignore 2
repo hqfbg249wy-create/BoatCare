@@ -1,0 +1,12 @@
+# Konfigurationsdateien mit sensiblen Daten
+config.js
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log

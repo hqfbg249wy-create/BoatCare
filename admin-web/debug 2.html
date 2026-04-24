@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BoatCare Admin - Debug</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 40px;
+            background: #f8fafc;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        h1 { margin-bottom: 24px; color: #1e293b; }
+        .test { margin-bottom: 24px; padding: 20px; background: #f1f5f9; border-radius: 8px; }
+        .test h3 { margin-bottom: 12px; color: #334155; }
+        .result { padding: 12px; border-radius: 6px; margin-top: 8px; font-family: monospace; font-size: 13px; }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .info { background: #dbeafe; color: #1e40af; }
+        button {
+            padding: 10px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+        button:hover { background: #1d4ed8; }
+        .section { margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid #e2e8f0; }
+        pre { white-space: pre-wrap; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 BoatCare Admin - Debug</h1>
+
+        <div class="section">
+            <h2>Konfiguration</h2>
+            <div id="config-info" class="result info"></div>
+        </div>
+
+        <div class="section">
+            <h2>Tests</h2>
+
+            <div class="test">
+                <h3>1. Supabase Verbindung</h3>
+                <button onclick="testSupabaseConnection()">Test starten</button>
+                <div id="test-connection"></div>
+            </div>
+
+            <div class="test">
+                <h3>2. Authentifizierung</h3>
+                <input type="email" id="test-email" placeholder="E-Mail" style="padding: 8px; margin-right: 8px; width: 200px;" />
+                <input type="password" id="test-password" placeholder="Passwort" style="padding: 8px; margin-right: 8px; width: 150px;" />
+                <button onclick="testAuth()">Login testen</button>
+                <button onclick="testLogout()">Logout testen</button>
+                <div id="test-auth"></div>
+            </div>
+
+            <div class="test">
+                <h3>3. Datenbank-Zugriff</h3>
+                <button onclick="testDatabase()">Test starten</button>
+                <div id="test-database"></div>
+            </div>
+
+            <div class="test">
+                <h3>4. Admin-Rolle prüfen</h3>
+                <button onclick="testAdminRole()">Test starten</button>
+                <div id="test-admin"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Aktuelle Session</h2>
+            <button onclick="checkSession()">Session prüfen</button>
+            <div id="session-info"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script>
+        let supabase;
+
+        // Initialisierung
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('🔧 Debug-Seite geladen');
+            console.log('Config:', SUPABASE_CONFIG);
+
+            // Zeige Config
+            try {
+                document.getElementById('config-info').innerHTML = `
+                    <strong>Supabase URL:</strong> ${SUPABASE_CONFIG.url}<br>
+                    <strong>Anon Key:</strong> ${SUPABASE_CONFIG.anonKey.substring(0, 20)}...<br>
+                    <strong>Use Nominatim:</strong> ${USE_NOMINATIM}
+                `;
+            } catch (error) {
+                console.error('Config Fehler:', error);
+                document.getElementById('config-info').innerHTML = '<div class="result error">Config nicht gefunden!</div>';
+                return;
+            }
+
+            // Initialisiere Supabase
+            try {
+                console.log('Initialisiere Supabase...');
+                if (!window.supabase) {
+                    throw new Error('Supabase Library nicht geladen!');
+                }
+
+                const { createClient } = window.supabase;
+                supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+                console.log('✅ Supabase Client initialisiert:', supabase);
+
+                // Test ob Client funktioniert
+                if (!supabase.auth) {
+                    throw new Error('Supabase Auth nicht verfügbar!');
+                }
+
+            } catch (error) {
+                console.error('❌ Fehler bei Initialisierung:', error);
+                alert('Fehler beim Laden von Supabase: ' + error.message);
+                return;
+            }
+
+            // Automatisch Session prüfen
+            console.log('Prüfe Session automatisch...');
+            checkSession();
+
+            // Setup Event Listeners für Buttons
+            setupButtons();
+        });
+
+        function setupButtons() {
+            console.log('Setup Event Listeners...');
+
+            // Alle Buttons mit onclick attribut
+            const buttons = document.querySelectorAll('button[onclick]');
+            buttons.forEach(btn => {
+                const onclick = btn.getAttribute('onclick');
+                btn.removeAttribute('onclick');
+                btn.addEventListener('click', () => {
+                    console.log('Button geklickt:', onclick);
+                    try {
+                        eval(onclick);
+                    } catch (error) {
+                        console.error('Fehler beim Ausführen:', error);
+                    }
+                });
+            });
+        }
+
+        async function testSupabaseConnection() {
+            console.log('🔌 Teste Supabase Verbindung...');
+            const resultDiv = document.getElementById('test-connection');
+            resultDiv.innerHTML = '<div class="result info">⏳ Teste Verbindung...</div>';
+
+            if (!supabase) {
+                resultDiv.innerHTML = '<div class="result error">❌ Supabase nicht initialisiert!</div>';
+                return;
+            }
+
+            try {
+                console.log('Führe Query aus...');
+                // Einfacher Health Check
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .limit(1);
+
+                console.log('Query Ergebnis:', { data, error });
+
+                if (error && error.message.includes('relation "profiles" does not exist')) {
+                    resultDiv.innerHTML = `<div class="result error">❌ Tabelle 'profiles' existiert nicht!<br>Bitte führen Sie die SQL-Scripts aus.<br><br><pre>${error.message}</pre></div>`;
+                } else if (error) {
+                    resultDiv.innerHTML = `<div class="result error">❌ Fehler: ${error.message}<br><br><pre>${JSON.stringify(error, null, 2)}</pre></div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="result success">✅ Verbindung erfolgreich!<br>Datenbank ist erreichbar.<br>Gefundene Profile: ${data?.length || 0}</div>`;
+                }
+            } catch (error) {
+                console.error('Exception:', error);
+                resultDiv.innerHTML = `<div class="result error">❌ Exception: ${error.message}<br><br><pre>${error.stack}</pre></div>`;
+            }
+        }
+
+        async function testAuth() {
+            console.log('🔑 Teste Login...');
+            const email = document.getElementById('test-email').value;
+            const password = document.getElementById('test-password').value;
+            const resultDiv = document.getElementById('test-auth');
+
+            if (!email || !password) {
+                resultDiv.innerHTML = '<div class="result error">❌ Bitte E-Mail und Passwort eingeben</div>';
+                console.warn('E-Mail oder Passwort fehlt');
+                return;
+            }
+
+            console.log('Login für:', email);
+            resultDiv.innerHTML = '<div class="result info">⏳ Authentifiziere...</div>';
+
+            if (!supabase) {
+                resultDiv.innerHTML = '<div class="result error">❌ Supabase nicht initialisiert!</div>';
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+
+                console.log('Login Ergebnis:', { data, error });
+
+                if (error) throw error;
+
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        ✅ Login erfolgreich!<br>
+                        <strong>User ID:</strong> ${data.user.id}<br>
+                        <strong>Email:</strong> ${data.user.email}<br>
+                        <strong>Session gültig bis:</strong> ${new Date(data.session.expires_at * 1000).toLocaleString()}
+                    </div>
+                `;
+
+                console.log('Session gespeichert, prüfe Session...');
+                setTimeout(() => checkSession(), 500);
+            } catch (error) {
+                console.error('Login Fehler:', error);
+                resultDiv.innerHTML = `<div class="result error">❌ Login fehlgeschlagen: ${error.message}<br><br><pre>${JSON.stringify(error, null, 2)}</pre></div>`;
+            }
+        }
+
+        async function testLogout() {
+            const resultDiv = document.getElementById('test-auth');
+            resultDiv.innerHTML = '<div class="result info">Melde ab...</div>';
+
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+
+                resultDiv.innerHTML = '<div class="result success">✅ Logout erfolgreich!</div>';
+                checkSession();
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Logout fehlgeschlagen: ${error.message}</div>`;
+            }
+        }
+
+        async function testDatabase() {
+            const resultDiv = document.getElementById('test-database');
+            resultDiv.innerHTML = '<div class="result info">Teste Datenbank-Zugriff...</div>';
+
+            try {
+                // Teste verschiedene Tabellen
+                const tables = [
+                    'profiles',
+                    'service_providers',
+                    'provider_edit_suggestions'
+                ];
+
+                let html = '<div class="result success">';
+                html += '<strong>Datenbank-Tabellen:</strong><br><br>';
+
+                for (const table of tables) {
+                    const { count, error } = await supabase
+                        .from(table)
+                        .select('*', { count: 'exact', head: true });
+
+                    if (error) {
+                        html += `❌ ${table}: ${error.message}<br>`;
+                    } else {
+                        html += `✅ ${table}: ${count} Einträge<br>`;
+                    }
+                }
+
+                html += '</div>';
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Exception: ${error.message}</div>`;
+            }
+        }
+
+        async function testAdminRole() {
+            const resultDiv = document.getElementById('test-admin');
+            resultDiv.innerHTML = '<div class="result info">Prüfe Admin-Rolle...</div>';
+
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (!session) {
+                    resultDiv.innerHTML = '<div class="result error">❌ Nicht eingeloggt</div>';
+                    return;
+                }
+
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error) throw error;
+
+                const isAdmin = profile.role === 'admin';
+
+                resultDiv.innerHTML = `
+                    <div class="result ${isAdmin ? 'success' : 'error'}">
+                        ${isAdmin ? '✅' : '❌'} Admin-Status: ${isAdmin ? 'Ja' : 'Nein'}<br>
+                        <strong>Name:</strong> ${profile.full_name || '-'}<br>
+                        <strong>Email:</strong> ${profile.email || '-'}<br>
+                        <strong>Rolle:</strong> ${profile.role || 'keine'}<br>
+                        <strong>User ID:</strong> ${profile.id}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Fehler: ${error.message}</div>`;
+            }
+        }
+
+        async function checkSession() {
+            console.log('🔍 Prüfe Session...');
+            const resultDiv = document.getElementById('session-info');
+            resultDiv.innerHTML = '<div class="result info">⏳ Prüfe Session...</div>';
+
+            if (!supabase) {
+                resultDiv.innerHTML = '<div class="result error">❌ Supabase nicht initialisiert!</div>';
+                return;
+            }
+
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+
+                console.log('Session Ergebnis:', { session, error });
+
+                if (error) {
+                    console.error('Session Fehler:', error);
+                    throw error;
+                }
+
+                if (!session) {
+                    resultDiv.innerHTML = '<div class="result info">ℹ️ Keine aktive Session<br>Bitte melden Sie sich an.</div>';
+                    console.log('Keine Session gefunden');
+                    return;
+                }
+
+                console.log('Session gefunden:', session.user.email);
+
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        ✅ Session aktiv<br>
+                        <strong>User ID:</strong> ${session.user.id}<br>
+                        <strong>Email:</strong> ${session.user.email}<br>
+                        <strong>Expires:</strong> ${new Date(session.expires_at * 1000).toLocaleString()}<br>
+                        <strong>Token:</strong> ${session.access_token.substring(0, 30)}...
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Session Check Fehler:', error);
+                resultDiv.innerHTML = `<div class="result error">❌ Fehler: ${error.message}<br><br><pre>${JSON.stringify(error, null, 2)}</pre></div>`;
+            }
+        }
+    </script>
+</body>
+</html>

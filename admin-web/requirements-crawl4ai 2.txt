@@ -1,0 +1,11 @@
+# Crawl4AI benötigt Python 3.10+
+# Installation: python3.10+ -m pip install -r requirements-crawl4ai.txt
+#
+# Option A (empfohlen): Crawl4AI mit vollem Browser-Rendering
+crawl4ai>=0.4.0
+playwright>=1.40.0
+
+# Option B (Fallback, läuft auf Python 3.9):
+# Nur diese beiden Pakete installieren wenn Crawl4AI nicht verfügbar:
+beautifulsoup4>=4.12.0
+lxml>=4.9.0

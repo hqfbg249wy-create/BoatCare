@@ -1,0 +1,324 @@
+/* BoatCare - English */
+
+// MARK: - Navigation Tabs
+"tab.map" = "Map";
+"tab.boats" = "Boats";
+"tab.maintenance" = "Maintenance";
+"tab.marketplace" = "Offers";
+"tab.favorites" = "Favorites";
+"tab.chat" = "Chat";
+
+// MARK: - Service Categories
+"category.all" = "All";
+"category.repair" = "Workshop";
+"category.motor_service" = "Motor Service";
+"category.supplies" = "Marine Supplies";
+"category.fuel" = "Fuel Station";
+"category.sailmaker" = "Sailmaker";
+"category.rigging" = "Rigging";
+"category.instruments" = "Marine Electronics";
+"category.marina" = "Marina";
+"category.yard" = "Yard";
+"category.surveyor" = "Surveyor";
+"category.crane" = "Crane";
+"category.painting" = "Painting / Antifouling";
+"category.transport" = "Yacht Transort";
+
+// MARK: - Map Screen
+"map.search_placeholder" = "Search service providers...";
+"map.no_results" = "No service providers found";
+"map.loading" = "Loading...";
+"map.filter_title" = "Filter by category";
+"map.radius_label" = "Radius";
+"map.km" = "km";
+"map.my_location" = "My Location";
+"map.location_error" = "Location Error";
+"map.location_denied" = "Location access denied. Please enable it in Settings.";
+"map.login_required" = "Login Required";
+"map.login_required_hint" = "Please sign in to add a business.";
+"map.call" = "Call";
+"map.open_in_maps" = "Open in Maps";
+"map.add_business" = "Add Business";
+"map.submitted" = "Submitted!";
+"map.submitted_hint" = "Your business has been submitted for review and will appear on the map once approved.";
+"map.section_basic" = "Basic Info";
+"map.section_address" = "Address";
+"map.company_name" = "Company Name *";
+"map.category" = "Category";
+"map.category2" = "Category 2";
+"map.category3" = "Category 3";
+"map.brands_hint" = "Brands (comma separated)";
+"map.street" = "Street & Number *";
+"map.postal_code" = "ZIP Code *";
+"map.get_coordinates" = "Get Coordinates";
+"map.coordinates_found" = "Coordinates Found";
+"map.services_description" = "Services & Specialties";
+"map.required_fields" = "* Required fields";
+
+// MARK: - Provider Detail
+"provider.contact" = "Contact";
+"provider.phone" = "Phone";
+"provider.email" = "Email";
+"provider.website" = "Website";
+"provider.route" = "Route";
+"provider.services" = "Services & Products";
+"provider.products" = "Products";
+"provider.brands" = "Brands";
+"provider.reviews" = "Reviews";
+"provider.description" = "Description";
+"provider.opening_hours" = "Opening Hours";
+"provider.no_services" = "No services listed";
+"provider.no_brands" = "No brands listed";
+"provider.no_reviews" = "No reviews yet";
+"provider.write_review" = "Write a Review";
+"provider.verified" = "Verified";
+"provider.more_details" = "More Details";
+"provider.google_rating" = "Google Rating";
+"provider.special_offer" = "Special Offer";
+"provider.go_to_shop" = "Go to Shop";
+"provider.swipe_hint" = "Swipe for more providers";
+
+// MARK: - Favorites / POI
+"favorites.title" = "Favorites";
+"favorites.empty" = "No favorites yet";
+"favorites.add_hint" = "Tap the heart icon on a provider to save it";
+"poi.favorites" = "Favorites";
+"poi.no_favorites" = "No favorites yet";
+"poi.no_favorites_hint" = "Tap the heart icon on a provider to save it here.";
+
+// MARK: - Profile
+"profile.title" = "Profile";
+"profile.edit" = "Edit Profile";
+"profile.logout" = "Sign Out";
+"profile.logout_confirm" = "Do you really want to sign out?";
+"profile.language" = "Language";
+"profile.personal_info" = "Personal Information";
+"profile.additional_info" = "Additional Information";
+"profile.full_name" = "Full Name";
+"profile.username" = "Username";
+"profile.phone" = "Phone";
+"profile.address" = "Address";
+"profile.city" = "City";
+"profile.country" = "Country";
+"profile.save" = "Save";
+"profile.cancel" = "Cancel";
+
+// MARK: - Boats
+"boats.title" = "My Boats";
+"boats.add" = "Add Boat";
+"boats.no_boats" = "No boats added yet";
+"boats.name" = "Boat Name";
+"boats.type" = "Type";
+"boats.manufacturer" = "Manufacturer";
+"boats.model" = "Model";
+"boats.year" = "Year";
+"boats.year_built" = "Year Built";
+"boats.length" = "Length (m)";
+"boats.width" = "Width (m)";
+"boats.draft" = "Draft (m)";
+"boats.engine" = "Engine";
+"boats.home_port" = "Home Port";
+"boats.login_required" = "Please sign in to manage your boats.";
+"boats.registration_number" = "Registration Number";
+"boats.hin" = "HIN Code";
+"boats.image_url" = "Image URL";
+"boats.details" = "Specifications";
+"boats.dimensions" = "Dimensions";
+"boats.registration" = "Registration";
+"boats.photo" = "Photo";
+"boats.photo_library" = "Photo Library";
+"boats.take_photo" = "Take Photo";
+"boats.add_photo" = "Add Photo";
+"boats.uploading_photo" = "Uploading photo...";
+"boats.equipment_count" = "Equipment (%d)";
+"boats.delete_confirm" = "Delete Boat?";
+"boats.delete_message" = "Do you really want to delete this boat?";
+
+// MARK: - Maintenance
+"maintenance.title" = "Maintenance";
+"maintenance.due" = "Due";
+"maintenance.overdue" = "Overdue";
+"maintenance.upcoming" = "Upcoming";
+"maintenance.no_tasks" = "No maintenance tasks";
+"maintenance.no_boats_hint" = "Add a boat first to assign maintenance tasks to it.";
+
+// MARK: - Reviews
+"review.rating" = "Rating";
+"review.title" = "Title";
+"review.comment" = "Comment";
+"review.submit" = "Submit Review";
+"review.service" = "Service";
+"review.quality" = "Quality";
+"review.price" = "Price";
+"review.coming_soon_hint" = "Review submission will be available soon.";
+"review.edit" = "Edit Review";
+"review.edit_hint" = "Your existing review will be updated.";
+"review.own" = "Your review";
+
+// MARK: - General
+"general.ok" = "OK";
+"general.cancel" = "Cancel";
+"general.save" = "Save";
+"general.delete" = "Delete";
+"general.edit" = "Edit";
+"general.close" = "Close";
+"general.loading" = "Loading...";
+"general.error" = "Error";
+"general.retry" = "Retry";
+"general.yes" = "Yes";
+"general.no" = "No";
+"general.search" = "Search";
+"general.filter" = "Filter";
+"general.refresh" = "Refresh";
+
+// MARK: - Auth
+"auth.login" = "Sign In";
+"auth.register" = "Register";
+"auth.email" = "Email";
+"auth.password" = "Password";
+"auth.forgot_password" = "Forgot Password?";
+"auth.no_account" = "Don't have an account?";
+"auth.have_account" = "Already have an account?";
+
+// MARK: - Equipment
+"equipment.title" = "Equipment";
+"equipment.add" = "Add Equipment";
+"equipment.no_items" = "No equipment added yet";
+"equipment.all" = "All";
+"equipment.name" = "Name";
+"equipment.category" = "Category";
+"equipment.details" = "Details";
+"equipment.serial" = "Serial Number";
+"equipment.working" = "Working";
+"equipment.status_ok" = "Operational";
+"equipment.status_defect" = "Defective / Needs maintenance";
+"equipment.purchase_date" = "Purchase Date";
+"equipment.has_purchase_date" = "Purchase date known";
+"equipment.defect_hint" = "Item marked as defective";
+"equipment.delete_confirm" = "Delete equipment?";
+"equipment.find_service" = "Find Matching Service";
+"equipment.find_parts" = "Find Spare Parts";
+"equipment.no_service_found" = "No matching providers found";
+"equipment.service_search_hint" = "Search by category and manufacturer";
+"equipment.results_found" = "results found";
+"equipment.distance" = "Distance";
+"equipment.metashop_title" = "Spare Parts Search";
+"equipment.metashop_hint" = "Search for spare parts based on your equipment data";
+"equipment.search_by_name" = "Name";
+"equipment.search_by_manufacturer" = "Manufacturer";
+"equipment.search_by_model" = "Model";
+"equipment.search_by_part" = "Part Number";
+"equipment.search_online" = "Search Online";
+"equipment.my_location" = "My Location";
+"equipment.enter_location" = "Enter location...";
+"equipment.radius" = "Radius:";
+"equipment.try_larger_radius" = "Try a larger radius or different location.";
+"equipment.no_shop_found" = "No matching shops found";
+"equipment.to_shop" = "To Shop";
+"equipment.to_website" = "To Website";
+"equipment.in_stock" = "In Stock";
+"equipment.out_of_stock" = "Out of Stock";
+"equipment.free_shipping" = "Free Shipping";
+"equipment.days" = "days";
+"equipment.actions" = "Actions";
+"equipment.description" = "Description";
+"equipment.dates" = "Dates";
+"equipment.maintenance" = "Maintenance";
+"equipment.installation_date" = "Installation Date";
+"equipment.warranty_expiry" = "Warranty Expiry";
+"equipment.has_installation_date" = "Installation date known";
+"equipment.has_warranty" = "Warranty expiry known";
+"equipment.has_last_maintenance" = "Last maintenance known";
+"equipment.cycle" = "Maintenance Cycle (years)";
+"equipment.last_maintenance" = "Last Maintenance";
+"equipment.next_maintenance" = "Next Maintenance";
+"equipment.maintenance_ok" = "OK";
+"equipment.years" = "years";
+"equipment.notes" = "Notes";
+"equipment.part_number" = "Part Number";
+"equipment.location" = "Position on Boat";
+"equipment.dimensions" = "Dimensions";
+"equipment.photo_url" = "Photo URL";
+"equipment.manage_hint" = "Manage your boat equipment";
+"equipment.cat.navigation" = "Navigation";
+"equipment.cat.safety" = "Safety";
+"equipment.cat.engine" = "Engine";
+"equipment.cat.electrical" = "Electrical";
+"equipment.cat.rigging" = "Rigging";
+"equipment.cat.anchor" = "Anchor";
+"equipment.cat.communication" = "Communication";
+"equipment.cat.other" = "Other";
+
+// MARK: - Marketplace / Shop
+"marketplace.title" = "Offers & Shop";
+"marketplace.offer" = "Special Offer";
+"marketplace.no_offers" = "No Offers";
+"marketplace.no_offers_hint" = "No providers with active special offers yet.";
+"marketplace.valid_until" = "Valid until";
+"marketplace.to_shop" = "View in Shop";
+"marketplace.to_website" = "Visit Website";
+"marketplace.promotion_placeholder" = "Describe current special offer...";
+"marketplace.shop_url_placeholder" = "Shop URL (optional)";
+
+// MARK: - Suggest Edit
+"suggest_edit.title" = "Suggest Edit";
+"suggest_edit.button" = "Suggest Edit";
+"suggest_edit.section_basic" = "Basic Info";
+"suggest_edit.section_address" = "Address";
+"suggest_edit.section_contact" = "Contact";
+"suggest_edit.section_services" = "Services & Brands";
+"suggest_edit.section_hours" = "Opening Hours";
+"suggest_edit.section_description" = "Description";
+"suggest_edit.services_hint" = "Services (comma separated)";
+"suggest_edit.brands_hint" = "Brands (comma separated)";
+"suggest_edit.opening_hours_hint" = "One line per day";
+"suggest_edit.description_hint" = "Business description";
+"suggest_edit.info_hint" = "Your suggestion will be reviewed before being applied.";
+"suggest_edit.pending_hint" = "You already have a pending suggestion for this provider.";
+"suggest_edit.submit" = "Submit Suggestion";
+"suggest_edit.success" = "Submitted!";
+"suggest_edit.success_hint" = "Your suggestion has been submitted for review.";
+"suggest_edit.login_required" = "Please sign in first.";
+
+// MARK: - Chat
+"chat.title" = "Chat";
+"chat.welcome" = "Welcome to BoatCare! This section will soon be powered by AI.";
+"chat.input_hint" = "Type a message...";
+"chat.coming_soon" = "AI chat coming soon! 🚢";
+
+// MARK: - AI Maintenance Tips
+"tips.title" = "Maintenance Tips";
+"tips.analyzing" = "Analyzing your data...";
+"tips.analyzing_hint" = "Your boat and equipment data is being reviewed to create personalized recommendations.";
+"tips.error_loading" = "Tips could not be loaded. Please try again.";
+"tips.header_title" = "Your Personal Maintenance Tips";
+"tips.header_subtitle" = "Based on your boat and equipment data";
+"tips.last_updated" = "Last updated: %@";
+"tips.section_urgent" = "Urgent";
+"tips.section_important" = "Important";
+"tips.section_suggestions" = "Recommendations";
+"tips.priority_urgent" = "Urgent";
+"tips.priority_important" = "Important";
+"tips.priority_suggestion" = "Tip";
+"tips.no_boats_title" = "No boat added yet";
+"tips.no_boats_hint" = "Add a boat first and log your equipment so we can provide personalized maintenance tips.";
+"tips.overdue_title" = "Maintenance overdue: %@";
+"tips.overdue_text" = "Maintenance for %@ on your boat %@ is %d days overdue. We recommend scheduling a service appointment soon to keep everything in top condition.";
+"tips.due_soon_title" = "Maintenance due soon: %@";
+"tips.due_soon_text" = "The next maintenance for %@ on %@ is due in %d days. A good time to plan an appointment and get everything ready.";
+"tips.warranty_title" = "Warranty expiring soon: %@";
+"tips.warranty_text" = "The warranty for %@ expires in %d days. Check if there are any open warranty claims you should file before it runs out.";
+"tips.missing_date_title" = "Maintenance date missing: %@";
+"tips.missing_date_text" = "A maintenance cycle is set for %@ on %@, but no specific date has been entered. Add the date of the last maintenance so we can remind you in time.";
+"tips.old_boat_title" = "Annual check for %@";
+"tips.old_boat_text" = "Your boat %@ is already %d years old. For older boats, we recommend a thorough annual inspection: hull, rigging, bottom paint and all safety-critical systems deserve special attention.";
+"tips.engine_title" = "Engine service: %@";
+"tips.engine_text" = "Remember to service the %@ on %@ regularly: oil change, impeller, cooling water filter and zinc anodes are essential at the start of the season.";
+"tips.safety_title" = "Safety equipment: %@";
+"tips.safety_text" = "No safety equipment has been logged for %@ yet. Life jackets, fire extinguishers and signaling devices should be checked regularly and documented in the app.";
+"tips.spring_title" = "Spring Check";
+"tips.spring_text" = "Spring is here! Time to get %@ ready for the season: antifouling, engine check, rigging inspection and safety equipment review.";
+"tips.winter_title" = "Winterizing Preparation";
+"tips.winter_text" = "The season is coming to an end. Prepare %@ for winter storage in time: preserve the engine, drain the water system, check the cover.";
+"tips.all_good_title" = "All looking great!";
+"tips.all_good_text" = "Well maintained! There are currently no urgent maintenance notes for your boats. Keep up the great work!";

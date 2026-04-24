@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Places Suche für Maritime Betriebe</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input, select { padding: 8px; width: 300px; }
+        button { padding: 10px 20px; background: #0ea5e9; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0284c7; }
+        .results { margin-top: 30px; }
+        .result-item { background: #f9fafb; padding: 15px; margin-bottom: 10px; border-radius: 5px; border-left: 4px solid #0ea5e9; }
+        .result-item h3 { margin: 0 0 10px 0; }
+        .result-item p { margin: 5px 0; color: #666; }
+        .copy-json { background: #10b981; color: white; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; }
+        .copy-json:hover { background: #059669; }
+        #map { height: 400px; width: 100%; margin-top: 20px; }
+        .info { background: #fef3c7; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #f59e0b; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Google Places Suche für Maritime Betriebe</h1>
+
+    <div class="info">
+        <strong>⚠️ Wichtig:</strong> Diese Seite nutzt die Google Places API. Du benötigst einen API-Key:
+        <ol>
+            <li>Gehe zu <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank">Google Cloud Console</a></li>
+            <li>Erstelle einen API Key</li>
+            <li>Aktiviere "Places API" und "Maps JavaScript API"</li>
+            <li>Trage den Key unten ein</li>
+        </ol>
+        <strong>Kosten:</strong> Erste 1.000 Requests/Monat sind kostenlos, danach ca. $5 pro 1.000 Requests.
+    </div>
+
+    <div class="form-group">
+        <label>Google Maps API Key:</label>
+        <input type="text" id="api-key" placeholder="AIzaSy...">
+        <button onclick="initMap()">API Key speichern & Karte laden</button>
+    </div>
+
+    <div class="form-group">
+        <label>Ort (Stadt/Hafen):</label>
+        <input type="text" id="location" value="Cap d'Agde, France" placeholder="z.B. Cap d'Agde, France">
+    </div>
+
+    <div class="form-group">
+        <label>Suchradius (Meter):</label>
+        <input type="number" id="radius" value="5000" min="100" max="50000">
+    </div>
+
+    <div class="form-group">
+        <label>Kategorie:</label>
+        <select id="category">
+            <option value="all">Alle maritimen Betriebe</option>
+            <option value="boat_repair">Bootswerkstätten</option>
+            <option value="store">Marine-Shops</option>
+            <option value="marina">Marinas</option>
+            <option value="shipyard">Werften</option>
+        </select>
+    </div>
+
+    <button onclick="searchPlaces()">🔍 Suche starten</button>
+
+    <div id="map"></div>
+
+    <div class="results">
+        <h2>Ergebnisse: <span id="result-count">0</span></h2>
+        <div id="results-list"></div>
+    </div>
+
+    <script>
+        let map;
+        let service;
+        let markers = [];
+        let allResults = [];
+
+        function initMap() {
+            const apiKey = document.getElementById('api-key').value;
+            if (!apiKey) {
+                alert('Bitte API Key eingeben!');
+                return;
+            }
+
+            // Lade Google Maps Script
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=mapLoaded`;
+            document.head.appendChild(script);
+        }
+
+        function mapLoaded() {
+            // Initialisiere Karte auf Cap d'Agde
+            const capDagde = { lat: 43.2845, lng: 3.5142 };
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: capDagde,
+                zoom: 13
+            });
+
+            service = new google.maps.places.PlacesService(map);
+            alert('✅ Karte geladen! Du kannst jetzt suchen.');
+        }
+
+        async function searchPlaces() {
+            if (!service) {
+                alert('Bitte zuerst API Key eingeben und Karte laden!');
+                return;
+            }
+
+            const location = document.getElementById('location').value;
+            const radius = parseInt(document.getElementById('radius').value);
+            const category = document.getElementById('category').value;
+
+            // Geocode Location
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ address: location }, (results, status) => {
+                if (status === 'OK') {
+                    const center = results[0].geometry.location;
+                    map.setCenter(center);
+
+                    // Lösche alte Marker
+                    markers.forEach(m => m.setMap(null));
+                    markers = [];
+                    allResults = [];
+
+                    // Such-Keywords basierend auf Kategorie
+                    const keywords = getKeywords(category);
+
+                    // Suche für jedes Keyword
+                    let searchesCompleted = 0;
+                    keywords.forEach(keyword => {
+                        const request = {
+                            location: center,
+                            radius: radius,
+                            keyword: keyword
+                        };
+
+                        service.nearbySearch(request, (results, status) => {
+                            searchesCompleted++;
+                            if (status === google.maps.places.PlacesServiceStatus.OK) {
+                                results.forEach(place => {
+                                    // Verhindere Duplikate
+                                    if (!allResults.find(r => r.place_id === place.place_id)) {
+                                        allResults.push(place);
+                                        addMarker(place);
+                                    }
+                                });
+                            }
+
+                            // Wenn alle Suchen fertig, zeige Ergebnisse
+                            if (searchesCompleted === keywords.length) {
+                                displayResults();
+                            }
+                        });
+                    });
+                } else {
+                    alert('Ort konnte nicht gefunden werden: ' + status);
+                }
+            });
+        }
+
+        function getKeywords(category) {
+            const keywordSets = {
+                'all': [
+                    'boat repair', 'marine service', 'shipyard', 'marina',
+                    'accastillage', 'shipchandler', 'chantier naval',
+                    'electronique marine', 'voilerie', 'sailmaker',
+                    'marine shop', 'boat supplies', 'yacht service'
+                ],
+                'boat_repair': ['boat repair', 'chantier naval', 'yacht service', 'marine service'],
+                'store': ['marine shop', 'accastillage', 'shipchandler', 'boat supplies'],
+                'marina': ['marina', 'port', 'harbour'],
+                'shipyard': ['shipyard', 'chantier naval', 'boat builder']
+            };
+
+            return keywordSets[category] || keywordSets['all'];
+        }
+
+        function addMarker(place) {
+            const marker = new google.maps.Marker({
+                map: map,
+                position: place.geometry.location,
+                title: place.name
+            });
+
+            markers.push(marker);
+        }
+
+        function displayResults() {
+            document.getElementById('result-count').textContent = allResults.length;
+            const resultsDiv = document.getElementById('results-list');
+            resultsDiv.innerHTML = '';
+
+            allResults.forEach(place => {
+                const div = document.createElement('div');
+                div.className = 'result-item';
+
+                const category = detectCategory(place.name, place.types);
+
+                div.innerHTML = `
+                    <h3>${place.name}</h3>
+                    <p><strong>Kategorie (vorgeschlagen):</strong> ${category}</p>
+                    <p><strong>Adresse:</strong> ${place.vicinity || 'Nicht verfügbar'}</p>
+                    <p><strong>Koordinaten:</strong> ${place.geometry.location.lat()}, ${place.geometry.location.lng()}</p>
+                    <p><strong>Rating:</strong> ${place.rating || 'N/A'} (${place.user_ratings_total || 0} Bewertungen)</p>
+                    <p><strong>Typen:</strong> ${place.types.join(', ')}</p>
+                    <button class="copy-json" onclick='copyAsJSON(${JSON.stringify(place)}, "${category}")'>
+                        📋 Als JSON kopieren
+                    </button>
+                `;
+
+                resultsDiv.appendChild(div);
+            });
+        }
+
+        function detectCategory(name, types) {
+            const nameLower = name.toLowerCase();
+
+            if (nameLower.includes('voile') || nameLower.includes('sail')) return 'Segelmacher';
+            if (nameLower.includes('rigg') || nameLower.includes('gréement')) return 'Rigg';
+            if (nameLower.includes('accastillage') || nameLower.includes('shipchandler')) return 'Zubehör';
+            if (nameLower.includes('electronique') || nameLower.includes('electronics')) return 'Instrumente';
+            if (nameLower.includes('station') || nameLower.includes('fuel')) return 'Tankstelle';
+            if (nameLower.includes('marina') || nameLower.includes('port')) return 'Marina';
+            if (nameLower.includes('chantier') || nameLower.includes('shipyard') || nameLower.includes('repair')) return 'Werkstatt';
+
+            return 'Werkstatt'; // Default
+        }
+
+        function copyAsJSON(place, category) {
+            const jsonObj = {
+                name: place.name,
+                city: "Cap d'Agde", // Anpassen!
+                country: "France",
+                category: category,
+                description: place.types.join(', '),
+                coordinates: [place.geometry.location.lat(), place.geometry.location.lng()],
+                address: place.vicinity || "",
+                postal_code: "", // Manuell ergänzen
+                website: "", // Manuell ergänzen
+                phone: "", // Manuell ergänzen
+                services: []
+            };
+
+            const jsonString = JSON.stringify(jsonObj, null, 2);
+            navigator.clipboard.writeText(jsonString).then(() => {
+                alert('✅ JSON in Zwischenablage kopiert!\nFüge es in known-providers.json ein.');
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,382 @@
+/* ================================================================
+   SKIPILY.APP — GLOBAL STYLES
+   Einfuegen in: WordPress → Design → Customizer → Zusaetzliches CSS
+   ================================================================
+
+   Brand Colors:
+     --sk-navy         #0B1D3A   (Hintergrund dunkel, Hero, Provider-CTA)
+     --sk-navy-deep    #081327   (Footer, tiefer Kontrast)
+     --sk-orange       #f97316   (Primaerfarbe, CTAs, Akzente, Logo)
+     --sk-orange-soft  #fdba74   (helle Variante, Hover)
+     --sk-white        #ffffff
+     --sk-muted        #6B7280
+     --sk-bg-light     #F5F7FA
+   ================================================================ */
+
+:root {
+  --sk-navy: #0B1D3A;
+  --sk-navy-deep: #081327;
+  --sk-orange: #f97316;
+  --sk-orange-soft: #fdba74;
+  --sk-white: #ffffff;
+  --sk-muted: #6B7280;
+  --sk-bg-light: #F5F7FA;
+  --sk-text: #1F2937;
+}
+
+/* ---------- Generic ---------- */
+
+.sk-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.sk-narrow {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.sk-center  { text-align: center; }
+.sk-on-dark { color: rgba(255,255,255,0.85); }
+
+.sk-section {
+  padding: 80px 20px;
+}
+
+.sk-section-light     { background: var(--sk-bg-light); color: var(--sk-text); }
+.sk-section-dark      { background: var(--sk-navy); color: var(--sk-white); }
+.sk-section-darkblue  { background: var(--sk-navy-deep); color: var(--sk-white); }
+
+
+/* ---------- Typography ---------- */
+
+.sk-h1 {
+  font-size: 2.5rem;
+  line-height: 1.2;
+  font-weight: 800;
+  color: var(--sk-white);
+  text-align: center;
+  margin: 0 0 1rem;
+}
+
+.sk-h2 {
+  font-size: 2rem;
+  line-height: 1.2;
+  font-weight: 800;
+  color: var(--sk-navy);
+  text-align: center;
+  margin: 0 0 1rem;
+}
+
+.sk-h2-on-dark { color: var(--sk-white); }
+
+.sk-h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--sk-orange);
+  margin: 0 0 0.75rem;
+}
+
+.sk-section-lead {
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: var(--sk-muted);
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 2.5rem;
+}
+
+.sk-section-lead.sk-on-dark { color: rgba(255,255,255,0.8); }
+
+.sk-lead {
+  color: rgba(255,255,255,0.9);
+  font-size: 1.2rem;
+  line-height: 1.6;
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 2rem;
+}
+
+
+/* ---------- Hero ---------- */
+
+.sk-hero {
+  background: linear-gradient(180deg, var(--sk-navy) 0%, var(--sk-navy-deep) 100%);
+  color: var(--sk-white);
+  padding: 100px 20px 80px;
+  text-align: center;
+}
+
+.sk-hero-inner {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.sk-logo {
+  max-width: 280px;
+  width: 60%;
+  height: auto;
+  display: block;
+  margin: 0 auto 16px;
+}
+
+.sk-accent-line {
+  width: 180px;
+  height: 3px;
+  background: var(--sk-orange);
+  margin: 0 auto 16px;
+  border-radius: 2px;
+}
+
+.sk-tagline {
+  letter-spacing: 0.25em;
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.8);
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+}
+
+.sk-subtagline {
+  color: rgba(255,255,255,0.65);
+  font-size: 0.9rem;
+  margin: 0 0 2.5rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sk-hero-cta {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+
+/* ---------- Buttons & Badges ---------- */
+
+.sk-btn {
+  display: inline-block;
+  padding: 14px 32px;
+  border-radius: 10px;
+  font-weight: 700;
+  text-decoration: none !important;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sk-btn-primary {
+  background: var(--sk-orange);
+  color: var(--sk-white) !important;
+  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.35);
+}
+
+.sk-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(249, 115, 22, 0.45);
+  background: #ea580c;
+}
+
+.sk-badge {
+  background: rgba(249, 115, 22, 0.15);
+  color: var(--sk-orange);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  padding: 8px 18px;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+
+/* ---------- USP List ---------- */
+
+.sk-usp-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto;
+  max-width: 520px;
+  font-size: 1.1rem;
+  line-height: 2;
+  color: var(--sk-text);
+}
+
+.sk-usp-list li { padding-left: 0; }
+
+.sk-check {
+  color: var(--sk-orange);
+  font-weight: 700;
+  margin-right: 10px;
+}
+
+
+/* ---------- Feature Rows (Text + Screenshot) ---------- */
+
+.sk-feature-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+  margin: 60px 0;
+}
+
+.sk-feature-row.sk-reverse { direction: rtl; }
+.sk-feature-row.sk-reverse > * { direction: ltr; }
+
+.sk-feature-text p {
+  color: rgba(255,255,255,0.8);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.sk-feature-img {
+  display: flex;
+  justify-content: center;
+}
+
+.sk-feature-img img {
+  max-width: 320px;
+  width: 100%;
+  height: auto;
+  border-radius: 32px;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+}
+
+
+/* ---------- Icon Grid ---------- */
+
+.sk-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.sk-icon-card {
+  background: var(--sk-white);
+  padding: 28px 24px;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(11, 29, 58, 0.06);
+  border: 1px solid rgba(11, 29, 58, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sk-icon-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(11, 29, 58, 0.1);
+}
+
+.sk-icon {
+  font-size: 2.8rem;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.sk-icon-card h4 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--sk-navy);
+  margin: 0 0 0.5rem;
+}
+
+.sk-icon-card p {
+  color: var(--sk-muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+
+/* ---------- Newsletter Form ---------- */
+
+.sk-notify-form {
+  display: flex;
+  gap: 10px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.sk-notify-form input[type="email"] {
+  flex: 1;
+  padding: 14px 18px;
+  border: 2px solid #E5E7EB;
+  border-radius: 10px;
+  font-size: 1rem;
+  background: #fff;
+}
+
+.sk-notify-form input[type="email"]:focus {
+  outline: none;
+  border-color: var(--sk-orange);
+}
+
+.sk-fineprint {
+  color: #9CA3AF;
+  font-size: 0.85rem;
+  margin-top: 1rem;
+}
+
+
+/* ---------- Legal Pages (Datenschutz / AGB / Impressum) ---------- */
+
+.sk-legal {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 60px 20px;
+  color: var(--sk-text);
+  line-height: 1.7;
+}
+
+.sk-legal h2 {
+  color: var(--sk-navy);
+  border-bottom: 3px solid var(--sk-orange);
+  padding-bottom: 10px;
+  display: inline-block;
+}
+
+.sk-legal h3 {
+  color: var(--sk-navy);
+  margin-top: 2rem;
+}
+
+.sk-legal a {
+  color: var(--sk-orange);
+}
+
+.sk-legal table th {
+  background: var(--sk-navy) !important;
+  color: var(--sk-white);
+}
+
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 880px) {
+  .sk-h1 { font-size: 1.9rem; }
+  .sk-h2 { font-size: 1.6rem; }
+
+  .sk-feature-row {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    margin: 40px 0;
+  }
+
+  .sk-feature-row.sk-reverse { direction: ltr; }
+
+  .sk-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .sk-notify-form {
+    flex-direction: column;
+  }
+
+  .sk-hero { padding: 70px 20px 60px; }
+  .sk-section { padding: 60px 20px; }
+}

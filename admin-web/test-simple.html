@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Einfacher Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        .output { margin: 20px 0; padding: 20px; background: #f0f0f0; border-radius: 8px; }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Einfacher Supabase Test</h1>
+
+    <h2>Schritt 1: Grundtest</h2>
+    <button id="test-btn-1">Klick mich!</button>
+    <div id="output-1" class="output">Warte auf Klick...</div>
+
+    <h2>Schritt 2: Config Test</h2>
+    <button id="test-btn-2">Config prüfen</button>
+    <div id="output-2" class="output">Warte auf Klick...</div>
+
+    <h2>Schritt 3: Supabase Test</h2>
+    <button id="test-btn-3">Supabase laden</button>
+    <div id="output-3" class="output">Warte auf Klick...</div>
+
+    <h2>Schritt 4: Login Test</h2>
+    <input type="email" id="email" placeholder="E-Mail" style="padding: 8px; width: 250px;" />
+    <input type="password" id="password" placeholder="Passwort" style="padding: 8px; width: 150px;" />
+    <button id="test-btn-4">Login testen</button>
+    <div id="output-4" class="output">Warte auf Input...</div>
+
+    <h2>Console Output:</h2>
+    <div id="console" style="background: black; color: lime; padding: 10px; font-family: monospace; max-height: 300px; overflow-y: auto;"></div>
+
+    <script>
+        // Custom Console Logger
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            consoleDiv.innerHTML += args.join(' ') + '<br>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            consoleDiv.innerHTML += '<span style="color: red;">' + args.join(' ') + '</span><br>';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+
+        console.log('🚀 Test-Seite geladen');
+
+        // Test 1: Einfacher Button
+        document.getElementById('test-btn-1').addEventListener('click', () => {
+            console.log('✅ Button 1 wurde geklickt!');
+            document.getElementById('output-1').innerHTML = '✅ <strong>Button funktioniert!</strong>';
+            document.getElementById('output-1').className = 'output success';
+        });
+
+        // Test 2: Config
+        document.getElementById('test-btn-2').addEventListener('click', () => {
+            console.log('📋 Prüfe Config...');
+            const output = document.getElementById('output-2');
+
+            try {
+                if (typeof SUPABASE_CONFIG === 'undefined') {
+                    throw new Error('SUPABASE_CONFIG nicht gefunden! config.js nicht geladen?');
+                }
+
+                console.log('Config gefunden:', SUPABASE_CONFIG);
+                output.className = 'output success';
+                output.innerHTML = `
+                    ✅ <strong>Config OK!</strong><br>
+                    URL: ${SUPABASE_CONFIG.url}<br>
+                    Key: ${SUPABASE_CONFIG.anonKey.substring(0, 20)}...
+                `;
+            } catch (error) {
+                console.error('Config Fehler:', error);
+                output.className = 'output error';
+                output.innerHTML = '❌ <strong>Config fehlt!</strong><br>' + error.message;
+            }
+        });
+
+        // Test 3: Supabase
+        let supabase;
+        document.getElementById('test-btn-3').addEventListener('click', async () => {
+            console.log('🔌 Lade Supabase...');
+            const output = document.getElementById('output-3');
+
+            try {
+                if (typeof window.supabase === 'undefined') {
+                    throw new Error('Supabase Library nicht geladen! Prüfen Sie Internetverbindung.');
+                }
+
+                console.log('Supabase Library gefunden');
+
+                const { createClient } = window.supabase;
+                supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+                console.log('Supabase Client erstellt:', supabase);
+
+                // Teste Verbindung
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .limit(1);
+
+                if (error) {
+                    console.error('Datenbank Fehler:', error);
+                    output.className = 'output error';
+                    output.innerHTML = '⚠️ <strong>Supabase OK, aber Datenbank-Fehler:</strong><br>' + error.message;
+                } else {
+                    console.log('Datenbank antwortet:', data);
+                    output.className = 'output success';
+                    output.innerHTML = '✅ <strong>Supabase funktioniert!</strong><br>Verbindung zur DB OK';
+                }
+
+            } catch (error) {
+                console.error('Supabase Fehler:', error);
+                output.className = 'output error';
+                output.innerHTML = '❌ <strong>Fehler:</strong><br>' + error.message + '<br><br><pre>' + error.stack + '</pre>';
+            }
+        });
+
+        // Test 4: Login
+        document.getElementById('test-btn-4').addEventListener('click', async () => {
+            console.log('🔑 Teste Login...');
+            const output = document.getElementById('output-4');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                output.className = 'output error';
+                output.innerHTML = '❌ Bitte E-Mail und Passwort eingeben!';
+                return;
+            }
+
+            if (!supabase) {
+                output.className = 'output error';
+                output.innerHTML = '❌ Bitte erst Test 3 ausführen!';
+                return;
+            }
+
+            try {
+                console.log('Login für:', email);
+                output.innerHTML = '⏳ Authentifiziere...';
+
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+
+                if (error) throw error;
+
+                console.log('Login erfolgreich:', data);
+                output.className = 'output success';
+                output.innerHTML = `
+                    ✅ <strong>Login erfolgreich!</strong><br>
+                    User: ${data.user.email}<br>
+                    ID: ${data.user.id}
+                `;
+
+            } catch (error) {
+                console.error('Login Fehler:', error);
+                output.className = 'output error';
+                output.innerHTML = '❌ <strong>Login fehlgeschlagen:</strong><br>' + error.message;
+            }
+        });
+
+        // Auto-Test der Config beim Laden
+        window.addEventListener('load', () => {
+            console.log('📄 Seite vollständig geladen');
+            console.log('Config verfügbar?', typeof SUPABASE_CONFIG !== 'undefined');
+            console.log('Supabase Library verfügbar?', typeof window.supabase !== 'undefined');
+        });
+    </script>
+
+    <!-- Supabase Library laden -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Config laden -->
+    <script src="config.js"></script>
+</body>
+</html>

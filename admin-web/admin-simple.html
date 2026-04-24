@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BoatCare Admin</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f1f5f9; }
+        .container { max-width: 1300px; margin: 0 auto; padding: 20px; }
+        h1 { color: #1e293b; margin-bottom: 20px; }
+        h2 { color: #334155; margin-bottom: 12px; font-size: 1.1em; }
+        .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; }
+        .stat-card.orange { background: linear-gradient(135deg, #f97316 0%, #ef4444 100%); }
+        .stat-card.green  { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+        .stat-value { font-size: 2.4em; font-weight: bold; }
+        .stat-label { margin-top: 6px; opacity: 0.9; font-size: 0.9em; }
+        button { padding: 9px 18px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; margin: 3px; transition: background .15s; }
+        button:hover { background: #1d4ed8; }
+        button.danger  { background: #dc2626; }
+        button.danger:hover  { background: #b91c1c; }
+        button.success { background: #16a34a; }
+        button.success:hover { background: #15803d; }
+        button.secondary { background: #64748b; }
+        button.secondary:hover { background: #475569; }
+        button.small { padding: 5px 12px; font-size: 12px; }
+        .list-item { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: flex-start; gap: 12px; }
+        .list-item:last-child { border-bottom: none; }
+        .list-item:hover { background: #f8fafc; }
+        input, select, textarea { width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; margin: 4px 0 12px 0; font-size: 14px; outline: none; }
+        input:focus, select:focus, textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+        label { display: block; font-weight: 600; font-size: 13px; color: #475569; margin-top: 10px; }
+        .nav { background: #1e293b; color: white; padding: 14px 20px; margin-bottom: 24px; border-radius: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .nav .nav-title { font-size: 1.15em; font-weight: bold; margin-right: 8px; }
+        .nav button { background: #334155; }
+        .nav button:hover { background: #475569; }
+        .nav button.active { background: #2563eb; }
+        .nav .spacer { flex: 1; }
+        .hidden { display: none; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+        .badge-blue   { background: #dbeafe; color: #1d4ed8; }
+        .badge-green  { background: #dcfce7; color: #15803d; }
+        .badge-orange { background: #ffedd5; color: #c2410c; }
+        .badge-gray   { background: #f1f5f9; color: #475569; }
+
+        /* Brands Editor */
+        .brands-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .brands-grid { grid-template-columns: 1fr; } }
+        .provider-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #f1f5f9; }
+        .provider-row:hover { background: #f8fafc; }
+        .provider-name { font-weight: 600; font-size: 14px; min-width: 160px; }
+        .provider-cat  { font-size: 12px; color: #64748b; min-width: 120px; }
+        .provider-city { font-size: 12px; color: #94a3b8; min-width: 100px; }
+        .brands-input  { flex: 1; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; }
+        .brands-input:focus { border-color: #3b82f6; outline: none; }
+        .tag-list { display: flex; flex-wrap: wrap; gap: 5px; }
+        .tag { background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 99px; font-size: 12px; }
+        .tag.service { background: #dcfce7; color: #15803d; }
+        .search-row { display: flex; gap: 10px; margin-bottom: 16px; }
+        .search-row input { margin: 0; }
+        .search-row select { margin: 0; width: auto; min-width: 180px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+        .dot-green  { background: #22c55e; }
+        .dot-orange { background: #f97316; }
+        .dot-red    { background: #ef4444; }
+        .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #1e40af; }
+        .warn-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #92400e; }
+        #toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9999; }
+        #toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div class="container">
+    <!-- ===== LOGIN ===== -->
+    <div id="login-section">
+        <div class="card" style="max-width: 440px; margin: 80px auto;">
+            <h1>⚓ BoatCare Admin</h1>
+            <p style="color:#64748b;font-size:13px;margin-bottom:16px;">
+                Melde dich mit deinem BoatCare-Konto an.<br>
+                Dein Konto muss in Supabase die Rolle <strong>admin</strong> haben.
+            </p>
+            <label>E-Mail</label>
+            <input type="email" id="login-email" placeholder="deine@email.de"
+                   onkeydown="if(event.key==='Enter') document.getElementById('login-password').focus()">
+            <label>Passwort</label>
+            <input type="password" id="login-password" placeholder="••••••••"
+                   onkeydown="if(event.key==='Enter') login()">
+            <button id="login-btn" style="width:100%;margin-top:8px;" onclick="login()">🔐 Anmelden</button>
+
+            <!-- Fehler-Box mit Diagnose -->
+            <div id="login-error" style="display:none; margin-top:12px; padding:12px 14px;
+                 background:#fef2f2; border:1px solid #fecaca; border-radius:8px; font-size:13px; color:#991b1b;">
+            </div>
+
+            <!-- Hilfe-Box (initial versteckt, erscheint nach Fehler) -->
+            <div id="login-help" style="display:none; margin-top:10px; padding:12px 14px;
+                 background:#fffbeb; border:1px solid #fde68a; border-radius:8px; font-size:12px; color:#92400e;">
+                <strong>Mögliche Ursachen:</strong><br>
+                • Falsches Passwort – nutze dasselbe wie in der BoatCare App<br>
+                • Konto existiert nicht in Supabase Auth (nur Social Login?)<br>
+                • Dein Account hat noch keine Admin-Rolle<br><br>
+                <strong>Admin-Rolle setzen</strong> (im Supabase SQL-Editor):<br>
+                <code style="background:#fef3c7;padding:2px 6px;border-radius:4px;font-size:11px;">
+                    UPDATE profiles SET role = 'admin' WHERE email = 'deine@email.de';
+                </code>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== APP ===== -->
+    <div id="app-section" class="hidden">
+        <div class="nav">
+            <span class="nav-title">⚓ BoatCare Admin</span>
+            <button id="btn-dashboard"   onclick="showPage('dashboard')">📊 Dashboard</button>
+            <button id="btn-brands"      onclick="showPage('brands')">🏷️ Brands/Marken</button>
+            <button id="btn-providers"   onclick="showPage('providers')">🏢 ServiceProvider</button>
+            <button id="btn-suggestions" onclick="showPage('suggestions')">✏️ Änderungen</button>
+            <button id="btn-add"         onclick="showPage('add')">➕ Hinzufügen</button>
+            <span class="spacer"></span>
+            <button class="danger" onclick="logout()">🚪 Abmelden</button>
+        </div>
+
+        <!-- ===== DASHBOARD ===== -->
+        <div id="page-dashboard">
+            <h1>Dashboard</h1>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-providers">–</div>
+                    <div class="stat-label">ServiceProvider gesamt</div>
+                </div>
+                <div class="stat-card orange">
+                    <div class="stat-value" id="stat-missing-brands">–</div>
+                    <div class="stat-label">Provider ohne Brands</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-value" id="stat-suggestions">–</div>
+                    <div class="stat-label">Offene Änderungsanfragen</div>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Letzte Aktivitäten</h2>
+                <div id="activities"><em style="color:#94a3b8;">Lade...</em></div>
+            </div>
+        </div>
+
+        <!-- ===== BRANDS / MARKEN EDITOR ===== -->
+        <div id="page-brands" class="hidden">
+            <h1>🏷️ Brands & Marken verwalten</h1>
+
+            <div class="info-box">
+                <strong>So funktioniert es:</strong><br>
+                Trage im Feld <em>Brands</em> die vom Betrieb vertretenen <strong>Produktmarken und Hersteller</strong> ein
+                (kommagetrennt, z.B. <code>Volvo Penta, Yanmar, Garmin</code>).<br>
+                <strong>Dienstleistungen</strong> wie „Motorrevision" oder „Winterlager" gehören ins Feld <em>Services</em> – nicht hierher.<br>
+                Klicke auf <strong>💾 Speichern</strong> um die Brands direkt in Supabase zu schreiben.
+            </div>
+
+            <div class="warn-box">
+                ⚠️ <strong>Trennung beachten:</strong>
+                <em>Brands</em> = Marken / Hersteller (Produktnamen) –
+                <em>Services</em> = Angebotene Dienstleistungen (Tätigkeiten).
+                Das Formular schreibt <u>ausschließlich</u> die Brands-Spalte, niemals Services.
+            </div>
+
+            <!-- Filter-Zeile -->
+            <div class="card" style="padding:14px 20px;">
+                <div class="search-row">
+                    <input type="text" id="brands-search" placeholder="Provider suchen (Name, Stadt, Kategorie)…"
+                           oninput="filterBrandsTable()">
+                    <select id="brands-filter-cat" onchange="filterBrandsTable()">
+                        <option value="">Alle Kategorien</option>
+                    </select>
+                    <select id="brands-filter-status" onchange="filterBrandsTable()">
+                        <option value="">Alle</option>
+                        <option value="missing">Brands fehlen</option>
+                        <option value="has">Brands vorhanden</option>
+                    </select>
+                    <button class="secondary small" onclick="loadBrandsPage()">🔄 Neu laden</button>
+                    <button class="success small" onclick="saveAllPendingBrands()">💾 Alle speichern</button>
+                </div>
+            </div>
+
+            <!-- Brands-Tabelle -->
+            <div class="card" style="padding:0; overflow:hidden;">
+                <div style="padding:10px 16px; background:#f8fafc; border-bottom:1px solid #e2e8f0; font-size:12px; color:#64748b; display:flex; gap:20px;">
+                    <span>🏢 <strong>Name / Kategorie / Stadt</strong></span>
+                    <span style="flex:1; margin-left:160px;">🏷️ <strong>Brands</strong> (kommagetrennt – nur Marken &amp; Hersteller!)</span>
+                    <span style="width:180px;">🔧 <strong>Services</strong> (nur Anzeige)</span>
+                    <span style="width:80px;"></span>
+                </div>
+                <div id="brands-table-body">
+                    <div style="padding:30px;text-align:center;color:#94a3b8;">Lade Provider…</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== PROVIDERS ===== -->
+        <div id="page-providers" class="hidden">
+            <h1>🏢 ServiceProvider</h1>
+            <div class="card" style="padding:14px 20px;">
+                <div class="search-row">
+                    <input type="text" id="prov-search" placeholder="Suchen…" oninput="filterProvidersList()">
+                    <select id="prov-cat" onchange="filterProvidersList()">
+                        <option value="">Alle Kategorien</option>
+                    </select>
+                    <button class="secondary small" onclick="loadProviders()">🔄 Neu laden</button>
+                </div>
+            </div>
+            <div class="card" style="padding:0; overflow:hidden;">
+                <div id="providers-list">
+                    <div style="padding:30px;text-align:center;color:#94a3b8;">Lade…</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== SUGGESTIONS ===== -->
+        <div id="page-suggestions" class="hidden">
+            <h1>✏️ Änderungsanfragen</h1>
+            <div class="card" style="padding:0; overflow:hidden;">
+                <div id="suggestions-list">
+                    <div style="padding:30px;text-align:center;color:#94a3b8;">Lade…</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ADD PROVIDER ===== -->
+        <div id="page-add" class="hidden">
+            <h1>➕ Provider hinzufügen</h1>
+            <div class="card" style="max-width:600px;">
+                <label>Name *</label>
+                <input type="text" id="add-name">
+                <label>Kategorie *</label>
+                <input type="text" id="add-category" placeholder="z.B. motor_service">
+                <label>Straße</label>
+                <input type="text" id="add-street">
+                <label>Stadt *</label>
+                <input type="text" id="add-city">
+                <label>Land</label>
+                <input type="text" id="add-country" value="Deutschland">
+                <label>Latitude *</label>
+                <input type="number" step="any" id="add-lat">
+                <label>Longitude *</label>
+                <input type="number" step="any" id="add-lng">
+                <label>Telefon</label>
+                <input type="text" id="add-phone">
+                <label>Website</label>
+                <input type="text" id="add-website">
+                <label>Brands (kommagetrennt – nur Marken/Hersteller)</label>
+                <input type="text" id="add-brands" placeholder="Volvo Penta, Yanmar, Garmin">
+                <label>Services (kommagetrennt – nur Dienstleistungen)</label>
+                <input type="text" id="add-services" placeholder="Motorrevision, Winterlager">
+                <button class="success" style="margin-top:12px;" onclick="addProvider()">➕ Provider hinzufügen</button>
+            </div>
+        </div>
+    </div><!-- /app-section -->
+</div><!-- /container -->
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const SUPABASE_URL = 'https://vcjwlyqkfkszumdrfvtm.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjandseXFrZmtzenVtZHJmdnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMDQ4NTksImV4cCI6MjA4NDY4MDg1OX0.VOlhRdvShU325xG18SSSTWdFfGEdyeX-7CAovE2vesQ';
+
+let supabase = null;
+let currentUser  = null;
+let allProviders = [];
+let pendingBrandUpdates = {};
+
+// ============================================================
+// INIT – läuft nachdem Supabase-Script im <head> geladen wurde
+// ============================================================
+document.addEventListener('DOMContentLoaded', async function() {
+    // window.supabase ist jetzt garantiert verfügbar (Script im <head>)
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+        currentUser = session.user;
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role, full_name')
+            .eq('id', currentUser.id)
+            .maybeSingle();
+        showApp(profile);
+    }
+});
+
+// ============================================================
+// AUTH
+// ============================================================
+async function login() {
+    const email = document.getElementById('login-email').value.trim();
+    const pw    = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    const helpEl = document.getElementById('login-help');
+    const btn   = document.getElementById('login-btn');
+
+    errEl.style.display = 'none';
+    helpEl.style.display = 'none';
+
+    if (!supabase) {
+        showLoginError('❌ Supabase wurde nicht geladen. Bitte Seite neu laden (F5).', false);
+        return;
+    }
+
+    if (!email || !pw) {
+        showLoginError('Bitte E-Mail und Passwort eingeben.');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Anmelden...';
+
+    try {
+        // Schritt 1: Supabase Auth Login
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
+
+        if (error) {
+            // Detaillierte Fehlermeldungen je nach Fehlertyp
+            if (error.message.includes('Invalid login credentials')) {
+                showLoginError('❌ E-Mail oder Passwort ist falsch.\n\nTipp: Nutze die gleichen Zugangsdaten wie in der BoatCare App.', true);
+            } else if (error.message.includes('Email not confirmed')) {
+                showLoginError('📧 Deine E-Mail-Adresse ist noch nicht bestätigt. Bitte prüfe dein Postfach.', true);
+            } else if (error.message.includes('Too many requests')) {
+                showLoginError('⏱️ Zu viele Anmeldeversuche. Bitte warte einige Minuten.', false);
+            } else {
+                showLoginError('❌ Anmeldung fehlgeschlagen: ' + error.message, true);
+            }
+            return;
+        }
+
+        currentUser = data.user;
+
+        // Schritt 2: Prüfe ob Profil existiert und Admin-Rolle hat
+        const { data: profile, error: profErr } = await supabase
+            .from('profiles')
+            .select('role, full_name')
+            .eq('id', currentUser.id)
+            .maybeSingle();
+
+        if (profErr) {
+            // Kein Profil = trotzdem einloggen (Admin-Tabelle fehlt vielleicht noch)
+            console.warn('Profil konnte nicht geladen werden:', profErr.message);
+            showApp(null);
+            return;
+        }
+
+        if (!profile) {
+            // Kein Profil-Eintrag gefunden – User kommt aus der App, hat aber kein profiles-Eintrag
+            showLoginError(
+                '⚠️ Kein Profil in der Datenbank gefunden.\n\n' +
+                'Dein Konto existiert in Supabase Auth, aber es fehlt ein Eintrag in der profiles-Tabelle.\n\n' +
+                'SQL ausführen:\n' +
+                `INSERT INTO profiles (id, email, role) VALUES ('${currentUser.id}', '${email}', 'admin');`,
+                false
+            );
+            await supabase.auth.signOut();
+            return;
+        }
+
+        if (profile.role !== 'admin') {
+            showLoginError(
+                `⛔ Dein Konto hat keine Admin-Berechtigung.\n\n` +
+                `Aktuelle Rolle: "${profile.role || 'keine'}"\n\n` +
+                `Um Admin-Zugriff zu erhalten, führe im Supabase SQL-Editor aus:\n` +
+                `UPDATE profiles SET role = 'admin' WHERE id = '${currentUser.id}';`,
+                false
+            );
+            await supabase.auth.signOut();
+            return;
+        }
+
+        // ✅ Alles OK – Admin eingeloggt
+        showApp(profile);
+
+    } catch(e) {
+        showLoginError('Unerwarteter Fehler: ' + e.message, true);
+        console.error(e);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🔐 Anmelden';
+    }
+}
+
+function showLoginError(msg, showHelp = false) {
+    const errEl  = document.getElementById('login-error');
+    const helpEl = document.getElementById('login-help');
+    // \n → <br> für mehrzeilige Nachrichten
+    errEl.innerHTML = msg.replace(/\n/g, '<br>');
+    errEl.style.display = 'block';
+    if (showHelp) helpEl.style.display = 'block';
+}
+
+async function logout() {
+    await supabase.auth.signOut();
+    location.reload();
+}
+
+function showApp(profile) {
+    document.getElementById('login-section').classList.add('hidden');
+    document.getElementById('app-section').classList.remove('hidden');
+    // Zeige Admin-Name in der Nav wenn vorhanden
+    if (profile?.full_name) {
+        const title = document.querySelector('.nav-title');
+        if (title) title.textContent = `⚓ BoatCare Admin  👤 ${profile.full_name}`;
+    }
+    showPage('dashboard');
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+const PAGES = ['dashboard','brands','providers','suggestions','add'];
+function showPage(page) {
+    PAGES.forEach(p => {
+        document.getElementById('page-' + p).classList.add('hidden');
+        const btn = document.getElementById('btn-' + p);
+        if (btn) btn.classList.remove('active');
+    });
+    document.getElementById('page-' + page).classList.remove('hidden');
+    const activeBtn = document.getElementById('btn-' + page);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    if (page === 'dashboard')   loadDashboard();
+    if (page === 'brands')      loadBrandsPage();
+    if (page === 'providers')   loadProviders();
+    if (page === 'suggestions') loadSuggestions();
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(msg, duration = 2800) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), duration);
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+async function loadDashboard() {
+    try {
+        const [pRes, sRes] = await Promise.all([
+            supabase.from('service_providers').select('id', { count: 'exact', head: true }),
+            supabase.from('provider_edit_suggestions').select('id', { count: 'exact', head: true }).eq('status', 'pending')
+        ]);
+
+        // Provider ohne Brands zählen (client-side)
+        const { data: allP } = await supabase
+            .from('service_providers')
+            .select('id, brands');
+        const missingBrands = allP ? allP.filter(p => !p.brands || p.brands.length === 0).length : '–';
+
+        document.getElementById('stat-providers').textContent      = pRes.count ?? '–';
+        document.getElementById('stat-missing-brands').textContent = missingBrands;
+        document.getElementById('stat-suggestions').textContent    = sRes.count ?? '–';
+
+        // Aktivitäten
+        const { data: acts } = await supabase
+            .from('provider_edit_suggestions')
+            .select('*, service_providers(name)')
+            .order('created_at', { ascending: false })
+            .limit(6);
+
+        document.getElementById('activities').innerHTML = acts && acts.length > 0
+            ? acts.map(a => `
+                <div class="list-item" style="padding:10px 14px;">
+                    <span class="status-dot ${a.status === 'approved' ? 'dot-green' : a.status === 'rejected' ? 'dot-red' : 'dot-orange'}"></span>
+                    <div>
+                        <strong>${escHtml(a.service_providers?.name || '–')}</strong>
+                        <span class="badge badge-gray" style="margin-left:6px;">${escHtml(a.status)}</span>
+                        <span style="font-size:12px;color:#94a3b8;margin-left:6px;">${fmtDate(a.created_at)}</span>
+                    </div>
+                </div>`).join('')
+            : '<div style="padding:16px;color:#94a3b8;">Keine Aktivitäten</div>';
+    } catch(e) { console.error(e); }
+}
+
+// ============================================================
+// BRANDS PAGE – Hauptfunktion
+// ============================================================
+async function loadBrandsPage() {
+    pendingBrandUpdates = {};
+    document.getElementById('brands-table-body').innerHTML =
+        '<div style="padding:30px;text-align:center;color:#94a3b8;">Lade Provider…</div>';
+
+    const { data, error } = await supabase
+        .from('service_providers')
+        .select('id, name, category, city, country, brands, services')
+        .order('name');
+
+    if (error) {
+        document.getElementById('brands-table-body').innerHTML =
+            `<div style="padding:20px;color:#dc2626;">Fehler: ${escHtml(error.message)}</div>`;
+        return;
+    }
+
+    allProviders = data || [];
+
+    // Kategorie-Filter befüllen
+    fillCatSelect('brands-filter-cat', allProviders);
+    fillCatSelect('prov-cat', allProviders);
+
+    renderBrandsTable(allProviders);
+}
+
+function renderBrandsTable(providers) {
+    if (!providers.length) {
+        document.getElementById('brands-table-body').innerHTML =
+            '<div style="padding:30px;text-align:center;color:#94a3b8;">Keine Provider gefunden.</div>';
+        return;
+    }
+
+    const rows = providers.map(p => {
+        const brandsCurrent = pendingBrandUpdates[p.id] !== undefined
+            ? pendingBrandUpdates[p.id]
+            : (p.brands || []);
+        const brandsStr  = brandsCurrent.join(', ');
+        const servicesStr = (p.services || []).slice(0, 4).join(', ');
+        const hasBrands   = brandsCurrent.length > 0;
+
+        return `
+        <div class="provider-row" data-id="${p.id}"
+             data-name="${escHtml(p.name).toLowerCase()}"
+             data-cat="${escHtml(p.category || '').toLowerCase()}"
+             data-city="${escHtml(p.city || '').toLowerCase()}"
+             data-has-brands="${hasBrands ? 'yes' : 'no'}">
+            <div style="min-width:200px;">
+                <div class="provider-name">${escHtml(p.name)}</div>
+                <span class="badge badge-blue">${escHtml(p.category || '–')}</span>
+                <span style="font-size:11px;color:#94a3b8;margin-left:4px;">📍 ${escHtml(p.city || '–')}</span>
+            </div>
+            <input class="brands-input"
+                   placeholder="z.B. Volvo Penta, Garmin, Hempel"
+                   value="${escHtml(brandsStr)}"
+                   title="Nur Marken/Hersteller – KEINE Dienstleistungen!"
+                   onchange="markBrandsDirty('${p.id}', this.value)"
+                   oninput="markBrandsDirty('${p.id}', this.value)">
+            <div style="width:200px;font-size:12px;color:#64748b;padding:0 8px;">
+                ${servicesStr ? `<div class="tag-list">${(p.services||[]).slice(0,3).map(s=>`<span class="tag service">${escHtml(s)}</span>`).join('')}${(p.services||[]).length > 3 ? `<span class="tag service">+${(p.services||[]).length-3}</span>`:''}</div>` : '<em style="color:#cbd5e1;">–</em>'}
+            </div>
+            <div style="width:90px;text-align:right;">
+                <button class="small success" onclick="saveBrandsForRow('${p.id}')">💾</button>
+            </div>
+        </div>`;
+    });
+
+    document.getElementById('brands-table-body').innerHTML = rows.join('');
+}
+
+// Markiert eine Zeile als "geändert" – speichert noch nicht
+function markBrandsDirty(id, rawValue) {
+    const parsed = parseTagInput(rawValue);
+    pendingBrandUpdates[id] = parsed;
+    // Visuelles Feedback: Input leicht blau hinterlegen
+    const input = document.querySelector(`.provider-row[data-id="${id}"] .brands-input`);
+    if (input) input.style.background = '#eff6ff';
+}
+
+// Speichert Brands für eine einzelne Zeile
+async function saveBrandsForRow(id) {
+    const brands = pendingBrandUpdates[id];
+    if (brands === undefined) { toast('ℹ️ Keine Änderung'); return; }
+    await doSaveBrands(id, brands);
+}
+
+// Speichert alle pending Updates
+async function saveAllPendingBrands() {
+    const ids = Object.keys(pendingBrandUpdates);
+    if (!ids.length) { toast('ℹ️ Nichts zu speichern'); return; }
+    let ok = 0, fail = 0;
+    for (const id of ids) {
+        const success = await doSaveBrands(id, pendingBrandUpdates[id], true);
+        success ? ok++ : fail++;
+    }
+    toast(`✅ ${ok} gespeichert${fail ? `, ❌ ${fail} fehlgeschlagen` : ''}`);
+    if (ok > 0) loadBrandsPage();
+}
+
+// Schreibt brands[] in Supabase – berührt NICHT services
+async function doSaveBrands(id, brands, silent = false) {
+    try {
+        const { error } = await supabase
+            .from('service_providers')
+            .update({ brands: brands, updated_at: new Date().toISOString() })
+            .eq('id', id);
+
+        if (error) throw error;
+
+        delete pendingBrandUpdates[id];
+
+        // Lokalen Cache aktualisieren
+        const idx = allProviders.findIndex(p => p.id === id);
+        if (idx !== -1) allProviders[idx].brands = brands;
+
+        // Visuellen Hinweis zurücksetzen
+        const input = document.querySelector(`.provider-row[data-id="${id}"] .brands-input`);
+        if (input) input.style.background = '#f0fdf4';
+
+        if (!silent) toast(`✅ Brands gespeichert`);
+        return true;
+    } catch(e) {
+        if (!silent) toast(`❌ Fehler: ${e.message}`);
+        console.error(e);
+        return false;
+    }
+}
+
+// Filter-Funktion für Brands-Tabelle (lokal, kein DB-Aufruf)
+function filterBrandsTable() {
+    const search = document.getElementById('brands-search').value.toLowerCase();
+    const cat    = document.getElementById('brands-filter-cat').value.toLowerCase();
+    const status = document.getElementById('brands-filter-status').value;
+
+    let filtered = allProviders;
+
+    if (search) {
+        filtered = filtered.filter(p =>
+            (p.name||'').toLowerCase().includes(search) ||
+            (p.city||'').toLowerCase().includes(search) ||
+            (p.category||'').toLowerCase().includes(search)
+        );
+    }
+    if (cat) {
+        filtered = filtered.filter(p => (p.category||'').toLowerCase() === cat);
+    }
+    if (status === 'missing') {
+        filtered = filtered.filter(p => !p.brands || p.brands.length === 0);
+    } else if (status === 'has') {
+        filtered = filtered.filter(p => p.brands && p.brands.length > 0);
+    }
+
+    renderBrandsTable(filtered);
+}
+
+// ============================================================
+// PROVIDERS PAGE
+// ============================================================
+async function loadProviders() {
+    const { data, error } = await supabase
+        .from('service_providers')
+        .select('id, name, category, city, country, brands, services, phone, website')
+        .order('name')
+        .limit(200);
+
+    if (error) {
+        document.getElementById('providers-list').innerHTML =
+            `<div style="padding:20px;color:#dc2626;">Fehler: ${escHtml(error.message)}</div>`;
+        return;
+    }
+
+    fillCatSelect('prov-cat', data || []);
+    window._allProv = data || [];
+    renderProvidersList(data || []);
+}
+
+function renderProvidersList(providers) {
+    if (!providers.length) {
+        document.getElementById('providers-list').innerHTML =
+            '<div style="padding:30px;text-align:center;color:#94a3b8;">Keine Provider.</div>';
+        return;
+    }
+    document.getElementById('providers-list').innerHTML = providers.map(p => `
+        <div class="list-item">
+            <div style="flex:1;">
+                <strong>${escHtml(p.name)}</strong>
+                <span class="badge badge-blue" style="margin-left:6px;">${escHtml(p.category||'–')}</span>
+                <span style="font-size:12px;color:#94a3b8;margin-left:4px;">📍 ${escHtml(p.city||'–')}, ${escHtml(p.country||'')}</span>
+                <br>
+                ${p.brands && p.brands.length
+                    ? `<div class="tag-list" style="margin-top:4px;">${p.brands.slice(0,5).map(b=>`<span class="tag">${escHtml(b)}</span>`).join('')}</div>`
+                    : '<span style="font-size:11px;color:#f97316;">⚠️ Keine Brands</span>'}
+            </div>
+            <div>
+                <button class="small" onclick="showPage('brands');setTimeout(()=>{document.getElementById('brands-search').value='${escHtml(p.name).replace(/'/g,"\\'")}';filterBrandsTable();},300)">🏷️ Brands</button>
+                <button class="small danger" onclick="deleteProvider('${p.id}')">🗑️</button>
+            </div>
+        </div>`).join('');
+}
+
+function filterProvidersList() {
+    const search = document.getElementById('prov-search').value.toLowerCase();
+    const cat    = document.getElementById('prov-cat').value.toLowerCase();
+    let filtered = (window._allProv || []).filter(p =>
+        (!search || (p.name||'').toLowerCase().includes(search) || (p.city||'').toLowerCase().includes(search)) &&
+        (!cat    || (p.category||'').toLowerCase() === cat)
+    );
+    renderProvidersList(filtered);
+}
+
+async function deleteProvider(id) {
+    if (!confirm('Provider wirklich löschen? Das kann nicht rückgängig gemacht werden.')) return;
+    const { error } = await supabase.from('service_providers').delete().eq('id', id);
+    if (error) { toast('❌ ' + error.message); return; }
+    toast('🗑️ Gelöscht');
+    loadProviders();
+}
+
+// ============================================================
+// SUGGESTIONS
+// ============================================================
+async function loadSuggestions() {
+    const { data, error } = await supabase
+        .from('provider_edit_suggestions')
+        .select('*, service_providers(name)')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        document.getElementById('suggestions-list').innerHTML =
+            `<div style="padding:20px;color:#dc2626;">Fehler: ${escHtml(error.message)}</div>`;
+        return;
+    }
+
+    document.getElementById('suggestions-list').innerHTML = data && data.length > 0
+        ? data.map(s => `
+            <div class="list-item" style="flex-direction:column; align-items:flex-start;">
+                <div style="display:flex;align-items:center;gap:10px;width:100%;">
+                    <strong>${escHtml(s.service_providers?.name || '–')}</strong>
+                    <span class="badge badge-orange">pending</span>
+                    <span style="font-size:12px;color:#94a3b8;">${fmtDate(s.created_at)}</span>
+                    <div style="margin-left:auto;">
+                        <button class="small success" onclick="approveSuggestion('${s.id}')">✅ Genehmigen</button>
+                        <button class="small danger"  onclick="rejectSuggestion('${s.id}')">❌ Ablehnen</button>
+                    </div>
+                </div>
+                ${s.suggested_name ? `<div style="margin-top:6px;font-size:13px;">Name: <strong>${escHtml(s.suggested_name)}</strong></div>` : ''}
+            </div>`).join('')
+        : '<div style="padding:30px;text-align:center;color:#94a3b8;">Keine offenen Anfragen ✅</div>';
+}
+
+async function approveSuggestion(id) {
+    const { error } = await supabase.from('provider_edit_suggestions').update({
+        status: 'approved', reviewed_by: currentUser.id, reviewed_at: new Date().toISOString()
+    }).eq('id', id);
+    if (error) { toast('❌ ' + error.message); return; }
+    toast('✅ Genehmigt'); loadSuggestions();
+}
+async function rejectSuggestion(id) {
+    const { error } = await supabase.from('provider_edit_suggestions').update({
+        status: 'rejected', reviewed_by: currentUser.id, reviewed_at: new Date().toISOString()
+    }).eq('id', id);
+    if (error) { toast('❌ ' + error.message); return; }
+    toast('❌ Abgelehnt'); loadSuggestions();
+}
+
+// ============================================================
+// ADD PROVIDER
+// ============================================================
+async function addProvider() {
+    const brandsRaw   = document.getElementById('add-brands').value;
+    const servicesRaw = document.getElementById('add-services').value;
+
+    const data = {
+        name:      document.getElementById('add-name').value.trim(),
+        category:  document.getElementById('add-category').value.trim(),
+        street:    document.getElementById('add-street').value.trim() || null,
+        city:      document.getElementById('add-city').value.trim(),
+        country:   document.getElementById('add-country').value.trim(),
+        latitude:  parseFloat(document.getElementById('add-lat').value),
+        longitude: parseFloat(document.getElementById('add-lng').value),
+        phone:     document.getElementById('add-phone').value.trim() || null,
+        website:   document.getElementById('add-website').value.trim() || null,
+        brands:    parseTagInput(brandsRaw),
+        services:  parseTagInput(servicesRaw),
+    };
+
+    if (!data.name || !data.category || !data.city || isNaN(data.latitude)) {
+        toast('⚠️ Bitte alle Pflichtfelder ausfüllen'); return;
+    }
+
+    const { error } = await supabase.from('service_providers').insert([data]);
+    if (error) { toast('❌ ' + error.message); return; }
+    toast('✅ Provider hinzugefügt!');
+    ['add-name','add-category','add-street','add-city','add-lat','add-lng','add-phone','add-website','add-brands','add-services'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    showPage('dashboard');
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+/** Parst kommagetrennte Eingabe in String-Array (trimmt, filtert leere) */
+function parseTagInput(raw) {
+    return raw.split(',')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+}
+
+/** Befüllt ein <select> mit einzigartigen Kategorien */
+function fillCatSelect(selectId, providers) {
+    const sel = document.getElementById(selectId);
+    const current = sel.value;
+    const cats = [...new Set(providers.map(p => p.category || '').filter(Boolean))].sort();
+    const first = sel.options[0]; // "Alle" beibehalten
+    sel.innerHTML = '';
+    sel.appendChild(first);
+    cats.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.toLowerCase();
+        opt.textContent = c;
+        sel.appendChild(opt);
+    });
+    sel.value = current; // Selektion beibehalten
+}
+
+function escHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;');
+}
+
+function fmtDate(iso) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+}
+</script>
+</body>
+</html>

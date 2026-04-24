@@ -1,0 +1,238 @@
+<!-- ================================================================
+     SKIPILY.APP — DATENSCHUTZERKLAERUNG (DSGVO + App Store Connect ready)
+     Stand: April 2026
+     Einfuegen in WordPress: Seite "Datenschutz" → Block
+     "Benutzerdefiniertes HTML". URL: https://skipily.app/datenschutz
+     ================================================================ -->
+
+<div class="sk-legal">
+
+<h2>Datenschutzerklaerung</h2>
+<p><em>Stand: April 2026 &middot; Version 2.0</em></p>
+
+<p>Diese Datenschutzerklaerung informiert Sie ueber die Verarbeitung Ihrer
+personenbezogenen Daten bei Nutzung der mobilen App <strong>Skipily</strong>
+(iOS), der Web-Portale (<em>app.skipily.app</em>, <em>provider.skipily.app</em>,
+<em>admin.skipily.app</em>) sowie der Website <em>skipily.app</em>.</p>
+
+<h3>1. Verantwortlicher</h3>
+<p>Verantwortlich im Sinne von Art. 4 Nr. 7 DSGVO:</p>
+<p>
+[Vor- und Nachname]<br>
+[Strasse und Hausnummer]<br>
+[PLZ Ort], Deutschland<br>
+E-Mail: <a href="mailto:info@skipily.app">info@skipily.app</a>
+</p>
+
+<h3>2. Ueberblick der Verarbeitungen</h3>
+<p>Wir verarbeiten personenbezogene Daten nur, soweit dies fuer die
+Bereitstellung der App und der damit verbundenen Dienste erforderlich ist oder
+Sie ausdruecklich eingewilligt haben. Wir verkaufen Ihre Daten nicht.</p>
+
+<h3>3. Erhobene Daten</h3>
+
+<h4>3.1 Bei der Registrierung / Anmeldung</h4>
+<ul>
+    <li>Name (freiwillig)</li>
+    <li>E-Mail-Adresse</li>
+    <li>Passwort (verschluesselt gespeichert, bcrypt)</li>
+    <li>Bei "Sign in with Apple": pseudonymisierte Apple-ID und (optional) Name/E-Mail</li>
+</ul>
+
+<h4>3.2 Bei der Nutzung der App</h4>
+<ul>
+    <li>Bootsdaten (Name, Typ, Masse, Ausruestung, Fotos)</li>
+    <li>Wartungsplaene und -historie</li>
+    <li>Favoritenlisten (Service-Provider)</li>
+    <li>Bestell- und Zahlungshistorie (Shop, Buchungen)</li>
+    <li>Profilbild / Avatar (freiwillig)</li>
+    <li>Chatverlaeufe mit dem KI-Assistenten (inkl. optionaler Bewertungen zur Qualitaetsverbesserung)</li>
+    <li>Standortdaten (nur bei aktiver Nutzung der Karten-/Suchfunktion, nach ausdruecklicher iOS-Zustimmung)</li>
+    <li>Kamera-/Fotobibliotheks-Zugriff (nur beim Hochladen eigener Fotos, nach ausdruecklicher iOS-Zustimmung)</li>
+</ul>
+
+<h4>3.3 Als Service-Provider / Haendler</h4>
+<ul>
+    <li>Firmenname, Adresse, Kontaktdaten, Leistungskatalog</li>
+    <li>Logo und Titelbild</li>
+    <li>Stripe-Connect-Kontodaten fuer Auszahlungen</li>
+</ul>
+
+<h4>3.4 Automatisch erfasste Daten</h4>
+<ul>
+    <li>Geraetetyp, iOS-Version, App-Version</li>
+    <li>Zeitpunkt des Zugriffs</li>
+    <li>IP-Adresse (anonymisiert in Server-Logs)</li>
+    <li>Absturzberichte (siehe Abschnitt 5 &ndash; Sentry)</li>
+</ul>
+
+<h3>4. Rechtsgrundlagen</h3>
+<ul>
+    <li><strong>Art. 6 Abs. 1 lit. b DSGVO</strong> &ndash; Vertragserfuellung (Registrierung, App-Funktionen, Zahlungsabwicklung)</li>
+    <li><strong>Art. 6 Abs. 1 lit. a DSGVO</strong> &ndash; Einwilligung (Standort, Kamera, KI-Chat-Feedback, Push-Benachrichtigungen)</li>
+    <li><strong>Art. 6 Abs. 1 lit. f DSGVO</strong> &ndash; Berechtigtes Interesse (IT-Sicherheit, Fehlerdiagnose, Missbrauchsabwehr)</li>
+    <li><strong>Art. 6 Abs. 1 lit. c DSGVO</strong> &ndash; Rechtliche Verpflichtung (Steuer-/Handelsrecht bei Zahlungsvorgaengen)</li>
+</ul>
+
+<h3>5. Auftragsverarbeiter und Drittdienste</h3>
+<p>Wir setzen sorgfaeltig ausgewaehlte Dienstleister ein. Mit allen bestehen
+Auftragsverarbeitungsvertraege (Art. 28 DSGVO); bei Drittstaat-Transfers
+werden EU-Standardvertragsklauseln verwendet.</p>
+
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; width:100%;">
+    <tr>
+        <th>Dienst</th><th>Anbieter</th><th>Zweck</th><th>Standort</th>
+    </tr>
+    <tr>
+        <td>Supabase</td>
+        <td>Supabase Inc., USA</td>
+        <td>Datenbank, Authentifizierung, Dateispeicher (Fotos, Logos)</td>
+        <td>EU (Frankfurt)</td>
+    </tr>
+    <tr>
+        <td>Stripe</td>
+        <td>Stripe Payments Europe Ltd., Irland</td>
+        <td>Zahlungsabwicklung, Stripe Connect fuer Anbieter-Auszahlungen</td>
+        <td>EU/USA</td>
+    </tr>
+    <tr>
+        <td>Anthropic (Claude AI)</td>
+        <td>Anthropic PBC, USA</td>
+        <td>Verarbeitung der Nachrichten an den KI-Assistenten</td>
+        <td>USA (API-Nutzung, kein Modell-Training)</td>
+    </tr>
+    <tr>
+        <td>Sentry</td>
+        <td>Functional Software Inc. (Sentry), USA</td>
+        <td>Absturzberichte, Fehlermonitoring</td>
+        <td>EU (Frankfurt)</td>
+    </tr>
+    <tr>
+        <td>Google Places</td>
+        <td>Google Ireland Ltd., Irland</td>
+        <td>Suche oeffentlich verfuegbarer Service-Provider-Eintraege (kein Personenbezug zu App-Nutzern)</td>
+        <td>EU/USA</td>
+    </tr>
+    <tr>
+        <td>Apple (APNs, StoreKit, Sign in with Apple)</td>
+        <td>Apple Distribution International Ltd., Irland</td>
+        <td>Push-Benachrichtigungen, In-App-Kaeufe, Apple-Login</td>
+        <td>EU/USA</td>
+    </tr>
+    <tr>
+        <td>Vercel</td>
+        <td>Vercel Inc., USA</td>
+        <td>Hosting der Web-Portale (app., provider., admin.skipily.app)</td>
+        <td>EU (Frankfurt / Dublin)</td>
+    </tr>
+    <tr>
+        <td>Render</td>
+        <td>Render Services Inc., USA</td>
+        <td>Hosting des Scraper-Backends (Provider-Recherche)</td>
+        <td>EU (Frankfurt)</td>
+    </tr>
+    <tr>
+        <td>IONOS</td>
+        <td>IONOS SE, Deutschland</td>
+        <td>Hosting der Website skipily.app, DNS</td>
+        <td>EU (Deutschland)</td>
+    </tr>
+</table>
+
+<h3>6. Standortdaten</h3>
+<p>Die App nutzt Ihren Standort ausschliesslich, um Service-Provider in Ihrer
+Naehe anzuzeigen. Die Standortabfrage erfolgt nur nach ausdruecklicher
+Zustimmung und kann jederzeit in den iOS-Einstellungen widerrufen werden.
+Standortdaten werden <strong>nicht</strong> auf unseren Servern dauerhaft
+gespeichert.</p>
+
+<h3>7. Fotos und Kamera</h3>
+<p>Beim Hochladen von Fotos (Boote, Ausruestung, Profilbild, Schadensbilder)
+werden diese in verschluesselten Supabase-Speicher-Buckets abgelegt. Zugriff
+auf Kamera und Fotobibliothek wird nur nach iOS-Zustimmung und nur bei aktiver
+Upload-Aktion angefordert.</p>
+
+<h3>8. KI-Assistent</h3>
+<p>Nachrichten an den KI-Assistenten werden ueber unsere Supabase Edge Function
+an Anthropic (Claude API) uebermittelt. Anthropic nutzt API-Daten
+ausdruecklich <strong>nicht</strong> zum Training von KI-Modellen (siehe
+<a href="https://www.anthropic.com/legal/commercial-terms" target="_blank" rel="noopener">Anthropic Commercial Terms</a>).
+Chatverlaeufe werden in Ihrem Account gespeichert, damit Sie spaetere
+Gespraeche fortsetzen koennen. Optional koennen Sie Antworten bewerten; diese
+Bewertungen helfen uns, die Qualitaet zu verbessern.</p>
+
+<h3>9. Absturzberichte (Sentry)</h3>
+<p>Stuerzt die App ab oder tritt ein Fehler auf, uebermitteln wir einen
+Bericht an Sentry (EU-Hosting). Enthalten sind: Geraetetyp, iOS-Version,
+App-Version, Stack-Trace, anonymisierte User-ID. Keine Inhalte aus Boot-,
+Shop- oder Chat-Daten.</p>
+
+<h3>10. Push-Benachrichtigungen</h3>
+<p>Bei Aktivierung senden wir ueber Apple Push Notification Service (APNs)
+Benachrichtigungen (z.B. Wartungsfaelligkeiten, Bestellstatus). Sie koennen
+Push-Benachrichtigungen jederzeit in den iOS-Einstellungen deaktivieren.</p>
+
+<h3>11. Zahlungen (Stripe)</h3>
+<p>Zahlungen werden ausschliesslich ueber Stripe abgewickelt. Ihre
+Zahlungsdaten (Kartennummer etc.) werden direkt von Stripe erfasst und
+gespeichert. Wir selbst sehen nur Transaktions-IDs, Betrag und Status. Stripe
+ist PCI-DSS Level 1 zertifiziert.</p>
+
+<h3>12. Lokale Speicherung auf Ihrem Geraet</h3>
+<p>Die App speichert einige Daten lokal (UserDefaults / CoreData): Spracheinstellung,
+zuletzt gewaehltes Boot, Offline-Cache fuer POIs, Anmelde-Token. Diese werden
+beim Loeschen der App entfernt.</p>
+
+<h3>13. Speicherdauer</h3>
+<ul>
+    <li><strong>Kontodaten:</strong> Bis zur Loeschanfrage, dann in der Regel innerhalb von 30 Tagen vollstaendig geloescht (inkl. Cascading Delete in Supabase)</li>
+    <li><strong>Bootsdaten / Ausruestung / Fotos:</strong> Bis zur Loeschanfrage</li>
+    <li><strong>Chatverlaeufe:</strong> Bis zur Loeschanfrage oder manueller Loeschung in der App</li>
+    <li><strong>Server-Logs:</strong> Maximal 90 Tage, dann automatisch geloescht</li>
+    <li><strong>Zahlungsdaten bei Stripe:</strong> Gemaess steuerrechtlicher Aufbewahrungspflichten (bis zu 10 Jahre, §147 AO)</li>
+    <li><strong>Absturzberichte (Sentry):</strong> 90 Tage</li>
+</ul>
+
+<h3>14. Ihre Rechte</h3>
+<p>Sie haben jederzeit das Recht auf:</p>
+<ul>
+    <li><strong>Auskunft</strong> (Art. 15 DSGVO) ueber Ihre gespeicherten Daten</li>
+    <li><strong>Berichtigung</strong> (Art. 16 DSGVO) unrichtiger Daten</li>
+    <li><strong>Loeschung</strong> (Art. 17 DSGVO) &ndash; auch direkt in der App unter <em>Profil &rarr; Konto loeschen</em></li>
+    <li><strong>Einschraenkung der Verarbeitung</strong> (Art. 18 DSGVO)</li>
+    <li><strong>Datenuebertragbarkeit</strong> (Art. 20 DSGVO) &ndash; Export Ihrer Daten auf Anfrage</li>
+    <li><strong>Widerspruch</strong> (Art. 21 DSGVO) gegen die Verarbeitung</li>
+    <li><strong>Widerruf</strong> erteilter Einwilligungen (Art. 7 Abs. 3 DSGVO) &ndash; mit Wirkung fuer die Zukunft</li>
+</ul>
+<p>Anfragen bitte an: <a href="mailto:info@skipily.app">info@skipily.app</a></p>
+
+<h3>15. Beschwerderecht</h3>
+<p>Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehoerde zu
+beschweren, z.B. beim Landesbeauftragten fuer Datenschutz und
+Informationsfreiheit Ihres Bundeslandes.</p>
+
+<h3>16. Datensicherheit</h3>
+<p>Alle Uebertragungen erfolgen ueber TLS 1.2 oder hoeher. Passwoerter werden
+mit bcrypt gehasht. Datenbank-Zugriffe sind durch Row-Level-Security (RLS) auf
+Ebene des Nutzers beschraenkt.</p>
+
+<h3>17. Kinder</h3>
+<p>Die App richtet sich nicht an Kinder unter 16 Jahren. Wir erheben wissentlich
+keine Daten von Kindern unter 16 Jahren. Falls uns bekannt wird, dass wir
+dennoch solche Daten erhalten haben, werden diese unverzueglich geloescht.</p>
+
+<h3>18. Cookies (Website)</h3>
+<p>Die Website skipily.app verwendet nur technisch notwendige Cookies. Es
+werden keine Tracking-Cookies oder Analyse-Tools von Drittanbietern
+eingesetzt.</p>
+
+<h3>19. Aenderungen dieser Datenschutzerklaerung</h3>
+<p>Wir passen diese Erklaerung bei Bedarf an Aenderungen der Rechtslage oder
+unserer Dienste an. Die jeweils aktuelle Fassung ist unter
+<a href="https://skipily.app/datenschutz">skipily.app/datenschutz</a>
+verfuegbar.</p>
+
+<hr>
+<p><em>Stand: April 2026 &middot; Kontakt: <a href="mailto:info@skipily.app">info@skipily.app</a></em></p>
+
+</div>

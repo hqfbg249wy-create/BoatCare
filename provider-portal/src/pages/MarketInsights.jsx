@@ -203,7 +203,7 @@ export default function MarketInsights() {
           <RefreshCw size={16} /> Aktualisieren
         </button>
       </div>
-      <p className="subtitle">Anonymisierte Einblicke in die BoatCare-Nutzerflotte — nutzen Sie diese Daten für gezielte Angebote.</p>
+      <p className="subtitle">Anonymisierte Einblicke in die Skipily-Nutzerflotte — nutzen Sie diese Daten für gezielte Angebote.</p>
 
       {/* Breadcrumb Navigation */}
       {drillPath.length > 1 && (

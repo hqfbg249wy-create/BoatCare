@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BoatCare Admin Panel</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>⚓ BoatCare Admin</h2>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-page="dashboard">
+                    <span class="icon">📊</span>
+                    Dashboard
+                </button>
+                <button class="nav-item" data-page="suggestions">
+                    <span class="icon">✏️</span>
+                    Änderungsanfragen
+                    <span class="badge" id="suggestions-badge">0</span>
+                </button>
+                <button class="nav-item" data-page="providers">
+                    <span class="icon">🏢</span>
+                    ServiceProvider
+                </button>
+                <button class="nav-item" data-page="add-provider">
+                    <span class="icon">➕</span>
+                    Provider hinzufügen
+                </button>
+                <button class="nav-item" data-page="search-automation">
+                    <span class="icon">🔍</span>
+                    Auto-Suche
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logout-btn" class="logout-btn">
+                    <span class="icon">🚪</span>
+                    Abmelden
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Dashboard Page -->
+            <div id="dashboard-page" class="page active">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <p>Willkommen im BoatCare Admin Panel</p>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🏢</div>
+                        <div class="stat-info">
+                            <h3 id="total-providers">0</h3>
+                            <p>ServiceProvider</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-info">
+                            <h3 id="pending-suggestions">0</h3>
+                            <p>Ausstehende Anfragen</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-info">
+                            <h3 id="approved-today">0</h3>
+                            <p>Heute genehmigt</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔍</div>
+                        <div class="stat-info">
+                            <h3 id="search-runs">0</h3>
+                            <p>Suchdurchläufe</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="recent-activity">
+                    <h2>Letzte Aktivitäten</h2>
+                    <div id="recent-activity-list" class="activity-list"></div>
+                </div>
+            </div>
+
+            <!-- Suggestions Page -->
+            <div id="suggestions-page" class="page">
+                <div class="page-header">
+                    <h1>Änderungsanfragen</h1>
+                    <p>Prüfen und genehmigen Sie Änderungsvorschläge</p>
+                </div>
+                <div class="filter-bar">
+                    <button class="filter-btn active" data-filter="pending">Ausstehend</button>
+                    <button class="filter-btn" data-filter="approved">Genehmigt</button>
+                    <button class="filter-btn" data-filter="rejected">Abgelehnt</button>
+                </div>
+                <div id="suggestions-list" class="content-list"></div>
+            </div>
+
+            <!-- Providers Page -->
+            <div id="providers-page" class="page">
+                <div class="page-header">
+                    <h1>ServiceProvider</h1>
+                    <div class="search-box">
+                        <input type="text" id="provider-search" placeholder="Provider suchen..." />
+                        <button id="search-btn">🔍</button>
+                    </div>
+                </div>
+                <div id="providers-list" class="content-list"></div>
+            </div>
+
+            <!-- Add Provider Page -->
+            <div id="add-provider-page" class="page">
+                <div class="page-header">
+                    <h1>Neuen ServiceProvider hinzufügen</h1>
+                </div>
+                <form id="add-provider-form" class="provider-form">
+                    <div class="form-section">
+                        <h3>Grundinformationen</h3>
+                        <div class="form-group">
+                            <label>Name *</label>
+                            <input type="text" name="name" required />
+                        </div>
+                        <div class="form-group">
+                            <label>Kategorie *</label>
+                            <select name="category" required>
+                                <option value="">Bitte wählen...</option>
+                                <option value="Werkstatt">Werkstatt</option>
+                                <option value="Zubehör">Zubehör</option>
+                                <option value="Tankstelle">Tankstelle</option>
+                                <option value="Segelmacher">Segelmacher</option>
+                                <option value="Rigg">Rigg</option>
+                                <option value="Instrumente">Instrumente</option>
+                                <option value="Marina">Marina</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Beschreibung</label>
+                            <textarea name="description" rows="4"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Adresse</h3>
+                        <div class="form-group">
+                            <label>Straße & Hausnummer</label>
+                            <input type="text" name="address" />
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>PLZ</label>
+                                <input type="text" name="postal_code" />
+                            </div>
+                            <div class="form-group">
+                                <label>Stadt *</label>
+                                <input type="text" name="city" required />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Land *</label>
+                            <input type="text" name="country" value="Deutschland" required />
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Latitude *</label>
+                                <input type="number" step="any" name="latitude" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Longitude *</label>
+                                <input type="number" step="any" name="longitude" required />
+                            </div>
+                        </div>
+                        <button type="button" id="geocode-btn" class="btn-secondary">📍 Koordinaten ermitteln</button>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Kontakt</h3>
+                        <div class="form-group">
+                            <label>Telefon</label>
+                            <input type="tel" name="phone" />
+                        </div>
+                        <div class="form-group">
+                            <label>E-Mail</label>
+                            <input type="email" name="email" />
+                        </div>
+                        <div class="form-group">
+                            <label>Website</label>
+                            <input type="url" name="website" />
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Weitere Informationen</h3>
+                        <div class="form-group">
+                            <label>Leistungen (komma-getrennt)</label>
+                            <textarea name="services" rows="2" placeholder="Motor-Service, Wartung, Reparatur"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Vertretene Marken (komma-getrennt)</label>
+                            <textarea name="brands" rows="2" placeholder="Volvo, Yanmar, Mercury"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">💾 Speichern</button>
+                        <button type="reset" class="btn-secondary">🔄 Zurücksetzen</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Search Automation Page -->
+            <div id="search-automation-page" class="page">
+                <div class="page-header">
+                    <h1>Automatische Suche</h1>
+                    <p>Finden Sie neue ServiceProvider automatisch</p>
+                </div>
+
+                <div class="search-config">
+                    <h3>Suchkonfiguration</h3>
+                    <div class="form-group">
+                        <label>Startpunkt (Stadt oder Koordinaten)</label>
+                        <input type="text" id="search-start" placeholder="z.B. Hamburg oder 53.5511,9.9937" />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Suchradius (km)</label>
+                            <input type="number" id="search-radius" value="5" min="1" max="50" />
+                            <small>Klein halten für lokale Handwerksbetriebe</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Schrittweite (km)</label>
+                            <input type="number" id="search-step" value="3" min="1" max="20" />
+                            <small>Abstand zwischen Suchpunkten</small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Suchbereich</label>
+                        <input type="number" id="search-area" value="50" min="10" max="200" />
+                        <small>Gesamtbereich in km um den Startpunkt</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Kategorien</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="sailmaker" checked> Segelmacher</label>
+                            <label><input type="checkbox" value="marina" checked> Marinas</label>
+                            <label><input type="checkbox" value="repair" checked> Werkstätten</label>
+                            <label><input type="checkbox" value="supplies" checked> Zubehör</label>
+                        </div>
+                    </div>
+                    <button id="start-search-btn" class="btn-primary">🔍 Suche starten</button>
+                </div>
+
+                <div id="search-progress" class="search-progress" style="display: none;">
+                    <h3>Suchfortschritt</h3>
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                    <p id="progress-text">Initialisiere...</p>
+                    <div id="search-results" class="search-results"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for Suggestion Details -->
+    <div id="suggestion-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="suggestion-details"></div>
+        </div>
+    </div>
+
+    <!-- Modal for Provider Details -->
+    <div id="provider-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="provider-details"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

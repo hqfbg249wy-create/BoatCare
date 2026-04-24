@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BoatCare Admin Panel - Standalone</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="admin-container" id="app-container">
+        <!-- Wird dynamisch gefüllt -->
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script>
+        // ============================================
+        // GLOBALE VARIABLEN
+        // ============================================
+        let supabase;
+        let currentUser = null;
+
+        // ============================================
+        // INITIALISIERUNG
+        // ============================================
+        window.addEventListener('load', async () => {
+            console.log('🚀 Standalone Admin Panel wird initialisiert...');
+
+            try {
+                // Supabase initialisieren
+                const { createClient } = window.supabase;
+                supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+                console.log('✅ Supabase Client erstellt');
+
+                // Auth Check
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (!session) {
+                    console.log('ℹ️ Keine aktive Session - zeige Login');
+                    showLogin();
+                    return;
+                }
+
+                console.log('✅ Session gefunden:', session.user.email);
+                currentUser = session.user;
+
+                // Admin-Rolle prüfen
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', currentUser.id)
+                    .single();
+
+                if (profile?.role !== 'admin') {
+                    alert('Sie haben keine Admin-Berechtigung!');
+                    await supabase.auth.signOut();
+                    window.location.reload();
+                    return;
+                }
+
+                console.log('✅ Admin-Berechtigung bestätigt');
+                showMainApp();
+            } catch (error) {
+                console.error('❌ Fehler:', error);
+                alert('Fehler: ' + error.message);
+            }
+        });
+
+        // ============================================
+        // LOGIN ANZEIGEN
+        // ============================================
+        function showLogin() {
+            document.getElementById('app-container').innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: var(--bg-color);">
+                    <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 400px; width: 100%;">
+                        <h2 style="margin-bottom: 24px;">⚓ BoatCare Admin Login</h2>
+                        <form onsubmit="handleLogin(event)">
+                            <div style="margin-bottom: 16px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 500;">E-Mail</label>
+                                <input type="email" id="email" required
+                                       style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;">
+                            </div>
+                            <div style="margin-bottom: 24px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Passwort</label>
+                                <input type="password" id="password" required
+                                       style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;">
+                            </div>
+                            <button type="submit"
+                                    style="width: 100%; padding: 14px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px;">
+                                Anmelden
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                window.location.reload();
+            } catch (error) {
+                alert('Login fehlgeschlagen: ' + error.message);
+            }
+        }
+
+        // ============================================
+        // HAUPTANWENDUNG ANZEIGEN
+        // ============================================
+        function showMainApp() {
+            document.getElementById('app-container').innerHTML = `
+                <aside class="sidebar">
+                    <div class="logo">
+                        <h2>⚓ BoatCare Admin</h2>
+                    </div>
+                    <nav class="nav-menu">
+                        <button class="nav-item active" onclick="navigateTo('dashboard')">
+                            <span class="icon">📊</span>
+                            Dashboard
+                        </button>
+                        <button class="nav-item" onclick="navigateTo('suggestions')">
+                            <span class="icon">✏️</span>
+                            Änderungsanfragen
+                            <span class="badge" id="suggestions-badge">0</span>
+                        </button>
+                        <button class="nav-item" onclick="navigateTo('providers')">
+                            <span class="icon">🏢</span>
+                            ServiceProvider
+                        </button>
+                        <button class="nav-item" onclick="navigateTo('add-provider')">
+                            <span class="icon">➕</span>
+                            Provider hinzufügen
+                        </button>
+                    </nav>
+                    <div class="sidebar-footer">
+                        <button class="logout-btn" onclick="handleLogout()">
+                            <span class="icon">🚪</span>
+                            Abmelden
+                        </button>
+                    </div>
+                </aside>
+
+                <main class="main-content" id="main-content">
+                    <!-- Wird dynamisch gefüllt -->
+                </main>
+            `;
+
+            navigateTo('dashboard');
+        }
+
+        // ============================================
+        // NAVIGATION
+        // ============================================
+        function navigateTo(page) {
+            console.log('📍 Navigiere zu:', page);
+
+            // Update active nav
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event?.target?.closest('.nav-item')?.classList.add('active');
+
+            const content = document.getElementById('main-content');
+
+            switch(page) {
+                case 'dashboard':
+                    showDashboard(content);
+                    break;
+                case 'suggestions':
+                    showSuggestions(content);
+                    break;
+                case 'providers':
+                    showProviders(content);
+                    break;
+                case 'add-provider':
+                    showAddProvider(content);
+                    break;
+            }
+        }
+
+        // ============================================
+        // DASHBOARD
+        // ============================================
+        async function showDashboard(content) {
+            content.innerHTML = `
+                <h1>Dashboard</h1>
+                <p class="subtitle">Willkommen im BoatCare Admin Panel</p>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🏢</div>
+                        <div class="stat-value" id="total-providers">...</div>
+                        <div class="stat-label">ServiceProvider</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-value" id="pending-suggestions">...</div>
+                        <div class="stat-label">Ausstehende Anfragen</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-value" id="approved-today">...</div>
+                        <div class="stat-label">Heute genehmigt</div>
+                    </div>
+                </div>
+                <h2>Letzte Aktivitäten</h2>
+                <div id="recent-activity">Lädt...</div>
+            `;
+
+            // Lade Statistiken
+            try {
+                const [providers, suggestions, approvedToday] = await Promise.all([
+                    supabase.from('service_providers').select('id', { count: 'exact', head: true }),
+                    supabase.from('provider_edit_suggestions').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+                    supabase.from('provider_edit_suggestions').select('id', { count: 'exact', head: true })
+                        .eq('status', 'approved')
+                        .gte('reviewed_at', new Date().toISOString().split('T')[0])
+                ]);
+
+                document.getElementById('total-providers').textContent = providers.count || 0;
+                document.getElementById('pending-suggestions').textContent = suggestions.count || 0;
+                document.getElementById('suggestions-badge').textContent = suggestions.count || 0;
+                document.getElementById('approved-today').textContent = approvedToday.count || 0;
+
+                // Letzte Aktivitäten
+                const { data: activities } = await supabase
+                    .from('provider_edit_suggestions')
+                    .select('*, service_providers(name)')
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                const activityHTML = activities && activities.length > 0
+                    ? activities.map(a => `
+                        <div class="activity-item">
+                            <strong>${a.service_providers?.name || 'Unbekannt'}</strong>
+                            <span>${a.status}</span>
+                            <small>${new Date(a.created_at).toLocaleDateString('de-DE')}</small>
+                        </div>
+                    `).join('')
+                    : '<p>Keine Aktivitäten</p>';
+
+                document.getElementById('recent-activity').innerHTML = activityHTML;
+            } catch (error) {
+                console.error('❌ Fehler beim Laden:', error);
+            }
+        }
+
+        // ============================================
+        // SUGGESTIONS
+        // ============================================
+        async function showSuggestions(content) {
+            content.innerHTML = `
+                <h1>Änderungsanfragen</h1>
+                <div id="suggestions-list">Lädt...</div>
+            `;
+
+            try {
+                const { data: suggestions } = await supabase
+                    .from('provider_edit_suggestions')
+                    .select('*, service_providers(name)')
+                    .eq('status', 'pending')
+                    .order('created_at', { ascending: false });
+
+                const html = suggestions && suggestions.length > 0
+                    ? suggestions.map(s => `
+                        <div class="list-item">
+                            <div class="list-item-header">
+                                <span class="list-item-title">${s.service_providers?.name || 'Unbekannt'}</span>
+                                <span class="list-item-status status-pending">Ausstehend</span>
+                            </div>
+                            <div class="list-item-content">
+                                ${s.suggested_name ? 'Name geändert' : ''}
+                            </div>
+                            <div class="list-item-meta">
+                                <button onclick="approveSuggestion('${s.id}')" class="btn-primary" style="margin-right: 8px;">✅ Genehmigen</button>
+                                <button onclick="rejectSuggestion('${s.id}')" class="btn-secondary">❌ Ablehnen</button>
+                            </div>
+                        </div>
+                    `).join('')
+                    : '<p>Keine ausstehenden Vorschläge</p>';
+
+                document.getElementById('suggestions-list').innerHTML = html;
+            } catch (error) {
+                console.error('❌ Fehler:', error);
+            }
+        }
+
+        async function approveSuggestion(id) {
+            if (!confirm('Änderung wirklich genehmigen?')) return;
+
+            try {
+                const { data: suggestion } = await supabase
+                    .from('provider_edit_suggestions')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+
+                // Update Provider
+                const updates = {};
+                if (suggestion.suggested_name) updates.name = suggestion.suggested_name;
+                if (suggestion.suggested_description) updates.description = suggestion.suggested_description;
+
+                if (Object.keys(updates).length > 0) {
+                    await supabase
+                        .from('service_providers')
+                        .update(updates)
+                        .eq('id', suggestion.provider_id);
+                }
+
+                // Markiere als genehmigt
+                await supabase
+                    .from('provider_edit_suggestions')
+                    .update({
+                        status: 'approved',
+                        reviewed_by: currentUser.id,
+                        reviewed_at: new Date().toISOString()
+                    })
+                    .eq('id', id);
+
+                alert('✅ Genehmigt!');
+                navigateTo('suggestions');
+            } catch (error) {
+                alert('Fehler: ' + error.message);
+            }
+        }
+
+        async function rejectSuggestion(id) {
+            const reason = prompt('Ablehnungsgrund (optional):');
+            if (reason === null) return;
+
+            try {
+                await supabase
+                    .from('provider_edit_suggestions')
+                    .update({
+                        status: 'rejected',
+                        reviewed_by: currentUser.id,
+                        reviewed_at: new Date().toISOString(),
+                        rejection_reason: reason
+                    })
+                    .eq('id', id);
+
+                alert('❌ Abgelehnt');
+                navigateTo('suggestions');
+            } catch (error) {
+                alert('Fehler: ' + error.message);
+            }
+        }
+
+        // ============================================
+        // PROVIDERS
+        // ============================================
+        async function showProviders(content) {
+            content.innerHTML = `
+                <h1>ServiceProvider</h1>
+                <div id="providers-list">Lädt...</div>
+            `;
+
+            try {
+                const { data: providers } = await supabase
+                    .from('service_providers')
+                    .select('*')
+                    .order('name')
+                    .limit(100);
+
+                const html = providers && providers.length > 0
+                    ? providers.map(p => `
+                        <div class="list-item">
+                            <div class="list-item-header">
+                                <span class="list-item-title">${p.name}</span>
+                                <button onclick="deleteProvider('${p.id}')" class="btn-secondary" style="background-color: var(--danger-color);">🗑️</button>
+                            </div>
+                            <div class="list-item-content">${p.category || 'Keine Kategorie'}</div>
+                            <div class="list-item-meta">
+                                <span>📍 ${p.city || '-'}</span>
+                                ${p.phone ? `<span>📞 ${p.phone}</span>` : ''}
+                            </div>
+                        </div>
+                    `).join('')
+                    : '<p>Keine Provider gefunden</p>';
+
+                document.getElementById('providers-list').innerHTML = html;
+            } catch (error) {
+                console.error('❌ Fehler:', error);
+            }
+        }
+
+        async function deleteProvider(id) {
+            if (!confirm('Provider wirklich löschen?')) return;
+
+            try {
+                await supabase.from('service_providers').delete().eq('id', id);
+                alert('✅ Gelöscht');
+                navigateTo('providers');
+            } catch (error) {
+                alert('Fehler: ' + error.message);
+            }
+        }
+
+        // ============================================
+        // ADD PROVIDER
+        // ============================================
+        function showAddProvider(content) {
+            content.innerHTML = `
+                <h1>Provider hinzufügen</h1>
+                <form onsubmit="handleAddProvider(event)">
+                    <div class="form-group">
+                        <label>Name *</label>
+                        <input type="text" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Kategorie *</label>
+                        <input type="text" name="category" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Stadt *</label>
+                        <input type="text" name="city" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Latitude *</label>
+                            <input type="number" name="latitude" step="any" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Longitude *</label>
+                            <input type="number" name="longitude" step="any" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Land</label>
+                        <input type="text" name="country" value="Deutschland">
+                    </div>
+                    <button type="submit" class="btn-primary">➕ Hinzufügen</button>
+                </form>
+            `;
+        }
+
+        async function handleAddProvider(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+
+            const data = {
+                name: formData.get('name'),
+                category: formData.get('category'),
+                city: formData.get('city'),
+                country: formData.get('country'),
+                latitude: parseFloat(formData.get('latitude')),
+                longitude: parseFloat(formData.get('longitude'))
+            };
+
+            try {
+                await supabase.from('service_providers').insert([data]);
+                alert('✅ Provider hinzugefügt!');
+                event.target.reset();
+                navigateTo('dashboard');
+            } catch (error) {
+                alert('Fehler: ' + error.message);
+            }
+        }
+
+        // ============================================
+        // LOGOUT
+        // ============================================
+        async function handleLogout() {
+            await supabase.auth.signOut();
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>
