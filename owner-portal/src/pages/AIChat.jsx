@@ -142,7 +142,7 @@ export default function AIChat() {
           <p className="subtitle">
             {boatContext?.boats?.length
               ? `Ihr Berater für ${boatNames}`
-              : 'Ihr BoatCare-Berater'}
+              : 'Ihr Skipily-Berater'}
           </p>
         </div>
         {messages.length > 0 && (
@@ -157,10 +157,10 @@ export default function AIChat() {
         {messages.length === 0 && (
           <div className="chat-welcome">
             <div className="chat-welcome-icon">
-              <Anchor size={40} />
+              <img src="/icon-192.png" alt="" style={{ width: 48, height: 48, borderRadius: 10 }} />
             </div>
             <h2>Hallo! 👋</h2>
-            <p>Ich bin Ihr BoatCare KI-Berater. Fragen Sie mich zu:</p>
+            <p>Ich bin Ihr Skipily KI-Berater. Fragen Sie mich zu:</p>
             <div className="chat-suggestions">
               <button onClick={() => { setInput('Was muss ich bei der Winterlagerung beachten?'); }}>
                 ❄️ Winterlagerung

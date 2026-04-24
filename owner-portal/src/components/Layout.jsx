@@ -28,8 +28,8 @@ export default function Layout() {
     <div className="layout">
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <Anchor size={28} />
-          <span>BoatCare</span>
+          <img src="/favicon-32.png" alt="" style={{ width: 28, height: 28, borderRadius: 6 }} />
+          <span>Skipily</span>
           <button className="sidebar-close" onClick={() => setSidebarOpen(false)}>
             <X size={20} />
           </button>
@@ -64,7 +64,7 @@ export default function Layout() {
           <button className="hamburger" onClick={() => setSidebarOpen(true)}>
             <Menu size={24} />
           </button>
-          <span className="topbar-title">Mein BoatCare</span>
+          <span className="topbar-title">Mein Skipily</span>
         </header>
         <div className="content">
           <Outlet />

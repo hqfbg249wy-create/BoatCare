@@ -35,8 +35,8 @@ export default function Login() {
     <div className="login-screen">
       <div className="login-card">
         <div className="login-logo">
-          <Anchor size={40} />
-          <h1>BoatCare</h1>
+          <img src="/icon-192.png" alt="Skipily" style={{ width: 64, height: 64, borderRadius: 14 }} />
+          <h1>Skipily</h1>
           <p>{isRegister ? 'Konto erstellen' : 'Bootseigner-Portal'}</p>
         </div>
 

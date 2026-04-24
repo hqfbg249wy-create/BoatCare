@@ -160,7 +160,7 @@ export default function Orders() {
         <div className="empty-state">
           <ShoppingBag size={64} color="#cbd5e1" />
           <h2>Keine Bestellungen</h2>
-          <p>Ihre Bestellungen aus dem BoatCare-Shop erscheinen hier.</p>
+          <p>Ihre Bestellungen aus dem Skipily-Shop erscheinen hier.</p>
         </div>
       ) : (
         <div className="orders-list">
