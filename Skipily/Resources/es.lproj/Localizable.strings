@@ -539,3 +539,6 @@
 "country.ES" = "España";
 "country.HR" = "Croacia";
 "country.GR" = "Grecia";
+
+"category.boatbuilder" = "Astillero";
+"category.heating" = "Calefacción / Clima";

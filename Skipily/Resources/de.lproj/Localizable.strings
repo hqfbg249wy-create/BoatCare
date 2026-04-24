@@ -547,3 +547,6 @@ Ausrüstung unter Boote ergänzen.";
 "country.ES" = "Spanien";
 "country.HR" = "Kroatien";
 "country.GR" = "Griechenland";
+
+"category.boatbuilder" = "Bootsbauer";
+"category.heating" = "Heizung / Klima";

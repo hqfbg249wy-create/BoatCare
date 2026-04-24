@@ -4,13 +4,16 @@ import { useAuth } from '../hooks/useAuth'
 import { Anchor } from 'lucide-react'
 
 const CATEGORIES = [
-  { value: 'repair',    label: 'Reparatur / Werft' },
-  { value: 'marina',    label: 'Marina / Liegeplatz' },
-  { value: 'chandlery', label: 'Bootszubehör / Chandlery' },
-  { value: 'sailmaker', label: 'Segelmacher' },
-  { value: 'engine',    label: 'Motorenservice' },
-  { value: 'electric',  label: 'Elektrik / Elektronik' },
-  { value: 'other',     label: 'Sonstiges' },
+  { value: 'motorservice', label: 'Motorservice' },
+  { value: 'bootsbauer',   label: 'Bootsbauer' },
+  { value: 'zubehör',      label: 'Zubehör' },
+  { value: 'segelmacher',  label: 'Segelmacher' },
+  { value: 'rigg',         label: 'Rigg' },
+  { value: 'instrumente',  label: 'Instrumente / Elektronik' },
+  { value: 'lackiererei',  label: 'Lackiererei' },
+  { value: 'kran',         label: 'Kran / Travel Lift' },
+  { value: 'heizung/klima',label: 'Heizung / Klima' },
+  { value: 'sonstige',     label: 'Sonstige' },
 ]
 
 export default function Signup() {

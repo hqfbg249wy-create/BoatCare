@@ -157,12 +157,14 @@ enum MainTab: String, CaseIterable {
 enum ServiceCategory: String, CaseIterable {
     case all         = "category.all"
     case repair      = "category.motor_service"
+    case boatbuilder = "category.boatbuilder"
     case supplies    = "category.supplies"
-    case fuel        = "category.fuel"
     case sailmaker   = "category.sailmaker"
     case rigging     = "category.rigging"
     case instruments = "category.instruments"
-    case marina      = "category.marina"
+    case heating     = "category.heating"
+    case crane       = "category.crane"
+    case painting    = "category.painting"
 
     var displayName: String {
         return LanguageManager.shared.localized(self.rawValue)
@@ -174,19 +176,23 @@ enum ServiceCategory: String, CaseIterable {
         case .all:
             return []
         case .repair:
-            return ["motor service", "werkstatt", "repair", "werft", "atelier", "cantiere", "taller", "werkplaats"]
+            return ["motorservice", "motor service", "werkstatt", "repair", "werft", "atelier", "cantiere", "taller", "werkplaats"]
+        case .boatbuilder:
+            return ["bootsbauer", "boat builder", "chantier", "astillero", "cantiere navale", "scheepsbouw"]
         case .supplies:
             return ["marine supplies", "zubehör", "supplies", "accastillage", "accessori", "accesorios", "benodigdheden", "shop", "chandl"]
-        case .fuel:
-            return ["fuel", "tankstelle", "carburant", "combustible", "carburante", "brandstof"]
         case .sailmaker:
             return ["sailmaker", "segelmacher", "voilerie", "veleria", "velería", "zeilmakerij", "sail"]
         case .rigging:
             return ["rigging", "rigg", "gréement", "attrezzatura", "aparejo", "tuigage", "tauwerk"]
         case .instruments:
             return ["instruments", "instrumente", "electronics", "électronique", "elettronica", "electrónica", "elektronica", "navigation"]
-        case .marina:
-            return ["marina", "hafen", "port", "porto", "puerto", "jachthaven", "haven", "harbour", "harbor"]
+        case .heating:
+            return ["heizung", "klima", "heating", "chauffage", "riscaldamento", "calefacción", "verwarming"]
+        case .crane:
+            return ["kran", "crane", "grue", "grúa", "gru", "kraan"]
+        case .painting:
+            return ["lackier", "painting", "antifouling", "peinture", "pintura", "verniciatura", "schilderwerk"]
         }
     }
 

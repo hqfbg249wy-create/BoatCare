@@ -543,3 +543,6 @@
 "country.ES" = "Spain";
 "country.HR" = "Croatia";
 "country.GR" = "Greece";
+
+"category.boatbuilder" = "Boat Builder";
+"category.heating" = "Heating / AC";

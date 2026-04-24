@@ -83,8 +83,14 @@ final class LanguageManager: ObservableObject {
         let key: String
         switch lower {
         case "motor service", "werkstatt", "werft", "repair", "motorservice",
-             "atelier", "chantier naval", "taller", "cantiere", "werkplaats", "officina":
+             "atelier", "taller", "cantiere", "werkplaats", "officina":
             key = "category.motor_service"
+        case "bootsbauer", "boat builder", "chantier naval", "astillero",
+             "cantiere navale", "scheepsbouwer":
+            key = "category.boatbuilder"
+        case "heizung", "klima", "heizung/klima", "heating",
+             "chauffage", "riscaldamento", "calefacción", "verwarming":
+            key = "category.heating"
         case "marine supplies", "zubehör", "ausrüstung", "accastillage", "shipchandler",
              "accesorios náuticos", "accessori nautici", "nautische benodigdheden":
             key = "category.supplies"

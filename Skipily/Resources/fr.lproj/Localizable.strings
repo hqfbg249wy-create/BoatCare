@@ -539,3 +539,6 @@
 "country.ES" = "Espagne";
 "country.HR" = "Croatie";
 "country.GR" = "Grèce";
+
+"category.boatbuilder" = "Constructeur de bateaux";
+"category.heating" = "Chauffage / Climatisation";
