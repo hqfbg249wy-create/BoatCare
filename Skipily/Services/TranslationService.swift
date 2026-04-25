@@ -14,6 +14,7 @@
 //
 
 import Foundation
+import Combine
 import Supabase
 
 @MainActor
@@ -91,7 +92,8 @@ final class TranslationService: ObservableObject {
         }
 
         let task = Task { [weak self] in
-            await self?.fetchAndCache(productIds: missing, lang: lang)
+            guard let self else { return }
+            await self.fetchAndCache(productIds: missing, lang: lang)
         }
         inflight[key] = task
         await task.value
@@ -132,7 +134,8 @@ final class TranslationService: ObservableObject {
         }
 
         let task = Task { [weak self] in
-            await self?.fetchAndCacheProviders(providerIds: missing, lang: lang)
+            guard let self else { return }
+            await self.fetchAndCacheProviders(providerIds: missing, lang: lang)
         }
         inflight[key] = task
         await task.value
