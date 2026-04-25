@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Plus, Pencil, Trash2, Search, Upload, X, Save, Loader, Image as ImageIcon, Package, CheckSquare, Square } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, Upload, X, Save, Loader, Image as ImageIcon, Package, CheckSquare, Square, FileSpreadsheet, Download } from 'lucide-react'
 
 export default function Products() {
   const { provider } = useAuth()
@@ -15,7 +15,10 @@ export default function Products() {
   const [message, setMessage] = useState(null)
   const [selected, setSelected] = useState(() => new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [csvImporting, setCsvImporting] = useState(false)
+  const [csvResult, setCsvResult] = useState(null) // { ok: n, failed: [{row, error}] }
   const fileInputRef = useRef(null)
+  const csvInputRef = useRef(null)
 
   function toggleSelect(id) {
     setSelected(prev => {
@@ -158,6 +161,152 @@ export default function Products() {
       setMessage({ type: 'success', text: 'Produkt gelöscht.' })
     } catch (err) {
       setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+    }
+  }
+
+  // ---------- CSV Import ----------
+  const CSV_HEADERS = [
+    'name', 'manufacturer', 'part_number', 'sku', 'ean',
+    'price', 'currency', 'stock_quantity', 'description',
+    'category', 'shipping_cost', 'delivery_days', 'weight_kg',
+    'min_order_quantity', 'is_active', 'in_stock', 'image_url',
+  ]
+
+  function downloadCsvTemplate() {
+    const sample = [
+      CSV_HEADERS.join(','),
+      'Impeller Jabsco 1210-0001,Jabsco,1210-0001,JAB-IMP-01,4012345678901,29.90,EUR,50,Impeller Ersatzteil für Jabsco Kühlpumpen,engine,5.90,3,0.05,1,true,true,',
+      'Raymarine Element 9 HV,Raymarine,E70643,RAY-EL9,4012345678902,1299.00,EUR,5,Kartenplotter mit HyperVision Sonar,navigation,0,7,1.8,1,true,true,',
+    ].join('\n')
+    const blob = new Blob([sample], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'skipily-produkte-vorlage.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function parseCsv(text) {
+    // Simpler Parser: Semikolon oder Komma, Anführungszeichen für eingebettete Kommas
+    const lines = text.replace(/\r\n?/g, '\n').split('\n').filter(l => l.trim())
+    if (lines.length === 0) return { rows: [], headers: [] }
+
+    const detectDelim = (line) => (line.split(';').length > line.split(',').length ? ';' : ',')
+    const delim = detectDelim(lines[0])
+
+    const splitLine = (line) => {
+      const result = []
+      let cur = ''
+      let inQuotes = false
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i]
+        if (c === '"') { inQuotes = !inQuotes; continue }
+        if (c === delim && !inQuotes) { result.push(cur); cur = ''; continue }
+        cur += c
+      }
+      result.push(cur)
+      return result.map(s => s.trim())
+    }
+
+    const headers = splitLine(lines[0]).map(h => h.toLowerCase().replace(/^"|"$/g, ''))
+    const rows = lines.slice(1).map(line => {
+      const cells = splitLine(line)
+      const obj = {}
+      headers.forEach((h, i) => { obj[h] = cells[i] ?? '' })
+      return obj
+    })
+    return { rows, headers }
+  }
+
+  function rowToPayload(row) {
+    const asBool = (v) => ['true', '1', 'ja', 'yes', 'y'].includes(String(v).toLowerCase().trim())
+    const asNum = (v) => {
+      if (v === '' || v == null) return null
+      const n = parseFloat(String(v).replace(',', '.'))
+      return isNaN(n) ? null : n
+    }
+    const asInt = (v) => {
+      if (v === '' || v == null) return null
+      const n = parseInt(String(v), 10)
+      return isNaN(n) ? null : n
+    }
+
+    return {
+      provider_id: provider.id,
+      name:         row.name?.trim(),
+      manufacturer: row.manufacturer || null,
+      part_number:  row.part_number  || null,
+      sku:          row.sku  || null,
+      ean:          row.ean  || null,
+      price:             asNum(row.price),
+      currency:          row.currency || 'EUR',
+      stock_quantity:    asInt(row.stock_quantity) ?? 0,
+      description:       row.description || null,
+      category:          row.category    || null,
+      shipping_cost:     asNum(row.shipping_cost),
+      delivery_days:     asInt(row.delivery_days),
+      weight_kg:         asNum(row.weight_kg),
+      min_order_quantity: asInt(row.min_order_quantity) ?? 1,
+      is_active: row.is_active === '' || row.is_active == null ? true : asBool(row.is_active),
+      in_stock:  row.in_stock  === '' || row.in_stock  == null ? true : asBool(row.in_stock),
+      image_url: row.image_url || null,
+      source:    'csv',
+    }
+  }
+
+  async function handleCsvUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCsvImporting(true)
+    setCsvResult(null)
+    setMessage(null)
+
+    try {
+      const text = await file.text()
+      const { rows, headers } = parseCsv(text)
+
+      if (rows.length === 0) {
+        setMessage({ type: 'error', text: 'Die CSV-Datei enthält keine Daten.' })
+        return
+      }
+
+      const missing = ['name', 'price'].filter(h => !headers.includes(h))
+      if (missing.length) {
+        setMessage({ type: 'error', text: `Pflichtspalten fehlen: ${missing.join(', ')}. Lade die Vorlage herunter.` })
+        return
+      }
+
+      const payloads = []
+      const failed = []
+      rows.forEach((row, idx) => {
+        const p = rowToPayload(row)
+        if (!p.name || p.price == null) {
+          failed.push({ row: idx + 2, error: 'Name oder Preis fehlt' })
+          return
+        }
+        payloads.push(p)
+      })
+
+      // Batch-Insert in 50er-Paketen
+      let imported = 0
+      for (let i = 0; i < payloads.length; i += 50) {
+        const batch = payloads.slice(i, i + 50)
+        const { error } = await supabase.from('metashop_products').insert(batch)
+        if (error) {
+          batch.forEach((_, j) => failed.push({ row: i + j + 2, error: error.message }))
+        } else {
+          imported += batch.length
+        }
+      }
+
+      setCsvResult({ ok: imported, failed })
+      await loadProducts()
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+    } finally {
+      setCsvImporting(false)
+      if (csvInputRef.current) csvInputRef.current.value = ''
     }
   }
 
@@ -366,6 +515,26 @@ export default function Products() {
               </button>
             </>
           )}
+          <button className="btn-secondary" onClick={downloadCsvTemplate} title="CSV-Vorlage herunterladen">
+            <Download size={16} /> CSV-Vorlage
+          </button>
+          <button
+            className="btn-secondary"
+            onClick={() => csvInputRef.current?.click()}
+            disabled={csvImporting}
+            title="Produkte aus CSV-Datei importieren"
+          >
+            {csvImporting
+              ? <><Loader size={16} className="spin" /> Importiere…</>
+              : <><FileSpreadsheet size={16} /> CSV-Import</>}
+          </button>
+          <input
+            type="file"
+            ref={csvInputRef}
+            accept=".csv,text/csv"
+            onChange={handleCsvUpload}
+            style={{ display: 'none' }}
+          />
           <button className="btn-primary" onClick={() => { setEditing('new'); setForm(emptyForm()); setMessage(null) }}>
             <Plus size={16} /> Neues Produkt
           </button>
@@ -373,6 +542,31 @@ export default function Products() {
       </div>
 
       {message && <div className={`message message-${message.type}`}>{message.text}</div>}
+
+      {csvResult && (
+        <div className={`message message-${csvResult.failed.length === 0 ? 'success' : 'warning'}`} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <strong>
+              CSV-Import: {csvResult.ok} erfolgreich
+              {csvResult.failed.length > 0 && `, ${csvResult.failed.length} fehlgeschlagen`}
+            </strong>
+            <button className="btn-icon" onClick={() => setCsvResult(null)} title="Schließen">
+              <X size={16} />
+            </button>
+          </div>
+          {csvResult.failed.length > 0 && (
+            <details>
+              <summary style={{ cursor: 'pointer' }}>Fehlerdetails anzeigen</summary>
+              <ul style={{ margin: '8px 0 0 16px', fontSize: 13, maxHeight: 200, overflowY: 'auto' }}>
+                {csvResult.failed.slice(0, 50).map((f, i) => (
+                  <li key={i}>Zeile {f.row}: {f.error}</li>
+                ))}
+                {csvResult.failed.length > 50 && <li>… und {csvResult.failed.length - 50} weitere</li>}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
 
       <div className="search-bar">
         <Search size={18} />

@@ -6482,3 +6482,115 @@ window.handleInviteProvider = async function(event) {
 
     return false;
 };
+
+// ========================================================================
+// Admin einladen / verwalten
+// ========================================================================
+window.handleInviteAdmin = async function(event) {
+    event.preventDefault();
+
+    const form   = document.getElementById('invite-admin-form');
+    const btn    = document.getElementById('admin-submit-btn');
+    const msgBox = document.getElementById('admin-invite-message');
+    const data   = Object.fromEntries(new FormData(form).entries());
+
+    msgBox.innerHTML = '';
+    btn.disabled    = true;
+    btn.textContent = 'Sende…';
+
+    try {
+        if (!supabaseClient) throw new Error('Supabase Client nicht initialisiert');
+
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) throw new Error('Bitte zuerst als Admin einloggen.');
+
+        const res = await fetch(
+            `${SUPABASE_CONFIG.url}/functions/v1/invite-admin`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type':  'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'apikey':        SUPABASE_CONFIG.anonKey,
+                },
+                body: JSON.stringify(data),
+            }
+        );
+
+        const result = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            throw new Error(result.error || `Fehler ${res.status}`);
+        }
+
+        msgBox.innerHTML = `
+            <div style="padding:12px 16px;background:#dcfce7;color:#14532d;border-radius:8px;font-size:14px;">
+                ✓ Admin-Einladung an <strong>${result.email}</strong> gesendet.
+            </div>`;
+        form.reset();
+        loadAdminList();
+    } catch (err) {
+        console.error('Invite-Admin Fehler:', err);
+        msgBox.innerHTML = `
+            <div style="padding:12px 16px;background:#fee2e2;color:#7f1d1d;border-radius:8px;font-size:14px;">
+                ✗ ${err.message}
+            </div>`;
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = '🛡️ Admin einladen';
+    }
+
+    return false;
+};
+
+async function loadAdminList() {
+    const listBox = document.getElementById('admin-list');
+    if (!listBox || !supabaseClient) return;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .select('id, email, full_name, created_at')
+            .eq('role', 'admin')
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        if (!data || data.length === 0) {
+            listBox.textContent = 'Keine Admins gefunden.';
+            return;
+        }
+
+        listBox.innerHTML = `
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                <thead>
+                    <tr style="text-align:left;border-bottom:1px solid #e2e8f0;">
+                        <th style="padding:8px 4px;">E-Mail</th>
+                        <th style="padding:8px 4px;">Name</th>
+                        <th style="padding:8px 4px;">Angelegt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.map(a => `
+                        <tr style="border-bottom:1px solid #f1f5f9;">
+                            <td style="padding:6px 4px;"><code>${a.email || '—'}</code></td>
+                            <td style="padding:6px 4px;">${a.full_name || '—'}</td>
+                            <td style="padding:6px 4px;color:#64748b;">${a.created_at ? new Date(a.created_at).toLocaleDateString('de-DE') : '—'}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    } catch (err) {
+        console.error('loadAdminList Fehler:', err);
+        listBox.innerHTML = `<div style="color:#dc2626;">Fehler beim Laden: ${err.message}</div>`;
+    }
+}
+
+// Automatisch laden wenn Admin-Seite geöffnet wird
+(function hookAdminPageNav() {
+    const origNav = window.navigateToPage;
+    if (!origNav) return;
+    window.navigateToPage = function(page) {
+        origNav.apply(this, arguments);
+        if (page === 'invite-admin') loadAdminList();
+    };
+})();
