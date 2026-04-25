@@ -214,8 +214,10 @@ struct ServiceProviderDetailView: View {
                         }
                     }
 
-                    // 8. Öffnungszeiten
-                    if let hours = provider.openingHours, !hours.isEmpty {
+                    // 8. Öffnungszeiten (client-side lokalisiert)
+                    if let rawHours = provider.openingHours, !rawHours.isEmpty,
+                       case let hours = OpeningHoursLocalizer.localized(rawHours, lang: lang),
+                       !hours.isEmpty {
                         Divider()
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(spacing: 6) {
@@ -677,6 +679,17 @@ struct ReviewRowView: View {
     let review: Review
     let isOwn: Bool
 
+    @ObservedObject private var translator = TranslationService.shared
+    @ObservedObject private var langManager = LanguageManager.shared
+
+    private var localizedComment: String {
+        translator.text(
+            for: review.id.uuidString,
+            original: review.comment,
+            lang: langManager.currentLanguage.code
+        )
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -699,8 +712,8 @@ struct ReviewRowView: View {
                 }
             }
 
-            // Kommentar
-            Text(review.comment)
+            // Kommentar (ggf. via TranslationService lokalisiert)
+            Text(localizedComment)
                 .font(.subheadline)
                 .foregroundStyle(.primary)
                 .fixedSize(horizontal: false, vertical: true)

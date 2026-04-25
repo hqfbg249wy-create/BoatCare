@@ -105,12 +105,19 @@ class ReviewService: ObservableObject {
                 .value
             
             reviews = response
+
+            // Strategie B: Review-Kommentare ggf. übersetzen (translate-text)
+            let lang = LanguageManager.shared.currentLanguage.code
+            if lang != "de" {
+                let items = response.map { (id: $0.id.uuidString, text: $0.comment) }
+                await TranslationService.shared.ensureTexts(items, lang: lang)
+            }
         } catch {
             AppLog.error("Reviews: Fehler beim Laden: \(error)")
             errorMessage = error.localizedDescription
             reviews = []
         }
-        
+
         isLoading = false
     }
     

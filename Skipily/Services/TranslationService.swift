@@ -142,6 +142,51 @@ final class TranslationService: ObservableObject {
         inflight.removeValue(forKey: key)
     }
 
+    // MARK: - Generischer Text-Cache (z. B. Reviews)
+
+    /// textCache[id][lang] = übersetzter Text
+    @Published private(set) var textCache: [String: [String: String]] = [:]
+
+    /// Liefert übersetzten Text falls bekannt, sonst Original.
+    func text(for id: String, original: String, lang: String) -> String {
+        guard lang != "de", let t = textCache[id]?[lang] else { return original }
+        return t
+    }
+
+    /// Übersetzt freie Texte (Reviews etc.) und cacht in-memory.
+    /// Cache-Hits werden übersprungen, Misses in einem Batch übersetzt.
+    func ensureTexts(_ items: [(id: String, text: String)], lang: String) async {
+        guard lang != "de", !items.isEmpty else { return }
+
+        let missing = items.filter { textCache[$0.id]?[lang] == nil && !$0.text.isEmpty }
+        guard !missing.isEmpty else { return }
+
+        struct TextItem: Encodable { let id: String; let text: String }
+        struct ReqBody: Encodable { let texts: [TextItem]; let target_lang: String }
+        struct RespBody: Decodable { let translations: [String: String] }
+
+        let chunks = missing.chunked(into: 50)
+        for chunk in chunks {
+            let body = ReqBody(
+                texts: chunk.map { TextItem(id: $0.id, text: $0.text) },
+                target_lang: lang
+            )
+            do {
+                let resp: RespBody = try await client.functions.invoke(
+                    "translate-text",
+                    options: .init(body: body)
+                )
+                for (id, translated) in resp.translations {
+                    var perLang = textCache[id] ?? [:]
+                    perLang[lang] = translated
+                    textCache[id] = perLang
+                }
+            } catch {
+                AppLog.error("translate-text failed for lang=\(lang): \(error)")
+            }
+        }
+    }
+
     // MARK: - Edge Function Call
 
     private struct RequestBody: Encodable {
