@@ -1228,14 +1228,16 @@ struct MapScreen: View {
     
     private func iconForCategory(_ category: ServiceCategory) -> String {
         switch category {
-        case .all: return "list.bullet"
-        case .repair: return "wrench.and.screwdriver.fill"
-        case .supplies: return "cart.fill"
-        case .fuel: return "fuelpump.fill"
-        case .sailmaker: return "wind"
-        case .rigging: return "arrow.up.and.down"
+        case .all:         return "list.bullet"
+        case .repair:      return "wrench.and.screwdriver.fill"
+        case .boatbuilder: return "hammer.fill"
+        case .supplies:    return "cart.fill"
+        case .sailmaker:   return "wind"
+        case .rigging:     return "arrow.up.and.down"
         case .instruments: return "antenna.radiowaves.left.and.right"
-        case .marina: return "water.waves"
+        case .heating:     return "thermometer.sun.fill"
+        case .crane:       return "arrow.up.and.down.circle.fill"
+        case .painting:    return "paintbrush.fill"
         }
     }
     
