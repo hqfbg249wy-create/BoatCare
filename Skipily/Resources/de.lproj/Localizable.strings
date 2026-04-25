@@ -647,3 +647,11 @@ Ausrüstung unter Boote ergänzen.";
 "sail.type.vorsegel" = "Vorsegel / Genua";
 "sail.type.gennaker" = "Gennaker";
 "sail.type.code0" = "Code 0";
+
+
+// More i18n additions
+"maintenance.action_service" = "Service";
+"maintenance.action_parts" = "Ersatzteile";
+"maintenance.action_assistant" = "KI-Assistent";
+"maintenance.action_done" = "Erledigt";
+"maintenance.ai_question" = "Ich brauche Hilfe mit meinem %1$@ (%2$@) auf der %3$@. Naechste Wartung: %4$@. Was empfiehlst du?";

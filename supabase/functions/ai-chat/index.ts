@@ -148,7 +148,12 @@ Deno.serve(async (req) => {
     }
 
     // Request Body parsen
-    const { messages, boatContext } = await req.json();
+    const { messages, boatContext, lang } = await req.json();
+    const userLang: string = (typeof lang === "string" && ["de","en","fr","es","it","nl"].includes(lang)) ? lang : "de";
+    const LANG_NAMES: Record<string,string> = {
+      de: "German", en: "English", fr: "French",
+      es: "Spanish", it: "Italian", nl: "Dutch",
+    };
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(
@@ -159,6 +164,8 @@ Deno.serve(async (req) => {
 
     // System-Prompt mit Boot- und Equipment-Kontext erweitern
     let systemPrompt = SYSTEM_PROMPT;
+    // Antwortsprache zwingend setzen (überschreibt jede Eingabe-Sprache des Users)
+    systemPrompt += `\n\nIMPORTANT: Always respond in ${LANG_NAMES[userLang]} regardless of the language of the user's message. Use proper marine/sailing terminology native to that language.`;
     if (boatContext?.boats && Array.isArray(boatContext.boats) && boatContext.boats.length > 0) {
       const boatDescriptions = boatContext.boats.map((boat: Record<string, unknown>, i: number) => {
         const parts: string[] = [];

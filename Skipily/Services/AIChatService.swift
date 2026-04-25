@@ -128,9 +128,14 @@ class AIChatService {
         struct RequestBody: Codable {
             let messages: [AIChatMessage]
             let boatContext: AIChatContext?
+            let lang: String
         }
 
-        let body = RequestBody(messages: messages, boatContext: boatContext)
+        let body = RequestBody(
+            messages: messages,
+            boatContext: boatContext,
+            lang: LanguageManager.shared.currentLanguage.code
+        )
         request.httpBody = try JSONEncoder().encode(body)
 
         // Request senden

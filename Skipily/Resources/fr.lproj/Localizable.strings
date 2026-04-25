@@ -639,3 +639,16 @@
 "sail.type.vorsegel" = "Voile d'avant / Génois";
 "sail.type.gennaker" = "Gennaker";
 "sail.type.code0" = "Code 0";
+
+
+// More i18n additions
+"boats.width" = "Largeur (m)";
+"boats.draft" = "Tirant d'eau (m)";
+"chat.welcome_ai" = "Ohé ! ⚓ Je suis ton assistant Skipily.\n\nPose-moi toutes tes questions sur ton bateau — de l'entretien moteur à l'électronique et la sécurité.";
+"chat.boat_context" = "Je vois que tu as le \"%@\". Je m'y référerai avec plaisir !";
+"maintenance.tasks" = "Si fait, glissez vers la gauche.";
+"maintenance.action_service" = "Service";
+"maintenance.action_parts" = "Pièces détachées";
+"maintenance.action_assistant" = "Assistant IA";
+"maintenance.action_done" = "Fait";
+"maintenance.ai_question" = "J'ai besoin d'aide pour mon %1$@ (%2$@) sur le %3$@. Prochain entretien: %4$@. Que recommandes-tu ?";

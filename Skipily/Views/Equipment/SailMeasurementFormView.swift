@@ -204,7 +204,7 @@ struct SailMeasurementFormView: View {
                                 .font(.title)
                                 .foregroundStyle(AppColors.primary)
                             VStack(alignment: .leading) {
-                                Text("\("sail.form_title".loc) \(sailType.rawValue)")
+                                Text("\("sail.form_title".loc) \(sailType.displayName)")
                                     .font(.headline)
                                 Text(boatName)
                                     .font(.caption)

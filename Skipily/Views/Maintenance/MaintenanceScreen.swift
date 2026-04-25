@@ -441,7 +441,7 @@ struct EquipmentMaintenanceRow: View {
                             .service(equipmentName: item.equipmentName, category: item.category, manufacturer: item.manufacturer))
                     } label: {
                         MaintenanceActionButton(
-                            title: "Service",
+                            title: "maintenance.action_service".loc,
                             icon: "wrench.and.screwdriver.fill",
                             color: .orange
                         )
@@ -454,7 +454,7 @@ struct EquipmentMaintenanceRow: View {
                             .spareParts(equipmentName: item.equipmentName))
                     } label: {
                         MaintenanceActionButton(
-                            title: "Ersatzteile",
+                            title: "maintenance.action_parts".loc,
                             icon: "cart.fill",
                             color: .purple
                         )
@@ -463,11 +463,15 @@ struct EquipmentMaintenanceRow: View {
 
                     // KI-Assistent fragen
                     Button {
-                        let question = "Ich brauche Hilfe mit meinem \(item.equipmentName) (\(item.category)) auf der \(item.boatName). Naechste Wartung: \(item.nextMaintenanceDate.formatted(date: .abbreviated, time: .omitted)). Was empfiehlst du?"
+                        let dateStr = item.nextMaintenanceDate.formatted(date: .abbreviated, time: .omitted)
+                        let question = String(
+                            format: "maintenance.ai_question".loc,
+                            item.equipmentName, item.category, item.boatName, dateStr
+                        )
                         rowNavigation = MaintenanceRowNav(target: .aiAssistant(question: question))
                     } label: {
                         MaintenanceActionButton(
-                            title: "KI-Assistent",
+                            title: "maintenance.action_assistant".loc,
                             icon: "bubble.left.fill",
                             color: .blue
                         )
@@ -481,7 +485,7 @@ struct EquipmentMaintenanceRow: View {
                     } else {
                         Button(action: onComplete) {
                             MaintenanceActionButton(
-                                title: "Erledigt",
+                                title: "maintenance.action_done".loc,
                                 icon: "checkmark.circle.fill",
                                 color: .green
                             )

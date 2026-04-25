@@ -639,3 +639,16 @@
 "sail.type.vorsegel" = "Foque / Génova";
 "sail.type.gennaker" = "Gennaker";
 "sail.type.code0" = "Code 0";
+
+
+// More i18n additions
+"boats.width" = "Manga (m)";
+"boats.draft" = "Calado (m)";
+"chat.welcome_ai" = "¡Hola marinero! ⚓ Soy tu asistente Skipily.\n\nPregúntame lo que quieras sobre tu barco — mantenimiento del motor, electrónica, seguridad.";
+"chat.boat_context" = "¡Veo que tienes el \"%@\"! Lo tendré en cuenta.";
+"maintenance.tasks" = "Si está hecho, deslice a la izquierda.";
+"maintenance.action_service" = "Servicio";
+"maintenance.action_parts" = "Repuestos";
+"maintenance.action_assistant" = "Asistente IA";
+"maintenance.action_done" = "Hecho";
+"maintenance.ai_question" = "Necesito ayuda con mi %1$@ (%2$@) en el %3$@. Próximo mantenimiento: %4$@. ¿Qué recomiendas?";

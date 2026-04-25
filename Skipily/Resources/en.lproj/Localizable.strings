@@ -643,3 +643,12 @@
 "sail.type.vorsegel" = "Headsail / Genoa";
 "sail.type.gennaker" = "Gennaker";
 "sail.type.code0" = "Code 0";
+
+
+// More i18n additions
+"maintenance.tasks" = "If done, swipe left.";
+"maintenance.action_service" = "Service";
+"maintenance.action_parts" = "Spare parts";
+"maintenance.action_assistant" = "AI Assistant";
+"maintenance.action_done" = "Done";
+"maintenance.ai_question" = "I need help with my %1$@ (%2$@) on the %3$@. Next maintenance: %4$@. What do you recommend?";

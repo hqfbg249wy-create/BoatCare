@@ -639,3 +639,16 @@
 "sail.type.vorsegel" = "Voorzeil / Genua";
 "sail.type.gennaker" = "Gennaker";
 "sail.type.code0" = "Code 0";
+
+
+// More i18n additions
+"boats.width" = "Breedte (m)";
+"boats.draft" = "Diepgang (m)";
+"chat.welcome_ai" = "Ahoi! ⚓ Ik ben je Skipily-assistent.\n\nVraag me alles over je boot — van motoronderhoud tot elektronica en veiligheid.";
+"chat.boat_context" = "Ik zie dat je de \"%@\" hebt. Daar verwijs ik graag naar!";
+"maintenance.tasks" = "Indien klaar, veeg naar links.";
+"maintenance.action_service" = "Service";
+"maintenance.action_parts" = "Onderdelen";
+"maintenance.action_assistant" = "AI-assistent";
+"maintenance.action_done" = "Klaar";
+"maintenance.ai_question" = "Ik heb hulp nodig met mijn %1$@ (%2$@) op de %3$@. Volgend onderhoud: %4$@. Wat raad je aan?";
