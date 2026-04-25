@@ -12,6 +12,13 @@ struct ProductCardView: View {
     var promotionBadge: String? = nil
     var discountedPrice: String? = nil
 
+    @ObservedObject private var translator = TranslationService.shared
+    @ObservedObject private var langManager = LanguageManager.shared
+
+    private var displayName: String {
+        translator.name(for: product, lang: langManager.currentLanguage.code)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Product Image with discount badge overlay — uniform size
@@ -58,7 +65,7 @@ struct ProductCardView: View {
 
             // Stock badge
             if !product.isAvailable {
-                Text("Nicht verfügbar")
+                Text("shop.unavailable".loc)
                     .font(.caption2)
                     .fontWeight(.semibold)
                     .foregroundStyle(.white)
@@ -68,8 +75,8 @@ struct ProductCardView: View {
                     .clipShape(Capsule())
             }
 
-            // Product name
-            Text(product.name)
+            // Product name (localized via TranslationService cache)
+            Text(displayName)
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .lineLimit(2)
@@ -104,7 +111,7 @@ struct ProductCardView: View {
                 }
 
                 if let shipping = product.shippingCost, shipping == 0 {
-                    Text("Kostenloser Versand")
+                    Text("shop.free_shipping".loc)
                         .font(.caption2)
                         .foregroundStyle(AppColors.success)
                 }

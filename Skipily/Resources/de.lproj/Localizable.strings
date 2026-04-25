@@ -580,3 +580,10 @@ Ausrüstung unter Boote ergänzen.";
 "service_search.title" = "Service: %@";
 "map.route" = "Route";
 "general.error_title" = "Fehler";
+
+
+// shop additions
+"shop.unavailable" = "Nicht verfügbar";
+"shop.free_shipping" = "Kostenloser Versand";
+
+"shop.in_stock" = "Auf Lager";

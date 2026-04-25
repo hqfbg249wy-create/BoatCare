@@ -572,3 +572,10 @@
 "service_search.title" = "Servicio: %@";
 "map.route" = "Ruta";
 "general.error_title" = "Error";
+
+
+// shop additions
+"shop.unavailable" = "No disponible";
+"shop.free_shipping" = "Envío gratis";
+
+"shop.in_stock" = "En stock";

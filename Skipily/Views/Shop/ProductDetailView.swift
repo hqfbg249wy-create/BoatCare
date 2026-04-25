@@ -23,8 +23,15 @@ struct ProductDetailView: View {
     @State private var showTechnicalDetails = false
     @State private var pdfPreviewURL: URL?
 
+    @ObservedObject private var translator = TranslationService.shared
+    @ObservedObject private var langManager = LanguageManager.shared
+
     private let promotionService = PromotionService.shared
     private let recommendationService = RecommendationService.shared
+
+    private var lang: String { langManager.currentLanguage.code }
+    private var displayName: String { translator.name(for: product, lang: lang) }
+    private var displayDescription: String? { translator.description(for: product, lang: lang) }
 
     private var bestPromotion: Promotion? {
         promotionService.bestPromotion(for: product)
@@ -63,8 +70,8 @@ struct ProductDetailView: View {
                         }
                     }
 
-                    // Name
-                    Text(product.name)
+                    // Name (lokalisiert via TranslationService)
+                    Text(displayName)
                         .font(.title2)
                         .fontWeight(.bold)
 
@@ -95,8 +102,8 @@ struct ProductDetailView: View {
                     // Availability
                     availabilitySection
 
-                    // Description
-                    if let description = product.description {
+                    // Description (lokalisiert via TranslationService)
+                    if let description = displayDescription, !description.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("shop.description".loc)
                                 .font(.headline)
@@ -289,7 +296,7 @@ struct ProductDetailView: View {
                 Circle()
                     .fill(product.isAvailable ? AppColors.success : AppColors.error)
                     .frame(width: 10, height: 10)
-                Text(product.isAvailable ? "Auf Lager" : "Nicht verfügbar")
+                Text(product.isAvailable ? "shop.in_stock".loc : "shop.unavailable".loc)
                     .font(.subheadline)
             }
 
@@ -547,7 +554,7 @@ struct ProductDetailView: View {
             .frame(width: 120, height: 90)
             .clipShape(RoundedRectangle(cornerRadius: 10))
 
-            Text(prod.name)
+            Text(translator.name(for: prod, lang: lang))
                 .font(.caption)
                 .fontWeight(.medium)
                 .lineLimit(2)
@@ -597,6 +604,13 @@ struct ProductDetailView: View {
         } catch {
             AppLog.error("Failed to load provider products: \(error)")
         }
+
+        // Strategie B: Übersetzungen für aktuelles Produkt + Related laden
+        let lang = LanguageManager.shared.currentLanguage.code
+        await TranslationService.shared.ensureTranslations(
+            for: [product] + similarProducts + providerProducts,
+            lang: lang
+        )
     }
 }
 

@@ -576,3 +576,10 @@
 "service_search.title" = "Service: %@";
 "map.route" = "Route";
 "general.error_title" = "Error";
+
+
+// shop additions
+"shop.unavailable" = "Unavailable";
+"shop.free_shipping" = "Free shipping";
+
+"shop.in_stock" = "In stock";

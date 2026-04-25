@@ -139,6 +139,17 @@ struct ShopView: View {
             await recommendationService.loadRecommendations(for: authService.userProfile)
             await loadEquipmentKeywords()
             await loadEquipmentDeals()
+
+            // Übersetzungen für Empfehlungen + Equipment-Deals
+            let lang = LanguageManager.shared.currentLanguage.code
+            await TranslationService.shared.ensureTranslations(
+                for: recommendationService.recommendedProducts,
+                lang: lang
+            )
+            await TranslationService.shared.ensureTranslations(
+                for: equipmentDealProducts,
+                lang: lang
+            )
         }
         .overlay(alignment: .bottom) {
             if let toast = cartToast {
@@ -309,7 +320,7 @@ struct ShopView: View {
                             .lineLimit(1)
                     }
 
-                    Text(product.name)
+                    Text(TranslationService.shared.name(for: product, lang: LanguageManager.shared.currentLanguage.code))
                         .font(.caption)
                         .fontWeight(.medium)
                         .lineLimit(2)
@@ -439,7 +450,7 @@ struct ShopView: View {
                     .clipShape(Capsule())
             }
 
-            Text(product.name)
+            Text(TranslationService.shared.name(for: product, lang: LanguageManager.shared.currentLanguage.code))
                 .font(.caption)
                 .fontWeight(.medium)
                 .lineLimit(2)
@@ -899,6 +910,12 @@ struct ShopView: View {
 
             products = loaded
             hasMoreProducts = products.count >= pageSize
+
+            // Strategie B: Übersetzungen für aktuelle Sprache nachziehen (Cache + Edge-Fn)
+            await TranslationService.shared.ensureTranslations(
+                for: loaded,
+                lang: LanguageManager.shared.currentLanguage.code
+            )
         } catch {
             errorMessage = "\("shop.error_loading".loc): \(error.localizedDescription)"
         }
@@ -918,6 +935,11 @@ struct ShopView: View {
             )
             products.append(contentsOf: moreProducts)
             hasMoreProducts = moreProducts.count >= pageSize
+
+            await TranslationService.shared.ensureTranslations(
+                for: moreProducts,
+                lang: LanguageManager.shared.currentLanguage.code
+            )
         } catch {
             AppLog.error("Failed to load more products: \(error)")
         }

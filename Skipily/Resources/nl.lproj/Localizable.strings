@@ -572,3 +572,10 @@
 "service_search.title" = "Service: %@";
 "map.route" = "Route";
 "general.error_title" = "Fout";
+
+
+// shop additions
+"shop.unavailable" = "Niet beschikbaar";
+"shop.free_shipping" = "Gratis verzending";
+
+"shop.in_stock" = "Op voorraad";
