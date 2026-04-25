@@ -169,6 +169,7 @@ private func makeUpdate(boat: Boat) -> BoatUpdate {
 struct BoatDataScreen: View {
     @EnvironmentObject var authService: AuthService
     @EnvironmentObject var favoritesManager: FavoritesManager
+    @Environment(\.horizontalSizeClass) private var hSize
 
     @State private var boats: [Boat] = []
     @State private var equipmentCounts: [UUID: Int] = [:]
@@ -177,6 +178,14 @@ struct BoatDataScreen: View {
     @State private var showingLoginRequired = false
     @State private var showingLogin = false
     @State private var errorMessage: String?
+
+    /// 2 Spalten auf iPad / regular size class, 1 Spalte auf iPhone
+    private var gridColumns: [GridItem] {
+        if hSize == .regular {
+            return [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]
+        }
+        return [GridItem(.flexible())]
+    }
 
     var body: some View {
         NavigationStack {
@@ -188,45 +197,16 @@ struct BoatDataScreen: View {
                     emptyState
                 } else {
                     ScrollView {
-                        LazyVStack(spacing: 16) {
+                        LazyVGrid(columns: gridColumns, spacing: 16) {
                             ForEach(boats) { boat in
-                                VStack(spacing: 0) {
-                                    BoatCardView(
-                                        boat: boat,
-                                        onUpdate: { updated in Task { await updateBoat(updated) } },
-                                        onDelete: { Task { await deleteBoatById(boat.id) } }
-                                    )
-                                    .environmentObject(authService)
-
-                                    // Equipment-Button direkt unter der Karte
-                                    NavigationLink {
-                                        EquipmentScreen(boatId: boat.id, boatName: boat.name)
-                                            .environmentObject(authService)
-                                    } label: {
-                                        HStack(spacing: 8) {
-                                            Image(systemName: "wrench.and.screwdriver")
-                                                .foregroundStyle(.orange)
-                                            if let count = equipmentCounts[boat.id], count > 0 {
-                                                Text("\(count) " + "equipment.title".loc)
-                                                    .foregroundStyle(.primary)
-                                            } else {
-                                                Text("equipment.title".loc)
-                                                    .foregroundStyle(.primary)
-                                            }
-                                            Spacer()
-                                            Image(systemName: "chevron.right")
-                                                .font(.caption)
-                                                .foregroundStyle(.tertiary)
-                                        }
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 12)
-                                        .background(Color(.systemBackground))
-                                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                        .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 1)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .padding(.top, 6)
-                                }
+                                BoatCardView(
+                                    boat: boat,
+                                    equipmentCount: equipmentCounts[boat.id] ?? 0,
+                                    compact: hSize == .regular,
+                                    onUpdate: { updated in Task { await updateBoat(updated) } },
+                                    onDelete: { Task { await deleteBoatById(boat.id) } }
+                                )
+                                .environmentObject(authService)
                             }
                         }
                         .padding(.horizontal)
@@ -431,6 +411,8 @@ struct BoatDataScreen: View {
 // MARK: - Boat Card View (kompakte Karten-Darstellung)
 struct BoatCardView: View {
     let boat: Boat
+    var equipmentCount: Int = 0
+    var compact: Bool = false        // iPad: 2-spaltig, kleinere Bildhöhe
     let onUpdate: (Boat) -> Void
     let onDelete: () -> Void
     @EnvironmentObject var authService: AuthService
@@ -446,6 +428,9 @@ struct BoatCardView: View {
         return "ferry.fill"
     }
 
+    private var headerHeight: CGFloat { compact ? 130 : 180 }
+    private var cardPadding: CGFloat { compact ? 12 : 16 }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Bootsbild als prominenter Header
@@ -458,11 +443,10 @@ struct BoatCardView: View {
                         switch phase {
                         case .success(let img):
                             img.resizable().scaledToFill()
-                                .frame(height: 180)
+                                .frame(height: headerHeight)
                                 .frame(maxWidth: .infinity)
                                 .clipped()
                                 .overlay(alignment: .bottomLeading) {
-                                    // Name-Overlay auf dem Bild
                                     LinearGradient(
                                         colors: [.clear, .black.opacity(0.6)],
                                         startPoint: .top, endPoint: .bottom
@@ -476,7 +460,7 @@ struct BoatCardView: View {
                                 Color(.systemGray5)
                                 ProgressView()
                             }
-                            .frame(height: 180)
+                            .frame(height: headerHeight)
                         @unknown default:
                             boatHeaderPlaceholder
                         }
@@ -489,34 +473,32 @@ struct BoatCardView: View {
 
             // Karten-Inhalt
             VStack(alignment: .leading, spacing: 0) {
-                // Oberer Bereich: NavigationLink zum BoatDetailView
                 NavigationLink {
                     BoatDetailView(boat: boat, onUpdate: onUpdate)
                         .environmentObject(authService)
                 } label: {
-                    VStack(alignment: .leading, spacing: 12) {
-                        // Zeile 1: Name + Chevron
+                    VStack(alignment: .leading, spacing: compact ? 8 : 12) {
                         HStack {
                             Text(boat.name)
-                                .font(.title3)
+                                .font(compact ? .headline : .title3)
                                 .fontWeight(.bold)
                                 .foregroundStyle(.primary)
+                                .lineLimit(1)
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         }
 
-                        // Zeile 2: Bootstyp-Icon + Typ + Jahr
                         HStack(spacing: 6) {
                             Image(systemName: boatTypeIcon)
                                 .foregroundStyle(.blue)
                             Text(boat.boatType.isEmpty ? "boats.type".loc : boat.boatType)
                                 .font(.subheadline)
                                 .foregroundStyle(.blue)
+                                .lineLimit(1)
                             if let year = boat.year {
-                                Text("•")
-                                    .foregroundStyle(.secondary)
+                                Text("•").foregroundStyle(.secondary)
                                 Text(String(year))
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
@@ -525,7 +507,6 @@ struct BoatCardView: View {
 
                         Divider()
 
-                        // Zeile 3: Kompakte Daten (3 Spalten)
                         HStack(spacing: 0) {
                             boatStatColumn(
                                 label: "boats.length".loc,
@@ -543,9 +524,35 @@ struct BoatCardView: View {
                     }
                 }
                 .buttonStyle(.plain)
-
             }
-            .padding(16)
+            .padding(cardPadding)
+
+            // Equipment-Footer (in der Karte integriert, damit auch im 2-Spalten-Grid sauber)
+            Divider()
+            NavigationLink {
+                EquipmentScreen(boatId: boat.id, boatName: boat.name)
+                    .environmentObject(authService)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "wrench.and.screwdriver")
+                        .foregroundStyle(.orange)
+                    if equipmentCount > 0 {
+                        Text("\(equipmentCount) " + "equipment.title".loc)
+                            .foregroundStyle(.primary)
+                    } else {
+                        Text("equipment.title".loc)
+                            .foregroundStyle(.primary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .font(.subheadline)
+                .padding(.horizontal, cardPadding)
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
         }
         .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -567,14 +574,14 @@ struct BoatCardView: View {
             )
             VStack(spacing: 8) {
                 Image(systemName: boatTypeIcon)
-                    .font(.system(size: 40))
+                    .font(.system(size: compact ? 32 : 40))
                     .foregroundStyle(.blue.opacity(0.4))
                 Text("boats.tap_hint".loc)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
-        .frame(height: 180)
+        .frame(height: headerHeight)
         .frame(maxWidth: .infinity)
     }
 
