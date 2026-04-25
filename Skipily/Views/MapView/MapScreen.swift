@@ -271,6 +271,7 @@ struct MainContainerView: View {
 struct MapScreen: View {
     @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var favoritesManager: FavoritesManager
+    @Environment(\.horizontalSizeClass) private var hSize
     @StateObject private var locationManager = LocationManager()
     @StateObject private var providerManager = ServiceProviderManager()
     @State private var cameraPosition: MapCameraPosition = .automatic
@@ -582,7 +583,8 @@ struct MapScreen: View {
                                             calculateRouteToProvider(provider)
                                         }
                                     )
-                                    .containerRelativeFrame(.horizontal, count: 1, spacing: 12)
+                                    // iPad / regular size class: 2 Karten nebeneinander
+                                    .containerRelativeFrame(.horizontal, count: hSize == .regular ? 2 : 1, spacing: 12)
                                     .id(index)
                                 }
                             }
