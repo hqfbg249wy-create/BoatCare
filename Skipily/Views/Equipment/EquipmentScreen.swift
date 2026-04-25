@@ -309,6 +309,7 @@ struct EquipmentScreen: View {
     // MARK: - Supabase CRUD
     private func loadItems() async {
         isLoading = true; defer { isLoading = false }
+        AppLog.debug("Equipment laden für boat_id=\(boatId.uuidString) (\(boatName))")
         do {
             let result: [EquipmentItem] = try await authService.supabase
                 .from("equipment").select()
@@ -316,8 +317,9 @@ struct EquipmentScreen: View {
                 .order("created_at", ascending: true)
                 .execute().value
             items = result
+            AppLog.debug("Equipment geladen: \(result.count) Items für \(boatName)")
         } catch {
-            AppLog.error("Equipment laden: \(error)")
+            AppLog.error("Equipment laden für \(boatName) (\(boatId.uuidString)) fehlgeschlagen: \(error)")
             errorMessage = error.localizedDescription
         }
     }
