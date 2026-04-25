@@ -25,7 +25,12 @@ struct ProductCategory: Codable, Identifiable, Hashable, Sendable {
         case sortOrder = "sort_order"
     }
 
-    var displayName: String { nameDe }
+    var displayName: String {
+        // DE = Quelle. Für alle anderen Sprachen nutzen wir das Englisch-Feld
+        // als saubere Fallback-Übersetzung (Kategorien sind kurz & generisch).
+        let code = LanguageManager.shared.currentLanguage.code
+        return code == "de" ? nameDe : nameEn
+    }
 
     var sfSymbol: String {
         switch icon {

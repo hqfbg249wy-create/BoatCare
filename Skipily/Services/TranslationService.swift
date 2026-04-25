@@ -25,8 +25,17 @@ final class TranslationService: ObservableObject {
         let description: String?
     }
 
+    struct ProviderTranslation: Codable, Hashable {
+        let services: [String]
+        let description: String?
+        let slogan: String?
+    }
+
     /// cache[productId][lang] = Translation
     @Published private(set) var cache: [UUID: [String: Translation]] = [:]
+
+    /// providerCache[providerId][lang] = ProviderTranslation
+    @Published private(set) var providerCache: [UUID: [String: ProviderTranslation]] = [:]
 
     private var inflight: [String: Task<Void, Never>] = [:]
 
@@ -89,6 +98,47 @@ final class TranslationService: ObservableObject {
         inflight.removeValue(forKey: key)
     }
 
+    // MARK: - Provider Translation API
+
+    /// Liefert die anzuzeigende Service-Liste eines Providers.
+    func services(for providerId: UUID, original: [String], lang: String) -> [String] {
+        guard needsTranslation(lang),
+              let t = providerCache[providerId]?[lang] else {
+            return original
+        }
+        return t.services.isEmpty ? original : t.services
+    }
+
+    /// Liefert anzuzeigende Provider-Beschreibung.
+    func providerDescription(for providerId: UUID, original: String?, lang: String) -> String? {
+        guard needsTranslation(lang),
+              let t = providerCache[providerId]?[lang] else {
+            return original
+        }
+        return t.description ?? original
+    }
+
+    /// Stellt sicher, dass alle Provider für `lang` übersetzt sind.
+    func ensureProviderTranslations(providerIds: [UUID], lang: String) async {
+        guard needsTranslation(lang), !providerIds.isEmpty else { return }
+
+        let missing = providerIds.filter { providerCache[$0]?[lang] == nil }
+        guard !missing.isEmpty else { return }
+
+        let key = "prov:\(lang):\(missing.sorted().map(\.uuidString).joined(separator: ","))"
+        if let existing = inflight[key] {
+            await existing.value
+            return
+        }
+
+        let task = Task { [weak self] in
+            await self?.fetchAndCacheProviders(providerIds: missing, lang: lang)
+        }
+        inflight[key] = task
+        await task.value
+        inflight.removeValue(forKey: key)
+    }
+
     // MARK: - Edge Function Call
 
     private struct RequestBody: Encodable {
@@ -98,6 +148,15 @@ final class TranslationService: ObservableObject {
 
     private struct ResponseBody: Decodable {
         let translations: [String: Translation]
+    }
+
+    private struct ProviderRequestBody: Encodable {
+        let provider_ids: [String]
+        let target_lang: String
+    }
+
+    private struct ProviderResponseBody: Decodable {
+        let translations: [String: ProviderTranslation]
     }
 
     private func fetchAndCache(productIds: [UUID], lang: String) async {
@@ -125,6 +184,33 @@ final class TranslationService: ObservableObject {
             } catch {
                 AppLog.error("translate-product failed for lang=\(lang): \(error)")
                 // Nicht werfen — UI fällt einfach auf DE-Original zurück.
+            }
+        }
+    }
+
+    private func fetchAndCacheProviders(providerIds: [UUID], lang: String) async {
+        let chunks = providerIds.chunked(into: 30)
+
+        for chunk in chunks {
+            let body = ProviderRequestBody(
+                provider_ids: chunk.map(\.uuidString),
+                target_lang: lang
+            )
+
+            do {
+                let response: ProviderResponseBody = try await client.functions.invoke(
+                    "translate-provider",
+                    options: .init(body: body)
+                )
+
+                for (idStr, translation) in response.translations {
+                    guard let id = UUID(uuidString: idStr) else { continue }
+                    var perLang = providerCache[id] ?? [:]
+                    perLang[lang] = translation
+                    providerCache[id] = perLang
+                }
+            } catch {
+                AppLog.error("translate-provider failed for lang=\(lang): \(error)")
             }
         }
     }

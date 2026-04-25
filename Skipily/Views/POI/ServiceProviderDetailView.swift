@@ -19,6 +19,17 @@ struct ServiceProviderDetailView: View {
     @StateObject private var suggestionService = EditSuggestionService()
     @StateObject private var locationManager = LocationManager()
 
+    @ObservedObject private var translator = TranslationService.shared
+    @ObservedObject private var langManager = LanguageManager.shared
+
+    private var lang: String { langManager.currentLanguage.code }
+    private var localizedServices: [String] {
+        translator.services(for: provider.id, original: provider.services ?? [], lang: lang)
+    }
+    private var localizedDescription: String? {
+        translator.providerDescription(for: provider.id, original: provider.description, lang: lang)
+    }
+
     /// Distance text from user to this provider
     private var distanceText: String? {
         guard let userLoc = locationManager.location else { return nil }
@@ -129,13 +140,13 @@ struct ServiceProviderDetailView: View {
                     promotionBanner
 
                     // 6. Services → tappable, navigate to provider shop
-                    if let services = provider.services, !services.isEmpty {
+                    if !localizedServices.isEmpty {
                         Divider()
                         VStack(alignment: .leading, spacing: 8) {
                             Text("provider.services".loc)
                                 .font(.headline)
                             FlowLayout(spacing: 8) {
-                                ForEach(services, id: \.self) { service in
+                                ForEach(localizedServices, id: \.self) { service in
                                     NavigationLink {
                                         ProviderShopSearchView(providerId: provider.id, providerName: provider.name, searchTerm: service)
                                     } label: {
@@ -226,7 +237,7 @@ struct ServiceProviderDetailView: View {
                     }
 
                     // Beschreibung (falls vorhanden)
-                    if let desc = provider.description, !desc.isEmpty {
+                    if let desc = localizedDescription, !desc.isEmpty {
                         Divider()
                         VStack(alignment: .leading, spacing: 8) {
                             Text("provider.description".loc)
@@ -293,6 +304,11 @@ struct ServiceProviderDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             locationManager.requestPermission()
+            // Strategy B: Provider-Übersetzungen laden (services + description)
+            await TranslationService.shared.ensureProviderTranslations(
+                providerIds: [provider.id],
+                lang: LanguageManager.shared.currentLanguage.code
+            )
         }
         .sheet(isPresented: $showingWriteReview) {
             WriteReviewView(

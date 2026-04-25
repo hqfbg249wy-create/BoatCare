@@ -196,21 +196,29 @@ struct BoatDataScreen: View {
                 } else if boats.isEmpty {
                     emptyState
                 } else {
-                    ScrollView {
-                        LazyVGrid(columns: gridColumns, spacing: 16) {
-                            ForEach(boats) { boat in
-                                BoatCardView(
-                                    boat: boat,
-                                    equipmentCount: equipmentCounts[boat.id] ?? 0,
-                                    compact: hSize == .regular,
-                                    onUpdate: { updated in Task { await updateBoat(updated) } },
-                                    onDelete: { Task { await deleteBoatById(boat.id) } }
-                                )
-                                .environmentObject(authService)
+                    // Width-basiert statt nur hSize — funktioniert auch in
+                    // Stage Manager / Slide Over zuverlässig: ab 700pt zwei Spalten.
+                    GeometryReader { geo in
+                        let useTwoColumns = geo.size.width >= 700
+                        let cols: [GridItem] = useTwoColumns
+                            ? [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]
+                            : [GridItem(.flexible())]
+                        ScrollView {
+                            LazyVGrid(columns: cols, spacing: 16) {
+                                ForEach(boats) { boat in
+                                    BoatCardView(
+                                        boat: boat,
+                                        equipmentCount: equipmentCounts[boat.id] ?? 0,
+                                        compact: useTwoColumns,
+                                        onUpdate: { updated in Task { await updateBoat(updated) } },
+                                        onDelete: { Task { await deleteBoatById(boat.id) } }
+                                    )
+                                    .environmentObject(authService)
+                                }
                             }
+                            .padding(.horizontal)
+                            .padding(.top, 8)
                         }
-                        .padding(.horizontal)
-                        .padding(.top, 8)
                     }
                 }
             }

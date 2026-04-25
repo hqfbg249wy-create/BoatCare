@@ -2205,6 +2205,17 @@ struct ProviderDetailCard: View {
                 .value
             if let fetched = response.first?.services {
                 serviceNames = fetched
+
+                // Strategy B: Übersetzung holen (Cache → sonst Edge-Fn)
+                let lang = LanguageManager.shared.currentLanguage.code
+                if TranslationService.shared.needsTranslation(lang) {
+                    await TranslationService.shared.ensureProviderTranslations(
+                        providerIds: [provider.id], lang: lang
+                    )
+                    serviceNames = TranslationService.shared.services(
+                        for: provider.id, original: fetched, lang: lang
+                    )
+                }
             }
         } catch {
             AppLog.error("Error loading services: \(error)")
