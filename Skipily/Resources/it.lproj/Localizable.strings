@@ -542,3 +542,33 @@
 
 "category.boatbuilder" = "Cantiere navale";
 "category.heating" = "Riscaldamento / Clima";
+
+// MARK: - i18n batch (UI hardcodes)
+"order.track" = "Traccia";
+"order.contact_provider" = "Contatta";
+"order.section_items" = "Articoli";
+"order.section_provider" = "Fornitore";
+"maintenance.swipe_delete" = "Elimina";
+"maintenance.swipe_done" = "Fatto";
+"equipment.photo_delete" = "Elimina foto";
+"equipment.photos_section" = "Foto (max %d)";
+"equipment.add_photos" = "Aggiungi foto (%d/%d)";
+"equipment.matching_parts" = "Ricambi compatibili";
+"equipment.matching_brand" = "Categoria e marca compatibili";
+"equipment.other_providers" = "Altri fornitori";
+"equipment.article_no" = "Art. n.:";
+"shop.title" = "Negozio";
+"shop.filter_min" = "Min";
+"shop.filter_max" = "Max";
+"product.stock_remaining" = "Solo %d rimasti";
+"product.promo_until" = "fino al %@";
+"product.save_amount" = "Risparmia %@";
+"profile.section_personal" = "Dati personali";
+"sail.section_dimensions" = "Dimensioni";
+"sail.soft_foot" = "Piede morbido";
+"sail.loose_foot" = "Bordame libero";
+"sail.uv_protection" = "Protezione UV";
+"sail.furler" = "Avvolgibile";
+"service_search.title" = "Servizio: %@";
+"map.route" = "Percorso";
+"general.error_title" = "Errore";

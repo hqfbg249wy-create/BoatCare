@@ -150,7 +150,7 @@ struct OrderDetailView: View {
 
                 if let urlString = url, let trackingURL = URL(string: urlString) {
                     Link(destination: trackingURL) {
-                        Text("Verfolgen")
+                        Text("order.track".loc)
                             .font(.caption)
                             .foregroundStyle(AppColors.primary)
                     }
@@ -163,7 +163,7 @@ struct OrderDetailView: View {
 
     private func itemsSection(_ order: Order) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Artikel")
+            Text("order.section_items".loc)
                 .font(.headline)
 
             if let items = order.items {
@@ -252,7 +252,7 @@ struct OrderDetailView: View {
 
     private func providerSection(_ provider: ServiceProviderBasic) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Anbieter")
+            Text("order.section_provider".loc)
                 .font(.headline)
 
             HStack {
@@ -274,7 +274,7 @@ struct OrderDetailView: View {
                 Button {
                     Task { await openChat() }
                 } label: {
-                    Label("Kontaktieren", systemImage: "bubble.left")
+                    Label("order.contact_provider".loc, systemImage: "bubble.left")
                         .font(.caption)
                         .fontWeight(.semibold)
                         .padding(.horizontal, 12)

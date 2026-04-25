@@ -299,8 +299,8 @@ struct SailMeasurementFormView: View {
 
         Section("Extras") {
             Toggle("Einleinenreff", isOn: $measurement.gs_einleinenreff)
-            Toggle("Weicher Fußteil", isOn: $measurement.gs_weicherFussteil)
-            Toggle("Loses Unterliek", isOn: $measurement.gs_losesUnterliek)
+            Toggle("sail.soft_foot".loc, isOn: $measurement.gs_weicherFussteil)
+            Toggle("sail.loose_foot".loc, isOn: $measurement.gs_losesUnterliek)
             Toggle("Segelzeichen", isOn: $measurement.gs_segelzeichen)
             Toggle("Segelnummer", isOn: $measurement.gs_segelnummer)
             Picker("Farbe", selection: $measurement.gs_farbe) {
@@ -345,7 +345,7 @@ struct SailMeasurementFormView: View {
         Section("Extras") {
             Toggle("Rollreff", isOn: $measurement.vs_rollreff)
             Toggle("Fenster", isOn: $measurement.vs_fenster)
-            Toggle("UV Schutz", isOn: $measurement.vs_uvSchutz)
+            Toggle("sail.uv_protection".loc, isOn: $measurement.vs_uvSchutz)
             Picker("Position", selection: $measurement.vs_position) {
                 Text("sail.port".loc).tag("BB")
                 Text("sail.starboard".loc).tag("STB")
@@ -362,7 +362,7 @@ struct SailMeasurementFormView: View {
 
     @ViewBuilder
     private var gennakerForm: some View {
-        Section("Maße") {
+        Section("sail.section_dimensions".loc) {
             measureField("Vorliekslänge (Luff)", value: $measurement.gk_luffLength, unit: "cm")
             measureField("Achterliekslänge (Leech)", value: $measurement.gk_leechLength, unit: "cm")
             measureField("Unterliekslänge (Foot)", value: $measurement.gk_footLength, unit: "cm")
@@ -380,7 +380,7 @@ struct SailMeasurementFormView: View {
 
     @ViewBuilder
     private var code0Form: some View {
-        Section("Maße") {
+        Section("sail.section_dimensions".loc) {
             measureField("Vorliekslänge (Luff)", value: $measurement.gk_luffLength, unit: "cm")
             measureField("Achterliekslänge (Leech)", value: $measurement.gk_leechLength, unit: "cm")
             measureField("Unterliekslänge (Foot)", value: $measurement.gk_footLength, unit: "cm")
@@ -395,7 +395,7 @@ struct SailMeasurementFormView: View {
 
         Section("Details") {
             TextField("Material", text: $measurement.gk_material)
-            Toggle("Rollbar (Furler)", isOn: $measurement.vs_rollreff)
+            Toggle("sail.furler".loc, isOn: $measurement.vs_rollreff)
             TextField("Farbe / Design", text: $measurement.gk_farbe)
         }
     }

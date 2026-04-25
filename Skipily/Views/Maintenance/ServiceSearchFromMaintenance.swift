@@ -114,7 +114,7 @@ struct ServiceSearchFromMaintenance: View {
                 }
             }
         }
-        .navigationTitle("Service: \(equipmentName)")
+        .navigationTitle(String(format: "service_search.title".loc, equipmentName))
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, prompt: "service_search.search_prompt".loc)
         .task {

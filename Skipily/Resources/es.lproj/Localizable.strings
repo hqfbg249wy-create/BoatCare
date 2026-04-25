@@ -542,3 +542,33 @@
 
 "category.boatbuilder" = "Astillero";
 "category.heating" = "Calefacción / Clima";
+
+// MARK: - i18n batch (UI hardcodes)
+"order.track" = "Seguir";
+"order.contact_provider" = "Contactar";
+"order.section_items" = "Artículos";
+"order.section_provider" = "Proveedor";
+"maintenance.swipe_delete" = "Eliminar";
+"maintenance.swipe_done" = "Hecho";
+"equipment.photo_delete" = "Eliminar foto";
+"equipment.photos_section" = "Fotos (máx. %d)";
+"equipment.add_photos" = "Añadir fotos (%d/%d)";
+"equipment.matching_parts" = "Repuestos compatibles";
+"equipment.matching_brand" = "Categoría y marca coinciden";
+"equipment.other_providers" = "Otros proveedores";
+"equipment.article_no" = "Nº de art.:";
+"shop.title" = "Tienda";
+"shop.filter_min" = "Mín";
+"shop.filter_max" = "Máx";
+"product.stock_remaining" = "Solo quedan %d";
+"product.promo_until" = "hasta %@";
+"product.save_amount" = "Ahorra %@";
+"profile.section_personal" = "Datos personales";
+"sail.section_dimensions" = "Dimensiones";
+"sail.soft_foot" = "Pie suave";
+"sail.loose_foot" = "Pujamen suelto";
+"sail.uv_protection" = "Protección UV";
+"sail.furler" = "Enrollable";
+"service_search.title" = "Servicio: %@";
+"map.route" = "Ruta";
+"general.error_title" = "Error";

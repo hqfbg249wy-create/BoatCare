@@ -546,3 +546,33 @@
 
 "category.boatbuilder" = "Boat Builder";
 "category.heating" = "Heating / AC";
+
+// MARK: - i18n batch (UI hardcodes)
+"order.track" = "Track";
+"order.contact_provider" = "Contact";
+"order.section_items" = "Items";
+"order.section_provider" = "Provider";
+"maintenance.swipe_delete" = "Delete";
+"maintenance.swipe_done" = "Done";
+"equipment.photo_delete" = "Delete photo";
+"equipment.photos_section" = "Photos (max %d)";
+"equipment.add_photos" = "Add photos (%d/%d)";
+"equipment.matching_parts" = "Matching parts";
+"equipment.matching_brand" = "Matching category & brand";
+"equipment.other_providers" = "Other providers";
+"equipment.article_no" = "Item no.:";
+"shop.title" = "Shop";
+"shop.filter_min" = "Min";
+"shop.filter_max" = "Max";
+"product.stock_remaining" = "Only %d left";
+"product.promo_until" = "until %@";
+"product.save_amount" = "Save %@";
+"profile.section_personal" = "Personal info";
+"sail.section_dimensions" = "Dimensions";
+"sail.soft_foot" = "Soft foot";
+"sail.loose_foot" = "Loose foot";
+"sail.uv_protection" = "UV protection";
+"sail.furler" = "Furler";
+"service_search.title" = "Service: %@";
+"map.route" = "Route";
+"general.error_title" = "Error";

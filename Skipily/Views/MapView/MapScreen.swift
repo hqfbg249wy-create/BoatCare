@@ -2115,7 +2115,7 @@ struct ProviderDetailCard: View {
                         VStack(spacing: 2) {
                             Image(systemName: "arrow.triangle.turn.up.right.circle.fill")
                                 .font(.callout)
-                            Text("Route")
+                            Text("map.route".loc)
                                 .font(.caption2)
                         }
                         .foregroundColor(.white)

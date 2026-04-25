@@ -542,3 +542,33 @@
 
 "category.boatbuilder" = "Scheepsbouwer";
 "category.heating" = "Verwarming / Klimaat";
+
+// MARK: - i18n batch (UI hardcodes)
+"order.track" = "Volgen";
+"order.contact_provider" = "Contact";
+"order.section_items" = "Artikelen";
+"order.section_provider" = "Aanbieder";
+"maintenance.swipe_delete" = "Verwijderen";
+"maintenance.swipe_done" = "Klaar";
+"equipment.photo_delete" = "Foto verwijderen";
+"equipment.photos_section" = "Foto's (max %d)";
+"equipment.add_photos" = "Foto's toevoegen (%d/%d)";
+"equipment.matching_parts" = "Passende onderdelen";
+"equipment.matching_brand" = "Categorie & merk passen";
+"equipment.other_providers" = "Overige aanbieders";
+"equipment.article_no" = "Art.nr.:";
+"shop.title" = "Winkel";
+"shop.filter_min" = "Min";
+"shop.filter_max" = "Max";
+"product.stock_remaining" = "Nog %d stuks";
+"product.promo_until" = "tot %@";
+"product.save_amount" = "Bespaar %@";
+"profile.section_personal" = "Persoonlijke gegevens";
+"sail.section_dimensions" = "Afmetingen";
+"sail.soft_foot" = "Zachte voet";
+"sail.loose_foot" = "Losse onderlijk";
+"sail.uv_protection" = "UV-bescherming";
+"sail.furler" = "Roller";
+"service_search.title" = "Service: %@";
+"map.route" = "Route";
+"general.error_title" = "Fout";

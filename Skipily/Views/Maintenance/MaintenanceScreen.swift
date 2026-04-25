@@ -147,7 +147,7 @@ struct MaintenanceScreen: View {
                                         Button(role: .destructive) {
                                             deleteManualTask(task)
                                         } label: {
-                                            Label("Loeschen", systemImage: "trash")
+                                            Label("maintenance.swipe_delete".loc, systemImage: "trash")
                                         }
                                     }
                             case .equipment(let item):
@@ -162,7 +162,7 @@ struct MaintenanceScreen: View {
                                     Button {
                                         Task { await completeEquipmentMaintenance(item) }
                                     } label: {
-                                        Label("Erledigt", systemImage: "checkmark.circle.fill")
+                                        Label("maintenance.swipe_done".loc, systemImage: "checkmark.circle.fill")
                                     }
                                     .tint(.green)
                                 }

@@ -909,7 +909,7 @@ struct AddEditEquipmentView: View {
                                         headerPhotoIndex = max(0, allDisplayPhotos.count - 1)
                                     }
                                 } label: {
-                                    Label("Foto löschen", systemImage: "trash")
+                                    Label("equipment.photo_delete".loc, systemImage: "trash")
                                         .font(.caption)
                                         .foregroundStyle(.red)
                                 }
@@ -958,7 +958,7 @@ struct AddEditEquipmentView: View {
                     }
                 }
                 // Fotos (max 5)
-                Section("Fotos (max. 5)") {
+                Section(String(format: "equipment.photos_section".loc, 5)) {
                     let totalPhotos = existingPhotoUrls.count + selectedImages.count
                     if totalPhotos < 5 {
                         PhotosPicker(
@@ -966,7 +966,7 @@ struct AddEditEquipmentView: View {
                             maxSelectionCount: 5 - totalPhotos,
                             matching: .images
                         ) {
-                            Label("Fotos hinzufügen (\(totalPhotos)/5)", systemImage: "photo.badge.plus")
+                            Label(String(format: "equipment.add_photos".loc, totalPhotos, 5), systemImage: "photo.badge.plus")
                                 .font(.subheadline)
                         }
                         .onChange(of: selectedPhotoItems) { _, newItems in
@@ -1279,7 +1279,7 @@ struct ServiceSearchFromEquipment: View {
                                 }
                             }
                         } header: {
-                            Label("Kategorie & Marke passend", systemImage: "checkmark.seal.fill")
+                            Label("equipment.matching_brand".loc, systemImage: "checkmark.seal.fill")
                                 .font(.caption).fontWeight(.semibold)
                                 .foregroundStyle(.orange)
                         }
@@ -1297,7 +1297,7 @@ struct ServiceSearchFromEquipment: View {
                             }
                         } header: {
                             if !bestMatches.isEmpty {
-                                Label("Weitere Anbieter", systemImage: "building.2.fill")
+                                Label("equipment.other_providers".loc, systemImage: "building.2.fill")
                                     .font(.caption).fontWeight(.semibold)
                                     .foregroundStyle(.secondary)
                             }
@@ -1707,7 +1707,7 @@ struct MetashopSearchFromEquipment: View {
 
                     if !product.partNumber.isEmpty {
                         HStack(spacing: 4) {
-                            Text("Art.-Nr.:").font(.caption2).foregroundStyle(.tertiary)
+                            Text("equipment.article_no".loc).font(.caption2).foregroundStyle(.tertiary)
                             Text(product.partNumber).font(.caption2).foregroundStyle(.secondary)
                         }
                     }
@@ -1921,7 +1921,7 @@ struct EquipmentPartsSearchView: View {
                                 partsProductRow(product)
                             }
                         } header: {
-                            Label("Passende Ersatzteile", systemImage: "checkmark.seal.fill")
+                            Label("equipment.matching_parts".loc, systemImage: "checkmark.seal.fill")
                                 .font(.subheadline).fontWeight(.semibold)
                                 .foregroundStyle(.purple)
                         }
@@ -2059,7 +2059,7 @@ struct EquipmentPartsSearchView: View {
                         Text(product.manufacturer).font(.caption).foregroundStyle(.secondary)
                     }
                     if !product.partNumber.isEmpty {
-                        Text("Art.-Nr.: \(product.partNumber)").font(.caption2).foregroundStyle(.tertiary)
+                        Text("equipment.article_no".loc + " \(product.partNumber)").font(.caption2).foregroundStyle(.tertiary)
                     }
                 }
                 Spacer()
@@ -2084,7 +2084,7 @@ struct EquipmentPartsSearchView: View {
                         UIApplication.shared.open(url)
                     }
                 } label: {
-                    Label("Zum Shop", systemImage: "cart.fill")
+                    Label("equipment.to_shop".loc, systemImage: "cart.fill")
                         .font(.caption).fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)

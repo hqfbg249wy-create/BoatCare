@@ -124,15 +124,15 @@ struct CheckoutView: View {
                             .foregroundStyle(AppColors.gray500)
                         Spacer()
                         Picker("checkout.country".loc, selection: $shippingAddress.country) {
-                            Text("Deutschland").tag("DE")
-                            Text("Österreich").tag("AT")
-                            Text("Schweiz").tag("CH")
-                            Text("Niederlande").tag("NL")
-                            Text("Frankreich").tag("FR")
-                            Text("Italien").tag("IT")
-                            Text("Spanien").tag("ES")
-                            Text("Kroatien").tag("HR")
-                            Text("Griechenland").tag("GR")
+                            Text("country.DE".loc).tag("DE")
+                            Text("country.AT".loc).tag("AT")
+                            Text("country.CH".loc).tag("CH")
+                            Text("country.NL".loc).tag("NL")
+                            Text("country.FR".loc).tag("FR")
+                            Text("country.IT".loc).tag("IT")
+                            Text("country.ES".loc).tag("ES")
+                            Text("country.HR".loc).tag("HR")
+                            Text("country.GR".loc).tag("GR")
                         }
                     }
                 }

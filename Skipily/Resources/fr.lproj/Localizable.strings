@@ -542,3 +542,33 @@
 
 "category.boatbuilder" = "Constructeur de bateaux";
 "category.heating" = "Chauffage / Climatisation";
+
+// MARK: - i18n batch (UI hardcodes)
+"order.track" = "Suivre";
+"order.contact_provider" = "Contacter";
+"order.section_items" = "Articles";
+"order.section_provider" = "Prestataire";
+"maintenance.swipe_delete" = "Supprimer";
+"maintenance.swipe_done" = "Terminé";
+"equipment.photo_delete" = "Supprimer la photo";
+"equipment.photos_section" = "Photos (max %d)";
+"equipment.add_photos" = "Ajouter des photos (%d/%d)";
+"equipment.matching_parts" = "Pièces compatibles";
+"equipment.matching_brand" = "Catégorie et marque compatibles";
+"equipment.other_providers" = "Autres prestataires";
+"equipment.article_no" = "Réf.:";
+"shop.title" = "Boutique";
+"shop.filter_min" = "Min";
+"shop.filter_max" = "Max";
+"product.stock_remaining" = "Plus que %d";
+"product.promo_until" = "jusqu'au %@";
+"product.save_amount" = "Économisez %@";
+"profile.section_personal" = "Informations personnelles";
+"sail.section_dimensions" = "Dimensions";
+"sail.soft_foot" = "Bordure libre";
+"sail.loose_foot" = "Bordure lâche";
+"sail.uv_protection" = "Protection UV";
+"sail.furler" = "Enrouleur";
+"service_search.title" = "Service: %@";
+"map.route" = "Itinéraire";
+"general.error_title" = "Erreur";

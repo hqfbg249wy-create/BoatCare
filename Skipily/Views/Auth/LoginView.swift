@@ -143,7 +143,7 @@ struct LoginView: View {
                 Text("auth.reset_link_hint".loc)
             }
             .alert("auth.email_sent".loc, isPresented: $resetSent) {
-                Button("OK", role: .cancel) {}
+                Button("general.ok".loc, role: .cancel) {}
             } message: {
                 Text("auth.email_sent_hint".loc)
             }

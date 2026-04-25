@@ -131,7 +131,7 @@ struct ShopView: View {
                 .padding(.bottom, 20)
             }
         }
-        .navigationTitle("Shop")
+        .navigationTitle("shop.title".loc)
         .task {
             await loadCategories()
             await loadProducts()
@@ -607,7 +607,7 @@ struct ShopView: View {
                 .foregroundStyle(AppColors.gray500)
             HStack(spacing: 10) {
                 HStack {
-                    Text("Min")
+                    Text("shop.filter_min".loc)
                         .font(.caption2)
                         .foregroundStyle(AppColors.gray400)
                     TextField("0", text: $minPrice)
@@ -626,7 +626,7 @@ struct ShopView: View {
                     .foregroundStyle(AppColors.gray400)
 
                 HStack {
-                    Text("Max")
+                    Text("shop.filter_max".loc)
                         .font(.caption2)
                         .foregroundStyle(AppColors.gray400)
                     TextField("999", text: $maxPrice)

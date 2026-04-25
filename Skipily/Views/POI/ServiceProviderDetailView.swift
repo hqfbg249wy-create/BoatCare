@@ -614,8 +614,8 @@ struct WriteReviewView: View {
                     .fontWeight(.semibold)
                 }
             }
-            .alert("Error", isPresented: $showError) {
-                Button("OK") { }
+            .alert("general.error_title".loc, isPresented: $showError) {
+                Button("general.ok".loc) { }
             } message: {
                 Text(errorText)
             }

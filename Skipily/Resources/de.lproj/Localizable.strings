@@ -550,3 +550,33 @@ Ausrüstung unter Boote ergänzen.";
 
 "category.boatbuilder" = "Bootsbauer";
 "category.heating" = "Heizung / Klima";
+
+// MARK: - i18n batch (UI hardcodes)
+"order.track" = "Verfolgen";
+"order.contact_provider" = "Kontaktieren";
+"order.section_items" = "Artikel";
+"order.section_provider" = "Anbieter";
+"maintenance.swipe_delete" = "Löschen";
+"maintenance.swipe_done" = "Erledigt";
+"equipment.photo_delete" = "Foto löschen";
+"equipment.photos_section" = "Fotos (max. %d)";
+"equipment.add_photos" = "Fotos hinzufügen (%d/%d)";
+"equipment.matching_parts" = "Passende Ersatzteile";
+"equipment.matching_brand" = "Kategorie & Marke passend";
+"equipment.other_providers" = "Weitere Anbieter";
+"equipment.article_no" = "Art.-Nr.:";
+"shop.title" = "Shop";
+"shop.filter_min" = "Min";
+"shop.filter_max" = "Max";
+"product.stock_remaining" = "Nur noch %d Stück";
+"product.promo_until" = "bis %@";
+"product.save_amount" = "Spare %@";
+"profile.section_personal" = "Persönliche Daten";
+"sail.section_dimensions" = "Maße";
+"sail.soft_foot" = "Weicher Fußteil";
+"sail.loose_foot" = "Loses Unterliek";
+"sail.uv_protection" = "UV Schutz";
+"sail.furler" = "Rollbar (Furler)";
+"service_search.title" = "Service: %@";
+"map.route" = "Route";
+"general.error_title" = "Fehler";

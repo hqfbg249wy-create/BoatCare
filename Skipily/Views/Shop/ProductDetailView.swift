@@ -75,7 +75,7 @@ struct ProductDetailView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(AppColors.gray500)
                             if let partNumber = product.partNumber {
-                                Text("Art.-Nr.: \(partNumber)")
+                                Text("equipment.article_no".loc + " \(partNumber)")
                                     .font(.caption)
                                     .foregroundStyle(AppColors.gray400)
                             }
@@ -165,7 +165,7 @@ struct ProductDetailView: View {
             Spacer()
 
             if let until = promo.validUntil {
-                Text("bis \(until)")
+                Text(String(format: "product.promo_until".loc, until))
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.7))
             }
@@ -201,7 +201,7 @@ struct ProductDetailView: View {
 
                     // Savings badge
                     if let promo = bestPromotion {
-                        Text("Spare \(promo.displayDiscount)")
+                        Text(String(format: "product.save_amount".loc, promo.displayDiscount))
                             .font(.caption)
                             .fontWeight(.semibold)
                             .foregroundStyle(.white)
@@ -294,7 +294,7 @@ struct ProductDetailView: View {
             }
 
             if let stock = product.stockQuantity, stock < 10 && stock > 0 {
-                Text("Nur noch \(stock) Stück")
+                Text(String(format: "product.stock_remaining".loc, stock))
                     .font(.caption)
                     .foregroundStyle(AppColors.warning)
             }

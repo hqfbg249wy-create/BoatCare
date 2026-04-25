@@ -314,7 +314,7 @@ struct ProfileView: View {
 
     private var personalDataSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionHeader("Persönliche Daten", icon: "person.fill")
+            sectionHeader("profile.section_personal".loc, icon: "person.fill")
 
             TextField("Vollständiger Name", text: $fullName)
                 .textContentType(.name)
@@ -351,16 +351,16 @@ struct ProfileView: View {
                     .textFieldStyle(.roundedBorder)
             }
 
-            Picker("Land", selection: $shippingCountry) {
-                Text("Deutschland").tag("DE")
-                Text("Österreich").tag("AT")
-                Text("Schweiz").tag("CH")
-                Text("Niederlande").tag("NL")
-                Text("Frankreich").tag("FR")
-                Text("Italien").tag("IT")
-                Text("Spanien").tag("ES")
-                Text("Kroatien").tag("HR")
-                Text("Griechenland").tag("GR")
+            Picker("checkout.country".loc, selection: $shippingCountry) {
+                Text("country.DE".loc).tag("DE")
+                Text("country.AT".loc).tag("AT")
+                Text("country.CH".loc).tag("CH")
+                Text("country.NL".loc).tag("NL")
+                Text("country.FR".loc).tag("FR")
+                Text("country.IT".loc).tag("IT")
+                Text("country.ES".loc).tag("ES")
+                Text("country.HR".loc).tag("HR")
+                Text("country.GR".loc).tag("GR")
             }
         }
         .padding(.horizontal, 16)
