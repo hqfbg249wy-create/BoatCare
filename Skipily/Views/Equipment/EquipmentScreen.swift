@@ -208,6 +208,7 @@ struct EquipmentScreen: View {
     @State private var pickedCategory: String? = nil
     /// Spezialweg für Kategorie "sails": eigener Sub-Picker mit Maßblatt-Routing
     @State private var showingNewSailFlow = false
+    @State private var showingSuggestions = false
     @State private var searchText = ""
     @State private var selectedCategory: String? = nil
     @State private var errorMessage: String?
@@ -270,7 +271,13 @@ struct EquipmentScreen: View {
         .searchable(text: $searchText, prompt: "general.search".loc)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button { showingCategoryPicker = true } label: { Image(systemName: "plus") }
+                HStack(spacing: 16) {
+                    Button { showingSuggestions = true } label: {
+                        Image(systemName: "sparkles")
+                    }
+                    .accessibilityLabel("equipment.suggestions_title".loc)
+                    Button { showingCategoryPicker = true } label: { Image(systemName: "plus") }
+                }
             }
         }
         .sheet(isPresented: $showingCategoryPicker) {
@@ -310,6 +317,11 @@ struct EquipmentScreen: View {
                     Task { await loadItems() }
                 }
             )
+        }
+        .sheet(isPresented: $showingSuggestions) {
+            EquipmentSuggestionsSheet(boatId: boatId, boatName: boatName) {
+                Task { await loadItems() }
+            }
         }
         .alert("general.error".loc, isPresented: Binding(
             get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } }

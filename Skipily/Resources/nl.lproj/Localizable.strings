@@ -657,3 +657,12 @@
 
 "sail.type.other" = "Ander zeil";
 "sail.type.other_hint" = "Stormzeil, spinnaker, speciaal zeil — vrije invoer";
+
+
+// Equipment suggestions
+"equipment.suggestions_title" = "Suggesties";
+"equipment.suggestions_intro" = "Boten zoals de jouwe onderhouden meestal deze items. Tik + om ze toe te voegen.";
+"equipment.suggestions_loading" = "AI analyseert je boot…";
+"equipment.suggestions_no_boat" = "Boot niet gevonden.";
+"equipment.years_short" = "j";
+"general.done" = "Klaar";

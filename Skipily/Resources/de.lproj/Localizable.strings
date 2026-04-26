@@ -660,3 +660,12 @@ Ausrüstung unter Boote ergänzen.";
 
 "sail.type.other" = "Anderes Segel";
 "sail.type.other_hint" = "Sturmsegel, Spinnaker, Sondersegel — frei beschriftbar";
+
+
+// Equipment suggestions
+"equipment.suggestions_title" = "Vorschläge";
+"equipment.suggestions_intro" = "Diese Ausrüstung haben Boote wie deins typischerweise zur Wartung. Tippe + um sie anzulegen.";
+"equipment.suggestions_loading" = "KI analysiert dein Boot…";
+"equipment.suggestions_no_boat" = "Boot nicht gefunden.";
+"equipment.years_short" = " J";
+"general.done" = "Fertig";

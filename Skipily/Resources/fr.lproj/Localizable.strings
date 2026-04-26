@@ -657,3 +657,12 @@
 
 "sail.type.other" = "Autre voile";
 "sail.type.other_hint" = "Tourmentin, spinnaker, voile spéciale — saisie libre";
+
+
+// Equipment suggestions
+"equipment.suggestions_title" = "Suggestions";
+"equipment.suggestions_intro" = "Les bateaux comme le tien ont typiquement cet équipement à entretenir. Touche + pour l'ajouter.";
+"equipment.suggestions_loading" = "L'IA analyse ton bateau…";
+"equipment.suggestions_no_boat" = "Bateau introuvable.";
+"equipment.years_short" = "a";
+"general.done" = "Terminé";

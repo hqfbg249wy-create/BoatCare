@@ -657,3 +657,12 @@
 
 "sail.type.other" = "Otra vela";
 "sail.type.other_hint" = "Vela de tormenta, spinnaker, vela especial — entrada libre";
+
+
+// Equipment suggestions
+"equipment.suggestions_title" = "Sugerencias";
+"equipment.suggestions_intro" = "Barcos como el tuyo suelen mantener estos elementos. Pulsa + para añadirlos.";
+"equipment.suggestions_loading" = "La IA analiza tu barco…";
+"equipment.suggestions_no_boat" = "Barco no encontrado.";
+"equipment.years_short" = "a";
+"general.done" = "Hecho";

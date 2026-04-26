@@ -657,3 +657,12 @@
 
 "sail.type.other" = "Other sail";
 "sail.type.other_hint" = "Storm sail, spinnaker, special sail — free entry";
+
+
+// Equipment suggestions
+"equipment.suggestions_title" = "Suggestions";
+"equipment.suggestions_intro" = "Boats like yours typically maintain these items. Tap + to add them.";
+"equipment.suggestions_loading" = "AI is analyzing your boat…";
+"equipment.suggestions_no_boat" = "Boat not found.";
+"equipment.years_short" = "y";
+"general.done" = "Done";
