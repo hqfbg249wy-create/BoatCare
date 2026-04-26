@@ -652,3 +652,5 @@
 "maintenance.action_assistant" = "AI-assistent";
 "maintenance.action_done" = "Klaar";
 "maintenance.ai_question" = "Ik heb hulp nodig met mijn %1$@ (%2$@) op de %3$@. Volgend onderhoud: %4$@. Wat raad je aan?";
+
+"equipment.pick_category" = "Kies categorie";

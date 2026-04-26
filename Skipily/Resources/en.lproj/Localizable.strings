@@ -652,3 +652,5 @@
 "maintenance.action_assistant" = "AI Assistant";
 "maintenance.action_done" = "Done";
 "maintenance.ai_question" = "I need help with my %1$@ (%2$@) on the %3$@. Next maintenance: %4$@. What do you recommend?";
+
+"equipment.pick_category" = "Pick a category";

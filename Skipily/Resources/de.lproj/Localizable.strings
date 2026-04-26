@@ -655,3 +655,5 @@ Ausrüstung unter Boote ergänzen.";
 "maintenance.action_assistant" = "KI-Assistent";
 "maintenance.action_done" = "Erledigt";
 "maintenance.ai_question" = "Ich brauche Hilfe mit meinem %1$@ (%2$@) auf der %3$@. Naechste Wartung: %4$@. Was empfiehlst du?";
+
+"equipment.pick_category" = "Kategorie wählen";

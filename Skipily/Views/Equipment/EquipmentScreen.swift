@@ -203,6 +203,9 @@ struct EquipmentScreen: View {
     @State private var items: [EquipmentItem] = []
     @State private var isLoading = false
     @State private var showingAdd = false
+    @State private var showingCategoryPicker = false
+    /// Beim + erst Kategorie wählen, dann Add-Form mit dieser Kategorie öffnen
+    @State private var pickedCategory: String? = nil
     @State private var searchText = ""
     @State private var selectedCategory: String? = nil
     @State private var errorMessage: String?
@@ -265,11 +268,22 @@ struct EquipmentScreen: View {
         .searchable(text: $searchText, prompt: "general.search".loc)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button { showingAdd = true } label: { Image(systemName: "plus") }
+                Button { showingCategoryPicker = true } label: { Image(systemName: "plus") }
             }
         }
+        .sheet(isPresented: $showingCategoryPicker) {
+            EquipmentCategoryPickerSheet { chosen in
+                pickedCategory = chosen
+                showingCategoryPicker = false
+                // kurz warten, damit das alte Sheet sauber dismisst, bevor das nächste aufgeht
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    showingAdd = true
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
         .sheet(isPresented: $showingAdd) {
-            AddEditEquipmentView(boatId: boatId, item: nil) { newItem in
+            AddEditEquipmentView(boatId: boatId, item: nil, initialCategory: pickedCategory) { newItem in
                 Task { await addItem(newItem) }
             }
         }
@@ -284,7 +298,7 @@ struct EquipmentScreen: View {
             Image(systemName: "shippingbox.fill")
                 .font(.system(size: 60)).foregroundStyle(.purple.opacity(0.3))
             Text("equipment.no_items".loc).font(.headline).foregroundStyle(.secondary)
-            Button { showingAdd = true } label: {
+            Button { showingCategoryPicker = true } label: {
                 Label("equipment.add".loc, systemImage: "plus.circle.fill")
             }.buttonStyle(.borderedProminent)
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -793,11 +807,24 @@ struct EquipmentDetailView: View {
 struct AddEditEquipmentView: View {
     let boatId: UUID
     let item: EquipmentItem?
+    /// Wenn beim Anlegen schon eine Kategorie aus dem Picker mitgegeben
+    /// wurde — vorausgewählt + nicht weiter änderbar (klare UX).
+    let initialCategory: String?
     let onSave: (EquipmentItem) -> Void
     @Environment(\.dismiss) var dismiss
 
+    init(boatId: UUID, item: EquipmentItem?, initialCategory: String? = nil, onSave: @escaping (EquipmentItem) -> Void) {
+        self.boatId = boatId
+        self.item = item
+        self.initialCategory = initialCategory
+        self.onSave = onSave
+        // initiale Kategorie für @State setzen — Reihenfolge: bestehendes Item ▸ Picker ▸ "other"
+        let cat = item?.category ?? initialCategory ?? "other"
+        self._category = State(initialValue: cat)
+    }
+
     @State private var name = ""
-    @State private var category = "other"
+    @State private var category: String
     @State private var manufacturer = ""
     @State private var model = ""
     @State private var serialNumber = ""
@@ -924,9 +951,20 @@ struct AddEditEquipmentView: View {
 
                 Section {
                     TextField("equipment.name".loc, text: $name)
-                    Picker("equipment.category".loc, selection: $category) {
-                        ForEach(equipmentCategories, id: \.self) { cat in
-                            Text("equipment.cat.\(cat)".loc).tag(cat)
+                    if initialCategory != nil && item == nil {
+                        // Beim Anlegen mit vorgewählter Kategorie: nur anzeigen, nicht änderbar.
+                        // (Beim Editieren bestehender Items bleibt der Picker frei.)
+                        HStack {
+                            Text("equipment.category".loc)
+                            Spacer()
+                            Text("equipment.cat.\(category)".loc)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Picker("equipment.category".loc, selection: $category) {
+                            ForEach(equipmentCategories, id: \.self) { cat in
+                                Text("equipment.cat.\(cat)".loc).tag(cat)
+                            }
                         }
                     }
                 }
