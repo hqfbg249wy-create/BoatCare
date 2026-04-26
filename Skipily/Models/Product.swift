@@ -31,6 +31,9 @@ struct Product: Codable, Identifiable, Hashable, Sendable {
     let compatibleEquipment: [String]?
     let tags: [String]?
     let images: [String]?
+    /// Legacy single-image-Feld (wird vom Provider-Portal befüllt). Fällt
+    /// als Fallback ein, wenn `images` (Array) leer/null ist.
+    let imageUrl: String?
     let source: String?
     let createdAt: String?
     let updatedAt: String?
@@ -57,7 +60,9 @@ struct Product: Codable, Identifiable, Hashable, Sendable {
         case fitsBoatTypes = "fits_boat_types"
         case fitsManufacturers = "fits_manufacturers"
         case compatibleEquipment = "compatible_equipment"
-        case tags, images, source
+        case tags, images
+        case imageUrl = "image_url"
+        case source
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case category = "product_categories"
@@ -82,8 +87,14 @@ struct Product: Codable, Identifiable, Hashable, Sendable {
     }
 
     var firstImageURL: URL? {
-        guard let first = images?.first else { return nil }
-        return URL(string: first)
+        if let first = images?.first, let url = URL(string: first) {
+            return url
+        }
+        // Fallback auf legacy `image_url`-Feld aus dem Provider-Portal
+        if let single = imageUrl, !single.isEmpty {
+            return URL(string: single)
+        }
+        return nil
     }
 
     func hash(into hasher: inout Hasher) {
