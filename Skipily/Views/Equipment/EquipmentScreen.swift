@@ -604,7 +604,7 @@ struct EquipmentExpandableRow: View {
             }
         }
         .sheet(isPresented: $showingSailForm) {
-            SailTypePicker(equipmentId: item.id, boatName: boatName)
+            SailMeasurementGateway(equipmentId: item.id, boatName: boatName)
         }
     }
 
@@ -1076,7 +1076,7 @@ struct AddEditEquipmentView: View {
                                     .foregroundStyle(.teal)
                             }
                             .sheet(isPresented: $showingSailForm) {
-                                SailTypePicker(equipmentId: existingItem.id, boatName: existingItem.name)
+                                SailMeasurementGateway(equipmentId: existingItem.id, boatName: existingItem.name)
                             }
                         } else {
                             Text("equipment.sail_form_save_first".loc)

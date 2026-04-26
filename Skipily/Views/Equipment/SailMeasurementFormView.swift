@@ -180,6 +180,158 @@ struct SailMeasurement: Codable, Identifiable {
         case gk_tackHeight = "gk_tack_height"
         case gk_material, gk_farbe
     }
+
+    // MARK: - Codable mit String<->NUMERIC Bridging
+    //
+    // Die DB hat alle Maße als NUMERIC(10,2) — Swift hält sie als String,
+    // damit das Form direkt mit TextField bindet. Ohne Custom-Codable
+    // würde die DB jeden Insert mit String-Maßen ablehnen ("invalid
+    // input syntax for type numeric: \"\"").
+    //
+    // Lösung: Beim Encoding String → Double|null; beim Decoding
+    // Double|null → String. Beide Richtungen kennen die Liste der
+    // numerischen Felder (NUMERIC_KEYS).
+
+    private static let numericKeys: Set<CodingKeys> = [
+        .gs_P, .gs_E, .gs_E1, .gs_A, .gs_G, .gs_AL,
+        .gs_RB, .gs_RU, .gs_CB, .gs_CU, .gs_R1, .gs_R2,
+        .vs_I, .vs_I2, .vs_VST, .vs_J, .vs_J2,
+        .vs_VL, .vs_AL1, .vs_AL2, .vs_T1, .vs_T2,
+        .vs_W, .vs_Q, .vs_K, .vs_H,
+        .gk_luffLength, .gk_leechLength, .gk_footLength,
+        .gk_midWidth, .gk_tackHeight
+    ]
+
+    init() {
+        self.equipmentId = UUID()
+        self.sailType = "grosssegel"
+    }
+
+    /// Convenience-Init für neue Maßblätter ohne DB-Backing.
+    init(equipmentId: UUID, sailType: String) {
+        self.equipmentId = equipmentId
+        self.sailType = sailType
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = (try? c.decode(UUID.self, forKey: .id)) ?? UUID()
+        self.equipmentId = try c.decode(UUID.self, forKey: .equipmentId)
+        self.sailType = try c.decode(String.self, forKey: .sailType)
+        self.date = try? c.decode(String.self, forKey: .date)
+        self.sailNumber = (try? c.decode(String.self, forKey: .sailNumber)) ?? ""
+        self.notes = (try? c.decode(String.self, forKey: .notes)) ?? ""
+
+        // Numeric fields: Double|null → String
+        func num(_ k: CodingKeys) -> String {
+            if let d = try? c.decode(Double.self, forKey: k) {
+                return d.truncatingRemainder(dividingBy: 1) == 0
+                    ? String(Int(d))
+                    : String(format: "%.2f", d)
+            }
+            return ""
+        }
+        self.gs_P = num(.gs_P); self.gs_E = num(.gs_E); self.gs_E1 = num(.gs_E1)
+        self.gs_A = num(.gs_A); self.gs_G = num(.gs_G); self.gs_AL = num(.gs_AL)
+        self.gs_RB = num(.gs_RB); self.gs_RU = num(.gs_RU)
+        self.gs_CB = num(.gs_CB); self.gs_CU = num(.gs_CU)
+        self.gs_R1 = num(.gs_R1); self.gs_R2 = num(.gs_R2)
+        self.vs_I = num(.vs_I); self.vs_I2 = num(.vs_I2); self.vs_VST = num(.vs_VST)
+        self.vs_J = num(.vs_J); self.vs_J2 = num(.vs_J2)
+        self.vs_VL = num(.vs_VL)
+        self.vs_AL1 = num(.vs_AL1); self.vs_AL2 = num(.vs_AL2)
+        self.vs_T1 = num(.vs_T1); self.vs_T2 = num(.vs_T2)
+        self.vs_W = num(.vs_W); self.vs_Q = num(.vs_Q); self.vs_K = num(.vs_K)
+        self.vs_H = num(.vs_H)
+        self.gk_luffLength = num(.gk_luffLength)
+        self.gk_leechLength = num(.gk_leechLength)
+        self.gk_footLength = num(.gk_footLength)
+        self.gk_midWidth = num(.gk_midWidth)
+        self.gk_tackHeight = num(.gk_tackHeight)
+
+        // String / TEXT fields
+        self.gs_unterliekstau   = (try? c.decode(String.self, forKey: .gs_unterliekstau)) ?? ""
+        self.gs_vorliekstau     = (try? c.decode(String.self, forKey: .gs_vorliekstau)) ?? ""
+        self.gs_schothornrutscher = (try? c.decode(String.self, forKey: .gs_schothornrutscher)) ?? ""
+        self.gs_mastrutscher    = (try? c.decode(String.self, forKey: .gs_mastrutscher)) ?? ""
+        self.gs_farbe           = (try? c.decode(String.self, forKey: .gs_farbe)) ?? "weiss"
+        self.vs_reffanlage      = (try? c.decode(String.self, forKey: .vs_reffanlage)) ?? ""
+        self.vs_vorliekstau     = (try? c.decode(String.self, forKey: .vs_vorliekstau)) ?? ""
+        self.vs_position        = (try? c.decode(String.self, forKey: .vs_position)) ?? "BB"
+        self.vs_farbe           = (try? c.decode(String.self, forKey: .vs_farbe)) ?? "weiss"
+        self.gk_material        = (try? c.decode(String.self, forKey: .gk_material)) ?? ""
+        self.gk_farbe           = (try? c.decode(String.self, forKey: .gk_farbe)) ?? ""
+
+        // Bool flags
+        self.gs_einleinenreff   = (try? c.decode(Bool.self, forKey: .gs_einleinenreff)) ?? false
+        self.gs_weicherFussteil = (try? c.decode(Bool.self, forKey: .gs_weicherFussteil)) ?? false
+        self.gs_losesUnterliek  = (try? c.decode(Bool.self, forKey: .gs_losesUnterliek)) ?? false
+        self.gs_segelzeichen    = (try? c.decode(Bool.self, forKey: .gs_segelzeichen)) ?? false
+        self.gs_segelnummer     = (try? c.decode(Bool.self, forKey: .gs_segelnummer)) ?? false
+        self.vs_rollreff        = (try? c.decode(Bool.self, forKey: .vs_rollreff)) ?? false
+        self.vs_fenster         = (try? c.decode(Bool.self, forKey: .vs_fenster)) ?? false
+        self.vs_uvSchutz        = (try? c.decode(Bool.self, forKey: .vs_uvSchutz)) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(equipmentId, forKey: .equipmentId)
+        try c.encode(sailType, forKey: .sailType)
+        try c.encodeIfPresent(date, forKey: .date)
+        try c.encode(sailNumber, forKey: .sailNumber)
+        try c.encode(notes, forKey: .notes)
+
+        // Numeric: leerer String → null, sonst als Double
+        func putNum(_ s: String, _ k: CodingKeys) throws {
+            let trimmed = s.replacingOccurrences(of: ",", with: ".").trimmingCharacters(in: .whitespaces)
+            if let d = Double(trimmed) {
+                try c.encode(d, forKey: k)
+            } else {
+                try c.encodeNil(forKey: k)
+            }
+        }
+        try putNum(gs_P, .gs_P);  try putNum(gs_E, .gs_E);  try putNum(gs_E1, .gs_E1)
+        try putNum(gs_A, .gs_A);  try putNum(gs_G, .gs_G);  try putNum(gs_AL, .gs_AL)
+        try putNum(gs_RB, .gs_RB); try putNum(gs_RU, .gs_RU)
+        try putNum(gs_CB, .gs_CB); try putNum(gs_CU, .gs_CU)
+        try putNum(gs_R1, .gs_R1); try putNum(gs_R2, .gs_R2)
+        try putNum(vs_I, .vs_I);  try putNum(vs_I2, .vs_I2); try putNum(vs_VST, .vs_VST)
+        try putNum(vs_J, .vs_J);  try putNum(vs_J2, .vs_J2)
+        try putNum(vs_VL, .vs_VL)
+        try putNum(vs_AL1, .vs_AL1); try putNum(vs_AL2, .vs_AL2)
+        try putNum(vs_T1, .vs_T1);  try putNum(vs_T2, .vs_T2)
+        try putNum(vs_W, .vs_W);    try putNum(vs_Q, .vs_Q);  try putNum(vs_K, .vs_K)
+        try putNum(vs_H, .vs_H)
+        try putNum(gk_luffLength, .gk_luffLength)
+        try putNum(gk_leechLength, .gk_leechLength)
+        try putNum(gk_footLength, .gk_footLength)
+        try putNum(gk_midWidth, .gk_midWidth)
+        try putNum(gk_tackHeight, .gk_tackHeight)
+
+        // Strings
+        try c.encode(gs_unterliekstau, forKey: .gs_unterliekstau)
+        try c.encode(gs_vorliekstau, forKey: .gs_vorliekstau)
+        try c.encode(gs_schothornrutscher, forKey: .gs_schothornrutscher)
+        try c.encode(gs_mastrutscher, forKey: .gs_mastrutscher)
+        try c.encode(gs_farbe, forKey: .gs_farbe)
+        try c.encode(vs_reffanlage, forKey: .vs_reffanlage)
+        try c.encode(vs_vorliekstau, forKey: .vs_vorliekstau)
+        try c.encode(vs_position, forKey: .vs_position)
+        try c.encode(vs_farbe, forKey: .vs_farbe)
+        try c.encode(gk_material, forKey: .gk_material)
+        try c.encode(gk_farbe, forKey: .gk_farbe)
+
+        // Bools
+        try c.encode(gs_einleinenreff, forKey: .gs_einleinenreff)
+        try c.encode(gs_weicherFussteil, forKey: .gs_weicherFussteil)
+        try c.encode(gs_losesUnterliek, forKey: .gs_losesUnterliek)
+        try c.encode(gs_segelzeichen, forKey: .gs_segelzeichen)
+        try c.encode(gs_segelnummer, forKey: .gs_segelnummer)
+        try c.encode(vs_rollreff, forKey: .vs_rollreff)
+        try c.encode(vs_fenster, forKey: .vs_fenster)
+        try c.encode(vs_uvSchutz, forKey: .vs_uvSchutz)
+    }
 }
 
 // MARK: - Sail Measurement Form View
