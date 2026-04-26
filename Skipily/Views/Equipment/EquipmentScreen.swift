@@ -975,22 +975,17 @@ struct AddEditEquipmentView: View {
 
                 Section {
                     TextField("equipment.name".loc, text: $name)
-                    if initialCategory != nil && item == nil {
-                        // Beim Anlegen mit vorgewählter Kategorie: nur anzeigen, nicht änderbar.
-                        // (Beim Editieren bestehender Items bleibt der Picker frei.)
-                        HStack {
-                            Text("equipment.category".loc)
-                            Spacer()
-                            Text("equipment.cat.\(category)".loc)
-                                .foregroundStyle(.secondary)
-                        }
-                    } else {
-                        Picker("equipment.category".loc, selection: $category) {
-                            ForEach(equipmentCategories, id: \.self) { cat in
-                                Text("equipment.cat.\(cat)".loc).tag(cat)
-                            }
+                    // Picker bleibt immer als Picker — beim Anlegen mit vorgewählter
+                    // Kategorie ist er deaktiviert (Wert klar sichtbar, aber nicht
+                    // versehentlich änderbar). Beim Editieren bestehender Items
+                    // sowie beim Anlegen ohne Vorauswahl ist er frei.
+                    let isLocked = (initialCategory != nil && item == nil)
+                    Picker("equipment.category".loc, selection: $category) {
+                        ForEach(equipmentCategories, id: \.self) { cat in
+                            Text("equipment.cat.\(cat)".loc).tag(cat)
                         }
                     }
+                    .disabled(isLocked)
                 }
                 Section("equipment.details".loc) {
                     TextField("boats.manufacturer".loc, text: $manufacturer)
