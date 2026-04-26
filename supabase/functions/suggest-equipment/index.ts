@@ -103,6 +103,21 @@ For each suggestion return JSON like:
     "maintenance_cycle_years": 1 | 2 | 5 | null
   }
 
+Category mapping rules (use the MOST SPECIFIC match, only fall back to
+"other" if truly nothing else fits):
+- engine        — motor, impeller, fuel filter, oil filter, alternator, fuel hose, anodes (Zinkanoden)
+- safety        — life raft, EPIRB, life jacket, fire extinguisher, flares, gas detector, MOB
+- electrical    — battery, charger, inverter, solar panel, switch panel, navigation lights
+- navigation    — chartplotter, compass, log, depth sounder, AIS, autopilot
+- communication — VHF, satphone, antenna, radar
+- rigging       — shrouds, stays, terminals, blocks, halyards-as-hardware
+- sails         — mainsail, jib, gennaker, code 0, storm sails, sail covers
+- anchor        — anchor, chain, windlass, anchor rope
+- hvac          — heater, fan, AC, fridge
+- paint         — antifouling, gelcoat, primer, varnish
+- rope          — sheets, halyards, dock lines, mooring
+- other         — only when nothing else fits
+
 Return ONLY a valid JSON array (no prose, no markdown fences).
 Skip items that look like they ARE in the existing list (avoid duplicates).
 Stay realistic for the boat type.`;

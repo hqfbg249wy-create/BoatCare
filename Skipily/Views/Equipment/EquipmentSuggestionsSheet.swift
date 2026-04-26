@@ -67,13 +67,15 @@ struct EquipmentSuggestionsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("general.done".loc) {
-                        dismiss()
-                        if !addedIds.isEmpty { onAdded() }
-                    }
+                    Button("general.done".loc) { dismiss() }
                 }
             }
             .task { await load() }
+            .onDisappear {
+                // Auch bei Swipe-Down-Dismiss lädt der Parent neu, falls
+                // mindestens ein Vorschlag akzeptiert wurde.
+                if !addedIds.isEmpty { onAdded() }
+            }
         }
     }
 
@@ -221,19 +223,35 @@ struct EquipmentSuggestionsSheet: View {
         let manufacturer: String
         let maintenance_cycle_years: Int?
         let item_description: String
+        let last_maintenance_date: String?
+        let next_maintenance_date: String?
     }
 
     private func add(_ sug: EquipmentSuggestionService.Suggestion) async {
         addingIds.insert(sug.id)
         defer { addingIds.remove(sug.id) }
 
+        // Wenn Wartungszyklus bekannt, fiktives "letzte Wartung = heute"
+        // setzen, damit next_maintenance_date sofort im Wartungs-Tab steht
+        // — User kann das im Equipment-Detail anpassen.
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        let today = df.string(from: Date())
+        var nextMD: String? = nil
+        if let cy = sug.maintenance_cycle_years,
+           let next = Calendar.current.date(byAdding: .year, value: cy, to: Date()) {
+            nextMD = df.string(from: next)
+        }
+
         let row = EquipmentInsertRow(
             boat_id: boatId.uuidString,
             name: sug.name,
-            category: sug.category,
+            category: sug.category,                  // Kategorie aus KI-Vorschlag
             manufacturer: sug.manufacturer_hint,
             maintenance_cycle_years: sug.maintenance_cycle_years,
-            item_description: sug.why
+            item_description: sug.why,
+            last_maintenance_date: sug.maintenance_cycle_years != nil ? today : nil,
+            next_maintenance_date: nextMD
         )
 
         do {
@@ -242,6 +260,7 @@ struct EquipmentSuggestionsSheet: View {
                 .insert(row)
                 .execute()
             addedIds.insert(sug.id)
+            AppLog.debug("Suggestion added: \(sug.name) [\(sug.category)] for boat \(boatId)")
         } catch {
             AppLog.error("EquipmentSuggestionsSheet.add: \(error)")
             errorMessage = error.localizedDescription
