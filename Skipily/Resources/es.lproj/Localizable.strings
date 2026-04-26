@@ -654,3 +654,6 @@
 "maintenance.ai_question" = "Necesito ayuda con mi %1$@ (%2$@) en el %3$@. Próximo mantenimiento: %4$@. ¿Qué recomiendas?";
 
 "equipment.pick_category" = "Elegir categoría";
+
+"sail.type.other" = "Otra vela";
+"sail.type.other_hint" = "Vela de tormenta, spinnaker, vela especial — entrada libre";

@@ -206,6 +206,8 @@ struct EquipmentScreen: View {
     @State private var showingCategoryPicker = false
     /// Beim + erst Kategorie wählen, dann Add-Form mit dieser Kategorie öffnen
     @State private var pickedCategory: String? = nil
+    /// Spezialweg für Kategorie "sails": eigener Sub-Picker mit Maßblatt-Routing
+    @State private var showingNewSailFlow = false
     @State private var searchText = ""
     @State private var selectedCategory: String? = nil
     @State private var errorMessage: String?
@@ -273,11 +275,17 @@ struct EquipmentScreen: View {
         }
         .sheet(isPresented: $showingCategoryPicker) {
             EquipmentCategoryPickerSheet { chosen in
-                pickedCategory = chosen
                 showingCategoryPicker = false
-                // kurz warten, damit das alte Sheet sauber dismisst, bevor das nächste aufgeht
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    showingAdd = true
+                if chosen == "sails" {
+                    // Spezialweg: Sail-Type-Sub-Picker → Maßblatt
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        showingNewSailFlow = true
+                    }
+                } else {
+                    pickedCategory = chosen
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        showingAdd = true
+                    }
                 }
             }
             .presentationDetents([.medium, .large])
@@ -286,6 +294,22 @@ struct EquipmentScreen: View {
             AddEditEquipmentView(boatId: boatId, item: nil, initialCategory: pickedCategory) { newItem in
                 Task { await addItem(newItem) }
             }
+        }
+        .sheet(isPresented: $showingNewSailFlow) {
+            NewSailEquipmentFlow(
+                boatId: boatId,
+                boatName: boatName,
+                onPickOther: {
+                    // Anderes Segel → generischer Equipment-Flow mit Kategorie sails
+                    pickedCategory = "sails"
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        showingAdd = true
+                    }
+                },
+                onCreated: {
+                    Task { await loadItems() }
+                }
+            )
         }
         .alert("general.error".loc, isPresented: Binding(
             get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } }

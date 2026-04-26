@@ -657,3 +657,6 @@ Ausrüstung unter Boote ergänzen.";
 "maintenance.ai_question" = "Ich brauche Hilfe mit meinem %1$@ (%2$@) auf der %3$@. Naechste Wartung: %4$@. Was empfiehlst du?";
 
 "equipment.pick_category" = "Kategorie wählen";
+
+"sail.type.other" = "Anderes Segel";
+"sail.type.other_hint" = "Sturmsegel, Spinnaker, Sondersegel — frei beschriftbar";

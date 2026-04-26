@@ -16,6 +16,9 @@ enum SailType: String, CaseIterable, Identifiable {
     case vorsegel = "Vorsegel / Genua"
     case gennaker = "Gennaker"
     case code0 = "Code 0"
+    /// Sammelfall für Sturmsegel, Spinnaker, exotische Vorsegel etc.
+    /// Nutzt nicht das Maßblatt, sondern das generische Equipment-Formular.
+    case other = "Anderes Segel"
 
     var id: String { rawValue }
 
@@ -26,6 +29,7 @@ enum SailType: String, CaseIterable, Identifiable {
         case .vorsegel:   return "sail.type.vorsegel".loc
         case .gennaker:   return "sail.type.gennaker".loc
         case .code0:      return "sail.type.code0".loc
+        case .other:      return "sail.type.other".loc
         }
     }
 
@@ -35,8 +39,13 @@ enum SailType: String, CaseIterable, Identifiable {
         case .vorsegel: return "sailboat.fill"
         case .gennaker: return "wind.circle.fill"
         case .code0: return "wind.circle"
+        case .other: return "ellipsis.circle.fill"
         }
     }
+
+    /// Hat dieser Segeltyp ein vordefiniertes Maßblatt?
+    /// `false` → User wird zur generischen Equipment-Eingabe geleitet.
+    var hasMeasurementSheet: Bool { self != .other }
 }
 
 // MARK: - Sail Measurement Data
@@ -564,6 +573,7 @@ struct SailTypePicker: View {
         case .vorsegel: return "Vorstag, Schiene, Rollreff, UV-Schutz"
         case .gennaker: return "Luff, Leech, Foot, Material"
         case .code0: return "Luff, Leech, Foot, Furler"
+        case .other: return "sail.type.other_hint".loc
         }
     }
 }
