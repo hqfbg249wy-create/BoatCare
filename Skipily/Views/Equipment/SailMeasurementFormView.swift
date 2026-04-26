@@ -241,6 +241,11 @@ struct SailMeasurementFormView: View {
                     vorsegelForm
                 case .gennaker:
                     gennakerForm
+                case .other:
+                    // SailMeasurementFormView wird für .other gar nicht
+                    // aufgerufen — der Flow routet auf AddEditEquipmentView.
+                    // Sicherheitshalber EmptyView, falls doch.
+                    EmptyView()
                 case .code0:
                     code0Form
                 }
@@ -449,9 +454,10 @@ struct SailMeasurementFormView: View {
         // Map sail type to DB enum value
         switch sailType {
         case .grosssegel: measurement.sailType = "grosssegel"
-        case .vorsegel: measurement.sailType = "vorsegel"
-        case .gennaker: measurement.sailType = "gennaker"
-        case .code0: measurement.sailType = "code0"
+        case .vorsegel:   measurement.sailType = "vorsegel"
+        case .gennaker:   measurement.sailType = "gennaker"
+        case .code0:      measurement.sailType = "code0"
+        case .other:      measurement.sailType = "other"
         }
         measurement.equipmentId = equipmentId
 
