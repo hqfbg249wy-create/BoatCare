@@ -5814,9 +5814,10 @@ let shopProviders = [];
 
 async function loadShopManagement() {
     console.log('🛒 Lade Shop-Verwaltung...');
+
+    // Provider-Liste — primärer Datensatz, eigenes try damit Stats-Fehler
+    // (z.B. RLS auf metashop_products/orders) das Rendern nicht blockieren.
     try {
-        // Default-Limit von PostgREST ist 1000 — explizit höher setzen, damit
-        // bei wachsendem Provider-Bestand keine Treffer "verschwinden".
         const { data: providers, error, count } = await supabaseClient
             .from('service_providers')
             .select('id, name, category, city, is_shop_active, commission_rate, stripe_account_id, user_id', { count: 'exact' })
@@ -5829,30 +5830,37 @@ async function loadShopManagement() {
         if (count != null && shopProviders.length < count) {
             console.warn(`⚠️ Nur ${shopProviders.length}/${count} Provider geladen — Range erhöhen.`);
         }
+        const activeShops = shopProviders.filter(p => p.is_shop_active).length;
+        const activeEl = document.getElementById('shop-active-count');
+        if (activeEl) activeEl.textContent = activeShops;
+        renderShopProviders(shopProviders);
+    } catch (err) {
+        console.error('Shop-Verwaltung – Provider-Load fehlgeschlagen:', err);
+        const tbody = document.getElementById('shop-providers-body');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#dc2626;">Fehler beim Laden: ' + (err.message || err) + '</td></tr>';
+        return;
+    }
 
-        // Produkt-Count laden
+    // Produkt-Count — nicht blockierend
+    try {
         const { count: productsCount } = await supabaseClient
             .from('metashop_products')
             .select('id', { count: 'exact', head: true });
+        const el = document.getElementById('shop-products-count');
+        if (el) el.textContent = productsCount || 0;
+    } catch (e) {
+        console.warn('Shop-Verwaltung – metashop_products Count nicht verfügbar:', e?.message || e);
+    }
 
-        // Orders-Count laden (falls Tabelle existiert)
-        let ordersCount = 0;
-        try {
-            const { count } = await supabaseClient
-                .from('orders')
-                .select('id', { count: 'exact', head: true });
-            ordersCount = count || 0;
-        } catch(e) { /* Tabelle existiert noch nicht */ }
-
-        // Stats aktualisieren
-        const activeShops = shopProviders.filter(p => p.is_shop_active).length;
-        document.getElementById('shop-active-count').textContent = activeShops;
-        document.getElementById('shop-products-count').textContent = productsCount || 0;
-        document.getElementById('shop-orders-count').textContent = ordersCount;
-
-        renderShopProviders(shopProviders);
-    } catch (err) {
-        console.error('Shop-Verwaltung Fehler:', err);
+    // Orders-Count — nicht blockierend
+    try {
+        const { count } = await supabaseClient
+            .from('orders')
+            .select('id', { count: 'exact', head: true });
+        const el = document.getElementById('shop-orders-count');
+        if (el) el.textContent = count || 0;
+    } catch (e) {
+        console.warn('Shop-Verwaltung – orders Count nicht verfügbar:', e?.message || e);
     }
 }
 
