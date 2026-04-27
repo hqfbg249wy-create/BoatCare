@@ -153,7 +153,7 @@ async function checkAdminRole() {
 
         console.log('👤 Profil geladen:', profile);
 
-        if (!profile || profile.role !== 'admin') {
+        if (!profile || (profile.role !== 'admin' && profile.role !== 'admin_readonly')) {
             console.warn('⚠️ Keine Admin-Berechtigung:', profile);
             alert('Sie haben keine Admin-Berechtigung!\nRolle: ' + (profile?.role || 'keine'));
             await supabaseClient.auth.signOut();
@@ -161,7 +161,14 @@ async function checkAdminRole() {
             return;
         }
 
-        console.log('✅ Admin-Berechtigung bestätigt');
+        // Rolle global merken; UI nutzt das, um Schreibaktionen für admin_readonly auszublenden.
+        window.currentAdminRole = profile.role;
+        document.body.dataset.adminRole = profile.role;
+        if (profile.role === 'admin_readonly') {
+            console.log('👁️ Read-only Admin – Schreibaktionen sind deaktiviert');
+        }
+
+        console.log('✅ Admin-Berechtigung bestätigt:', profile.role);
     } catch (error) {
         console.error('❌ Fehler bei Admin-Check:', error);
         alert('Fehler beim Prüfen der Berechtigung: ' + error.message);
@@ -6585,12 +6592,176 @@ async function loadAdminList() {
     }
 }
 
-// Automatisch laden wenn Admin-Seite geöffnet wird
+// ============================================================
+// Benutzer-Verwaltung
+// ============================================================
+
+let allUsers = []; // Cache für Such-/Filter-Operationen
+
+async function loadUsers() {
+    const tbody = document.getElementById('users-body');
+    if (!tbody || !supabaseClient) return;
+
+    tbody.innerHTML = '<tr><td colspan="8" style="padding:24px; text-align:center; color:#94a3b8;">Wird geladen…</td></tr>';
+
+    try {
+        const { data, error } = await supabaseClient.rpc('admin_list_users');
+        if (error) throw error;
+
+        allUsers = data || [];
+        updateUsersStats(allUsers);
+        renderUsers(allUsers);
+    } catch (err) {
+        console.error('loadUsers Fehler:', err);
+        tbody.innerHTML = `<tr><td colspan="8" style="padding:24px; text-align:center; color:#dc2626;">Fehler: ${err.message}</td></tr>`;
+    }
+}
+
+function updateUsersStats(users) {
+    const total = users.length;
+    const admins = users.filter(u => u.role === 'admin').length;
+    const readonly = users.filter(u => u.role === 'admin_readonly').length;
+    const withBoats = users.filter(u => Number(u.boats_count) > 0).length;
+
+    document.getElementById('users-total').textContent = total;
+    document.getElementById('users-admins').textContent = admins;
+    document.getElementById('users-readonly').textContent = readonly;
+    document.getElementById('users-with-boats').textContent = withBoats;
+}
+
+function searchUsers() {
+    const q = (document.getElementById('users-search')?.value || '').trim().toLowerCase();
+    const roleFilter = document.getElementById('users-role-filter')?.value || '';
+    const filtered = allUsers.filter(u => {
+        if (roleFilter && u.role !== roleFilter) return false;
+        if (!q) return true;
+        return (u.email || '').toLowerCase().includes(q) ||
+               (u.full_name || '').toLowerCase().includes(q);
+    });
+    renderUsers(filtered);
+}
+window.searchUsers = searchUsers;
+
+function roleBadge(role) {
+    const map = {
+        admin:          { label: 'Admin',          color: '#7c3aed', bg: '#ede9fe' },
+        admin_readonly: { label: 'Read-only',      color: '#0369a1', bg: '#e0f2fe' },
+        user:           { label: 'Nutzer',         color: '#475569', bg: '#f1f5f9' },
+    };
+    const s = map[role] || map.user;
+    return `<span style="display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600; color:${s.color}; background:${s.bg};">${s.label}</span>`;
+}
+
+function fmtDate(s) {
+    if (!s) return '—';
+    const d = new Date(s);
+    return d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+}
+
+function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function renderUsers(users) {
+    const tbody = document.getElementById('users-body');
+    if (!tbody) return;
+
+    if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="padding:24px; text-align:center; color:#94a3b8;">Keine Benutzer gefunden.</td></tr>';
+        return;
+    }
+
+    const isReadonly = window.currentAdminRole === 'admin_readonly';
+    const myId = currentUser?.id;
+
+    tbody.innerHTML = users.map(u => {
+        const isSelf = u.id === myId;
+        const actionsDisabled = isReadonly || isSelf;
+        const roleSelectDisabled = actionsDisabled ? 'disabled' : '';
+        const deleteHidden = actionsDisabled ? 'style="display:none;"' : '';
+
+        return `
+            <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:10px 12px;"><code style="font-size:12px;">${escapeHtml(u.email || '—')}</code>${isSelf ? ' <span style="font-size:11px; color:#16a34a;">(Sie)</span>' : ''}</td>
+                <td style="padding:10px 12px;">${escapeHtml(u.full_name || '—')}</td>
+                <td style="padding:10px 12px;">
+                    ${isReadonly || isSelf
+                        ? roleBadge(u.role)
+                        : `<select onchange="window.changeUserRole('${u.id}', this.value, '${u.role}')" ${roleSelectDisabled} style="padding:4px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px;">
+                                <option value="user" ${u.role==='user'?'selected':''}>Nutzer</option>
+                                <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+                                <option value="admin_readonly" ${u.role==='admin_readonly'?'selected':''}>Read-only</option>
+                           </select>`}
+                </td>
+                <td style="padding:10px 12px; text-align:right;">${u.boats_count || 0}</td>
+                <td style="padding:10px 12px; text-align:right;">${u.orders_count || 0}</td>
+                <td style="padding:10px 12px; color:#64748b; font-size:12px;">${fmtDate(u.last_sign_in_at)}</td>
+                <td style="padding:10px 12px; color:#64748b; font-size:12px;">${fmtDate(u.created_at)}</td>
+                <td style="padding:10px 12px; text-align:right;">
+                    <button onclick="window.deleteUser('${u.id}', '${escapeHtml(u.email || '')}')"
+                            ${deleteHidden}
+                            style="padding:6px 12px; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; border-radius:6px; font-size:12px; cursor:pointer;">
+                        🗑️ Löschen
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function changeUserRole(userId, newRole, oldRole) {
+    if (newRole === oldRole) return;
+    if (!confirm(`Rolle wirklich auf "${newRole}" ändern?`)) {
+        await loadUsers();
+        return;
+    }
+    try {
+        const { error } = await supabaseClient.rpc('admin_set_user_role', {
+            target_user_id: userId,
+            new_role: newRole
+        });
+        if (error) throw error;
+        await loadUsers();
+    } catch (err) {
+        alert('Fehler beim Ändern der Rolle: ' + err.message);
+        await loadUsers();
+    }
+}
+window.changeUserRole = changeUserRole;
+
+async function deleteUser(userId, email) {
+    const confirmText = `User "${email}" und ALLE zugehörigen Daten (Boote, Equipment, Bestellungen, Nachrichten, Reviews, Bilder) endgültig löschen?\n\nDieser Vorgang ist nicht rückgängig zu machen.`;
+    if (!confirm(confirmText)) return;
+
+    // Zweite Sicherheitsabfrage – tippe E-Mail
+    const typed = prompt(`Zur Bestätigung bitte E-Mail-Adresse eingeben: ${email}`);
+    if (typed !== email) {
+        alert('E-Mail stimmt nicht überein – Löschung abgebrochen.');
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient.rpc('admin_delete_user', {
+            target_user_id: userId
+        });
+        if (error) throw error;
+        alert('✅ User gelöscht.');
+        await loadUsers();
+    } catch (err) {
+        alert('Fehler beim Löschen: ' + err.message);
+    }
+}
+window.deleteUser = deleteUser;
+
+window.loadUsers = loadUsers;
+
+// Automatisch laden wenn Admin-Seite oder User-Seite geöffnet wird
 (function hookAdminPageNav() {
     const origNav = window.navigateToPage;
     if (!origNav) return;
     window.navigateToPage = function(page) {
         origNav.apply(this, arguments);
         if (page === 'invite-admin') loadAdminList();
+        if (page === 'users') loadUsers();
     };
 })();
