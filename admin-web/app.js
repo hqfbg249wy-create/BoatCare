@@ -5815,22 +5815,29 @@ let shopProviders = [];
 async function loadShopManagement() {
     console.log('🛒 Lade Shop-Verwaltung...');
 
-    // Provider-Liste — primärer Datensatz. Wir nutzen SELECT * (wie die
-    // funktionierende ServiceProvider-Seite), damit Spaltenprobleme oder
-    // unterschiedliche RLS-Verhalten nicht zum stillen Tod führen.
+    // Provider-Liste — exakt dieselbe Query wie loadProviders (die funktioniert).
     try {
-        const { data: providers, error, count } = await supabaseClient
+        const { data: providers, error } = await supabaseClient
             .from('service_providers')
-            .select('*', { count: 'exact' })
+            .select('*')
             .order('name')
-            .range(0, 9999);
+            .limit(10000);
 
         if (error) throw error;
         shopProviders = providers || [];
-        console.log(`🛒 Shop-Verwaltung: ${shopProviders.length} von ${count ?? '?'} Provider geladen`);
+
+        // Sichtbare Diagnose direkt im UI — damit der User nicht in die
+        // Browser-Console gucken muss.
         const skipily = shopProviders.find(p => (p.name || '').toLowerCase().includes('skipily'));
-        if (skipily) console.log('🛒 ✓ Skipily-Treffer gefunden:', skipily);
-        else console.warn('🛒 ⚠ Kein Skipily-Provider in der Liste');
+        const diag = document.getElementById('shop-diag');
+        if (diag) {
+            diag.innerHTML =
+                'Geladen: <strong>' + shopProviders.length + '</strong> Provider · ' +
+                'Skipily-Treffer: <strong style="color:' + (skipily ? '#16a34a' : '#dc2626') + ';">' +
+                (skipily ? ('JA — id=' + skipily.id + ', name="' + escapeHtml(skipily.name) + '"') : 'NEIN — Provider ist nicht in der Liste der service_providers, die diesem Admin per RLS sichtbar sind.') +
+                '</strong>';
+        }
+        console.log(`🛒 Shop-Verwaltung: ${shopProviders.length} Provider geladen`, skipily ? { skipilyMatch: skipily } : { skipilyMatch: 'NONE' });
 
         const activeShops = shopProviders.filter(p => p.is_shop_active).length;
         const activeEl = document.getElementById('shop-active-count');
