@@ -132,6 +132,9 @@ struct ShopView: View {
             }
         }
         .navigationTitle("shop.title".loc)
+        .navigationDestination(for: Product.self) { product in
+            ProductDetailView(product: product)
+        }
         .task {
             await loadCategories()
             await loadProducts()
@@ -403,9 +406,6 @@ struct ShopView: View {
                     }
                 }
             }
-        }
-        .navigationDestination(for: Product.self) { product in
-            ProductDetailView(product: product)
         }
     }
 
@@ -796,9 +796,6 @@ struct ShopView: View {
                         }
                     }
                 }
-            }
-            .navigationDestination(for: Product.self) { product in
-                ProductDetailView(product: product)
             }
 
             // Loading more indicator

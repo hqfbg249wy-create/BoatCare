@@ -140,6 +140,9 @@ struct ProductDetailView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(for: Product.self) { prod in
+            ProductDetailView(product: prod)
+        }
         .overlay(alignment: .top) {
             if showAddedToast {
                 toastView
@@ -501,9 +504,6 @@ struct ProductDetailView: View {
                     }
                 }
             }
-        }
-        .navigationDestination(for: Product.self) { prod in
-            ProductDetailView(product: prod)
         }
     }
 

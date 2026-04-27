@@ -13,6 +13,11 @@ enum AppTab: Hashable {
     case map, boats, maintenance, shop, favorites
 }
 
+enum ShopDestination: Hashable {
+    case cart
+    case orders
+}
+
 struct MainTabView: View {
     @EnvironmentObject var authService: AuthService
     @EnvironmentObject var favoritesManager: FavoritesManager
@@ -57,9 +62,17 @@ struct MainTabView: View {
                 // "Shop" is universal — no localization needed
                 NavigationStack(path: $shopNavigationPath) {
                     ShopView()
+                        .navigationDestination(for: ShopDestination.self) { dest in
+                            switch dest {
+                            case .cart: CartView()
+                            case .orders: OrdersView()
+                            }
+                        }
                         .toolbar {
                             ToolbarItem(placement: .topBarTrailing) {
-                                NavigationLink(destination: CartView()) {
+                                Button {
+                                    shopNavigationPath.append(ShopDestination.cart)
+                                } label: {
                                     ZStack(alignment: .topTrailing) {
                                         Image(systemName: "cart")
                                             .font(.title3)
@@ -78,7 +91,9 @@ struct MainTabView: View {
                             }
 
                             ToolbarItem(placement: .topBarTrailing) {
-                                NavigationLink(destination: OrdersView()) {
+                                Button {
+                                    shopNavigationPath.append(ShopDestination.orders)
+                                } label: {
                                     Image(systemName: "shippingbox")
                                         .font(.title3)
                                 }
