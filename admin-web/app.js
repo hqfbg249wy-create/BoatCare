@@ -5815,41 +5815,25 @@ let shopProviders = [];
 async function loadShopManagement() {
     console.log('🛒 Lade Shop-Verwaltung...');
 
-    // Provider-Liste — Pagination in Batches, weil PostgREST serverseitig
-    // standardmäßig auf 1000 Zeilen limitiert ist (.limit(10000) wird ignoriert).
-    // Sonst wird Skipily Provider o.ä. alphabetisch abgeschnitten.
+    // Bei 4000+ Providern macht Client-seitiges Laden keinen Sinn — wir
+    // zeigen die ersten 100 als Vorschau und filtern serverseitig sobald
+    // der User etwas tippt (siehe filterShopProviders unten).
     try {
-        const PAGE = 1000;
-        let from = 0;
-        let all = [];
-        while (true) {
-            const { data, error } = await supabaseClient
-                .from('service_providers')
-                .select('*')
-                .order('name')
-                .range(from, from + PAGE - 1);
-            if (error) throw error;
-            if (!data || data.length === 0) break;
-            all = all.concat(data);
-            if (data.length < PAGE) break;
-            from += PAGE;
-            // Sicherheits-Stopp gegen Endlos-Loop
-            if (from > 50000) break;
-        }
-        shopProviders = all;
+        const { data: providers, error, count } = await supabaseClient
+            .from('service_providers')
+            .select('*', { count: 'exact' })
+            .order('name')
+            .range(0, 99);
+        if (error) throw error;
+        shopProviders = providers || [];
 
-        // Sichtbare Diagnose direkt im UI — damit der User nicht in die
-        // Browser-Console gucken muss.
-        const skipily = shopProviders.find(p => (p.name || '').toLowerCase().includes('skipily'));
+        const total = count ?? shopProviders.length;
         const diag = document.getElementById('shop-diag');
         if (diag) {
             diag.innerHTML =
-                'Geladen: <strong>' + shopProviders.length + '</strong> Provider · ' +
-                'Skipily-Treffer: <strong style="color:' + (skipily ? '#16a34a' : '#dc2626') + ';">' +
-                (skipily ? ('JA — id=' + skipily.id + ', name="' + escapeHtml(skipily.name) + '"') : 'NEIN — Provider ist nicht in der Liste der service_providers, die diesem Admin per RLS sichtbar sind.') +
-                '</strong>';
+                'Insgesamt <strong>' + total + '</strong> Provider · zeigt erste <strong>' + shopProviders.length + '</strong> · ' +
+                '<span style="color:#475569;">Tippe oben einen Suchbegriff ein, um den ganzen Bestand zu durchsuchen.</span>';
         }
-        console.log(`🛒 Shop-Verwaltung: ${shopProviders.length} Provider geladen`, skipily ? { skipilyMatch: skipily } : { skipilyMatch: 'NONE' });
 
         const activeShops = shopProviders.filter(p => p.is_shop_active).length;
         const activeEl = document.getElementById('shop-active-count');
@@ -5979,15 +5963,57 @@ window.updateCommissionRate = async function(providerId, rate) {
     }
 };
 
+// Server-seitige Suche mit Debounce — nötig weil der Bestand >1000 Zeilen
+// ist und PostgREST sonst alphabetisch späte Treffer abschneidet.
+let _shopSearchTimer = null;
 window.filterShopProviders = function() {
-    const search = (document.getElementById('shop-search').value || '').toLowerCase();
-    const filtered = shopProviders.filter(p =>
-        (p.name     || '').toLowerCase().includes(search) ||
-        (p.city     || '').toLowerCase().includes(search) ||
-        (p.category || '').toLowerCase().includes(search)
-    );
-    renderShopProviders(filtered);
+    clearTimeout(_shopSearchTimer);
+    _shopSearchTimer = setTimeout(_runShopSearch, 250);
 };
+
+async function _runShopSearch() {
+    const raw = (document.getElementById('shop-search')?.value || '').trim();
+    const tbody = document.getElementById('shop-providers-body');
+    const diag  = document.getElementById('shop-diag');
+
+    try {
+        let query = supabaseClient
+            .from('service_providers')
+            .select('*', { count: 'exact' })
+            .order('name');
+
+        if (raw) {
+            // PostgREST: Sonderzeichen escapen, sonst bricht .or() ab.
+            const safe = raw.replace(/[%,()]/g, ' ');
+            query = query.or(
+                `name.ilike.%${safe}%,city.ilike.%${safe}%,category.ilike.%${safe}%`
+            );
+        }
+
+        const { data, error, count } = await query.range(0, raw ? 499 : 99);
+        if (error) throw error;
+
+        shopProviders = data || [];
+        renderShopProviders(shopProviders);
+
+        if (diag) {
+            const total = count ?? shopProviders.length;
+            if (raw) {
+                diag.innerHTML =
+                    'Suche "<strong>' + escapeHtml(raw) + '</strong>": ' +
+                    '<strong>' + shopProviders.length + '</strong> Treffer' +
+                    (count != null && count > shopProviders.length ? ' (von ' + count + ' — bitte Suche verfeinern)' : '');
+            } else {
+                diag.innerHTML =
+                    'Insgesamt <strong>' + total + '</strong> Provider · zeigt erste <strong>' + shopProviders.length + '</strong> · ' +
+                    '<span style="color:#475569;">Tippe oben einen Suchbegriff ein, um den ganzen Bestand zu durchsuchen.</span>';
+            }
+        }
+    } catch (err) {
+        console.error('Shop-Verwaltung – Such-Query fehlgeschlagen:', err);
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#dc2626;">Suchfehler: ' + (err.message || err) + '</td></tr>';
+    }
+}
 
 // ============================================
 // Zahlungen (Payments) Page
