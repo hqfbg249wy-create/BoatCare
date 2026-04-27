@@ -5815,21 +5815,23 @@ let shopProviders = [];
 async function loadShopManagement() {
     console.log('🛒 Lade Shop-Verwaltung...');
 
-    // Provider-Liste — primärer Datensatz, eigenes try damit Stats-Fehler
-    // (z.B. RLS auf metashop_products/orders) das Rendern nicht blockieren.
+    // Provider-Liste — primärer Datensatz. Wir nutzen SELECT * (wie die
+    // funktionierende ServiceProvider-Seite), damit Spaltenprobleme oder
+    // unterschiedliche RLS-Verhalten nicht zum stillen Tod führen.
     try {
         const { data: providers, error, count } = await supabaseClient
             .from('service_providers')
-            .select('id, name, category, city, is_shop_active, commission_rate, stripe_account_id, user_id', { count: 'exact' })
+            .select('*', { count: 'exact' })
             .order('name')
             .range(0, 9999);
 
         if (error) throw error;
         shopProviders = providers || [];
-        console.log(`🛒 ${shopProviders.length} von ${count ?? '?'} Provider geladen`);
-        if (count != null && shopProviders.length < count) {
-            console.warn(`⚠️ Nur ${shopProviders.length}/${count} Provider geladen — Range erhöhen.`);
-        }
+        console.log(`🛒 Shop-Verwaltung: ${shopProviders.length} von ${count ?? '?'} Provider geladen`);
+        const skipily = shopProviders.find(p => (p.name || '').toLowerCase().includes('skipily'));
+        if (skipily) console.log('🛒 ✓ Skipily-Treffer gefunden:', skipily);
+        else console.warn('🛒 ⚠ Kein Skipily-Provider in der Liste');
+
         const activeShops = shopProviders.filter(p => p.is_shop_active).length;
         const activeEl = document.getElementById('shop-active-count');
         if (activeEl) activeEl.textContent = activeShops;
@@ -5961,8 +5963,8 @@ window.updateCommissionRate = async function(providerId, rate) {
 window.filterShopProviders = function() {
     const search = (document.getElementById('shop-search').value || '').toLowerCase();
     const filtered = shopProviders.filter(p =>
-        p.name.toLowerCase().includes(search) ||
-        (p.city || '').toLowerCase().includes(search) ||
+        (p.name     || '').toLowerCase().includes(search) ||
+        (p.city     || '').toLowerCase().includes(search) ||
         (p.category || '').toLowerCase().includes(search)
     );
     renderShopProviders(filtered);
