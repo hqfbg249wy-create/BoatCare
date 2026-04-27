@@ -11,8 +11,35 @@
 -- ============================================================
 
 -- 1. Whitelist gültiger Rollen (CHECK-Constraint)
+--    Vorher: alle unbekannten Werte auf 'user' normalisieren, sonst schlägt
+--    der Constraint bei bestehenden Daten fehl.
 DO $$
+DECLARE
+    fixed integer;
+    distinct_unknown text;
 BEGIN
+    -- Diagnose: welche unbekannten Werte gibt es?
+    SELECT string_agg(DISTINCT role, ', ')
+      INTO distinct_unknown
+      FROM public.profiles
+     WHERE role IS NOT NULL
+       AND role NOT IN ('user', 'admin', 'admin_readonly');
+
+    IF distinct_unknown IS NOT NULL THEN
+        RAISE NOTICE 'ℹ️  Unbekannte Rollen werden auf ''user'' normalisiert: %', distinct_unknown;
+    END IF;
+
+    -- Normalisieren
+    UPDATE public.profiles
+       SET role = 'user'
+     WHERE role IS NULL
+        OR role NOT IN ('user', 'admin', 'admin_readonly');
+    GET DIAGNOSTICS fixed = ROW_COUNT;
+    IF fixed > 0 THEN
+        RAISE NOTICE 'ℹ️  % Profile-Zeilen normalisiert', fixed;
+    END IF;
+
+    -- Constraint anlegen (idempotent)
     IF NOT EXISTS (
         SELECT 1 FROM pg_constraint WHERE conname = 'profiles_role_check'
     ) THEN

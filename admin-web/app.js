@@ -6697,7 +6697,14 @@ function renderUsers(users) {
                 <td style="padding:10px 12px; text-align:right;">${u.orders_count || 0}</td>
                 <td style="padding:10px 12px; color:#64748b; font-size:12px;">${fmtDate(u.last_sign_in_at)}</td>
                 <td style="padding:10px 12px; color:#64748b; font-size:12px;">${fmtDate(u.created_at)}</td>
-                <td style="padding:10px 12px; text-align:right;">
+                <td style="padding:10px 12px; text-align:right; white-space:nowrap;">
+                    ${u.email && !isReadonly
+                        ? `<button onclick="window.sendPasswordReset('${escapeHtml(u.email)}')"
+                                   style="padding:6px 10px; background:#e0f2fe; color:#075985; border:1px solid #7dd3fc; border-radius:6px; font-size:12px; cursor:pointer; margin-right:6px;"
+                                   title="Sendet eine E-Mail mit Reset-Link an den User">
+                            🔑 Reset
+                          </button>`
+                        : ''}
                     <button onclick="window.deleteUser('${u.id}', '${escapeHtml(u.email || '')}')"
                             ${deleteHidden}
                             style="padding:6px 12px; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; border-radius:6px; font-size:12px; cursor:pointer;">
@@ -6752,6 +6759,24 @@ async function deleteUser(userId, email) {
     }
 }
 window.deleteUser = deleteUser;
+
+async function sendPasswordReset(email) {
+    if (!email) return;
+    if (!confirm(`Passwort-Reset-Link an "${email}" senden?\n\nDer User erhält eine E-Mail und kann sich darüber ein neues Passwort setzen.`)) {
+        return;
+    }
+    try {
+        const redirectTo = window.location.origin + '/'; // Admin-Web Root als Rückkehrziel
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo
+        });
+        if (error) throw error;
+        alert(`✅ Reset-Link an ${email} gesendet.`);
+    } catch (err) {
+        alert('Fehler beim Senden: ' + err.message);
+    }
+}
+window.sendPasswordReset = sendPasswordReset;
 
 window.loadUsers = loadUsers;
 
