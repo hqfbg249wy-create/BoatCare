@@ -665,6 +665,7 @@ struct EquipmentDetailView: View {
     @Environment(\.dismiss) var dismiss
     @State private var showingEdit = false
     @State private var showingDeleteConfirm = false
+    @State private var showingBriefing = false
     @State private var selectedPhotoIndex = 0
 
     private var photoURLs: [URL] {
@@ -780,7 +781,7 @@ struct EquipmentDetailView: View {
                 }
             }
 
-            // Aktionen: Service suchen + Metashop suchen
+            // Aktionen: Service suchen + Metashop suchen + Briefing
             Section("equipment.actions".loc) {
                 NavigationLink {
                     ServiceSearchFromEquipment(item: item)
@@ -795,6 +796,12 @@ struct EquipmentDetailView: View {
                 } label: {
                     Label("equipment.find_parts".loc, systemImage: "cart")
                         .foregroundStyle(.purple)
+                }
+                Button {
+                    showingBriefing = true
+                } label: {
+                    Label("equipment.send_briefing".loc, systemImage: "paperplane.fill")
+                        .foregroundStyle(.green)
                 }
             }
 
@@ -823,6 +830,9 @@ struct EquipmentDetailView: View {
             AddEditEquipmentView(boatId: item.boatId, item: item) { updated in
                 onUpdate(updated)
             }
+        }
+        .sheet(isPresented: $showingBriefing) {
+            EquipmentBriefingView(equipmentId: item.id, boatId: item.boatId)
         }
         .confirmationDialog("equipment.delete_confirm".loc, isPresented: $showingDeleteConfirm, titleVisibility: .visible) {
             Button("general.delete".loc, role: .destructive) { onDelete(); dismiss() }
