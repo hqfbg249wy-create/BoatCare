@@ -5815,16 +5815,28 @@ let shopProviders = [];
 async function loadShopManagement() {
     console.log('🛒 Lade Shop-Verwaltung...');
 
-    // Provider-Liste — exakt dieselbe Query wie loadProviders (die funktioniert).
+    // Provider-Liste — Pagination in Batches, weil PostgREST serverseitig
+    // standardmäßig auf 1000 Zeilen limitiert ist (.limit(10000) wird ignoriert).
+    // Sonst wird Skipily Provider o.ä. alphabetisch abgeschnitten.
     try {
-        const { data: providers, error } = await supabaseClient
-            .from('service_providers')
-            .select('*')
-            .order('name')
-            .limit(10000);
-
-        if (error) throw error;
-        shopProviders = providers || [];
+        const PAGE = 1000;
+        let from = 0;
+        let all = [];
+        while (true) {
+            const { data, error } = await supabaseClient
+                .from('service_providers')
+                .select('*')
+                .order('name')
+                .range(from, from + PAGE - 1);
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+            all = all.concat(data);
+            if (data.length < PAGE) break;
+            from += PAGE;
+            // Sicherheits-Stopp gegen Endlos-Loop
+            if (from > 50000) break;
+        }
+        shopProviders = all;
 
         // Sichtbare Diagnose direkt im UI — damit der User nicht in die
         // Browser-Console gucken muss.
