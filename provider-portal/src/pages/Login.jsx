@@ -64,6 +64,10 @@ export default function Login() {
           </button>
         </form>
 
+        <p className="login-hint" style={{ marginTop: 12 }}>
+          <Link to="/forgot-password">Passwort vergessen?</Link>
+        </p>
+
         <p className="login-hint">
           Noch kein Konto? <Link to="/signup">Jetzt als Provider registrieren</Link>
         </p>

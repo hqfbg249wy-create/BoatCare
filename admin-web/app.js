@@ -105,6 +105,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         );
         console.log('✅ Supabase Client erstellt');
 
+        // Erkennt Recovery- / Invite-Token im URL-Hash. Supabase setzt darauf
+        // automatisch eine Session — wir müssen den User dann durch den
+        // Passwort-Setup-Flow schicken, bevor das Panel sichtbar wird.
+        const hash = window.location.hash || '';
+        const hashType = (hash.match(/[#&]type=([^&]+)/) || [])[1];
+        const isRecoveryOrInvite = hashType === 'recovery' || hashType === 'invite';
+
         // Auth Check
         const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
 
@@ -117,6 +124,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!session) {
             console.log('ℹ️ Keine aktive Session - zeige Login');
             showLogin();
+            return;
+        }
+
+        if (isRecoveryOrInvite) {
+            console.log('🔑 Recovery/Invite-Flow erkannt:', hashType);
+            // Hash entfernen, damit ein Reload nicht endlos loopt
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+            showSetPassword(session.user.email, hashType === 'recovery' ? 'Passwort zurücksetzen' : 'Passwort festlegen');
             return;
         }
 
@@ -3255,6 +3270,11 @@ function showLogin() {
                         Anmelden
                     </button>
                 </form>
+                <div style="margin-top: 16px; text-align:center;">
+                    <button type="button" id="forgot-pw-btn" style="background:none; border:none; color:#2563eb; font-size:13px; cursor:pointer; text-decoration:underline;">
+                        Passwort vergessen?
+                    </button>
+                </div>
                 <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
                     <p style="font-size: 12px; color: #64748b; margin: 0;">
                         💡 Hinweis: Sie benötigen Admin-Berechtigung
@@ -3263,6 +3283,23 @@ function showLogin() {
             </div>
         </div>
     `;
+
+    document.getElementById('forgot-pw-btn').addEventListener('click', async () => {
+        const email = document.getElementById('email').value.trim();
+        if (!email) {
+            alert('Bitte zuerst die E-Mail eintragen.');
+            return;
+        }
+        try {
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + '/'
+            });
+            if (error) throw error;
+            alert(`Reset-Link an ${email} gesendet. Bitte E-Mails prüfen (auch Spam).`);
+        } catch (err) {
+            alert('Fehler: ' + err.message);
+        }
+    });
 
     document.getElementById('login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -3316,6 +3353,73 @@ function showLogin() {
             // Button wieder aktivieren
             btn.disabled = false;
             btn.textContent = 'Anmelden';
+        }
+    });
+}
+
+// Passwort-Setup nach Recovery-/Invite-Link
+function showSetPassword(email, title) {
+    document.body.innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:center; height:100vh; background:#f8fafc;">
+            <div style="background:white; padding:40px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); max-width:420px; width:100%;">
+                <h2 style="margin-bottom:8px; display:flex; align-items:center; gap:10px; justify-content:center;"><img src="/icon-192.png" alt="" style="width:40px; height:40px; border-radius:8px;"> ${title}</h2>
+                <p style="text-align:center; color:#64748b; font-size:14px; margin:0 0 20px;">Für <strong>${email || 'dieses Konto'}</strong></p>
+                <div id="set-pw-error" style="display:none; padding:12px; background:#fee2e2; color:#991b1b; border-radius:8px; margin-bottom:16px; font-size:14px;"></div>
+                <form id="set-pw-form">
+                    <div style="margin-bottom:16px;">
+                        <label style="display:block; margin-bottom:8px; font-weight:500;">Neues Passwort (min. 8 Zeichen)</label>
+                        <input type="password" id="new-pw" required minlength="8" autocomplete="new-password"
+                               style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;"
+                               placeholder="••••••••" />
+                    </div>
+                    <div style="margin-bottom:24px;">
+                        <label style="display:block; margin-bottom:8px; font-weight:500;">Passwort wiederholen</label>
+                        <input type="password" id="new-pw2" required minlength="8" autocomplete="new-password"
+                               style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;"
+                               placeholder="••••••••" />
+                    </div>
+                    <button type="submit" id="set-pw-btn"
+                            style="width:100%; padding:14px; background:#16a34a; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer; font-size:15px;">
+                        Passwort speichern und einloggen
+                    </button>
+                </form>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('set-pw-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const pw1 = document.getElementById('new-pw').value;
+        const pw2 = document.getElementById('new-pw2').value;
+        const errBox = document.getElementById('set-pw-error');
+        const btn = document.getElementById('set-pw-btn');
+
+        errBox.style.display = 'none';
+
+        if (pw1.length < 8) {
+            errBox.textContent = 'Passwort muss mindestens 8 Zeichen haben.';
+            errBox.style.display = 'block';
+            return;
+        }
+        if (pw1 !== pw2) {
+            errBox.textContent = 'Die Passwörter stimmen nicht überein.';
+            errBox.style.display = 'block';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Wird gespeichert…';
+
+        try {
+            const { error } = await supabaseClient.auth.updateUser({ password: pw1 });
+            if (error) throw error;
+            // Erfolg → Dashboard laden
+            window.location.href = window.location.origin + '/';
+        } catch (err) {
+            errBox.textContent = 'Fehler: ' + err.message;
+            errBox.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Passwort speichern und einloggen';
         }
     });
 }
