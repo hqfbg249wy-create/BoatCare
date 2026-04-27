@@ -1499,76 +1499,36 @@ async function updateProvider(providerId) {
     const form = document.getElementById('edit-provider-form');
     const formData = new FormData(form);
 
-    // Sammle alle Daten
-    const providerData = {
-        provider_id: providerId,
-        provider_name: formData.get('name'),
-        provider_category: formData.get('category'),
-        provider_category2: formData.get('category2') || null,
-        provider_category3: formData.get('category3') || null,
-        provider_description: formData.get('description') || null,
-        provider_street: formData.get('street') || null,
-        provider_postal_code: formData.get('postal_code') || null,
-        provider_city: formData.get('city') || null,
-        provider_country: formData.get('country') || null,
-        provider_latitude: formData.get('latitude') ? parseFloat(formData.get('latitude')) : null,
-        provider_longitude: formData.get('longitude') ? parseFloat(formData.get('longitude')) : null,
-        provider_phone: formData.get('phone') || null,
-        provider_email: formData.get('email') || null,
-        provider_website: formData.get('website') || null,
-        provider_services: formData.get('services') ? formData.get('services').split(',').map(s => s.trim()).filter(s => s) : null,
-        provider_brands: formData.get('brands') ? formData.get('brands').split(',').map(s => s.trim()).filter(s => s) : null
+    // Direktes UPDATE auf service_providers — die alte RPC-Fallback-Logik
+    // mit "Schema-Cache"-Workaround wird nicht mehr benötigt.
+    const updates = {
+        name:        formData.get('name'),
+        category:    formData.get('category'),
+        category2:   formData.get('category2') || null,
+        category3:   formData.get('category3') || null,
+        description: formData.get('description') || null,
+        street:      formData.get('street') || null,
+        postal_code: formData.get('postal_code') || null,
+        city:        formData.get('city') || null,
+        country:     formData.get('country') || null,
+        latitude:    formData.get('latitude')  ? parseFloat(formData.get('latitude'))  : null,
+        longitude:   formData.get('longitude') ? parseFloat(formData.get('longitude')) : null,
+        phone:       formData.get('phone')   || null,
+        email:       formData.get('email')   || null,
+        website:     formData.get('website') || null,
+        services:    formData.get('services') ? formData.get('services').split(',').map(s => s.trim()).filter(s => s) : null,
+        brands:      formData.get('brands')   ? formData.get('brands').split(',').map(s => s.trim()).filter(s => s)   : null
     };
 
-    console.log('Updating provider via RPC:', providerData);
+    console.log('Updating provider', providerId, updates);
 
     try {
-        // Verwende RPC-Funktion um Schema-Cache zu umgehen
-        const { data, error } = await supabaseClient.rpc('update_service_provider', providerData);
+        const { error } = await supabaseClient
+            .from('service_providers')
+            .update(updates)
+            .eq('id', providerId);
 
-        if (error) {
-            console.error('RPC Error:', error);
-
-            // Fallback: Minimale Updates ohne problematische Felder
-            console.log('Fallback: Update nur Basis-Felder (city/country werden übersprungen wegen Schema-Cache)...');
-            const minimalUpdates = {
-                name: providerData.provider_name,
-                category: providerData.provider_category,
-                category2: providerData.provider_category2 || null,
-                category3: providerData.provider_category3 || null
-            };
-
-            // Nur nicht-null Felder hinzufügen
-            if (providerData.provider_description) minimalUpdates.description = providerData.provider_description;
-            if (providerData.provider_street) minimalUpdates.street = providerData.provider_street;
-            if (providerData.provider_postal_code) minimalUpdates.postal_code = providerData.provider_postal_code;
-            if (providerData.provider_city) minimalUpdates.city = providerData.provider_city;
-            if (providerData.provider_country) minimalUpdates.country = providerData.provider_country;
-            if (providerData.provider_latitude) minimalUpdates.latitude = providerData.provider_latitude;
-            if (providerData.provider_longitude) minimalUpdates.longitude = providerData.provider_longitude;
-            if (providerData.provider_phone) minimalUpdates.phone = providerData.provider_phone;
-            if (providerData.provider_email) minimalUpdates.email = providerData.provider_email;
-            if (providerData.provider_website) minimalUpdates.website = providerData.provider_website;
-            if (providerData.provider_services && providerData.provider_services.length > 0) {
-                minimalUpdates.services = providerData.provider_services;
-            }
-            if (providerData.provider_brands && providerData.provider_brands.length > 0) {
-                minimalUpdates.brands = providerData.provider_brands;
-            }
-
-            const { error: updateError } = await supabaseClient
-                .from('service_providers')
-                .update(minimalUpdates)
-                .eq('id', providerId);
-
-            if (updateError) {
-                console.error('Fallback Update Error:', updateError);
-                alert('❌ Update fehlgeschlagen!\n\nBitte erstelle die RPC-Funktion in Supabase:\n\n1. Öffne: https://supabase.com/dashboard/project/vcjwlyqkfkszumdrfvtm/sql/new\n2. Kopiere den Inhalt aus create-update-function.sql\n3. Klicke "Run"\n\nDanach kannst du alle Felder (inkl. Stadt/Land) bearbeiten.');
-                throw updateError;
-            }
-
-            alert('⚠️ Provider teilweise aktualisiert!\n\nStadt und Land konnten nicht gespeichert werden (Supabase Schema-Cache Problem).\n\nBitte erstelle die RPC-Funktion für vollständige Updates.');
-        }
+        if (error) throw error;
 
         alert('✅ Provider erfolgreich aktualisiert!');
         document.getElementById('provider-modal').classList.remove('active');
@@ -5855,14 +5815,20 @@ let shopProviders = [];
 async function loadShopManagement() {
     console.log('🛒 Lade Shop-Verwaltung...');
     try {
-        // Provider mit Shop-relevanten Daten laden
-        const { data: providers, error } = await supabaseClient
+        // Default-Limit von PostgREST ist 1000 — explizit höher setzen, damit
+        // bei wachsendem Provider-Bestand keine Treffer "verschwinden".
+        const { data: providers, error, count } = await supabaseClient
             .from('service_providers')
-            .select('id, name, category, city, is_shop_active, commission_rate, stripe_account_id, user_id')
-            .order('name');
+            .select('id, name, category, city, is_shop_active, commission_rate, stripe_account_id, user_id', { count: 'exact' })
+            .order('name')
+            .range(0, 9999);
 
         if (error) throw error;
         shopProviders = providers || [];
+        console.log(`🛒 ${shopProviders.length} von ${count ?? '?'} Provider geladen`);
+        if (count != null && shopProviders.length < count) {
+            console.warn(`⚠️ Nur ${shopProviders.length}/${count} Provider geladen — Range erhöhen.`);
+        }
 
         // Produkt-Count laden
         const { count: productsCount } = await supabaseClient
