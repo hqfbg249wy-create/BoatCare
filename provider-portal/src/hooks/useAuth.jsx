@@ -34,16 +34,31 @@ export function AuthProvider({ children }) {
 
   async function loadProvider(userId) {
     try {
-      const { data, error } = await supabase
+      // 1) Direkter Treffer über user_id (Standard-Fall)
+      const { data: linked } = await supabase
         .from('service_providers')
         .select('*')
         .eq('user_id', userId)
-        .single()
+        .maybeSingle()
 
-      if (error) throw error
-      setProvider(data)
+      if (linked) { setProvider(linked); return }
+
+      // 2) Fallback via RPC: verknüpft einen verwaisten Provider (im Admin-Panel
+      //    ohne user_id angelegt) anhand der Login-E-Mail. SECURITY DEFINER
+      //    umgeht RLS sauber — siehe migration 045_claim_provider_by_email.sql
+      const { data: claimed, error: claimErr } = await supabase
+        .rpc('claim_provider_by_email')
+      if (!claimErr && claimed) {
+        console.log('✅ Provider via E-Mail-Match verknüpft:', claimed.id || claimed)
+        setProvider(claimed)
+        return
+      }
+      if (claimErr) console.warn('claim_provider_by_email Fehler:', claimErr.message)
+
+      console.warn('Kein Provider-Profil für user', userId)
+      setProvider(null)
     } catch (err) {
-      console.error('Kein Provider-Profil gefunden:', err.message)
+      console.error('loadProvider Fehler:', err.message)
       setProvider(null)
     } finally {
       setLoading(false)
