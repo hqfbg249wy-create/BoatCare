@@ -108,8 +108,23 @@ Deno.serve(async (req) => {
       authUserId = created.user.id;
     }
 
-    // 5) Verknüpfung in service_providers — user_id ist Pflicht, mfa_required
-    //    nur best-effort (Spalte existiert erst ab Migration 046).
+    // 5a) profiles-Zeile sicherstellen — service_providers.user_id hat FK
+    //     auf profiles.id. Bei alten Auth-Usern (vor Migration 041) hat der
+    //     Trigger handle_new_user nie gefeuert.
+    const { error: profileErr } = await admin
+      .from("profiles")
+      .upsert({
+        id:        authUserId,
+        email,
+        full_name: provider.name,
+        role:      "user",
+      }, { onConflict: "id" });
+    if (profileErr) {
+      return json({ error: "profiles-Anlage fehlgeschlagen: " + profileErr.message }, 500);
+    }
+
+    // 5b) Verknüpfung in service_providers — user_id ist Pflicht, mfa_required
+    //     nur best-effort (Spalte existiert erst ab Migration 046).
     const baseUpdates: Record<string, unknown> = {
       user_id: authUserId,
       updated_at: new Date().toISOString(),
