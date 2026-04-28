@@ -108,25 +108,41 @@ Deno.serve(async (req) => {
       authUserId = created.user.id;
     }
 
-    // 5) Verknüpfung in service_providers
-    const updates: Record<string, unknown> = {
+    // 5) Verknüpfung in service_providers — user_id ist Pflicht, mfa_required
+    //    nur best-effort (Spalte existiert erst ab Migration 046).
+    const baseUpdates: Record<string, unknown> = {
       user_id: authUserId,
-      mfa_required: !!mfa_required,
       updated_at: new Date().toISOString(),
     };
-    if (!provider.email) updates.email = email; // E-Mail nachtragen falls leer
+    if (!provider.email) baseUpdates.email = email;
+
     const { error: linkErr } = await admin
       .from("service_providers")
-      .update(updates)
+      .update(baseUpdates)
       .eq("id", provider_id);
     if (linkErr) return json({ error: "Verknüpfung fehlgeschlagen: " + linkErr.message }, 500);
+
+    // mfa_required separat — wenn die Migration 046 noch nicht lief, ist
+    // der User trotzdem schon verknüpft und das Portal funktioniert.
+    let mfaWarning: string | undefined;
+    if (mfa_required) {
+      const { error: mfaErr } = await admin
+        .from("service_providers")
+        .update({ mfa_required: true })
+        .eq("id", provider_id);
+      if (mfaErr) {
+        mfaWarning = "2FA-Flag konnte nicht gesetzt werden (Migration 046 ausführen): " + mfaErr.message;
+        console.warn(mfaWarning);
+      }
+    }
 
     return json({
       ok: true,
       user_id:      authUserId,
       provider_id,
       email,
-      mfa_required: !!mfa_required,
+      mfa_required: !!mfa_required && !mfaWarning,
+      warning:      mfaWarning,
       message:      "Login angelegt und mit Provider verknüpft.",
     });
   } catch (err) {
