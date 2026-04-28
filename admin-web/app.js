@@ -7017,13 +7017,252 @@ window.sendPasswordReset = sendPasswordReset;
 
 window.loadUsers = loadUsers;
 
+// ============================================================
+// Marktanalyse — Snapshots & Trend-Charts
+// ============================================================
+
+const _marketCharts = {}; // canvas-id → Chart.js instance (für destroy/replace)
+
+function _destroyChart(id) {
+    if (_marketCharts[id]) {
+        _marketCharts[id].destroy();
+        delete _marketCharts[id];
+    }
+}
+
+function _palette(n) {
+    const base = ['#2563eb','#16a34a','#f97316','#dc2626','#7c3aed','#0891b2','#ca8a04','#db2777','#475569','#0f766e','#a16207','#6d28d9'];
+    const out = [];
+    for (let i = 0; i < n; i++) out.push(base[i % base.length]);
+    return out;
+}
+
+async function _fetchTrend(metric, days, dim) {
+    const { data, error } = await supabaseClient.rpc('admin_get_market_trend', {
+        p_metric: metric,
+        p_days:   days,
+        p_dim:    dim ?? null,
+    });
+    if (error) throw error;
+    return data || [];
+}
+
+/** Total-Linienchart (eine Linie für die Summe je Tag, falls dimension_key='all'). */
+function _renderTotalLine(canvasId, rows, label, color) {
+    _destroyChart(canvasId);
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    const sorted = rows.slice().sort((a,b) => a.snapshot_date.localeCompare(b.snapshot_date));
+    _marketCharts[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: sorted.map(r => r.snapshot_date),
+            datasets: [{
+                label,
+                data: sorted.map(r => Number(r.metric_value || 0)),
+                borderColor: color,
+                backgroundColor: color + '22',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 2,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+}
+
+/** Stacked-Linienchart: für jede dimension_key eine eigene Linie. */
+function _renderMultiLine(canvasId, rows, dimensionLabel) {
+    _destroyChart(canvasId);
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+
+    const dates = Array.from(new Set(rows.map(r => r.snapshot_date))).sort();
+    const dims  = Array.from(new Set(rows.map(r => r.dimension_key))).slice(0, 8);
+    const colors = _palette(dims.length);
+
+    const datasets = dims.map((dim, i) => {
+        const points = dates.map(d => {
+            const hit = rows.find(r => r.snapshot_date === d && r.dimension_key === dim);
+            return hit ? Number(hit.metric_count || 0) : null;
+        });
+        return {
+            label: dim || '–',
+            data: points,
+            borderColor: colors[i],
+            backgroundColor: colors[i] + '22',
+            tension: 0.3,
+            pointRadius: 2,
+            spanGaps: true,
+        };
+    });
+
+    _marketCharts[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: { labels: dates, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: true,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+}
+
+/** Bar-Chart aus dem letzten Snapshot je dimension_key. */
+function _renderLatestBar(canvasId, rows, color) {
+    _destroyChart(canvasId);
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    const latestDate = rows.reduce((max, r) => (r.snapshot_date > max ? r.snapshot_date : max), '');
+    const latest = rows.filter(r => r.snapshot_date === latestDate)
+        .sort((a,b) => Number(b.metric_count) - Number(a.metric_count))
+        .slice(0, 10);
+    _marketCharts[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: latest.map(r => r.dimension_key || '–'),
+            datasets: [{
+                label: 'Anzahl',
+                data: latest.map(r => Number(r.metric_count || 0)),
+                backgroundColor: color,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true, maintainAspectRatio: true,
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+}
+
+async function loadMarketAnalysis() {
+    const days = parseInt(document.getElementById('market-range')?.value || '90', 10);
+    const lastUpdate = document.getElementById('market-last-update');
+
+    try {
+        // Parallel laden
+        const [users, boats, providersTotal, providersCountry, shops, equipment, overdue, mfgTop] = await Promise.all([
+            _fetchTrend('users_total',                  days, 'all'),
+            _fetchTrend('boats_by_type',                days),
+            _fetchTrend('providers_total',              days, 'all'),
+            _fetchTrend('providers_by_country',         days),
+            _fetchTrend('shops_active_total',           days, 'all'),
+            _fetchTrend('equipment_by_category',        days),
+            _fetchTrend('equipment_overdue_by_category', days),
+            _fetchTrend('equipment_by_manufacturer',    days),
+        ]);
+
+        // Übersichts-Kacheln (jeweils letzter Wert)
+        const grid = document.getElementById('market-stats-grid');
+        const last = (rows) => {
+            if (!rows.length) return { count: '–', value: '–' };
+            const lastDate = rows.reduce((m,r) => r.snapshot_date > m ? r.snapshot_date : m, '');
+            const sumLatest = rows.filter(r => r.snapshot_date === lastDate)
+                                  .reduce((s,r) => s + Number(r.metric_count || 0), 0);
+            return { count: sumLatest, value: sumLatest };
+        };
+        if (grid) {
+            grid.innerHTML = `
+                <div class="stat-card"><div class="stat-icon">👥</div>
+                    <div class="stat-value">${last(users).count}</div><div class="stat-label">User gesamt</div></div>
+                <div class="stat-card"><div class="stat-icon">⛵</div>
+                    <div class="stat-value">${last(boats).count}</div><div class="stat-label">Boote</div></div>
+                <div class="stat-card"><div class="stat-icon">🏢</div>
+                    <div class="stat-value">${last(providersTotal).count}</div><div class="stat-label">Provider</div></div>
+                <div class="stat-card"><div class="stat-icon">🛒</div>
+                    <div class="stat-value">${last(shops).count}</div><div class="stat-label">Aktive Shops</div></div>
+                <div class="stat-card"><div class="stat-icon">⚙️</div>
+                    <div class="stat-value">${last(equipment).count}</div><div class="stat-label">Equipment-Items</div></div>
+                <div class="stat-card"><div class="stat-icon">⚠️</div>
+                    <div class="stat-value" style="color:#dc2626;">${last(overdue).count}</div><div class="stat-label">Wartungen überfällig</div></div>
+            `;
+        }
+
+        // Charts
+        _renderTotalLine('chart-users',             users,     'User',           '#2563eb');
+        _renderMultiLine('chart-boats',             boats,     'Bootstyp');
+        _renderMultiLine('chart-providers-country', providersCountry, 'Land');
+        _renderTotalLine('chart-shops',             shops,     'Aktive Shops',   '#16a34a');
+        _renderMultiLine('chart-equipment',         equipment, 'Kategorie');
+        _renderLatestBar('chart-overdue',           overdue,   '#dc2626');
+
+        // Top-Hersteller je Kategorie (Tabelle, letzter Snapshot)
+        const tbl = document.getElementById('market-top-manufacturers');
+        if (tbl) {
+            const lastDate = mfgTop.reduce((m,r) => r.snapshot_date > m ? r.snapshot_date : m, '');
+            const latest = mfgTop.filter(r => r.snapshot_date === lastDate);
+            const byCat  = {};
+            latest.forEach(r => {
+                if (!byCat[r.dimension_key]) byCat[r.dimension_key] = [];
+                byCat[r.dimension_key].push(r);
+            });
+            tbl.innerHTML = `
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead><tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
+                        <th style="padding:10px; text-align:left;">Kategorie</th>
+                        <th style="padding:10px; text-align:left;">Top 3 Hersteller (Anzahl)</th>
+                    </tr></thead>
+                    <tbody>
+                        ${Object.entries(byCat).sort((a,b) => a[0].localeCompare(b[0])).map(([cat, list]) => {
+                            const top = list.sort((a,b) => Number(b.metric_count) - Number(a.metric_count)).slice(0, 3);
+                            return `<tr style="border-bottom:1px solid #f1f5f9;">
+                                <td style="padding:10px;"><strong>${escapeHtml(cat)}</strong></td>
+                                <td style="padding:10px;">${top.map(t =>
+                                    `<span style="display:inline-block;margin-right:12px;">${escapeHtml(t.dimension_secondary || '–')} <span style="color:#94a3b8;">(${t.metric_count})</span></span>`
+                                ).join('')}</td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        if (lastUpdate) {
+            const allRows = [...users, ...boats, ...equipment, ...overdue];
+            const latest = allRows.reduce((m,r) => r.snapshot_date > m ? r.snapshot_date : m, '');
+            lastUpdate.textContent = latest ? `Letzter Snapshot: ${latest}` : 'Noch kein Snapshot vorhanden';
+        }
+    } catch (err) {
+        console.error('Marktanalyse Fehler:', err);
+        const grid = document.getElementById('market-stats-grid');
+        if (grid) grid.innerHTML = `<div style="grid-column:1/-1;padding:16px;color:#dc2626;background:#fee2e2;border-radius:8px;">Fehler: ${err.message}</div>`;
+    }
+}
+window.loadMarketAnalysis = loadMarketAnalysis;
+
+async function runMarketSnapshot() {
+    const btn = document.getElementById('snapshot-now-btn');
+    if (!btn) return;
+    btn.disabled = true;
+    const orig = btn.textContent;
+    btn.textContent = '⏳ Snapshot läuft …';
+    try {
+        const { data, error } = await supabaseClient.rpc('admin_run_market_snapshot');
+        if (error) throw error;
+        alert(`✅ Snapshot ${data?.snapshot_date || 'OK'} mit ${data?.rows ?? '?'} Zeilen angelegt.`);
+        await loadMarketAnalysis();
+    } catch (err) {
+        alert('Fehler beim Snapshot: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+    }
+}
+window.runMarketSnapshot = runMarketSnapshot;
+
 // Automatisch laden wenn Admin-Seite oder User-Seite geöffnet wird
 (function hookAdminPageNav() {
     const origNav = window.navigateToPage;
     if (!origNav) return;
     window.navigateToPage = function(page) {
         origNav.apply(this, arguments);
-        if (page === 'invite-admin') loadAdminList();
-        if (page === 'users') loadUsers();
+        if (page === 'invite-admin')   loadAdminList();
+        if (page === 'users')          loadUsers();
+        if (page === 'market-analysis') loadMarketAnalysis();
     };
 })();

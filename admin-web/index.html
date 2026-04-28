@@ -15,6 +15,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <!-- Chart.js für Marktanalyse-Trends -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -98,6 +100,10 @@
                 <button class="nav-item" data-page="api-monitoring" onclick="window.navigateToPage('api-monitoring')">
                     <span class="icon">🔌</span>
                     API & Webhooks
+                </button>
+                <button class="nav-item" data-page="market-analysis" onclick="window.navigateToPage('market-analysis')">
+                    <span class="icon">📈</span>
+                    Marktanalyse
                 </button>
             </nav>
             <div class="sidebar-footer">
@@ -1072,6 +1078,63 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            <!-- Marktanalyse -->
+            <div id="market-analysis-page" class="page">
+                <h1>📈 Marktanalyse</h1>
+                <p class="subtitle">Trends und Auffälligkeiten aus den täglichen Snapshots der Plattform.</p>
+
+                <div style="display:flex; gap:8px; align-items:center; margin:16px 0; flex-wrap:wrap;">
+                    <label style="font-size:13px; color:#475569;">Zeitraum:</label>
+                    <select id="market-range" onchange="window.loadMarketAnalysis()" style="padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;">
+                        <option value="30">Letzte 30 Tage</option>
+                        <option value="90" selected>Letzte 90 Tage</option>
+                        <option value="180">Letzte 6 Monate</option>
+                        <option value="365">Letzte 12 Monate</option>
+                    </select>
+                    <button class="btn-secondary" onclick="window.loadMarketAnalysis()" style="padding:8px 12px;">🔄 Neu laden</button>
+                    <button class="btn-primary" onclick="window.runMarketSnapshot()" id="snapshot-now-btn" style="padding:8px 14px;">📸 Snapshot jetzt</button>
+                    <span id="market-last-update" style="font-size:12px; color:#94a3b8; margin-left:auto;"></span>
+                </div>
+
+                <!-- Übersichts-Kacheln -->
+                <div class="stats-grid" id="market-stats-grid"></div>
+
+                <!-- Trend-Charts in Cards -->
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(420px, 1fr)); gap:16px; margin-top:24px;">
+                    <div class="card">
+                        <h3 style="margin-top:0;">👥 User-Wachstum</h3>
+                        <canvas id="chart-users" height="180"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3 style="margin-top:0;">⛵ Boote nach Typ</h3>
+                        <canvas id="chart-boats" height="180"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3 style="margin-top:0;">🏢 Provider nach Land</h3>
+                        <canvas id="chart-providers-country" height="180"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3 style="margin-top:0;">🛒 Aktive Shops</h3>
+                        <canvas id="chart-shops" height="180"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3 style="margin-top:0;">⚙️ Equipment nach Kategorie</h3>
+                        <canvas id="chart-equipment" height="180"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3 style="margin-top:0;">⚠️ Wartung überfällig (Top-Kategorien)</h3>
+                        <canvas id="chart-overdue" height="180"></canvas>
+                        <p style="font-size:12px; color:#94a3b8; margin-top:8px;">Equipment-Kategorien mit offenen Wartungen — potenzielle Servicenachfrage.</p>
+                    </div>
+                </div>
+
+                <!-- Top-Hersteller-Tabelle -->
+                <div class="card" style="margin-top:16px;">
+                    <h3 style="margin-top:0;">🏷️ Top-Hersteller je Kategorie (aktueller Stand)</h3>
+                    <div id="market-top-manufacturers" style="font-size:13px; color:#64748b;">Wird geladen…</div>
                 </div>
             </div>
         </main>
