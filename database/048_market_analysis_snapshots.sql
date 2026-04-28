@@ -95,12 +95,15 @@ BEGIN
     ON CONFLICT (snapshot_date, metric_type, dimension_key, dimension_secondary) DO UPDATE
         SET metric_count = EXCLUDED.metric_count, metric_value = EXCLUDED.metric_value;
 
-    -- Wartungs-Auffälligkeit: Equipment mit überfälligem next_maintenance_date
+    -- Wartungs-Auffälligkeit: Equipment mit überfälligem next_maintenance_date.
+    -- (CURRENT_DATE - next_maintenance_date::date) ist bereits ein Integer (Tage).
     INSERT INTO market_snapshots (snapshot_date, metric_type, dimension_key, metric_count, metric_value, metadata)
     SELECT d, 'equipment_overdue_by_category', COALESCE(category, 'unknown'),
            COUNT(*)::int, COUNT(*)::numeric,
-           jsonb_build_object('avg_overdue_days',
-               ROUND(AVG(EXTRACT(EPOCH FROM (CURRENT_DATE - next_maintenance_date::date))/86400), 1))
+           jsonb_build_object(
+               'avg_overdue_days',
+               ROUND(AVG((CURRENT_DATE - next_maintenance_date::date))::numeric, 1)
+           )
       FROM equipment
      WHERE next_maintenance_date IS NOT NULL
        AND next_maintenance_date::date < CURRENT_DATE
