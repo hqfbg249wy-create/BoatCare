@@ -7,12 +7,14 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [provider, setProvider] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [mfaEnrolled, setMfaEnrolled] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user)
         loadProvider(session.user.id)
+        refreshMfaStatus()
       } else {
         setLoading(false)
       }
@@ -22,15 +24,27 @@ export function AuthProvider({ children }) {
       if (session?.user) {
         setUser(session.user)
         loadProvider(session.user.id)
+        refreshMfaStatus()
       } else {
         setUser(null)
         setProvider(null)
+        setMfaEnrolled(false)
         setLoading(false)
       }
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  async function refreshMfaStatus() {
+    try {
+      const { data } = await supabase.auth.mfa.listFactors()
+      const verified = (data?.totp ?? []).some(f => f.status === 'verified')
+      setMfaEnrolled(verified)
+    } catch {
+      setMfaEnrolled(false)
+    }
+  }
 
   async function loadProvider(userId) {
     try {
@@ -97,7 +111,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, provider, loading, signIn, signUp, signOut, loadProvider }}>
+    <AuthContext.Provider value={{ user, provider, loading, mfaEnrolled, refreshMfaStatus, signIn, signUp, signOut, loadProvider }}>
       {children}
     </AuthContext.Provider>
   )

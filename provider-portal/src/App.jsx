@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import ForgotPassword from './pages/ForgotPassword'
 import SetPassword from './pages/SetPassword'
+import MfaSetup from './pages/MfaSetup'
 import Dashboard from './pages/Dashboard'
 import Products from './pages/Products'
 import Orders from './pages/Orders'
@@ -31,7 +32,7 @@ function useAuthFlowFromHash() {
 }
 
 function ProtectedRoutes() {
-  const { user, provider, loading } = useAuth()
+  const { user, provider, loading, mfaEnrolled, refreshMfaStatus } = useAuth()
   const flowType = useAuthFlowFromHash()
 
   if (loading) {
@@ -68,6 +69,12 @@ function ProtectedRoutes() {
         <button className="btn-secondary" onClick={() => window.location.reload()}>Erneut versuchen</button>
       </div>
     )
+  }
+
+  // 2FA-Pflicht: wenn aktiviert und noch kein TOTP-Faktor verifiziert,
+  // muss der Provider zuerst die Authenticator-App einrichten.
+  if (provider.mfa_required && !mfaEnrolled) {
+    return <MfaSetup onDone={() => { refreshMfaStatus().then(() => window.location.reload()) }} />
   }
 
   return (

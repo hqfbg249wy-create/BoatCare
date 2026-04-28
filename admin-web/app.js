@@ -5909,7 +5909,9 @@ function renderShopProviders(providers) {
             '<td style="padding:10px;text-align:center;">' +
                 (hasUser
                     ? '<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:10px;font-size:12px;">Registriert</span>'
-                    : '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;font-size:12px;">Kein Login</span>') +
+                    : '<button onclick="window.openCreateProviderLogin(\'' + p.id + '\')" ' +
+                      'style="background:#2563eb;color:white;border:none;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;">' +
+                      '+ Login anlegen</button>') +
             '</td>' +
         '</tr>';
     }).join('');
@@ -5942,6 +5944,116 @@ window.toggleShopActive = async function(providerId, isActive) {
     } catch (err) {
         alert('Fehler: ' + err.message);
     }
+};
+
+window.openCreateProviderLogin = function(providerId) {
+    const provider = shopProviders.find(p => p.id === providerId);
+    if (!provider) { alert('Provider nicht gefunden.'); return; }
+
+    const html = `
+        <div id="create-login-modal" class="modal active" style="position:fixed;inset:0;background:rgba(15,23,42,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;">
+            <div style="background:white;padding:28px;border-radius:14px;max-width:480px;width:92%;box-shadow:0 20px 50px rgba(0,0,0,0.25);">
+                <h2 style="margin:0 0 6px;display:flex;align-items:center;gap:8px;">🔐 Login für Provider anlegen</h2>
+                <p style="margin:0 0 16px;color:#64748b;font-size:14px;">
+                    <strong>${escapeHtml(provider.name)}</strong>${provider.city ? ' · ' + escapeHtml(provider.city) : ''}
+                </p>
+                <div id="cl-error" style="display:none;padding:10px;background:#fee2e2;color:#991b1b;border-radius:8px;margin-bottom:12px;font-size:13px;"></div>
+                <form id="create-login-form">
+                    <div style="margin-bottom:12px;">
+                        <label style="display:block;margin-bottom:4px;font-weight:500;font-size:13px;">E-Mail (Login-Name)</label>
+                        <input type="email" id="cl-email" required value="${escapeHtml(provider.email || '')}"
+                               style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;" />
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label style="display:block;margin-bottom:4px;font-weight:500;font-size:13px;">Passwort (min. 8 Zeichen)</label>
+                        <div style="display:flex;gap:8px;">
+                            <input type="text" id="cl-password" required minlength="8"
+                                   style="flex:1;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;font-family:monospace;" />
+                            <button type="button" onclick="document.getElementById('cl-password').value = window._genPassword()"
+                                    style="padding:10px 14px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;cursor:pointer;font-size:13px;">🎲 Generieren</button>
+                        </div>
+                        <p style="margin:6px 0 0;font-size:12px;color:#64748b;">Wird im Klartext angezeigt — bitte sicher an den Provider weitergeben.</p>
+                    </div>
+                    <div style="margin-bottom:18px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+                        <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;">
+                            <input type="checkbox" id="cl-mfa" style="margin-top:3px;" />
+                            <span style="font-size:13px;">
+                                <strong>2-Faktor-Authentifizierung verpflichtend</strong><br>
+                                <span style="color:#64748b;">Provider muss beim ersten Login einen Authenticator (z.B. Google Authenticator, 1Password) einrichten.</span>
+                            </span>
+                        </label>
+                    </div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <button type="button" onclick="document.getElementById('create-login-modal').remove()"
+                                style="padding:10px 16px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;cursor:pointer;">Abbrechen</button>
+                        <button type="submit" id="cl-submit"
+                                style="padding:10px 16px;background:#2563eb;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Anlegen & verknüpfen</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    document.getElementById('cl-password').value = window._genPassword();
+
+    document.getElementById('create-login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email    = document.getElementById('cl-email').value.trim();
+        const password = document.getElementById('cl-password').value;
+        const mfa      = document.getElementById('cl-mfa').checked;
+        const errBox   = document.getElementById('cl-error');
+        const btn      = document.getElementById('cl-submit');
+
+        errBox.style.display = 'none';
+        btn.disabled = true;
+        btn.textContent = 'Wird angelegt…';
+
+        try {
+            const session = (await supabaseClient.auth.getSession()).data.session;
+            if (!session) throw new Error('Keine aktive Session');
+
+            const resp = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/admin-create-provider-user`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'apikey':        SUPABASE_CONFIG.anonKey,
+                    'Content-Type':  'application/json',
+                },
+                body: JSON.stringify({
+                    provider_id:  providerId,
+                    email,
+                    password,
+                    mfa_required: mfa,
+                }),
+            });
+            const result = await resp.json();
+            if (!resp.ok) throw new Error(result.error || ('HTTP ' + resp.status));
+
+            document.getElementById('create-login-modal').remove();
+            const summary =
+                'Login angelegt:\n\n' +
+                'E-Mail:    ' + email + '\n' +
+                'Passwort:  ' + password + '\n' +
+                (mfa ? '2FA:       Pflicht beim ersten Login\n' : '') +
+                '\nBitte diese Zugangsdaten sicher an den Provider weitergeben.';
+            alert(summary);
+            loadShopManagement();
+        } catch (err) {
+            errBox.textContent = 'Fehler: ' + err.message;
+            errBox.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Anlegen & verknüpfen';
+        }
+    });
+};
+
+window._genPassword = function() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%&*';
+    let pw = '';
+    const arr = new Uint32Array(14);
+    crypto.getRandomValues(arr);
+    for (const n of arr) pw += chars[n % chars.length];
+    return pw;
 };
 
 window.updateCommissionRate = async function(providerId, rate) {
