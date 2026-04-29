@@ -8,9 +8,13 @@
 --   - existiert er nicht, wird er angelegt
 --   - existiert er schon, wird sein Schedule auf den aktuellen Wert
 --     aktualisiert (statt einen Doppelten zu erzeugen)
+--
+-- Hinweis: alle DO-Blöcke nutzen $do$ als Dollar-Quote, damit ein
+-- innerer cron.schedule(... $$ ... $$) nicht den DO-Block vorzeitig
+-- schließt.
 -- ============================================================
 
-DO $$
+DO $do$
 DECLARE
     has_cron      boolean;
     job_id        bigint;
@@ -44,26 +48,45 @@ BEGIN
             RAISE NOTICE 'ℹ️  Cron-Job "%" neu eingehängt (alte pg_cron-Version).', job_name;
         END;
     END IF;
-END $$;
+END $do$;
 
--- Optional: vorherige Snapshots aufräumen, die älter als 2 Jahre sind.
--- Das hält die Tabelle schlank, ohne Trends zu verlieren.
-DO $$
+-- Wöchentlicher Cleanup: Snapshots > 2 Jahre löschen, hält die Tabelle schlank
+DO $do$
 DECLARE
-    has_cron boolean;
+    has_cron        boolean;
+    cleanup_id      bigint;
+    cleanup_name    text := 'market-snapshot-cleanup';
+    cleanup_schedule text := '0 4 * * 0';  -- Sonntags 04:00 UTC
+    cleanup_cmd     text := 'DELETE FROM public.market_snapshots WHERE snapshot_date < CURRENT_DATE - INTERVAL ''2 years'';';
 BEGIN
     SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') INTO has_cron;
     IF NOT has_cron THEN RETURN; END IF;
 
-    -- Cleanup-Job (idempotent)
-    PERFORM cron.unschedule(jobname) FROM cron.job WHERE jobname = 'market-snapshot-cleanup';
-    PERFORM cron.schedule(
-        'market-snapshot-cleanup',
-        '0 4 * * 0',  -- Sonntags 04:00 UTC
-        $$ DELETE FROM public.market_snapshots WHERE snapshot_date < CURRENT_DATE - INTERVAL '2 years'; $$
-    );
-    RAISE NOTICE '✅ Wöchentlicher Cleanup-Job angelegt.';
-END $$;
+    SELECT jobid INTO cleanup_id FROM cron.job WHERE jobname = cleanup_name LIMIT 1;
 
--- Status zeigen
-SELECT jobname, schedule, command FROM cron.job WHERE jobname LIKE 'market-snapshot-%';
+    IF cleanup_id IS NULL THEN
+        PERFORM cron.schedule(cleanup_name, cleanup_schedule, cleanup_cmd);
+        RAISE NOTICE '✅ Cleanup-Job "%" angelegt (Sonntags 04:00 UTC).', cleanup_name;
+    ELSE
+        BEGIN
+            PERFORM cron.alter_job(job_id := cleanup_id, schedule := cleanup_schedule, command := cleanup_cmd);
+            RAISE NOTICE 'ℹ️  Cleanup-Job "%" aktualisiert.', cleanup_name;
+        EXCEPTION WHEN undefined_function THEN
+            PERFORM cron.unschedule(cleanup_id);
+            PERFORM cron.schedule(cleanup_name, cleanup_schedule, cleanup_cmd);
+            RAISE NOTICE 'ℹ️  Cleanup-Job "%" neu eingehängt.', cleanup_name;
+        END;
+    END IF;
+END $do$;
+
+-- Status zeigen (nur wenn pg_cron aktiv; sonst leer)
+DO $do$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+        RAISE NOTICE 'ℹ️  Aktive Marktanalyse-Cron-Jobs:';
+    END IF;
+END $do$;
+
+SELECT jobname, schedule, command
+  FROM cron.job
+ WHERE jobname LIKE 'market-snapshot-%';
