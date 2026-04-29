@@ -70,44 +70,64 @@ serve(async (req: Request) => {
     }
 
     let accountId = provider.stripe_account_id;
+    let account: any = null;
 
-    // Create new Stripe Connect Express account if none exists
+    // 1) Falls schon eine Account-ID hängt, prüfen ob sie in Stripe noch existiert.
+    //    "No such account" passiert bei Test-↔-Live-Wechseln oder gelöschten
+    //    Konten. Dann Account-ID verwerfen und unten neu anlegen.
+    if (accountId) {
+      try {
+        account = await stripe.accounts.retrieve(accountId);
+      } catch (err: any) {
+        const msg = String(err?.message ?? "");
+        const code = err?.code ?? err?.raw?.code;
+        const isMissing = code === "account_invalid" || /No such account/i.test(msg);
+        if (isMissing) {
+          console.warn(`Stripe-Account ${accountId} existiert nicht mehr — wird zurückgesetzt.`);
+          await supabase
+            .from("service_providers")
+            .update({ stripe_account_id: null })
+            .eq("id", provider_id);
+          accountId = null;
+          account   = null;
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    // 2) Neu anlegen falls keine (gültige) ID vorhanden
     if (!accountId) {
-      const account = await stripe.accounts.create({
+      account = await stripe.accounts.create({
         type: "express",
         country: "DE",
         email: provider.email || user.email,
         capabilities: {
           card_payments: { requested: true },
-          transfers: { requested: true },
+          transfers:     { requested: true },
           sepa_debit_payments: { requested: true },
         },
         business_type: "company",
         metadata: {
-          provider_id: provider_id,
+          provider_id:      provider_id,
           supabase_user_id: user.id,
         },
       });
-
       accountId = account.id;
 
-      // Save account ID
       await supabase
         .from("service_providers")
         .update({ stripe_account_id: accountId })
         .eq("id", provider_id);
     }
 
-    // Create account link for onboarding
+    // 3) Onboarding-Link erstellen
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: `${portalBaseUrl}/profile?stripe=refresh`,
-      return_url: `${portalBaseUrl}/profile?stripe=success`,
-      type: "account_onboarding",
+      return_url:  `${portalBaseUrl}/profile?stripe=success`,
+      type:        "account_onboarding",
     });
-
-    // Get account status
-    const account = await stripe.accounts.retrieve(accountId);
 
     return new Response(
       JSON.stringify({
