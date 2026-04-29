@@ -25,8 +25,11 @@ CREATE TABLE IF NOT EXISTS public.market_snapshots (
     metric_count        INTEGER NOT NULL DEFAULT 0,
     metadata            JSONB,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    -- ein metric/dim-Tupel pro Tag → idempotente Snapshots
-    UNIQUE (snapshot_date, metric_type, dimension_key, dimension_secondary)
+    -- ein metric/dim-Tupel pro Tag → idempotente Snapshots.
+    -- NULLS NOT DISTINCT (Postgres 15+) ist nötig, weil dimension_secondary
+    -- bei einfachen Metriken NULL ist und Postgres NULL sonst als "distinct"
+    -- behandelt → ON CONFLICT würde nie greifen → Duplikate.
+    UNIQUE NULLS NOT DISTINCT (snapshot_date, metric_type, dimension_key, dimension_secondary)
 );
 
 CREATE INDEX IF NOT EXISTS idx_market_snapshots_metric_date
