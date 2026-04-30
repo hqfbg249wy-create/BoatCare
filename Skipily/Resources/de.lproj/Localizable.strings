@@ -724,3 +724,7 @@ Ausrüstung unter Boote ergänzen.";
 "tour.step6.title" = "Briefing per Klick";
 "tour.step6.body" = "Schick deinem Dienstleister mit einem Tippen alle relevanten Daten zur Ausrüstung — kein Tippen mehr nötig.";
 "profile.show_tour" = "App-Tour erneut starten";
+
+// Ortssuche (MKLocalSearch) auf der Map
+"map.location_suggestions" = "Orte (Apple Maps)";
+"map.location_focus_count" = "%d Provider in %d km Umkreis";

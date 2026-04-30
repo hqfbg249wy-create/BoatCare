@@ -721,3 +721,7 @@
 "tour.step6.title" = "Briefing con un toque";
 "tour.step6.body" = "Envía a tu proveedor todos los datos relevantes del equipo con un solo toque — sin re-escribir.";
 "profile.show_tour" = "Repetir tour de la app";
+
+// Búsqueda de ubicación en el mapa
+"map.location_suggestions" = "Lugares (Apple Maps)";
+"map.location_focus_count" = "%d proveedores en %d km";

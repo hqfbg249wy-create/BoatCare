@@ -721,3 +721,7 @@
 "tour.step6.title" = "Briefing in one tap";
 "tour.step6.body" = "Send your service provider all relevant equipment data with a single tap — no retyping.";
 "profile.show_tour" = "Restart app tour";
+
+// Location search (MKLocalSearch) on map
+"map.location_suggestions" = "Places (Apple Maps)";
+"map.location_focus_count" = "%d providers within %d km";

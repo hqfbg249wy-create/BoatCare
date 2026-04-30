@@ -721,3 +721,7 @@
 "tour.step6.title" = "Briefing con un tocco";
 "tour.step6.body" = "Invia al tuo fornitore tutti i dati rilevanti dell'attrezzatura con un singolo tocco.";
 "profile.show_tour" = "Riavvia il tour dell'app";
+
+// Ricerca località sulla mappa
+"map.location_suggestions" = "Luoghi (Apple Maps)";
+"map.location_focus_count" = "%d fornitori entro %d km";

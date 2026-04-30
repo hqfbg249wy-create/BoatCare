@@ -721,3 +721,7 @@
 "tour.step6.title" = "Briefing in één tap";
 "tour.step6.body" = "Stuur je dienstverlener alle relevante uitrustingsgegevens met één tap — geen overtypen.";
 "profile.show_tour" = "Rondleiding opnieuw starten";
+
+// Locatie zoeken op de kaart
+"map.location_suggestions" = "Plaatsen (Apple Maps)";
+"map.location_focus_count" = "%d providers binnen %d km";

@@ -721,3 +721,7 @@
 "tour.step6.title" = "Briefing en un clic";
 "tour.step6.body" = "Envoie à ton prestataire toutes les données pertinentes de l'équipement en un seul tap.";
 "profile.show_tour" = "Relancer la visite";
+
+// Recherche de lieu sur la carte
+"map.location_suggestions" = "Lieux (Apple Maps)";
+"map.location_focus_count" = "%d prestataires dans %d km";

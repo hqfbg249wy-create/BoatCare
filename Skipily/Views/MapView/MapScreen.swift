@@ -274,7 +274,13 @@ struct MapScreen: View {
     @Environment(\.horizontalSizeClass) private var hSize
     @StateObject private var locationManager = LocationManager()
     @StateObject private var providerManager = ServiceProviderManager()
+    @StateObject private var locationSearch = LocationSearchService()
     @State private var cameraPosition: MapCameraPosition = .automatic
+    /// Gewählter Ort aus der MKLocalSearch-Vorschlagsliste (Hafen, Stadt, …).
+    /// Setzt den Mittelpunkt für die Provider-Distanzfilterung.
+    @State private var locationFocus: ResolvedLocation?
+    /// Debounce für die Typeahead-Suche
+    @State private var locationSearchDebounce: Task<Void, Never>?
     @State private var currentRegion: MKCoordinateRegion?
     @State private var currentZoomLevel: Double = 0.05 // Latitudedelta - kleinerer Wert = mehr Zoom
     @State private var searchText = ""
@@ -337,6 +343,21 @@ struct MapScreen: View {
                 ].joined(separator: " ").lowercased()
                 return words.allSatisfy { haystack.contains($0) }
             }
+        }
+
+        // Wenn ein Ort fokussiert ist (z.B. "Hafen Cuxhaven"), nur Provider
+        // im aktuellen searchRadius (km) anzeigen — sortiert nach Distanz.
+        if let focus = locationFocus {
+            let center = CLLocation(latitude: focus.coordinate.latitude,
+                                    longitude: focus.coordinate.longitude)
+            let radiusMeters = searchRadius * 1000
+            filtered = filtered.compactMap { p -> (BoatServiceProvider, CLLocationDistance)? in
+                let pLoc = CLLocation(latitude: p.latitude, longitude: p.longitude)
+                let d = center.distance(from: pLoc)
+                return d <= radiusMeters ? (p, d) : nil
+            }
+            .sorted { $0.1 < $1.1 }
+            .map { $0.0 }
         }
 
         return filtered
@@ -869,15 +890,27 @@ struct MapScreen: View {
                     performSearch()
                 })
                 .textFieldStyle(.plain)
+                .onChange(of: searchText) { _, newValue in
+                    // Debounced Typeahead-Suche an Apple Maps
+                    locationSearchDebounce?.cancel()
+                    locationSearchDebounce = Task {
+                        try? await Task.sleep(nanoseconds: 250_000_000)
+                        if !Task.isCancelled {
+                            locationSearch.updateQuery(newValue, near: currentRegion)
+                        }
+                    }
+                }
                 .onSubmit {
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                 }
-                
-                if !searchText.isEmpty {
+
+                if !searchText.isEmpty || locationFocus != nil {
                     Button {
                         searchText = ""
                         searchResults = []
                         selectedResult = nil
+                        locationFocus = nil
+                        locationSearch.clear()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.secondary)
@@ -923,9 +956,120 @@ struct MapScreen: View {
             .background(.ultraThinMaterial)
             .cornerRadius(12)
             .shadow(radius: 3)
+
+            // Fokus-Chip + Vorschläge unter dem Suchfeld
+            if let focus = locationFocus {
+                locationFocusChip(focus)
+            } else if !locationSearch.suggestions.isEmpty && !searchText.isEmpty {
+                locationSuggestionsList
+            }
         }
     }
-    
+
+    /// Chip "📍 Hafen Cuxhaven · 12 Provider in 50 km" mit Reset-X
+    private func locationFocusChip(_ focus: ResolvedLocation) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "mappin.circle.fill")
+                .foregroundStyle(.blue)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(focus.title)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Text(String(format: "map.location_focus_count".loc, visibleProviders.count, Int(searchRadius)))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            Button {
+                locationFocus = nil
+                searchText = ""
+                locationSearch.clear()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial)
+        .cornerRadius(10)
+        .shadow(radius: 2)
+    }
+
+    /// Apple-Maps-Vorschläge ("Hafen Cuxhaven", Adressen, POIs)
+    private var locationSuggestionsList: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Image(systemName: "mappin.and.ellipse")
+                    .font(.caption)
+                Text("map.location_suggestions".loc)
+                    .font(.caption.weight(.semibold))
+                Spacer()
+            }
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 12)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+
+            ForEach(locationSearch.suggestions.prefix(5), id: \.self) { suggestion in
+                Button {
+                    Task { await selectLocationSuggestion(suggestion) }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "mappin")
+                            .foregroundStyle(.blue)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(suggestion.title)
+                                .font(.subheadline)
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                            if !suggestion.subtitle.isEmpty {
+                                Text(suggestion.subtitle)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+                        Spacer()
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+                Divider()
+            }
+        }
+        .background(.ultraThinMaterial)
+        .cornerRadius(10)
+        .shadow(radius: 2)
+    }
+
+    /// Auflösen der Apple-Suggestion → Karte schwenken + Provider-Filter setzen
+    @MainActor
+    private func selectLocationSuggestion(_ suggestion: MKLocalSearchCompletion) async {
+        do {
+            let resolved = try await locationSearch.resolve(suggestion)
+            locationFocus = resolved
+            // Karte zentrieren auf den gewählten Ort, Span ~ searchRadius
+            let degSpan = max(0.05, searchRadius / 60.0) // grobe Faustformel: 1° ≈ 111 km
+            cameraPosition = .region(MKCoordinateRegion(
+                center: resolved.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: degSpan, longitudeDelta: degSpan)
+            ))
+            locationSearch.clear()
+            // Tastatur weg
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                            to: nil, from: nil, for: nil)
+        } catch {
+            print("LocationSearch resolve failed: \(error.localizedDescription)")
+        }
+    }
+
     private var searchResultsList: some View {
         ScrollView {
             VStack(spacing: 0) {
