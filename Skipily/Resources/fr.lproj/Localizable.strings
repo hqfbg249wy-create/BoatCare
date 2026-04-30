@@ -702,3 +702,22 @@
 "briefing.section_notes" = "Notes";
 "briefing.section_photos" = "Photos / fiches techniques";
 "briefing.closing" = "Merci de me proposer une date et un devis. Cordialement !";
+
+// Visite guidée
+"tour.skip" = "Passer";
+"tour.back" = "Retour";
+"tour.next" = "Suivant";
+"tour.start" = "C'est parti";
+"tour.step1.title" = "Chantiers & services à proximité";
+"tour.step1.body" = "Trouve des chantiers, voiliers et accastillage sur la carte — filtrés par catégorie avec de vrais avis.";
+"tour.step2.title" = "Tes bateaux, bien documentés";
+"tour.step2.body" = "Renseigne données, photos et dimensions une fois — accès permanent, même hors ligne.";
+"tour.step3.title" = "Maintenance maîtrisée";
+"tour.step3.body" = "Définis des intervalles d'entretien par équipement. Skipily t'indique la prochaine action.";
+"tour.step4.title" = "Rappels avant la panne";
+"tour.step4.body" = "Nous t'alertons à temps sur les entretiens en retard — pour ne rien oublier.";
+"tour.step5.title" = "Boutique & pièces";
+"tour.step5.body" = "Commande directement chez les boutiques compatibles — avec des suggestions adaptées à ton bateau.";
+"tour.step6.title" = "Briefing en un clic";
+"tour.step6.body" = "Envoie à ton prestataire toutes les données pertinentes de l'équipement en un seul tap.";
+"profile.show_tour" = "Relancer la visite";

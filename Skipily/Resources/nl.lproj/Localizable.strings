@@ -702,3 +702,22 @@
 "briefing.section_notes" = "Notities";
 "briefing.section_photos" = "Foto's / datasheets";
 "briefing.closing" = "Graag een datum en kostenraming. Hartelijk dank!";
+
+// In-app rondleiding
+"tour.skip" = "Overslaan";
+"tour.back" = "Terug";
+"tour.next" = "Volgende";
+"tour.start" = "Aan de slag";
+"tour.step1.title" = "Werven & service in de buurt";
+"tour.step1.body" = "Vind werven, zeilmakers en winkels op de kaart — gefilterd per categorie en met echte reviews.";
+"tour.step2.title" = "Je boten, netjes gedocumenteerd";
+"tour.step2.body" = "Vul gegevens, foto's en afmetingen één keer in — overal beschikbaar, ook offline.";
+"tour.step3.title" = "Onderhoud onder controle";
+"tour.step3.body" = "Stel onderhoudscycli per uitrusting in. Skipily toont wat als volgende moet.";
+"tour.step4.title" = "Herinneringen voor het misgaat";
+"tour.step4.body" = "We waarschuwen je tijdig over achterstallig onderhoud — zodat niets vergeten wordt.";
+"tour.step5.title" = "Shop & onderdelen";
+"tour.step5.body" = "Bestel direct bij passende shops — met slimme suggesties voor jouw boot.";
+"tour.step6.title" = "Briefing in één tap";
+"tour.step6.body" = "Stuur je dienstverlener alle relevante uitrustingsgegevens met één tap — geen overtypen.";
+"profile.show_tour" = "Rondleiding opnieuw starten";

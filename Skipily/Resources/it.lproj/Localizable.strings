@@ -702,3 +702,22 @@
 "briefing.section_notes" = "Note";
 "briefing.section_photos" = "Foto / schede tecniche";
 "briefing.closing" = "Si prega di confermare data e preventivo. Grazie mille!";
+
+// Tour dell'app
+"tour.skip" = "Salta";
+"tour.back" = "Indietro";
+"tour.next" = "Avanti";
+"tour.start" = "Iniziamo";
+"tour.step1.title" = "Cantieri e servizi vicini";
+"tour.step1.body" = "Trova cantieri, velai e fornitori sulla mappa — filtrati per categoria e con recensioni reali.";
+"tour.step2.title" = "Le tue barche, ben documentate";
+"tour.step2.body" = "Inserisci dati, foto e misure una volta — accedi sempre, anche offline.";
+"tour.step3.title" = "Manutenzione sotto controllo";
+"tour.step3.body" = "Imposta cicli di manutenzione per ogni attrezzatura. Skipily ti mostra cosa fare prossimamente.";
+"tour.step4.title" = "Promemoria prima dei problemi";
+"tour.step4.body" = "Ti avvisiamo in tempo sulle manutenzioni scadute — così nulla viene dimenticato.";
+"tour.step5.title" = "Negozio e ricambi";
+"tour.step5.body" = "Ordina attrezzatura direttamente dai negozi compatibili — con suggerimenti su misura.";
+"tour.step6.title" = "Briefing con un tocco";
+"tour.step6.body" = "Invia al tuo fornitore tutti i dati rilevanti dell'attrezzatura con un singolo tocco.";
+"profile.show_tour" = "Riavvia il tour dell'app";

@@ -702,3 +702,22 @@
 "briefing.section_notes" = "Notes";
 "briefing.section_photos" = "Photos / data sheets";
 "briefing.closing" = "Please reply with proposed date and cost estimate. Many thanks!";
+
+// In-app tour
+"tour.skip" = "Skip";
+"tour.back" = "Back";
+"tour.next" = "Next";
+"tour.start" = "Let's go";
+"tour.step1.title" = "Yards & service near you";
+"tour.step1.body" = "Find boatyards, sailmakers and chandlers on the map — filtered by category and with real reviews.";
+"tour.step2.title" = "Your boats, clearly documented";
+"tour.step2.body" = "Enter boat data, photos and dimensions once — access them anytime, even offline.";
+"tour.step3.title" = "Maintenance under control";
+"tour.step3.body" = "Set service intervals per equipment item. Skipily shows you what's due next.";
+"tour.step4.title" = "Reminders before things fail";
+"tour.step4.body" = "We notify you in time about overdue maintenance — so nothing gets forgotten.";
+"tour.step5.title" = "Shop & spare parts";
+"tour.step5.body" = "Order equipment directly from matching shops — with smart suggestions for your boat.";
+"tour.step6.title" = "Briefing in one tap";
+"tour.step6.body" = "Send your service provider all relevant equipment data with a single tap — no retyping.";
+"profile.show_tour" = "Restart app tour";

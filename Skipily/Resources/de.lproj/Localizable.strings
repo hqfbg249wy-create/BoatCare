@@ -705,3 +705,22 @@ Ausrüstung unter Boote ergänzen.";
 "briefing.section_notes" = "Notizen";
 "briefing.section_photos" = "Fotos / Datenblätter";
 "briefing.closing" = "Bitte um Rückmeldung mit Termin- und Kostenvorschlag. Vielen Dank!";
+
+// In-App-Tour
+"tour.skip" = "Überspringen";
+"tour.back" = "Zurück";
+"tour.next" = "Weiter";
+"tour.start" = "Los geht's";
+"tour.step1.title" = "Werften & Service in der Nähe";
+"tour.step1.body" = "Finde Werkstätten, Segelmacher und Zubehör auf der Karte — gefiltert nach Kategorie und mit echten Bewertungen.";
+"tour.step2.title" = "Deine Boote, sauber dokumentiert";
+"tour.step2.body" = "Lege Bootsdaten, Bilder und Maße einmal an — und greif jederzeit darauf zu, auch offline.";
+"tour.step3.title" = "Wartung im Griff";
+"tour.step3.body" = "Trag Wartungszyklen pro Ausrüstung ein. Skipily zeigt dir, was als Nächstes ansteht.";
+"tour.step4.title" = "Erinnerungen, bevor's klemmt";
+"tour.step4.body" = "Wir erinnern dich rechtzeitig an überfällige Wartungen — damit nichts vergessen wird.";
+"tour.step5.title" = "Shop & Ersatzteile";
+"tour.step5.body" = "Bestelle Equipment direkt aus passenden Shops — mit automatisch passenden Vorschlägen für dein Boot.";
+"tour.step6.title" = "Briefing per Klick";
+"tour.step6.body" = "Schick deinem Dienstleister mit einem Tippen alle relevanten Daten zur Ausrüstung — kein Tippen mehr nötig.";
+"profile.show_tour" = "App-Tour erneut starten";

@@ -702,3 +702,22 @@
 "briefing.section_notes" = "Notas";
 "briefing.section_photos" = "Fotos / fichas técnicas";
 "briefing.closing" = "Por favor confirma fecha y presupuesto. ¡Muchas gracias!";
+
+// Tour de la app
+"tour.skip" = "Omitir";
+"tour.back" = "Atrás";
+"tour.next" = "Siguiente";
+"tour.start" = "¡Empezar!";
+"tour.step1.title" = "Talleres y servicios cerca";
+"tour.step1.body" = "Encuentra astilleros, veleros y proveedores en el mapa — filtrados por categoría y con reseñas reales.";
+"tour.step2.title" = "Tus barcos, bien documentados";
+"tour.step2.body" = "Introduce datos, fotos y medidas una vez — accede en cualquier momento, incluso sin conexión.";
+"tour.step3.title" = "Mantenimiento bajo control";
+"tour.step3.body" = "Define intervalos de servicio por equipo. Skipily te muestra lo siguiente que toca.";
+"tour.step4.title" = "Avisos antes de que falle";
+"tour.step4.body" = "Te recordamos a tiempo los mantenimientos pendientes — para que nada se olvide.";
+"tour.step5.title" = "Tienda y repuestos";
+"tour.step5.body" = "Pide equipos directamente en tiendas compatibles — con sugerencias adaptadas a tu barco.";
+"tour.step6.title" = "Briefing con un toque";
+"tour.step6.body" = "Envía a tu proveedor todos los datos relevantes del equipo con un solo toque — sin re-escribir.";
+"profile.show_tour" = "Repetir tour de la app";
