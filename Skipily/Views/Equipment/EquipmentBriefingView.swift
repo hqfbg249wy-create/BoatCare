@@ -19,105 +19,236 @@
 import SwiftUI
 import Supabase
 
+/// Zweistufiger Flow: 1) Provider auswählen → 2) Briefing für dieses
+/// Equipment-Item angezeigt bekommen (mit Provider-Gruss + E-Mail-Link).
 struct EquipmentBriefingView: View {
     let equipmentId: UUID
     let boatId: UUID
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authService: AuthService
+
+    // MARK: - State
+    @State private var providers: [ServiceProvider] = []
+    @State private var searchText = ""
+    @State private var loadingProviders = true
+    @State private var selectedProvider: ServiceProvider?
 
     @State private var briefing: String = ""
-    @State private var isLoading = true
+    @State private var equipmentName: String = ""
+    @State private var generatingBriefing = false
     @State private var errorMessage: String?
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
             Group {
-                if isLoading {
-                    VStack(spacing: 16) {
-                        ProgressView()
-                        Text("briefing.loading".loc)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let err = errorMessage {
-                    VStack(spacing: 12) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.largeTitle)
-                            .foregroundStyle(.orange)
-                        Text(err)
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "paperplane.fill")
-                                    .foregroundStyle(AppColors.primary)
-                                Text("briefing.intro".loc)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.bottom, 4)
-
-                            Text(briefing)
-                                .font(.callout)
-                                .textSelection(.enabled)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(14)
-                                .background(Color(.secondarySystemBackground))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                if let provider = selectedProvider {
+                    if generatingBriefing {
+                        VStack(spacing: 16) {
+                            ProgressView()
+                            Text("briefing.loading".loc)
+                                .font(.subheadline).foregroundStyle(.secondary)
                         }
-                        .padding(16)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if let err = errorMessage {
+                        errorView(err)
+                    } else {
+                        briefingView(briefing, provider: provider)
                     }
+                } else if loadingProviders {
+                    ProgressView("general.loading".loc)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    providerPickerView
                 }
             }
-            .navigationTitle("briefing.title".loc)
+            .navigationTitle(selectedProvider == nil
+                ? "briefing.pick_provider".loc
+                : "briefing.title".loc)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("general.cancel".loc) { dismiss() }
+                    if selectedProvider != nil {
+                        Button("general.back".loc) {
+                            selectedProvider = nil
+                            briefing = ""
+                            errorMessage = nil
+                        }
+                    } else {
+                        Button("general.cancel".loc) { dismiss() }
+                    }
                 }
-                if !briefing.isEmpty {
+                if selectedProvider != nil, !briefing.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
-                        ShareLink(item: briefing,
-                                  subject: Text(shareSubject),
-                                  message: Text("briefing.share_message".loc)) {
-                            Label("briefing.share".loc, systemImage: "square.and.arrow.up")
+                        ShareLink(
+                            item: briefing,
+                            subject: Text(String(format: "briefing.subject_format".loc,
+                                                 selectedProvider?.name ?? "")),
+                            message: Text("briefing.share_message".loc)
+                        ) {
+                            Image(systemName: "square.and.arrow.up")
                         }
                     }
                 }
             }
-            .task { await load() }
+            .task { await loadProviders() }
         }
     }
 
-    private var shareSubject: String {
-        String(format: "briefing.subject_format".loc, equipmentName)
+    // MARK: - Provider-Picker
+
+    private var providerPickerView: some View {
+        List {
+            Section {
+                TextField("chat.share_search".loc, text: $searchText)
+            }
+            Section(header: Text("chat.share_pick".loc)) {
+                if filteredProviders.isEmpty {
+                    Text("chat.share_no_providers".loc)
+                        .font(.callout).foregroundStyle(.secondary)
+                        .listRowBackground(Color.clear)
+                } else {
+                    ForEach(filteredProviders) { p in
+                        Button { selectProvider(p) } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "building.2.fill")
+                                    .foregroundStyle(.blue)
+                                    .frame(width: 36, height: 36)
+                                    .background(Color.blue.opacity(0.1))
+                                    .clipShape(Circle())
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(p.name).font(.subheadline.weight(.semibold))
+                                    if let city = p.city, !city.isEmpty {
+                                        Text(city).font(.caption).foregroundStyle(.secondary)
+                                    }
+                                    if let cat = p.category as String?, !cat.isEmpty {
+                                        Text(cat).font(.caption2).foregroundStyle(.tertiary)
+                                    }
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundStyle(.tertiary).font(.caption)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
     }
 
-    @State private var equipmentName: String = ""
+    private var filteredProviders: [ServiceProvider] {
+        guard !searchText.isEmpty else { return providers }
+        let q = searchText.lowercased()
+        return providers.filter {
+            $0.name.lowercased().contains(q) ||
+            ($0.city?.lowercased().contains(q) ?? false) ||
+            $0.category.lowercased().contains(q)
+        }
+    }
 
-    // MARK: - Loading
+    // MARK: - Briefing-Preview
 
-    private func load() async {
-        isLoading = true
+    private func briefingView(_ text: String, provider: ServiceProvider) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Empfänger-Badge
+                HStack(spacing: 8) {
+                    Image(systemName: "paperplane.fill").foregroundStyle(.blue)
+                    Text(String(format: "provider.briefing_for".loc, provider.name))
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+
+                // Briefing-Text
+                Text(text)
+                    .font(.callout).textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+                    .background(Color(.secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                // Aktions-Buttons
+                VStack(spacing: 10) {
+                    // Teilen (generisch)
+                    ShareLink(
+                        item: text,
+                        subject: Text(String(format: "briefing.subject_format".loc, provider.name)),
+                        message: Text("briefing.share_message".loc)
+                    ) {
+                        Label("briefing.share".loc, systemImage: "square.and.arrow.up")
+                            .frame(maxWidth: .infinity).padding(.vertical, 13)
+                            .background(Color.blue).foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+
+                    // E-Mail direkt an Provider (nur wenn E-Mail bekannt)
+                    if let email = provider.email,
+                       let subject = String(format: "briefing.subject_format".loc, provider.name)
+                                .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+                       let body = text.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+                       let url = URL(string: "mailto:\(email)?subject=\(subject)&body=\(body)") {
+                        Link(destination: url) {
+                            Label("provider.email".loc, systemImage: "envelope.fill")
+                                .frame(maxWidth: .infinity).padding(.vertical, 13)
+                                .background(Color.blue.opacity(0.1)).foregroundStyle(.blue)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                }
+            }
+            .padding(16)
+        }
+    }
+
+    private func errorView(_ msg: String) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.largeTitle).foregroundStyle(.orange)
+            Text(msg).font(.callout).foregroundStyle(.secondary)
+                .multilineTextAlignment(.center).padding(.horizontal, 32)
+            Button("general.retry".loc) { selectProvider(selectedProvider!) }
+                .buttonStyle(.bordered)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Actions
+
+    private func selectProvider(_ p: ServiceProvider) {
+        selectedProvider = p
+        Task { await generateBriefing(for: p) }
+    }
+
+    private func generateBriefing(for provider: ServiceProvider) async {
+        generatingBriefing = true
         errorMessage = nil
-        defer { isLoading = false }
-
+        defer { generatingBriefing = false }
         do {
             briefing = try await EquipmentBriefingBuilder.build(
                 equipmentId: equipmentId,
                 boatId: boatId,
+                providerName: provider.name,
                 lang: LanguageManager.shared.currentLanguage.code
-            ) { name in
-                equipmentName = name
+            ) { name in equipmentName = name }
+        } catch {
+            AppLog.error("EquipmentBriefingView: \(error)")
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func loadProviders() async {
+        loadingProviders = true; defer { loadingProviders = false }
+        do {
+            let favIds = (UserDefaults.standard.array(forKey: "favoriteProviders") as? [String]) ?? []
+            if favIds.isEmpty {
+                providers = try await authService.supabase
+                    .from("service_providers").select("*").order("name").limit(50).execute().value
+            } else {
+                providers = try await authService.supabase
+                    .from("service_providers").select("*").in("id", values: favIds).execute().value
             }
         } catch {
-            AppLog.error("EquipmentBriefingView.load: \(error)")
             errorMessage = error.localizedDescription
         }
     }
@@ -307,10 +438,11 @@ enum EquipmentBriefingBuilder {
         return lines.joined(separator: "\n")
     }
 
-    // Single-item-Version (bestehender Aufruf aus EquipmentBriefingView)
+    // Single-item-Version — jetzt mit optionalem providerName für gezielten Gruss
     static func build(
         equipmentId: UUID,
         boatId: UUID,
+        providerName: String? = nil,
         lang: String,
         onResolveName: @escaping (String) -> Void
     ) async throws -> String {
@@ -340,16 +472,21 @@ enum EquipmentBriefingBuilder {
 
         if let name = eq.name { await MainActor.run { onResolveName(name) } }
 
-        return formatBriefing(boat: boat, eq: eq, lang: lang)
+        return formatBriefing(boat: boat, eq: eq, providerName: providerName, lang: lang)
     }
 
-    private static func formatBriefing(boat: BoatRow, eq: EquipmentRow, lang: String) -> String {
+    private static func formatBriefing(boat: BoatRow, eq: EquipmentRow,
+                                       providerName: String? = nil, lang: String) -> String {
         var lines: [String] = []
 
-        // Header
+        // Header + Anrede
         lines.append("# \("briefing.title".loc)")
         lines.append("")
-        lines.append("\("briefing.greeting".loc)")
+        if let name = providerName, !name.isEmpty {
+            lines.append(String(format: "briefing.greeting_provider".loc, name))
+        } else {
+            lines.append("briefing.greeting".loc)
+        }
         lines.append("")
 
         // Boat

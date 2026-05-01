@@ -752,3 +752,6 @@
 "chat.equipment_from_photo_hint" = "Las fotos de tu pregunta se vincularán directamente.";
 "chat.equipment_pick_boat" = "¿Qué barco?";
 "boats.boat" = "Barco";
+
+"briefing.pick_provider" = "Seleccionar proveedor";
+"chat.photo_upload_failed" = "Error al subir – toca para reintentar.";

@@ -755,3 +755,6 @@ Ausrüstung unter Boote ergänzen.";
 "chat.equipment_from_photo_hint" = "Die Fotos aus deiner Frage werden direkt übernommen.";
 "chat.equipment_pick_boat" = "Welches Boot?";
 "boats.boat" = "Boot";
+
+"briefing.pick_provider" = "Service-Betrieb auswählen";
+"chat.photo_upload_failed" = "Upload fehlgeschlagen – Bild tippen zum Wiederholen.";

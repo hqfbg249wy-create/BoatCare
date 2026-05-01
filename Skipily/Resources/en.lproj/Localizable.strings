@@ -752,3 +752,6 @@
 "chat.equipment_from_photo_hint" = "The photos from your question will be linked.";
 "chat.equipment_pick_boat" = "Which boat?";
 "boats.boat" = "Boat";
+
+"briefing.pick_provider" = "Select service provider";
+"chat.photo_upload_failed" = "Upload failed – tap image to retry.";

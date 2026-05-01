@@ -94,6 +94,41 @@ async function fetchFewShotExamples(
   }
 }
 
+/**
+ * Lädt ein Bild von einer öffentlichen URL herunter und gibt es als
+ * Base64-encodiertes Objekt zurück, das direkt in Claude-Vision-Blocks
+ * eingesetzt werden kann. Robuster als source.type="url", weil Anthropic-
+ * Server Supabase-Storage-URLs nicht immer direkt abrufen können.
+ * Bei jedem Fehler → null (Aufrufer entscheidet über Fallback).
+ */
+async function fetchImageAsBase64(
+  url: string,
+): Promise<{ type: "base64"; media_type: string; data: string } | null> {
+  try {
+    const resp = await fetch(url, { signal: AbortSignal.timeout(12000) });
+    if (!resp.ok) {
+      console.warn(`Image fetch failed: HTTP ${resp.status} for ${url}`);
+      return null;
+    }
+    const contentType = resp.headers.get("content-type") ?? "image/jpeg";
+    const mediaType = contentType.split(";")[0].trim();
+    // Claude unterstützt: image/jpeg, image/png, image/gif, image/webp
+    if (!mediaType.startsWith("image/")) return null;
+    const buffer = await resp.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    // Uint8Array → Binary-String → Base64
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    return { type: "base64", media_type: mediaType, data: btoa(binary) };
+  } catch (err) {
+    console.warn("fetchImageAsBase64 error:", err);
+    return null;
+  }
+}
+
 const SYSTEM_PROMPT = `Du bist der Skipily Boots-Assistent — ein erfahrener Boots-Techniker und Service-Experte mit jahrzehntelanger Erfahrung in Bootsbau, Wartung und Reparatur.
 
 Deine Expertise umfasst:
@@ -231,28 +266,34 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Nachrichten auf letzte 20 beschränken. User-Nachrichten mit
-    // attachment_urls bekommen Vision-Content-Blocks (image-URLs werden
-    // von Claude direkt geladen — keine eigene Base64-Konvertierung nötig,
-    // solange die URLs öffentlich erreichbar sind, was beim ai-chat-photos-
-    // Bucket der Fall ist).
-    const trimmedMessages = messages.slice(-20).map(
-      (m: { role: string; content: string; attachment_urls?: string[] }) => {
-        const role = m.role === "user" ? "user" : "assistant";
-        const attachments = Array.isArray(m.attachment_urls)
-          ? m.attachment_urls.filter((u) => typeof u === "string" && u.length > 0)
-          : [];
-        if (role === "user" && attachments.length > 0) {
-          // Multimodaler Block: Bilder zuerst, dann der Text.
-          const blocks: Array<Record<string, unknown>> = attachments.map((url) => ({
-            type: "image",
-            source: { type: "url", url },
-          }));
-          blocks.push({ type: "text", text: m.content });
-          return { role, content: blocks };
+    // Nachrichten auf letzte 20 beschränken.
+    // User-Nachrichten mit attachment_urls: Bilder werden in der Edge Function
+    // heruntergeladen und als Base64 an Claude geschickt — das ist zuverlässiger
+    // als source.type="url", das von Anthropic-Servern nicht immer erreichbar ist.
+    const trimmedMessages = await Promise.all(
+      messages.slice(-20).map(
+        async (m: { role: string; content: string; attachment_urls?: string[] }) => {
+          const role = m.role === "user" ? "user" : "assistant";
+          const attachments = Array.isArray(m.attachment_urls)
+            ? m.attachment_urls.filter((u) => typeof u === "string" && u.length > 0)
+            : [];
+          if (role === "user" && attachments.length > 0) {
+            const blocks: Array<Record<string, unknown>> = [];
+            for (const url of attachments) {
+              const imgData = await fetchImageAsBase64(url);
+              if (imgData) {
+                blocks.push({ type: "image", source: imgData });
+              } else {
+                // Fallback: URL-Referenz wenn Download fehlschlug
+                blocks.push({ type: "image", source: { type: "url", url } });
+              }
+            }
+            blocks.push({ type: "text", text: m.content });
+            return { role, content: blocks };
+          }
+          return { role, content: m.content };
         }
-        return { role, content: m.content };
-      }
+      )
     );
 
     const anthropicResponse = await fetch(ANTHROPIC_API_URL, {

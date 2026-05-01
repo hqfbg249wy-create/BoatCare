@@ -752,3 +752,6 @@
 "chat.equipment_from_photo_hint" = "De foto's uit je vraag worden direct gekoppeld.";
 "chat.equipment_pick_boat" = "Welke boot?";
 "boats.boat" = "Boot";
+
+"briefing.pick_provider" = "Serviceprovider selecteren";
+"chat.photo_upload_failed" = "Upload mislukt – tik om opnieuw te proberen.";

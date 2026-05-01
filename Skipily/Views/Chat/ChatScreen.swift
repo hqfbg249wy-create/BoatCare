@@ -70,6 +70,9 @@ struct ChatScreen: View {
         let id = UUID()
         let image: UIImage
         var uploadedURL: String?
+        var uploadFailed = false   // true → roter Fehlerzustand im Strip
+
+        var isReady: Bool { uploadedURL != nil }
     }
 
     // Feedback-Sheet
@@ -157,11 +160,27 @@ struct ChatScreen: View {
                                     .frame(width: 64, height: 64)
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                                     .overlay {
-                                        if photo.uploadedURL == nil {
+                                        if photo.uploadFailed {
+                                            // Fehlerzustand – rot, Retry-Icon
+                                            ZStack {
+                                                Color.red.opacity(0.65)
+                                                Image(systemName: "arrow.clockwise")
+                                                    .foregroundStyle(.white)
+                                                    .font(.title3)
+                                            }
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        } else if photo.uploadedURL == nil {
+                                            // Lädt gerade
                                             ProgressView().tint(.white)
                                                 .frame(width: 64, height: 64)
                                                 .background(.black.opacity(0.4))
                                                 .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        }
+                                    }
+                                    .onTapGesture {
+                                        // Tap auf fehlgeschlagenes Foto → Retry
+                                        if photo.uploadFailed {
+                                            Task { await retryUpload(photo) }
                                         }
                                     }
                                 Button {
@@ -179,6 +198,19 @@ struct ChatScreen: View {
                     .padding(.vertical, 6)
                 }
                 .background(Color(.secondarySystemBackground))
+                // Fehler-Hinweis wenn mindestens ein Upload fehlschlug
+                if pendingPhotos.contains(where: { $0.uploadFailed }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                            .font(.caption)
+                        Text("chat.photo_upload_failed".loc)
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 4)
+                }
             }
 
             // Eingabefeld
@@ -307,8 +339,13 @@ struct ChatScreen: View {
 
     private var canSend: Bool {
         let hasText = !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        let hasPhotos = !pendingPhotos.isEmpty && pendingPhotos.allSatisfy { $0.uploadedURL != nil }
-        return (hasText || hasPhotos) && !isTyping && !isUploadingPhoto
+        // Fotos zählen nur wenn alle erfolgreich hochgeladen (uploadedURL gesetzt),
+        // keine noch läuft und keine dauerhaft fehlgeschlagen sind.
+        let allReady = !pendingPhotos.isEmpty
+            && pendingPhotos.allSatisfy { $0.uploadedURL != nil }
+            && !pendingPhotos.contains(where: { $0.uploadFailed })
+        let hasSendablePhotos = allReady
+        return (hasText || hasSendablePhotos) && !isTyping && !isUploadingPhoto
     }
 
     /// "An Provider weiterleiten" macht nur Sinn, wenn mindestens eine
@@ -320,7 +357,6 @@ struct ChatScreen: View {
     // MARK: - Foto-Upload
 
     private func loadPickedPhotos(_ items: [PhotosPickerItem]) async {
-        // Pro Auswahl: Bilddaten laden, runterskalieren, hochladen.
         guard !items.isEmpty else { return }
         isUploadingPhoto = true
         defer {
@@ -333,23 +369,45 @@ struct ChatScreen: View {
                   let original = UIImage(data: data) else { continue }
 
             // Auf max 1600 px skalieren + JPEG bei 0.8 Qualität — reicht für
-            // Vision-Analyse, hält die Uploads klein und billig.
+            // Vision-Analyse, hält Uploads klein.
             let scaled = original.scaledDown(to: 1600)
             guard let jpeg = scaled.jpegData(compressionQuality: 0.8) else { continue }
 
             let placeholder = PendingPhoto(image: scaled)
             pendingPhotos.append(placeholder)
 
-            do {
-                let url = try await chatService.uploadChatPhoto(jpegData: jpeg)
-                if let idx = pendingPhotos.firstIndex(where: { $0.id == placeholder.id }) {
-                    pendingPhotos[idx].uploadedURL = url
-                }
-            } catch {
-                AppLog.warning("Foto-Upload fehlgeschlagen: \(error)")
-                pendingPhotos.removeAll { $0.id == placeholder.id }
+            await uploadPhoto(id: placeholder.id, jpeg: jpeg)
+        }
+    }
+
+    /// Lädt ein einzelnes Foto hoch und aktualisiert den Zustand im Strip.
+    /// Bei Fehler: Foto bleibt sichtbar mit rotem Retry-Overlay.
+    private func uploadPhoto(id: UUID, jpeg: Data) async {
+        do {
+            let url = try await chatService.uploadChatPhoto(jpegData: jpeg)
+            if let idx = pendingPhotos.firstIndex(where: { $0.id == id }) {
+                pendingPhotos[idx].uploadedURL = url
+                pendingPhotos[idx].uploadFailed = false
+            }
+        } catch {
+            AppLog.warning("Foto-Upload fehlgeschlagen: \(error)")
+            // Nicht still löschen — Fehler-Zustand zeigen, Nutzer kann Retry tippen
+            if let idx = pendingPhotos.firstIndex(where: { $0.id == id }) {
+                pendingPhotos[idx].uploadFailed = true
             }
         }
+    }
+
+    /// Erneuter Upload-Versuch für ein fehlgeschlagenes Foto.
+    private func retryUpload(_ photo: PendingPhoto) async {
+        guard photo.uploadFailed,
+              let jpeg = photo.image.scaledDown(to: 1600).jpegData(compressionQuality: 0.8)
+        else { return }
+        if let idx = pendingPhotos.firstIndex(where: { $0.id == photo.id }) {
+            pendingPhotos[idx].uploadFailed = false   // zurück zu "läuft"
+            pendingPhotos[idx].uploadedURL = nil
+        }
+        await uploadPhoto(id: photo.id, jpeg: jpeg)
     }
 
     // MARK: - Session lifecycle
