@@ -68,3 +68,24 @@ END $$;
 DO $$ BEGIN
   RAISE NOTICE '✅ Migration 052: Bucket ai-chat-photos ist jetzt public=true, Policies geprüft.';
 END $$;
+
+-- Policy case-insensitiv machen (Schutz vor künftigen UUID-Case-Fehlern)
+DROP POLICY IF EXISTS "ai_chat_photos_user_insert" ON storage.objects;
+CREATE POLICY "ai_chat_photos_user_insert"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'ai-chat-photos'
+    AND LOWER((storage.foldername(name))[1]) = LOWER(auth.uid()::text)
+  );
+
+DROP POLICY IF EXISTS "ai_chat_photos_user_delete" ON storage.objects;
+CREATE POLICY "ai_chat_photos_user_delete"
+  ON storage.objects FOR DELETE TO authenticated
+  USING (
+    bucket_id = 'ai-chat-photos'
+    AND LOWER((storage.foldername(name))[1]) = LOWER(auth.uid()::text)
+  );
+
+DO $$ BEGIN
+  RAISE NOTICE '✅ Migration 052 Ergänzung: RLS-Policies case-insensitiv';
+END $$;
