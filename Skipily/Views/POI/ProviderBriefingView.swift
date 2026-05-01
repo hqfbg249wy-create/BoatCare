@@ -13,6 +13,7 @@
 //
 
 import SwiftUI
+import Supabase
 
 struct ProviderBriefingView: View {
     let provider: ServiceProvider

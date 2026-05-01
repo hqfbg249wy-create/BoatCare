@@ -12,6 +12,7 @@
 //
 
 import SwiftUI
+import Supabase
 
 // MARK: - 1) Chat → Provider weiterleiten
 
