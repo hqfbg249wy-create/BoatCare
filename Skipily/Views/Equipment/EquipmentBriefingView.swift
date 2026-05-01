@@ -156,6 +156,158 @@ enum EquipmentBriefingBuilder {
         let photo_url: String?
     }
 
+    /// Multi-Equipment-Variante: Erzeugt ein zusammengefasstes Briefing für
+    /// ausgewählte Ausrüstung über mehrere Boote, optional an einen konkreten
+    /// Provider adressiert.
+    struct EqWithBoat: Codable {
+        let id: UUID
+        let boat_id: UUID
+        let name: String?
+        let category: String?
+        let manufacturer: String?
+        let model: String?
+        let serial_number: String?
+        let part_number: String?
+        let dimensions: String?
+        let location_on_boat: String?
+        let item_description: String?
+        let notes: String?
+        let installation_date: String?
+        let last_maintenance_date: String?
+        let next_maintenance_date: String?
+        let maintenance_cycle_years: Int?
+        let photo_url: String?
+    }
+
+    struct BoatWithId: Codable {
+        let id: UUID
+        let name: String?
+        let boat_type: String?
+        let manufacturer: String?
+        let model: String?
+        let year: Int?
+        let length_meters: Double?
+        let home_port: String?
+        let engine: String?
+    }
+
+    static func buildMulti(
+        equipmentIds: [UUID],
+        providerName: String?,
+        lang: String
+    ) async throws -> String {
+        let client = SupabaseManager.shared.client
+        guard !equipmentIds.isEmpty else {
+            throw NSError(domain: "EquipmentBriefingBuilder", code: 400,
+                          userInfo: [NSLocalizedDescriptionKey: "briefing.no_items".loc])
+        }
+
+        let eqs: [EqWithBoat] = try await client
+            .from("equipment")
+            .select("id, boat_id, name, category, manufacturer, model, serial_number, part_number, dimensions, location_on_boat, item_description, notes, installation_date, last_maintenance_date, next_maintenance_date, maintenance_cycle_years, photo_url")
+            .in("id", values: equipmentIds.map { $0.uuidString })
+            .execute()
+            .value
+
+        let boatIds = Array(Set(eqs.map { $0.boat_id }))
+        var boatMap: [UUID: BoatWithId] = [:]
+        if !boatIds.isEmpty {
+            let raw: [BoatWithId] = try await client
+                .from("boats")
+                .select("id, name, boat_type, manufacturer, model, year, length_meters, home_port, engine")
+                .in("id", values: boatIds.map { $0.uuidString })
+                .execute()
+                .value
+            for b in raw { boatMap[b.id] = b }
+        }
+
+        return formatMulti(eqs: eqs, boats: boatMap, providerName: providerName, lang: lang)
+    }
+
+    private static func formatMulti(
+        eqs: [EqWithBoat],
+        boats: [UUID: BoatWithId],
+        providerName: String?,
+        lang: String
+    ) -> String {
+        var lines: [String] = []
+        lines.append("# \("briefing.title".loc)")
+        lines.append("")
+        if let name = providerName, !name.isEmpty {
+            lines.append(String(format: "briefing.greeting_provider".loc, name))
+        } else {
+            lines.append("briefing.greeting".loc)
+        }
+        lines.append("")
+
+        // Gruppieren nach Boot
+        let grouped = Dictionary(grouping: eqs, by: { $0.boat_id })
+        let sortedBoatIds = grouped.keys.sorted { (a, b) in
+            (boats[a]?.name ?? "") < (boats[b]?.name ?? "")
+        }
+
+        for boatId in sortedBoatIds {
+            let boat = boats[boatId]
+            // Boot-Header
+            lines.append("## \(boat?.name ?? "briefing.section_boat".loc)")
+            if let t = boat?.boat_type, !t.isEmpty { lines.append("- **\("briefing.boat_type".loc):** \(t)") }
+            if let m = boat?.manufacturer, !m.isEmpty {
+                let model = (boat?.model.flatMap { $0.isEmpty ? nil : " \($0)" }) ?? ""
+                lines.append("- **\("briefing.boat_model".loc):** \(m)\(model)")
+            }
+            if let y = boat?.year { lines.append("- **\("briefing.boat_year".loc):** \(y)") }
+            if let l = boat?.length_meters {
+                let s = l.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(l)) : String(format: "%.1f", l)
+                lines.append("- **\("briefing.boat_length".loc):** \(s) m")
+            }
+            if let p = boat?.home_port, !p.isEmpty { lines.append("- **\("briefing.boat_home_port".loc):** \(p)") }
+            lines.append("")
+
+            // Equipment-Einträge dieses Bootes
+            for eq in (grouped[boatId] ?? []) {
+                lines.append("### \(eq.name ?? "–")")
+                if let c = eq.category, !c.isEmpty {
+                    lines.append("- **\("briefing.eq_category".loc):** \("equipment.cat.\(c)".loc)")
+                }
+                if let m = eq.manufacturer, !m.isEmpty {
+                    let model = eq.model.flatMap { $0.isEmpty ? nil : " \($0)" } ?? ""
+                    lines.append("- **\("briefing.eq_brand".loc):** \(m)\(model)")
+                }
+                if let s = eq.serial_number, !s.isEmpty { lines.append("- **\("briefing.eq_serial".loc):** \(s)") }
+                if let p = eq.part_number, !p.isEmpty { lines.append("- **\("briefing.eq_part".loc):** \(p)") }
+                if let d = eq.dimensions, !d.isEmpty { lines.append("- **\("briefing.eq_dimensions".loc):** \(d)") }
+                if let l = eq.location_on_boat, !l.isEmpty { lines.append("- **\("briefing.eq_location".loc):** \(l)") }
+                if let lmd = eq.last_maintenance_date, !lmd.isEmpty { lines.append("- **\("briefing.eq_last_maint".loc):** \(lmd)") }
+                if let nmd = eq.next_maintenance_date, !nmd.isEmpty { lines.append("- **\("briefing.eq_next_maint".loc):** \(nmd)") }
+                if let cy = eq.maintenance_cycle_years { lines.append("- **\("briefing.eq_cycle".loc):** \(cy) \("briefing.years".loc)") }
+                if let desc = eq.item_description, !desc.isEmpty {
+                    lines.append("")
+                    lines.append(desc)
+                }
+                if let notes = eq.notes, !notes.isEmpty {
+                    lines.append("")
+                    lines.append("_\("briefing.section_notes".loc): \(notes)_")
+                }
+                if let photoStr = eq.photo_url, !photoStr.isEmpty {
+                    let urls = photoStr.components(separatedBy: ",")
+                        .map { $0.trimmingCharacters(in: .whitespaces) }
+                        .filter { !$0.isEmpty }
+                    if !urls.isEmpty {
+                        lines.append("")
+                        lines.append("**\("briefing.section_photos".loc):**")
+                        for (i, u) in urls.enumerated() { lines.append("\(i + 1). \(u)") }
+                    }
+                }
+                lines.append("")
+            }
+        }
+
+        lines.append("---")
+        lines.append("briefing.closing".loc)
+        return lines.joined(separator: "\n")
+    }
+
+    // Single-item-Version (bestehender Aufruf aus EquipmentBriefingView)
     static func build(
         equipmentId: UUID,
         boatId: UUID,

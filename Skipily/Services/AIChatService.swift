@@ -13,6 +13,15 @@ import Supabase
 struct AIChatMessage: Codable {
     let role: String  // "user" or "assistant"
     let content: String
+    /// Optionale Foto-URLs (public URLs aus dem Bucket ai-chat-photos).
+    /// Werden vom Edge-Function als Vision-Blocks an Claude weitergereicht.
+    var attachment_urls: [String]?
+
+    init(role: String, content: String, attachment_urls: [String]? = nil) {
+        self.role = role
+        self.content = content
+        self.attachment_urls = attachment_urls
+    }
 }
 
 /// Vollständiger Kontext für den AI-Chat – Boote + Equipment
@@ -78,6 +87,8 @@ struct PersistedChatMessage: Identifiable, Hashable {
     let content: String
     let createdAt: Date
     var feedback: ChatFeedback?
+    /// Public-URLs hochgeladener Foto-Anhänge (kann leer sein).
+    var attachmentUrls: [String] = []
 }
 
 /// Nutzer-Feedback zu einer Assistentenantwort.
@@ -294,6 +305,31 @@ class AIChatService {
         }
     }
 
+    // MARK: - Foto-Upload für AI-Chat
+
+    /// Lädt ein JPEG aus den UIImage-Daten in den Bucket `ai-chat-photos`
+    /// hoch und gibt die Public-URL zurück.
+    /// Pfad-Layout: `<auth.uid>/<UUID>.jpg`. Die RLS-Policy aus Migration 050
+    /// stellt sicher, dass nur eigene Bilder hochgeladen werden können.
+    func uploadChatPhoto(jpegData: Data) async throws -> String {
+        let client = SupabaseManager.shared.client
+        guard let userId = client.auth.currentUser?.id else {
+            throw AIChatError.notAuthenticated
+        }
+        let fileName = "\(userId.uuidString)/\(UUID().uuidString).jpg"
+        _ = try await client.storage
+            .from("ai-chat-photos")
+            .upload(
+                fileName,
+                data: jpegData,
+                options: FileOptions(contentType: "image/jpeg", upsert: false)
+            )
+        let publicURL = try client.storage
+            .from("ai-chat-photos")
+            .getPublicURL(path: fileName)
+        return publicURL.absoluteString
+    }
+
     // MARK: - Persistence (Historie + Feedback-Loop)
 
     /// Legt eine neue Chat-Session an und gibt deren ID zurueck.
@@ -332,9 +368,14 @@ class AIChatService {
     }
 
     /// Speichert eine Message und gibt die neu vergebene ID zurueck.
-    /// `role` muss "user" oder "assistant" sein.
+    /// `role` muss "user" oder "assistant" sein. Optional: Foto-Anhänge.
     @discardableResult
-    func saveMessage(sessionId: UUID, role: String, content: String) async throws -> UUID {
+    func saveMessage(
+        sessionId: UUID,
+        role: String,
+        content: String,
+        attachmentUrls: [String]? = nil
+    ) async throws -> UUID {
         guard let userId = SupabaseManager.shared.client.auth.currentUser?.id else {
             throw AIChatError.notAuthenticated
         }
@@ -344,10 +385,17 @@ class AIChatService {
             let user_id: UUID
             let role: String
             let content: String
+            let attachment_urls: [String]?
         }
         struct ReturnedRow: Decodable { let id: UUID }
 
-        let row = InsertRow(session_id: sessionId, user_id: userId, role: role, content: content)
+        let row = InsertRow(
+            session_id: sessionId,
+            user_id: userId,
+            role: role,
+            content: content,
+            attachment_urls: (attachmentUrls?.isEmpty == false) ? attachmentUrls : nil
+        )
 
         let result: [ReturnedRow] = try await SupabaseManager.shared.client
             .from("ai_chat_messages")
@@ -426,17 +474,19 @@ class AIChatService {
         return rows.first.map { String($0.content.prefix(140)) }
     }
 
-    /// Laedt alle Nachrichten einer Session chronologisch, inkl. Feedback.
+    /// Laedt alle Nachrichten einer Session chronologisch, inkl. Feedback
+    /// und Foto-Anhaengen.
     func loadMessages(sessionId: UUID) async throws -> [PersistedChatMessage] {
         struct MsgRow: Decodable {
             let id: UUID
             let role: String
             let content: String
             let created_at: Date
+            let attachment_urls: [String]?
         }
         let msgs: [MsgRow] = try await SupabaseManager.shared.client
             .from("ai_chat_messages")
-            .select("id, role, content, created_at")
+            .select("id, role, content, created_at, attachment_urls")
             .eq("session_id", value: sessionId)
             .order("created_at", ascending: true)
             .execute()
@@ -453,7 +503,8 @@ class AIChatService {
                 role: row.role,
                 content: row.content,
                 createdAt: row.created_at,
-                feedback: feedbackMap[row.id]
+                feedback: feedbackMap[row.id],
+                attachmentUrls: row.attachment_urls ?? []
             )
         }
     }

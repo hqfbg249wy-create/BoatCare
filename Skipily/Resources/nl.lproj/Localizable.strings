@@ -725,3 +725,16 @@
 // Locatie zoeken op de kaart
 "map.location_suggestions" = "Plaatsen (Apple Maps)";
 "map.location_focus_count" = "%d providers binnen %d km";
+
+// Provider-briefing & foto-chat
+"provider.briefing_button" = "Briefing";
+"provider.briefing_title" = "Briefing sturen";
+"provider.briefing_intro" = "Kies de uitrusting waarover je een vraag wilt stellen.";
+"provider.briefing_generate" = "Genereren";
+"provider.briefing_empty" = "Nog geen boten of uitrusting aangemaakt.";
+"provider.briefing_selected_count" = "%d item(s) geselecteerd";
+"provider.briefing_for" = "Briefing voor %@";
+"briefing.greeting_provider" = "Hallo %@,\nhieronder de relevante details van onze uitrusting:";
+"briefing.no_items" = "Selecteer ten minste één item.";
+"general.back" = "Terug";
+"chat.photo_default_question" = "Wat zie je op de foto's? Help me met de diagnose.";

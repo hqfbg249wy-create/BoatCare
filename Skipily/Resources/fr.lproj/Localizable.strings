@@ -725,3 +725,16 @@
 // Recherche de lieu sur la carte
 "map.location_suggestions" = "Lieux (Apple Maps)";
 "map.location_focus_count" = "%d prestataires dans %d km";
+
+// Briefing au prestataire & chat avec photo
+"provider.briefing_button" = "Briefing";
+"provider.briefing_title" = "Envoyer le briefing";
+"provider.briefing_intro" = "Sélectionne les équipements concernés par ta demande.";
+"provider.briefing_generate" = "Générer";
+"provider.briefing_empty" = "Aucun bateau ou équipement enregistré.";
+"provider.briefing_selected_count" = "%d élément(s) sélectionné(s)";
+"provider.briefing_for" = "Briefing pour %@";
+"briefing.greeting_provider" = "Bonjour %@,\nvoici les détails pertinents de notre équipement :";
+"briefing.no_items" = "Veuillez sélectionner au moins un équipement.";
+"general.back" = "Retour";
+"chat.photo_default_question" = "Que vois-tu sur les photos ? Aide-moi à diagnostiquer.";

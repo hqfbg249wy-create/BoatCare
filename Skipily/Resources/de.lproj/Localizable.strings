@@ -728,3 +728,16 @@ Ausrüstung unter Boote ergänzen.";
 // Ortssuche (MKLocalSearch) auf der Map
 "map.location_suggestions" = "Orte (Apple Maps)";
 "map.location_focus_count" = "%d Provider in %d km Umkreis";
+
+// Provider-Briefing & Foto-Chat
+"provider.briefing_button" = "Briefing";
+"provider.briefing_title" = "Briefing senden";
+"provider.briefing_intro" = "Wähle die Ausrüstung, zu der du eine Anfrage stellen willst.";
+"provider.briefing_generate" = "Erstellen";
+"provider.briefing_empty" = "Du hast noch keine Boote oder Ausrüstung angelegt.";
+"provider.briefing_selected_count" = "%d Element(e) ausgewählt";
+"provider.briefing_for" = "Briefing für %@";
+"briefing.greeting_provider" = "Hallo %@,\nanbei alle relevanten Daten zu unserer Ausrüstung:";
+"briefing.no_items" = "Bitte mindestens eine Ausrüstung auswählen.";
+"general.back" = "Zurück";
+"chat.photo_default_question" = "Was siehst du auf den Fotos? Bitte hilf bei der Diagnose.";

@@ -725,3 +725,16 @@
 // Location search (MKLocalSearch) on map
 "map.location_suggestions" = "Places (Apple Maps)";
 "map.location_focus_count" = "%d providers within %d km";
+
+// Provider briefing & photo chat
+"provider.briefing_button" = "Briefing";
+"provider.briefing_title" = "Send briefing";
+"provider.briefing_intro" = "Pick the equipment items you want to ask about.";
+"provider.briefing_generate" = "Generate";
+"provider.briefing_empty" = "No boats or equipment found yet.";
+"provider.briefing_selected_count" = "%d item(s) selected";
+"provider.briefing_for" = "Briefing for %@";
+"briefing.greeting_provider" = "Hello %@,\nplease find the relevant details about our equipment below:";
+"briefing.no_items" = "Please select at least one equipment item.";
+"general.back" = "Back";
+"chat.photo_default_question" = "What do you see on the photos? Please help with the diagnosis.";

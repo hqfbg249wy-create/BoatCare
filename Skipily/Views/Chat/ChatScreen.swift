@@ -9,6 +9,7 @@
 //
 
 import SwiftUI
+import PhotosUI
 
 /// Chat-Nachricht (lokal im UI).
 /// `remoteId` ist die Datenbank-ID, sobald die Nachricht persistiert wurde -
@@ -21,6 +22,8 @@ struct LocalChatMessage: Identifiable, Equatable {
     let isUser: Bool
     let timestamp: Date
     var feedback: ChatFeedback?
+    /// Public-URLs hochgeladener Foto-Anhänge.
+    var attachmentUrls: [String]
 
     init(
         id: UUID = UUID(),
@@ -28,7 +31,8 @@ struct LocalChatMessage: Identifiable, Equatable {
         text: String,
         isUser: Bool,
         timestamp: Date = Date(),
-        feedback: ChatFeedback? = nil
+        feedback: ChatFeedback? = nil,
+        attachmentUrls: [String] = []
     ) {
         self.id = id
         self.remoteId = remoteId
@@ -36,6 +40,7 @@ struct LocalChatMessage: Identifiable, Equatable {
         self.isUser = isUser
         self.timestamp = timestamp
         self.feedback = feedback
+        self.attachmentUrls = attachmentUrls
     }
 }
 
@@ -55,6 +60,17 @@ struct ChatScreen: View {
     @State private var hasLoadedContext = false
 
     @State private var sessionId: UUID?
+
+    // Foto-Anhänge für die nächste Frage
+    @State private var pickerSelections: [PhotosPickerItem] = []
+    @State private var pendingPhotos: [PendingPhoto] = []
+    @State private var isUploadingPhoto = false
+
+    struct PendingPhoto: Identifiable, Equatable {
+        let id = UUID()
+        let image: UIImage
+        var uploadedURL: String?
+    }
 
     // Feedback-Sheet
     @State private var feedbackTarget: LocalChatMessage?
@@ -106,8 +122,55 @@ struct ChatScreen: View {
 
             Divider()
 
+            // Foto-Vorschau (nur sichtbar wenn welche ausgewählt sind)
+            if !pendingPhotos.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(pendingPhotos) { photo in
+                            ZStack(alignment: .topTrailing) {
+                                Image(uiImage: photo.image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 64, height: 64)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .overlay {
+                                        if photo.uploadedURL == nil {
+                                            ProgressView().tint(.white)
+                                                .frame(width: 64, height: 64)
+                                                .background(.black.opacity(0.4))
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        }
+                                    }
+                                Button {
+                                    pendingPhotos.removeAll { $0.id == photo.id }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.white, .black.opacity(0.7))
+                                        .imageScale(.medium)
+                                        .padding(2)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                }
+                .background(Color(.secondarySystemBackground))
+            }
+
             // Eingabefeld
             HStack(spacing: 10) {
+                PhotosPicker(selection: $pickerSelections,
+                             maxSelectionCount: 4,
+                             matching: .images) {
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+                .onChange(of: pickerSelections) { _, newItems in
+                    Task { await loadPickedPhotos(newItems) }
+                }
+
                 TextField("chat.input_hint".loc, text: $inputText)
                     .textFieldStyle(.roundedBorder)
                     .submitLabel(.send)
@@ -191,7 +254,44 @@ struct ChatScreen: View {
     // MARK: - Computed
 
     private var canSend: Bool {
-        !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isTyping
+        let hasText = !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasPhotos = !pendingPhotos.isEmpty && pendingPhotos.allSatisfy { $0.uploadedURL != nil }
+        return (hasText || hasPhotos) && !isTyping && !isUploadingPhoto
+    }
+
+    // MARK: - Foto-Upload
+
+    private func loadPickedPhotos(_ items: [PhotosPickerItem]) async {
+        // Pro Auswahl: Bilddaten laden, runterskalieren, hochladen.
+        guard !items.isEmpty else { return }
+        isUploadingPhoto = true
+        defer {
+            isUploadingPhoto = false
+            pickerSelections = []
+        }
+
+        for item in items {
+            guard let data = try? await item.loadTransferable(type: Data.self),
+                  let original = UIImage(data: data) else { continue }
+
+            // Auf max 1600 px skalieren + JPEG bei 0.8 Qualität — reicht für
+            // Vision-Analyse, hält die Uploads klein und billig.
+            let scaled = original.scaledDown(to: 1600)
+            guard let jpeg = scaled.jpegData(compressionQuality: 0.8) else { continue }
+
+            let placeholder = PendingPhoto(image: scaled)
+            pendingPhotos.append(placeholder)
+
+            do {
+                let url = try await chatService.uploadChatPhoto(jpegData: jpeg)
+                if let idx = pendingPhotos.firstIndex(where: { $0.id == placeholder.id }) {
+                    pendingPhotos[idx].uploadedURL = url
+                }
+            } catch {
+                AppLog.warning("Foto-Upload fehlgeschlagen: \(error)")
+                pendingPhotos.removeAll { $0.id == placeholder.id }
+            }
+        }
     }
 
     // MARK: - Session lifecycle
@@ -224,7 +324,8 @@ struct ChatScreen: View {
                     text: p.content,
                     isUser: p.role == "user",
                     timestamp: p.createdAt,
-                    feedback: p.feedback
+                    feedback: p.feedback,
+                    attachmentUrls: p.attachmentUrls
                 )
             }
             if messages.isEmpty { addWelcomeMessage() }
@@ -237,16 +338,20 @@ struct ChatScreen: View {
     // MARK: - Send
 
     private func sendMessage() {
-        let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !isTyping else { return }
+        let rawText = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Wenn nur Fotos da sind, ohne Text → standardisierter Frage-Text.
+        let text = rawText.isEmpty ? "chat.photo_default_question".loc : rawText
+        let attachmentURLs = pendingPhotos.compactMap { $0.uploadedURL }
+        guard (rawText.isEmpty == false || !attachmentURLs.isEmpty), !isTyping else { return }
 
-        let userMsg = LocalChatMessage(text: text, isUser: true)
+        let userMsg = LocalChatMessage(text: text, isUser: true, attachmentUrls: attachmentURLs)
         messages.append(userMsg)
         inputText = ""
+        pendingPhotos.removeAll()
         isTyping = true
 
         Task {
-            // 1) Session sicherstellen (bei erster Nachricht anlegen, Titel aus Frage ableiten)
+            // 1) Session sicherstellen
             if sessionId == nil {
                 do {
                     let title = String(text.prefix(60))
@@ -256,10 +361,13 @@ struct ChatScreen: View {
                 }
             }
 
-            // 2) User-Message persistieren
+            // 2) User-Message persistieren (mit Foto-URLs)
             if let sid = sessionId {
                 do {
-                    let remoteId = try await chatService.saveMessage(sessionId: sid, role: "user", content: text)
+                    let remoteId = try await chatService.saveMessage(
+                        sessionId: sid, role: "user", content: text,
+                        attachmentUrls: attachmentURLs.isEmpty ? nil : attachmentURLs
+                    )
                     if let idx = messages.firstIndex(where: { $0.id == userMsg.id }) {
                         messages[idx].remoteId = remoteId
                     }
@@ -273,7 +381,8 @@ struct ChatScreen: View {
                 let chatHistory = messages.map { msg in
                     AIChatMessage(
                         role: msg.isUser ? "user" : "assistant",
-                        content: msg.text
+                        content: msg.text,
+                        attachment_urls: msg.attachmentUrls.isEmpty ? nil : msg.attachmentUrls
                     )
                 }
 
@@ -283,7 +392,6 @@ struct ChatScreen: View {
                 )
 
                 var assistantMsg = LocalChatMessage(text: reply, isUser: false)
-                // 4) Assistant-Message persistieren, damit Feedback moeglich wird
                 if let sid = sessionId {
                     do {
                         let remoteId = try await chatService.saveMessage(sessionId: sid, role: "assistant", content: reply)
@@ -361,6 +469,28 @@ struct MessageBubble: View {
             }
 
             VStack(alignment: message.isUser ? .trailing : .leading, spacing: 4) {
+                // Foto-Anhänge (falls vorhanden) — über dem Text
+                if !message.attachmentUrls.isEmpty {
+                    let cols = [GridItem(.adaptive(minimum: 80, maximum: 140), spacing: 6)]
+                    LazyVGrid(columns: cols, alignment: message.isUser ? .trailing : .leading, spacing: 6) {
+                        ForEach(message.attachmentUrls, id: \.self) { urlStr in
+                            if let url = URL(string: urlStr) {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let img):
+                                        img.resizable().scaledToFill()
+                                    default:
+                                        Color(.systemGray5)
+                                    }
+                                }
+                                .frame(width: 120, height: 120)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                            }
+                        }
+                    }
+                    .frame(maxWidth: 280, alignment: message.isUser ? .trailing : .leading)
+                }
+
                 Text(.init(message.text)) // Supports basic Markdown
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
@@ -586,5 +716,24 @@ struct TypingIndicator: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .onAppear { animating = true }
+    }
+}
+
+// MARK: - UIImage helper
+
+private extension UIImage {
+    /// Skaliert das Bild so, dass die längste Kante höchstens `maxDim`
+    /// Pixel groß ist. Hält Aspect-Ratio. Reduziert Upload-Größe drastisch.
+    func scaledDown(to maxDim: CGFloat) -> UIImage {
+        let longest = max(size.width, size.height)
+        guard longest > maxDim else { return self }
+        let scale = maxDim / longest
+        let newSize = CGSize(width: size.width * scale, height: size.height * scale)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
+        return renderer.image { _ in
+            draw(in: CGRect(origin: .zero, size: newSize))
+        }
     }
 }

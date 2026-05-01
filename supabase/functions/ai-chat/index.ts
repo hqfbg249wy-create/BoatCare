@@ -231,11 +231,29 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Nachrichten auf letzte 20 beschränken
-    const trimmedMessages = messages.slice(-20).map((m: { role: string; content: string }) => ({
-      role: m.role === "user" ? "user" : "assistant",
-      content: m.content,
-    }));
+    // Nachrichten auf letzte 20 beschränken. User-Nachrichten mit
+    // attachment_urls bekommen Vision-Content-Blocks (image-URLs werden
+    // von Claude direkt geladen — keine eigene Base64-Konvertierung nötig,
+    // solange die URLs öffentlich erreichbar sind, was beim ai-chat-photos-
+    // Bucket der Fall ist).
+    const trimmedMessages = messages.slice(-20).map(
+      (m: { role: string; content: string; attachment_urls?: string[] }) => {
+        const role = m.role === "user" ? "user" : "assistant";
+        const attachments = Array.isArray(m.attachment_urls)
+          ? m.attachment_urls.filter((u) => typeof u === "string" && u.length > 0)
+          : [];
+        if (role === "user" && attachments.length > 0) {
+          // Multimodaler Block: Bilder zuerst, dann der Text.
+          const blocks: Array<Record<string, unknown>> = attachments.map((url) => ({
+            type: "image",
+            source: { type: "url", url },
+          }));
+          blocks.push({ type: "text", text: m.content });
+          return { role, content: blocks };
+        }
+        return { role, content: m.content };
+      }
+    );
 
     const anthropicResponse = await fetch(ANTHROPIC_API_URL, {
       method: "POST",

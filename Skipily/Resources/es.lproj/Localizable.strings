@@ -725,3 +725,16 @@
 // Búsqueda de ubicación en el mapa
 "map.location_suggestions" = "Lugares (Apple Maps)";
 "map.location_focus_count" = "%d proveedores en %d km";
+
+// Briefing al proveedor & chat con foto
+"provider.briefing_button" = "Briefing";
+"provider.briefing_title" = "Enviar briefing";
+"provider.briefing_intro" = "Selecciona el equipo sobre el que quieres preguntar.";
+"provider.briefing_generate" = "Generar";
+"provider.briefing_empty" = "Aún no hay barcos ni equipo registrados.";
+"provider.briefing_selected_count" = "%d elemento(s) seleccionado(s)";
+"provider.briefing_for" = "Briefing para %@";
+"briefing.greeting_provider" = "Hola %@,\na continuación los detalles relevantes de nuestro equipo:";
+"briefing.no_items" = "Por favor selecciona al menos un elemento.";
+"general.back" = "Atrás";
+"chat.photo_default_question" = "¿Qué ves en las fotos? Por favor ayuda con el diagnóstico.";

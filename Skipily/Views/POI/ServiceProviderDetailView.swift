@@ -15,6 +15,7 @@ struct ServiceProviderDetailView: View {
 
     @State private var showingWriteReview = false
     @State private var showingSuggestEdit = false
+    @State private var showingBriefing = false
     @StateObject private var reviewService = ReviewService()
     @StateObject private var suggestionService = EditSuggestionService()
     @StateObject private var locationManager = LocationManager()
@@ -481,7 +482,19 @@ struct ServiceProviderDetailView: View {
                 }
             }
 
+            // Briefing senden — Eigner wählt Equipment, generiert Markdown,
+            // teilt es per ShareLink (E-Mail, WhatsApp, …).
+            contactIconButton(
+                icon: "paperplane.fill",
+                label: "provider.briefing_button".loc,
+                color: .green
+            ) { showingBriefing = true }
+
             Spacer()
+        }
+        .sheet(isPresented: $showingBriefing) {
+            ProviderBriefingView(provider: provider)
+                .environmentObject(authService)
         }
     }
 
