@@ -66,6 +66,11 @@ struct ChatScreen: View {
     @State private var pendingPhotos: [PendingPhoto] = []
     @State private var isUploadingPhoto = false
 
+    // Kamera
+    @State private var showingCamera = false
+    @State private var cameraImage: UIImage?
+    private var cameraAvailable: Bool { UIImagePickerController.isSourceTypeAvailable(.camera) }
+
     struct PendingPhoto: Identifiable, Equatable {
         let id = UUID()
         let image: UIImage
@@ -215,6 +220,7 @@ struct ChatScreen: View {
 
             // Eingabefeld
             HStack(spacing: 10) {
+                // Galerie-Button
                 PhotosPicker(selection: $pickerSelections,
                              maxSelectionCount: 4,
                              matching: .images) {
@@ -224,6 +230,17 @@ struct ChatScreen: View {
                 }
                 .onChange(of: pickerSelections) { _, newItems in
                     Task { await loadPickedPhotos(newItems) }
+                }
+
+                // Kamera-Button (nur auf Geräten mit Kamera)
+                if cameraAvailable {
+                    Button {
+                        showingCamera = true
+                    } label: {
+                        Image(systemName: "camera")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 TextField("chat.input_hint".loc, text: $inputText)
@@ -317,6 +334,16 @@ struct ChatScreen: View {
                 )
             }
         }
+        // Kamera-Sheet
+        .fullScreenCover(isPresented: $showingCamera) {
+            CameraPickerView(image: $cameraImage)
+                .ignoresSafeArea()
+        }
+        .onChange(of: cameraImage) { _, img in
+            guard let img else { return }
+            cameraImage = nil   // sofort zurücksetzen, damit Binding sauber bleibt
+            Task { await addCameraPhoto(img) }
+        }
         .task {
             if !hasLoadedContext {
                 hasLoadedContext = true
@@ -404,10 +431,20 @@ struct ChatScreen: View {
               let jpeg = photo.image.scaledDown(to: 1600).jpegData(compressionQuality: 0.8)
         else { return }
         if let idx = pendingPhotos.firstIndex(where: { $0.id == photo.id }) {
-            pendingPhotos[idx].uploadFailed = false   // zurück zu "läuft"
+            pendingPhotos[idx].uploadFailed = false
             pendingPhotos[idx].uploadedURL = nil
         }
         await uploadPhoto(id: photo.id, jpeg: jpeg)
+    }
+
+    /// Verarbeitet ein direkt von der Kamera aufgenommenes Bild:
+    /// Skalieren → JPEG → Placeholder anlegen → hochladen.
+    private func addCameraPhoto(_ original: UIImage) async {
+        let scaled = original.scaledDown(to: 1600)
+        guard let jpeg = scaled.jpegData(compressionQuality: 0.8) else { return }
+        let placeholder = PendingPhoto(image: scaled)
+        pendingPhotos.append(placeholder)
+        await uploadPhoto(id: placeholder.id, jpeg: jpeg)
     }
 
     // MARK: - Session lifecycle
