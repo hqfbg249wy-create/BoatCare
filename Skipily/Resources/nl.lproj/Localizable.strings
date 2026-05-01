@@ -738,3 +738,17 @@
 "briefing.no_items" = "Selecteer ten minste één item.";
 "general.back" = "Terug";
 "chat.photo_default_question" = "Wat zie je op de foto's? Help me met de diagnose.";
+
+// Chat → doorsturen naar provider + uitrusting vanaf foto
+"chat.share_provider_title" = "Doorsturen naar provider";
+"chat.share_no_providers" = "Geen providers gevonden. Markeer bedrijven als favoriet of zoek op de kaart.";
+"chat.share_search" = "Zoek providers…";
+"chat.share_pick" = "Kies een provider";
+"chat.share_question" = "Verzoek";
+"chat.share_ai_diagnosis" = "Voorlopige beoordeling (AI)";
+"chat.share_ai_disclaimer" = "Deze beoordeling komt van een AI-assistent en vervangt geen vakinhoudelijke controle.";
+"chat.equipment_from_photo_button" = "Als uitrusting toevoegen";
+"chat.equipment_from_photo_title" = "Nieuwe uitrusting vanaf foto";
+"chat.equipment_from_photo_hint" = "De foto's uit je vraag worden direct gekoppeld.";
+"chat.equipment_pick_boat" = "Welke boot?";
+"boats.boat" = "Boot";

@@ -738,3 +738,17 @@
 "briefing.no_items" = "Seleziona almeno un'attrezzatura.";
 "general.back" = "Indietro";
 "chat.photo_default_question" = "Cosa vedi nelle foto? Per favore aiuta con la diagnosi.";
+
+// Chat → inoltrare al fornitore + attrezzatura dalla foto
+"chat.share_provider_title" = "Inoltra al fornitore";
+"chat.share_no_providers" = "Nessun fornitore trovato. Aggiungi aziende ai preferiti o cerca sulla mappa.";
+"chat.share_search" = "Cerca fornitori…";
+"chat.share_pick" = "Scegli un fornitore";
+"chat.share_question" = "Richiesta";
+"chat.share_ai_diagnosis" = "Valutazione preliminare (IA)";
+"chat.share_ai_disclaimer" = "Questa valutazione proviene da un assistente IA e non sostituisce un controllo professionale.";
+"chat.equipment_from_photo_button" = "Aggiungi come attrezzatura";
+"chat.equipment_from_photo_title" = "Nuova attrezzatura dalla foto";
+"chat.equipment_from_photo_hint" = "Le foto dalla tua domanda verranno collegate.";
+"chat.equipment_pick_boat" = "Quale barca?";
+"boats.boat" = "Barca";

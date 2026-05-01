@@ -741,3 +741,17 @@ Ausrüstung unter Boote ergänzen.";
 "briefing.no_items" = "Bitte mindestens eine Ausrüstung auswählen.";
 "general.back" = "Zurück";
 "chat.photo_default_question" = "Was siehst du auf den Fotos? Bitte hilf bei der Diagnose.";
+
+// Chat → Provider weiterleiten + Equipment aus Foto
+"chat.share_provider_title" = "An Provider weiterleiten";
+"chat.share_no_providers" = "Keine Provider gefunden. Markiere Service-Betriebe als Favoriten oder suche auf der Karte.";
+"chat.share_search" = "Provider suchen…";
+"chat.share_pick" = "Provider auswählen";
+"chat.share_question" = "Anfrage";
+"chat.share_ai_diagnosis" = "Vorab-Einschätzung (KI)";
+"chat.share_ai_disclaimer" = "Diese Einschätzung stammt von einem KI-Assistenten und ersetzt keine fachliche Prüfung.";
+"chat.equipment_from_photo_button" = "Als Equipment anlegen";
+"chat.equipment_from_photo_title" = "Neue Ausrüstung aus Foto";
+"chat.equipment_from_photo_hint" = "Die Fotos aus deiner Frage werden direkt übernommen.";
+"chat.equipment_pick_boat" = "Welches Boot?";
+"boats.boat" = "Boot";

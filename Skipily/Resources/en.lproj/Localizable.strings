@@ -738,3 +738,17 @@
 "briefing.no_items" = "Please select at least one equipment item.";
 "general.back" = "Back";
 "chat.photo_default_question" = "What do you see on the photos? Please help with the diagnosis.";
+
+// Chat → forward to provider + equipment from photo
+"chat.share_provider_title" = "Forward to provider";
+"chat.share_no_providers" = "No providers found. Mark service businesses as favorites or search on the map.";
+"chat.share_search" = "Search providers…";
+"chat.share_pick" = "Pick a provider";
+"chat.share_question" = "Request";
+"chat.share_ai_diagnosis" = "Preliminary assessment (AI)";
+"chat.share_ai_disclaimer" = "This assessment comes from an AI assistant and does not replace expert review.";
+"chat.equipment_from_photo_button" = "Add as equipment";
+"chat.equipment_from_photo_title" = "New equipment from photo";
+"chat.equipment_from_photo_hint" = "The photos from your question will be linked.";
+"chat.equipment_pick_boat" = "Which boat?";
+"boats.boat" = "Boat";

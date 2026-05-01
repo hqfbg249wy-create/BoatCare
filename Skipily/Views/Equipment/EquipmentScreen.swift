@@ -856,17 +856,29 @@ struct AddEditEquipmentView: View {
     /// Wenn beim Anlegen schon eine Kategorie aus dem Picker mitgegeben
     /// wurde — vorausgewählt + nicht weiter änderbar (klare UX).
     let initialCategory: String?
+    /// Beim Anlegen: schon hochgeladene Foto-URLs (z.B. aus einer
+    /// Foto-Diagnose im KI-Chat) als bestehende Bilder vorbefüllen.
+    let initialPhotoUrls: [String]?
     let onSave: (EquipmentItem) -> Void
     @Environment(\.dismiss) var dismiss
 
-    init(boatId: UUID, item: EquipmentItem?, initialCategory: String? = nil, onSave: @escaping (EquipmentItem) -> Void) {
+    init(boatId: UUID, item: EquipmentItem?, initialCategory: String? = nil,
+         initialPhotoUrls: [String]? = nil,
+         onSave: @escaping (EquipmentItem) -> Void) {
         self.boatId = boatId
         self.item = item
         self.initialCategory = initialCategory
+        self.initialPhotoUrls = initialPhotoUrls
         self.onSave = onSave
         // initiale Kategorie für @State setzen — Reihenfolge: bestehendes Item ▸ Picker ▸ "other"
         let cat = item?.category ?? initialCategory ?? "other"
         self._category = State(initialValue: cat)
+        // Vorbelegte Foto-URLs (nur beim Anlegen sinnvoll, beim Edit kommen
+        // sie aus item.photoUrl)
+        if item == nil, let urls = initialPhotoUrls, !urls.isEmpty {
+            self._existingPhotoUrls = State(initialValue: urls)
+            self._photoUrl = State(initialValue: urls.joined(separator: ","))
+        }
     }
 
     @State private var name = ""

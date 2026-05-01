@@ -79,6 +79,10 @@ struct ChatScreen: View {
     // Historie
     @State private var showHistory = false
 
+    // Aktions-Sheets aus dem Chat heraus
+    @State private var shareTargetMessages: [LocalChatMessage]?
+    @State private var equipmentFromPhotos: [String]?
+
     private let chatService = AIChatService.shared
 
     var body: some View {
@@ -101,6 +105,25 @@ struct ChatScreen: View {
                                         }
                                     )
                                     .padding(.leading, 40)
+                                }
+
+                                // User-Frage mit Fotos? "Als Equipment anlegen"
+                                if msg.isUser, !msg.attachmentUrls.isEmpty {
+                                    Button {
+                                        equipmentFromPhotos = msg.attachmentUrls
+                                    } label: {
+                                        Label("chat.equipment_from_photo_button".loc,
+                                              systemImage: "wrench.and.screwdriver")
+                                            .font(.caption)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 6)
+                                            .background(Color(.systemGray5))
+                                            .foregroundStyle(AppColors.primary)
+                                            .clipShape(Capsule())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .padding(.trailing, 40)
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
                                 }
                             }
                         }
@@ -193,6 +216,17 @@ struct ChatScreen: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: 12) {
+                    // Chat → an Provider weiterleiten
+                    Button {
+                        shareTargetMessages = messages
+                    } label: {
+                        Image(systemName: "paperplane")
+                            .font(.callout)
+                            .foregroundStyle(canShareToProvider ? AppColors.primary : .secondary)
+                    }
+                    .disabled(!canShareToProvider)
+                    .accessibilityLabel("chat.share_provider_title".loc)
+
                     Button {
                         showHistory = true
                     } label: {
@@ -212,6 +246,24 @@ struct ChatScreen: View {
                     .accessibilityLabel("chat.new_chat".loc)
                 }
             }
+        }
+        .sheet(item: Binding(
+            get: { shareTargetMessages.map { ShareTargetWrapper(messages: $0) } },
+            set: { shareTargetMessages = $0?.messages }
+        )) { wrapper in
+            ChatToProviderShareSheet(messages: wrapper.messages, boatContext: boatContext)
+                .environmentObject(authService)
+        }
+        .sheet(item: Binding(
+            get: { equipmentFromPhotos.map { PhotoBundle(urls: $0) } },
+            set: { equipmentFromPhotos = $0?.urls }
+        )) { bundle in
+            EquipmentFromPhotoSheet(
+                photoUrls: bundle.urls,
+                suggestedName: nil,
+                suggestedCategory: nil
+            )
+            .environmentObject(authService)
         }
         .sheet(item: $feedbackTarget) { target in
             FeedbackSheet(
@@ -257,6 +309,12 @@ struct ChatScreen: View {
         let hasText = !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let hasPhotos = !pendingPhotos.isEmpty && pendingPhotos.allSatisfy { $0.uploadedURL != nil }
         return (hasText || hasPhotos) && !isTyping && !isUploadingPhoto
+    }
+
+    /// "An Provider weiterleiten" macht nur Sinn, wenn mindestens eine
+    /// User-Frage UND eine KI-Antwort im Thread sind.
+    private var canShareToProvider: Bool {
+        messages.contains(where: { $0.isUser }) && messages.contains(where: { !$0.isUser && $0.remoteId != nil })
     }
 
     // MARK: - Foto-Upload
