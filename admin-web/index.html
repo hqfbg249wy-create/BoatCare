@@ -478,10 +478,13 @@
 
                 <!-- ========== E-MAIL FINDER ========== -->
                 <div style="padding:20px; background:#eff6ff; border-radius:8px; border:2px solid #3b82f6; margin-bottom:20px;">
-                    <h3 style="margin-top:0;">✉️ E-Mail-Finder</h3>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                        <h3 style="margin:0;">✉️ E-Mail-Finder</h3>
+                        <span id="email-finder-stats" style="font-size:12px; color:#64748b; background:#dbeafe; padding:3px 10px; border-radius:12px; cursor:pointer;" onclick="window.loadEmailFinderStats()" title="Klicken zum Aktualisieren">📊 Lade...</span>
+                    </div>
                     <p style="font-size:13px; color:#475569; margin-bottom:12px;">
-                        Durchsucht die Websites aller Betriebe ohne E-Mail (inkl. Impressum, Kontakt-Seiten).
-                        Erkennt auch verschleierte Adressen wie <code>[at]</code>, <code>(at)</code>, <code>&#123;at&#125;</code>.
+                        Durchsucht Websites aller Betriebe ohne E-Mail (Homepage + geerntete Links + Impressum/Kontakt-Pfade).
+                        Erkennt auch verschleierte Adressen wie <code>[at]</code>, <code>(at)</code>, <code>&#123;at&#125;</code>, HTML-Entities (<code>&amp;#64;</code>).
                     </p>
 
                     <div class="form-row">
@@ -503,6 +506,14 @@
                                 <option value="scraper">Scraper Backend</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" id="email-guess-fallback" style="width:auto;">
+                        <label for="email-guess-fallback" style="font-size:13px; color:#374151; margin:0; cursor:pointer;">
+                            Domain-Rateversuch als Fallback (info@ / kontakt@ / mail@)
+                            <span style="color:#94a3b8; font-size:11px;">— wenn keine E-Mail auf der Website gefunden</span>
+                        </label>
                     </div>
 
                     <div style="display:flex; gap:10px; margin-top:15px;">

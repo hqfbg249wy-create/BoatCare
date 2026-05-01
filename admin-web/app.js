@@ -285,6 +285,7 @@ function navigateToPage(pageName) {
             break;
         case 'update-search':
             checkScraperStatus();
+            loadEmailFinderStats();
             break;
         case 'map':
             loadMapPage();
@@ -4544,7 +4545,7 @@ let emailFinderAbort = false;
 
 /** Subseiten, die typischerweise E-Mails/Impressum enthalten */
 const EMAIL_SUBPAGES = [
-    '', // Homepage
+    '', // Homepage – wird auch nach Links zu Kontakt/Impressum durchsucht
     '/impressum',
     '/kontakt',
     '/contact',
@@ -4556,53 +4557,90 @@ const EMAIL_SUBPAGES = [
     '/contacto',
     '/contactez-nous',
     '/contatti',
+    '/datenschutz',
+    '/privacy',
+    '/privacy-policy',
+    '/team',
+    '/service',
+    '/info',
+    '/our-team',
+    '/chi-siamo',
+    '/qui-sommes-nous',
+    '/mentions-legales',
+    '/aviso-legal',
 ];
 
 /**
  * Extrahiert E-Mail-Adressen aus Text, auch verschleierte Varianten.
  * Erkennt: info[at]domain.de, info (at) domain.de, info{at}domain.de,
- *          info AT domain.de, info [dot] de, info(at)domain(dot)de etc.
+ *          info AT domain.de, info [dot] de, info(at)domain(dot)de,
+ *          HTML-Entities wie &#64; (=@), &#46; (=.), &#x40; etc.
  */
 function extractEmailsFromText(text) {
     if (!text) return [];
     const found = new Set();
-
-    // 1. Standard-E-Mail-Regex
     const stdRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/gi;
-    for (const m of text.matchAll(stdRegex)) {
+
+    // Hilfsfunktion: HTML-Entities dekodieren (z.B. &#64; → @, &#x40; → @, &amp; → &)
+    function decodeHtmlEntities(s) {
+        return s
+            .replace(/&#64;|&#x40;/gi, '@')      // @ als Entity
+            .replace(/&#46;|&#x2e;/gi, '.')       // . als Entity
+            .replace(/&amp;/gi, '&')
+            .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+            .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)));
+    }
+
+    // Arbeitstext: Entity-dekodiert
+    const decoded = decodeHtmlEntities(text);
+
+    // 1. Standard-E-Mail-Regex auf dekodiertem Text
+    for (const m of decoded.matchAll(stdRegex)) {
         found.add(m[0].toLowerCase());
     }
 
     // 2. Verschleierte Varianten normalisieren und nochmal suchen
-    let normalized = text
-        // [at] (at) {at} <at> «at» Varianten → @
-        .replace(/\s*[\[(\{<«]\s*at\s*[\])}>»]\s*/gi, '@')
-        // " at " → @
-        .replace(/\s+at\s+/gi, '@')
-        // " AT " → @
-        .replace(/\s+AT\s+/gi, '@')
-        // [dot] (dot) {dot} Varianten → .
-        .replace(/\s*[\[(\{<«]\s*dot\s*[\])}>»]\s*/gi, '.')
-        // " dot " → .
-        .replace(/\s+dot\s+/gi, '.')
-        // [punkt] (punkt) → .
-        .replace(/\s*[\[(\{<«]\s*punkt\s*[\])}>»]\s*/gi, '.')
-        // " punkt " → .
-        .replace(/\s+punkt\s+/gi, '.');
+    const obfuscations = [decoded, text]; // beide Varianten scannen
+    for (const src of obfuscations) {
+        let normalized = src
+            // [at] (at) {at} <at> «at» Varianten → @
+            .replace(/\s*[\[(\{<«]\s*at\s*[\])}>»]\s*/gi, '@')
+            // " at " zwischen Wörtern → @
+            .replace(/(?<=\S)\s+at\s+(?=\S)/gi, '@')
+            // [dot] (dot) {dot} Varianten → .
+            .replace(/\s*[\[(\{<«]\s*dot\s*[\])}>»]\s*/gi, '.')
+            // " dot " → .
+            .replace(/(?<=\S)\s+dot\s+(?=\S)/gi, '.')
+            // [punkt] → .
+            .replace(/\s*[\[(\{<«]\s*punkt\s*[\])}>»]\s*/gi, '.')
+            // " punkt " → .
+            .replace(/(?<=\S)\s+punkt\s+(?=\S)/gi, '.')
+            // (Sprechzeichen-Obfuskation) _at_ -at-
+            .replace(/_at_/gi, '@')
+            .replace(/-at-/gi, '@');
 
-    for (const m of normalized.matchAll(stdRegex)) {
-        found.add(m[0].toLowerCase());
+        for (const m of normalized.matchAll(stdRegex)) {
+            found.add(m[0].toLowerCase());
+        }
     }
 
     // 3. mailto: Links (oft in href Attributen im HTML)
     const mailtoRegex = /mailto:([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/gi;
-    for (const m of text.matchAll(mailtoRegex)) {
-        found.add(m[1].toLowerCase());
+    for (const src of [text, decoded]) {
+        for (const m of src.matchAll(mailtoRegex)) {
+            found.add(m[1].toLowerCase());
+        }
+    }
+
+    // 4. JavaScript-codierte Mails (z.B. "info" + "@" + "domain.de" → einfache Konkatenation)
+    const jsConcat = /['"]([a-zA-Z0-9._%+\-]+)['"]\s*\+\s*['"]@['"]\s*\+\s*['"]([a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})['"]/g;
+    for (const m of text.matchAll(jsConcat)) {
+        found.add((m[1] + '@' + m[2]).toLowerCase());
     }
 
     // Filter out obvious non-emails (image files, CSS etc.)
     const excluded = /\.(png|jpg|jpeg|gif|svg|css|js|woff|ttf|eot|ico)$/i;
-    const noreply = /^(noreply|no-reply|mailer-daemon|postmaster)/i;
+    const noreply = /^(noreply|no-reply|mailer-daemon|postmaster|donotreply)/i;
     return [...found].filter(e => !excluded.test(e) && !noreply.test(e));
 }
 
@@ -4648,16 +4686,75 @@ async function crawlPageText(url, source) {
 }
 
 /**
+ * Extrahiert Links aus HTML-Text, die auf Kontakt/Impressum-Seiten zeigen.
+ * Gibt relative Pfade zurück (z.B. "/de/kontakt" statt "https://example.com/de/kontakt").
+ */
+function harvestContactLinks(htmlText, baseUrl) {
+    if (!htmlText) return [];
+    const contactKeywords = /kontakt|impressum|contact|about|imprint|legal|privacy|team|datenschutz|mentions|aviso|chi-siamo|qui-somme/i;
+    const links = new Set();
+
+    // href="..." aus dem HTML extrahieren
+    const hrefRegex = /href=["']([^"'#?]+)["']/gi;
+    for (const m of htmlText.matchAll(hrefRegex)) {
+        const href = m[1].trim();
+        if (!contactKeywords.test(href)) continue;
+
+        if (href.startsWith('http')) {
+            // Nur Links zur gleichen Domain
+            try {
+                const u = new URL(href);
+                const base = new URL(baseUrl);
+                if (u.hostname === base.hostname) links.add(u.pathname);
+            } catch { /* skip */ }
+        } else if (href.startsWith('/')) {
+            links.add(href);
+        }
+    }
+    return [...links].slice(0, 6); // max 6 zusätzliche Links verfolgen
+}
+
+/**
  * Durchsucht die Website eines Providers nach E-Mail-Adressen.
- * Probiert Homepage + typische Unterseiten (Impressum, Kontakt, etc.)
+ * Strategie:
+ *  1. Homepage crawlen → E-Mails direkt extrahieren
+ *  2. Links auf Kontakt/Impressum aus Homepage harvesten
+ *  3. Typische Subpfade probieren (/impressum, /kontakt, …)
+ *  Stoppt sobald E-Mails gefunden und mind. 2 Seiten gecheckt.
  */
 async function findEmailsForProvider(provider, source) {
     const baseUrl = provider.website.replace(/\/+$/, '');
     const allEmails = new Set();
     let foundOnPage = '';
+    let homepageText = null;
 
-    for (const subpage of EMAIL_SUBPAGES) {
+    // 1. Homepage zuerst
+    try {
+        homepageText = await crawlPageText(baseUrl, source);
+        if (homepageText) {
+            const emails = extractEmailsFromText(homepageText);
+            for (const e of emails) allEmails.add(e);
+            if (emails.length > 0) foundOnPage = '/';
+        }
+    } catch { /* Homepage nicht erreichbar */ }
+
+    if (emailFinderAbort) return { emails: [...allEmails], foundOnPage };
+
+    // 2. Kontakt-Links aus Homepage harvesten (deutlich bessere Trefferquote)
+    const harvestedPaths = homepageText ? harvestContactLinks(homepageText, baseUrl) : [];
+
+    // 3. Kanddiaten zusammenstellen: geerntete Links zuerst, dann bekannte Pfade
+    const knownPaths = EMAIL_SUBPAGES.filter(p => p !== ''); // Homepage schon gecheckt
+    const candidates = [
+        ...harvestedPaths.filter(h => !knownPaths.includes(h)),  // geerntete first
+        ...knownPaths,
+    ];
+
+    for (const subpage of candidates) {
         if (emailFinderAbort) break;
+        // Abbrechen wenn genug E-Mails und mind. 3 Seiten gecheckt
+        if (allEmails.size > 0 && candidates.indexOf(subpage) >= 3) break;
+
         const url = baseUrl + subpage;
         try {
             const text = await crawlPageText(url, source);
@@ -4665,13 +4762,9 @@ async function findEmailsForProvider(provider, source) {
             const emails = extractEmailsFromText(text);
             if (emails.length > 0) {
                 for (const e of emails) allEmails.add(e);
-                if (!foundOnPage) foundOnPage = subpage || '/';
+                if (!foundOnPage) foundOnPage = subpage;
             }
-        } catch {
-            // Subpage nicht erreichbar – weiter
-        }
-        // Wenn wir schon E-Mails gefunden haben und mind. Impressum gecheckt, reicht das
-        if (allEmails.size > 0 && EMAIL_SUBPAGES.indexOf(subpage) >= 2) break;
+        } catch { /* Subpage nicht erreichbar */ }
     }
 
     return { emails: [...allEmails], foundOnPage };
@@ -4703,31 +4796,57 @@ async function startEmailFinder() {
 
     emailFinderLog(`Starte E-Mail-Suche: Filter="${filter}", Max=${limit}, Quelle=${source}`, 'info');
 
-    // 1. Betriebe aus Supabase laden
+    // 1. Betriebe aus Supabase laden – ALLE passenden, nicht nur die ersten 500
     try {
-        let query = supabaseClient.from('service_providers')
-            .select('id, name, category, city, website, email');
+        let toProcess = [];
 
         if (filter === 'missing_email') {
-            query = query.not('website', 'is', null).not('website', 'eq', '');
-            // email IS NULL oder leer
-        }
+            // Server-seitig filtern: Website vorhanden UND E-Mail fehlt (NULL oder leer).
+            // Wir nutzen zwei Queries (NULL | leer) und fusionieren, da PostgREST
+            // für "IS NULL OR = ''" kein einzelnes Filter-Preset hat.
+            const [resNull, resEmpty] = await Promise.all([
+                supabaseClient.from('service_providers')
+                    .select('id, name, category, city, website, email')
+                    .not('website', 'is', null)
+                    .not('website', 'eq', '')
+                    .is('email', null)
+                    .order('name')
+                    .limit(limit * 4), // Oversampling, falls manche ohne Website
+                supabaseClient.from('service_providers')
+                    .select('id, name, category, city, website, email')
+                    .not('website', 'is', null)
+                    .not('website', 'eq', '')
+                    .eq('email', '')
+                    .order('name')
+                    .limit(limit * 2),
+            ]);
+            if (resNull.error) throw resNull.error;
+            if (resEmpty.error) throw resEmpty.error;
 
-        const { data: providers, error } = await query.limit(500);
-        if (error) throw error;
-
-        // Client-seitiger Filter (Supabase OR-Filter für NULL + leer ist umständlich)
-        let filtered;
-        if (filter === 'missing_email') {
-            filtered = providers.filter(p => p.website && (!p.email || p.email.trim() === ''));
+            const seen = new Set();
+            const combined = [...(resNull.data || []), ...(resEmpty.data || [])];
+            for (const p of combined) {
+                if (!seen.has(p.id) && p.website && p.website.trim() !== '') {
+                    seen.add(p.id);
+                    toProcess.push(p);
+                    if (toProcess.length >= limit) break;
+                }
+            }
+            emailFinderLog(`📋 ${toProcess.length} Betriebe ohne E-Mail (mit Website) geladen`, 'info');
         } else {
-            filtered = providers.filter(p => p.website && p.website.trim() !== '');
+            // Alle mit Website
+            const { data, error } = await supabaseClient.from('service_providers')
+                .select('id, name, category, city, website, email')
+                .not('website', 'is', null)
+                .not('website', 'eq', '')
+                .order('name')
+                .limit(limit);
+            if (error) throw error;
+            toProcess = (data || []).filter(p => p.website && p.website.trim() !== '');
+            emailFinderLog(`📋 ${toProcess.length} Betriebe mit Website geladen`, 'info');
         }
 
-        // Limit anwenden
-        const toProcess = filtered.slice(0, limit);
-
-        emailFinderLog(`${filtered.length} Betriebe gefunden, verarbeite ${toProcess.length}`, 'info');
+        emailFinderLog(`▶ Verarbeite ${toProcess.length} Betrieb(e)...`, 'info');
 
         // 2. Für jeden Betrieb E-Mails suchen
         let found = 0, notFound = 0, errors = 0;
@@ -4747,9 +4866,26 @@ async function startEmailFinder() {
 
             try {
                 const result = await findEmailsForProvider(p, source);
-                if (result.emails.length > 0) {
-                    found++;
-                    emailFinderLog(`  ✉️ ${result.emails.join(', ')} (${result.foundOnPage})`, 'success');
+                let emails = result.emails;
+                let foundOnPage = result.foundOnPage;
+                let isGuessed = false;
+
+                // Domain-Rateversuch als Fallback (wenn Checkbox aktiv)
+                if (emails.length === 0 && document.getElementById('email-guess-fallback')?.checked) {
+                    const guesses = guessDomainEmails(p.website);
+                    if (guesses.length > 0) {
+                        emails = guesses;
+                        foundOnPage = '(Rateversuch)';
+                        isGuessed = true;
+                        emailFinderLog(`  💡 Kein Fund – Domain-Rateversuch: ${guesses.slice(0,2).join(', ')}...`, 'warn');
+                    }
+                }
+
+                if (emails.length > 0) {
+                    if (!isGuessed) found++;
+                    else notFound++; // Rateversuche gelten als "nicht sicher gefunden"
+                    const icon = isGuessed ? '💡' : '✉️';
+                    emailFinderLog(`  ${icon} ${emails.join(', ')} (${foundOnPage})`, isGuessed ? 'warn' : 'success');
                     emailFinderResults.push({
                         id: p.id,
                         name: p.name,
@@ -4757,9 +4893,10 @@ async function startEmailFinder() {
                         city: p.city,
                         website: p.website,
                         oldEmail: p.email || '',
-                        newEmails: result.emails,
-                        foundOnPage: result.foundOnPage,
-                        selectedEmail: result.emails[0] // Default: erste gefundene
+                        newEmails: emails,
+                        foundOnPage,
+                        isGuessed,
+                        selectedEmail: emails[0]
                     });
                 } else {
                     notFound++;
@@ -4773,7 +4910,9 @@ async function startEmailFinder() {
 
         if (fillEl) fillEl.style.width = '100%';
         if (textEl) textEl.textContent = 'Fertig!';
-        emailFinderLog(`\n✅ Ergebnis: ${found} E-Mails gefunden, ${notFound} ohne, ${errors} Fehler`, 'success');
+        const guessedCount = emailFinderResults.filter(r => r.isGuessed).length;
+        const foundNote = guessedCount > 0 ? ` (+ ${guessedCount} Rateversuche)` : '';
+        emailFinderLog(`\n✅ Ergebnis: ${found} E-Mails gefunden${foundNote}, ${notFound} ohne, ${errors} Fehler`, 'success');
 
         showEmailFinderResults();
 
@@ -4801,30 +4940,37 @@ function showEmailFinderResults() {
     }
 
     section.style.display = 'block';
-    list.innerHTML = emailFinderResults.map((r, idx) => `
-        <div style="background:white; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px; margin-bottom:8px; font-size:13px;">
+    list.innerHTML = emailFinderResults.map((r, idx) => {
+        const borderColor = r.isGuessed ? '#fde68a' : '#e2e8f0';
+        const emailColor = r.isGuessed ? '#d97706' : '#10b981';
+        const labelText = r.isGuessed ? '💡 Rateversuch' : '✉️ Gefunden';
+        const labelBg = r.isGuessed ? '#fef9c3' : '#dcfce7';
+        const labelFg = r.isGuessed ? '#92400e' : '#166534';
+        return `
+        <div style="background:white; border:1px solid ${borderColor}; border-radius:8px; padding:14px 16px; margin-bottom:8px; font-size:13px;">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-                <input type="checkbox" class="email-cb" data-idx="${idx}" checked style="width:auto;">
+                <input type="checkbox" class="email-cb" data-idx="${idx}" ${r.isGuessed ? '' : 'checked'} style="width:auto;">
                 <strong style="font-size:14px;">${esc(r.name)}</strong>
                 <span style="background:#dbeafe; color:#1d4ed8; padding:1px 6px; border-radius:10px; font-size:11px;">${esc(r.category)}</span>
                 <span style="color:#6b7280; font-size:12px;">${esc(r.city || '')}</span>
+                <span style="background:${labelBg}; color:${labelFg}; padding:1px 6px; border-radius:10px; font-size:11px;">${labelText}</span>
                 <a href="${esc(r.website)}" target="_blank" style="font-size:11px; color:#3b82f6; margin-left:auto;">🌐 Website</a>
             </div>
             <div style="margin-left:24px;">
                 ${r.oldEmail ? `<div style="margin-bottom:4px;"><span style="color:#6b7280;">Bisherige E-Mail:</span> <span style="color:#ef4444; text-decoration:line-through;">${esc(r.oldEmail)}</span></div>` : ''}
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="font-weight:600; color:#374151;">Neue E-Mail:</span>
+                    <span style="font-weight:600; color:#374151;">${r.isGuessed ? 'Vorschlag:' : 'Neue E-Mail:'}</span>
                     ${r.newEmails.length === 1
-                        ? `<span style="color:#10b981; font-weight:600;">${esc(r.newEmails[0])}</span>`
+                        ? `<span style="color:${emailColor}; font-weight:600;">${esc(r.newEmails[0])}</span>`
                         : `<select class="email-select" data-idx="${idx}" style="font-size:13px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px;">
                             ${r.newEmails.map(e => `<option value="${esc(e)}" ${e === r.selectedEmail ? 'selected' : ''}>${esc(e)}</option>`).join('')}
                            </select>`
                     }
-                    <span style="color:#94a3b8; font-size:11px;">gefunden auf: ${esc(r.foundOnPage)}</span>
+                    <span style="color:#94a3b8; font-size:11px;">${esc(r.foundOnPage)}</span>
                 </div>
             </div>
         </div>
-    `).join('');
+    `}).join('');
 
     // Dropdown-Event für E-Mail-Auswahl
     list.querySelectorAll('.email-select').forEach(sel => {
@@ -4868,12 +5014,51 @@ async function applySelectedEmails() {
     if (btn) { btn.disabled = false; btn.textContent = '💾 Ausgewählte speichern'; }
 }
 
+/**
+ * Lädt Statistik: wie viele Betriebe haben Website aber keine E-Mail?
+ * Wird beim Öffnen der Update-Suche-Seite und per Klick auf das Badge aufgerufen.
+ */
+async function loadEmailFinderStats() {
+    const badge = document.getElementById('email-finder-stats');
+    if (!badge) return;
+    try {
+        // count() statt alle Zeilen laden
+        const [resNull, resEmpty] = await Promise.all([
+            supabaseClient.from('service_providers')
+                .select('id', { count: 'exact', head: true })
+                .not('website', 'is', null).not('website', 'eq', '').is('email', null),
+            supabaseClient.from('service_providers')
+                .select('id', { count: 'exact', head: true })
+                .not('website', 'is', null).not('website', 'eq', '').eq('email', ''),
+        ]);
+        const total = (resNull.count || 0) + (resEmpty.count || 0);
+        badge.textContent = `📊 ${total.toLocaleString('de-DE')} ohne E-Mail`;
+        badge.title = `${total} Betriebe haben eine Website, aber noch keine E-Mail-Adresse`;
+    } catch (err) {
+        badge.textContent = '📊 Fehler';
+        console.warn('loadEmailFinderStats failed:', err);
+    }
+}
+
+/**
+ * Versucht Domain-basiert E-Mails zu raten (info@, kontakt@, mail@).
+ * Gibt Kandidaten zurück – ohne Verifizierung (Treffer nicht garantiert).
+ */
+function guessDomainEmails(website) {
+    try {
+        const url = new URL(website.startsWith('http') ? website : 'https://' + website);
+        const domain = url.hostname.replace(/^www\./, '');
+        return ['info', 'kontakt', 'mail', 'contact', 'info'].map(prefix => `${prefix}@${domain}`);
+    } catch { return []; }
+}
+
 // Window-Export für onclick
 window.startEmailFinder = startEmailFinder;
 window.stopEmailFinder = stopEmailFinder;
 window.selectAllEmails = selectAllEmails;
 window.deselectAllEmails = deselectAllEmails;
 window.applySelectedEmails = applySelectedEmails;
+window.loadEmailFinderStats = loadEmailFinderStats;
 
 // ============================================
 // UPDATE-SUCHE (ENRICHMENT)
