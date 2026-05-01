@@ -316,7 +316,10 @@ class AIChatService {
         guard let userId = client.auth.currentUser?.id else {
             throw AIChatError.notAuthenticated
         }
-        let fileName = "\(userId.uuidString)/\(UUID().uuidString).jpg"
+        // WICHTIG: Pfad muss lowercase sein!
+        // Swift's UUID.uuidString gibt Großbuchstaben zurück, PostgreSQL's
+        // auth.uid()::text liefert Kleinbuchstaben → RLS-Vergleich würde sonst scheitern.
+        let fileName = "\(userId.uuidString.lowercased())/\(UUID().uuidString.lowercased()).jpg"
         _ = try await client.storage
             .from("ai-chat-photos")
             .upload(
