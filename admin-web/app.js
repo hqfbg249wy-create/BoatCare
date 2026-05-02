@@ -4729,6 +4729,48 @@ function extractEmailsFromJsonLD(html) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// QUELLE 1b — Direkte mailto:-Links + data-Attribute im Roh-HTML
+//             (zuverlässigste Quelle: überlebt Markdown-Konversion NICHT)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function extractEmailsFromHtmlLinks(html) {
+    if (!html) return [];
+    const found = new Set();
+    const stdRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/gi;
+
+    // href="mailto:info@..."  — die häufigste Form
+    const mailtoHrefRegex = /href\s*=\s*["']\s*mailto\s*:\s*([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/gi;
+    for (const m of html.matchAll(mailtoHrefRegex)) {
+        found.add(m[1].toLowerCase().trim());
+    }
+
+    // data-email="...", data-mail="...", data-contact-email="..."
+    const dataAttrRegex = /data-(?:email|mail|contact-email|contact)\s*=\s*["']([^"']{3,100})["']/gi;
+    for (const m of html.matchAll(dataAttrRegex)) {
+        for (const e of m[1].matchAll(stdRegex)) found.add(e[0].toLowerCase());
+    }
+
+    // data-href="mailto:..." oder onclick="...mailto:..."
+    const inlineMailto = /(?:data-href|onclick|data-link)\s*=\s*["'][^"']*mailto[:\s]+([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/gi;
+    for (const m of html.matchAll(inlineMailto)) {
+        found.add(m[1].toLowerCase().trim());
+    }
+
+    // Vollständiger Rohtext-Scan des HTML (fängt Emails in Kommentaren, Inline-JS etc.)
+    // — erst Tags entfernen, dann normalen Regex anwenden
+    const stripped = html.replace(/<style[\s\S]*?<\/style>/gi, '')
+                         .replace(/<script[\s\S]*?<\/script>/gi, '')
+                         .replace(/<[^>]+>/g, ' ');
+    for (const m of stripped.matchAll(stdRegex)) {
+        found.add(m[0].toLowerCase());
+    }
+
+    const excluded = /\.(png|jpg|jpeg|gif|svg|css|js|woff|ttf|eot|ico)$/i;
+    const noreply  = /^(noreply|no-reply|mailer-daemon|postmaster|donotreply)/i;
+    return [...found].filter(e => !excluded.test(e) && !noreply.test(e));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // QUELLE 2 — Meta-Tags + hCard/vCard Microformats
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -4846,17 +4888,21 @@ async function lookupRdapEmail(domain) {
 // LINK-HARVESTING aus Homepage
 // ─────────────────────────────────────────────────────────────────────────────
 
-function harvestContactLinks(htmlText, baseUrl) {
-    if (!htmlText) return [];
-    const contactKeywords = /kontakt|impressum|contact|about|imprint|legal|privacy|team|datenschutz|mentions|aviso|chi-siamo|qui-somme/i;
+function harvestContactLinks(html, baseUrl) {
+    if (!html) return [];
+    const contactKeywords = /kontakt|impressum|contact|about|imprint|legal|privacy|team|datenschutz|mentions|aviso|chi-siamo|qui-somme|reach\s*us|get\s*in\s*touch|write\s*us|schreib|erreich/i;
     const links = new Set();
-    const hrefRegex = /href=["']([^"'#?]+)["']/gi;
-    for (const m of htmlText.matchAll(hrefRegex)) {
-        const href = m[1].trim();
-        if (!contactKeywords.test(href)) continue;
+
+    // Vollständige <a>-Tags lesen → href UND Linktext auswerten
+    // Viele Sites haben generische URLs wie /page-47, aber "Kontakt" im Linktext
+    const anchorRegex = /<a\s[^>]*href=["']([^"'#?][^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
+    for (const m of html.matchAll(anchorRegex)) {
+        const href     = m[1].trim();
+        const linkText = m[2].replace(/<[^>]+>/g, ' ').trim();  // inner HTML → plain text
+        if (!contactKeywords.test(href) && !contactKeywords.test(linkText)) continue;
         if (href.startsWith('http')) {
             try {
-                const u = new URL(href);
+                const u    = new URL(href);
                 const base = new URL(baseUrl);
                 if (u.hostname === base.hostname) links.add(u.pathname);
             } catch { /* skip */ }
@@ -4864,7 +4910,7 @@ function harvestContactLinks(htmlText, baseUrl) {
             links.add(href);
         }
     }
-    return [...links].slice(0, 8);
+    return [...links].slice(0, 12);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -4902,8 +4948,9 @@ async function findEmailsForProvider(provider, source) {
         const { text, html } = await crawlPageRaw(baseUrl, source);
         homepageHtml = html || '';
         if (text) addEmails(extractEmailsFromText(text), '/');
+        if (html)  addEmails(extractEmailsFromHtmlLinks(html), '/ (mailto-Link)');
         if (useJsonLD && html) addEmails(extractEmailsFromJsonLD(html), '/ (JSON-LD)');
-        if (html) addEmails(extractEmailsFromMeta(html), '/ (Meta)');
+        if (html)  addEmails(extractEmailsFromMeta(html), '/ (Meta)');
         if (allEmails.size > 0) foundOnPage = foundSource;
     } catch { /* Homepage nicht erreichbar */ }
 
@@ -4919,8 +4966,9 @@ async function findEmailsForProvider(provider, source) {
                     if (emailFinderAbort) break;
                     const { text, html } = await crawlPageRaw(baseUrl + path, source);
                     if (text) addEmails(extractEmailsFromText(text), path + ' (Sitemap)');
+                    if (html)  addEmails(extractEmailsFromHtmlLinks(html), path + ' (Sitemap mailto)');
                     if (useJsonLD && html) addEmails(extractEmailsFromJsonLD(html), path + ' (JSON-LD)');
-                    if (html) addEmails(extractEmailsFromMeta(html), path + ' (Meta)');
+                    if (html)  addEmails(extractEmailsFromMeta(html), path + ' (Meta)');
                     if (allEmails.size > 0) { foundOnPage = foundSource; break; }
                 }
             }
@@ -4942,8 +4990,9 @@ async function findEmailsForProvider(provider, source) {
             try {
                 const { text, html } = await crawlPageRaw(baseUrl + subpage, source);
                 if (text) addEmails(extractEmailsFromText(text), subpage);
+                if (html)  addEmails(extractEmailsFromHtmlLinks(html), subpage + ' (mailto-Link)');
                 if (useJsonLD && html) addEmails(extractEmailsFromJsonLD(html), subpage + ' (JSON-LD)');
-                if (html) addEmails(extractEmailsFromMeta(html), subpage + ' (Meta)');
+                if (html)  addEmails(extractEmailsFromMeta(html), subpage + ' (Meta)');
                 if (allEmails.size > 0) { foundOnPage = foundSource; break; }
             } catch { /* Subpage nicht erreichbar */ }
         }
