@@ -8,7 +8,8 @@ function Stars({ rating, size = 18 }) {
   return (
     <span style={{ display: 'inline-flex', gap: 2 }}>
       {[1, 2, 3, 4, 5].map(i => (
-        <svg key={i} width={size} height={size} viewBox="0 0 24 24" fill={i <= Math.round(rating) ? '#f59e0b' : '#e2e8f0'}>
+        <svg key={i} width={size} height={size} viewBox="0 0 24 24"
+             fill={i <= Math.round(rating) ? '#f59e0b' : '#d1d5db'}>
           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
         </svg>
       ))}
@@ -16,29 +17,44 @@ function Stars({ rating, size = 18 }) {
   )
 }
 
-function Tag({ children, color = '#f1f5f9', text = '#475569' }) {
+function Tag({ children, bg = '#f0fdf4', color = '#166534', border = '#bbf7d0' }) {
   return (
     <span style={{
-      display: 'inline-block', padding: '3px 10px', borderRadius: 20,
-      background: color, color: text, fontSize: 13, fontWeight: 500,
+      display: 'inline-block', padding: '5px 12px', borderRadius: 20,
+      background: bg, color, fontSize: 13, fontWeight: 500,
+      border: `1px solid ${border}`,
     }}>
       {children}
     </span>
   )
 }
 
-function InfoRow({ icon, label, value, href }) {
-  if (!value) return null
+function ActionBtn({ icon, label, href, bg = '#eff6ff', color = '#1d4ed8' }) {
   return (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-      <span style={{ fontSize: 18, width: 24, flexShrink: 0, textAlign: 'center' }}>{icon}</span>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 2 }}>{label}</div>
-        {href
-          ? <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6', wordBreak: 'break-all' }}>{value}</a>
-          : <div style={{ color: '#1e293b', wordBreak: 'break-word' }}>{value}</div>
-        }
-      </div>
+    <a href={href} target={href?.startsWith('http') ? '_blank' : undefined}
+       rel="noopener noreferrer"
+       style={{
+         display: 'flex', flexDirection: 'column', alignItems: 'center',
+         gap: 6, padding: '14px 8px', borderRadius: 12,
+         background: bg, color, textDecoration: 'none',
+         fontSize: 13, fontWeight: 600, flex: 1,
+         border: '1px solid rgba(0,0,0,0.06)',
+         transition: 'opacity .15s',
+       }}
+       onMouseOver={e => e.currentTarget.style.opacity = '.8'}
+       onMouseOut={e => e.currentTarget.style.opacity = '1'}
+    >
+      <span style={{ fontSize: 22 }}>{icon}</span>
+      {label}
+    </a>
+  )
+}
+
+function Section({ title, children }) {
+  return (
+    <div style={s.section}>
+      <h3 style={s.sectionTitle}>{title}</h3>
+      {children}
     </div>
   )
 }
@@ -48,7 +64,7 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function ProviderPublicProfile() {
   const { id } = useParams()
@@ -61,233 +77,201 @@ export default function ProviderPublicProfile() {
     if (!id) return
     setLoading(true)
     Promise.all([
-      supabase
-        .from('service_providers')
-        .select('*')
-        .eq('id', id)
-        .single(),
-      supabase
-        .from('reviews')
-        .select('id, rating, comment, created_at, user_id')
+      supabase.from('service_providers').select('*').eq('id', id).single(),
+      supabase.from('reviews')
+        .select('id, rating, comment, created_at')
         .eq('service_provider_id', id)
         .order('created_at', { ascending: false }),
-    ]).then(([provRes, revRes]) => {
-      if (provRes.error) { setError('Provider nicht gefunden.'); setLoading(false); return }
-      setProvider(provRes.data)
-      setReviews(revRes.data || [])
+    ]).then(([pRes, rRes]) => {
+      if (pRes.error) { setError('Provider nicht gefunden.'); setLoading(false); return }
+      setProvider(pRes.data)
+      setReviews(rRes.data || [])
       setLoading(false)
     })
   }, [id])
 
   if (loading) return (
-    <div style={styles.center}>
-      <div style={styles.spinner} />
+    <div style={s.center}>
+      <div style={s.spinner} />
       <p style={{ color: '#64748b', marginTop: 12 }}>Lade Profil…</p>
     </div>
   )
 
   if (error || !provider) return (
-    <div style={styles.center}>
+    <div style={s.center}>
       <p style={{ fontSize: 48 }}>😕</p>
       <h2 style={{ marginTop: 8 }}>Provider nicht gefunden</h2>
       <p style={{ color: '#64748b', marginTop: 4 }}>{error}</p>
     </div>
   )
 
-  const cats = [provider.category, provider.category2, provider.category3].filter(Boolean)
+  const cats     = [provider.category, provider.category2, provider.category3].filter(Boolean)
   const brands   = Array.isArray(provider.brands)   ? provider.brands   : []
   const services = Array.isArray(provider.services) ? provider.services : []
   const avgRating = reviews.length
-    ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
-    : null
-  const address = [provider.street, provider.postal_code, provider.city, provider.country]
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : null
+  const address  = [provider.street, provider.postal_code, provider.city, provider.country]
     .filter(Boolean).join(', ')
-  const mapsUrl = provider.latitude && provider.longitude
+  const mapsUrl  = provider.latitude && provider.longitude
     ? `https://www.google.com/maps?q=${provider.latitude},${provider.longitude}`
     : address ? `https://www.google.com/maps/search/${encodeURIComponent(address)}` : null
+  const website  = provider.website
+    ? (provider.website.startsWith('http') ? provider.website : `https://${provider.website}`) : null
 
   return (
-    <div style={styles.page}>
-      {/* Back link */}
-      <div style={{ marginBottom: 20 }}>
-        <Link to="/" style={{ color: '#64748b', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          ← Zurück
-        </Link>
+    <div style={s.page}>
+
+      {/* ── Hero Banner ─────────────────────────────────────────── */}
+      <div style={s.hero}>
+        <Link to="/" style={s.backBtn}>‹ Zurück</Link>
+        {/* Großes, zentriertes Logo */}
+        <div style={s.avatarWrap}>
+          {provider.logo_url
+            ? <img src={provider.logo_url} alt={provider.name}
+                   style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 20 }} />
+            : <span style={{ fontSize: 44, color: '#94a3b8' }}>⚓</span>
+          }
+        </div>
       </div>
 
-      {/* Header Card */}
-      <div style={styles.card}>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <div style={styles.avatar}>
-            {provider.name?.charAt(0).toUpperCase()}
+      {/* ── Identity ─────────────────────────────────────────────── */}
+      <div style={s.identity}>
+        <h1 style={s.name}>{provider.name}</h1>
+
+        {cats.length > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+            {cats.map(c => (
+              <span key={c} style={s.catPill}>
+                <span style={{ marginRight: 4 }}>⚓</span>{c}
+              </span>
+            ))}
           </div>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a' }}>{provider.name}</h1>
-              {provider.is_verified && (
-                <span title="Verifiziert" style={{ color: '#3b82f6', fontSize: 18 }}>✓</span>
+        )}
+
+        {avgRating && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
+            <Stars rating={parseFloat(avgRating)} size={18} />
+            <span style={{ fontWeight: 700, color: '#1e293b' }}>{avgRating}</span>
+            <span style={{ color: '#94a3b8', fontSize: 14 }}>
+              ({reviews.length} Bewertung{reviews.length !== 1 ? 'en' : ''})
+            </span>
+          </div>
+        )}
+
+        {address && (
+          <a href={mapsUrl || '#'} target="_blank" rel="noopener noreferrer" style={s.addressRow}>
+            <span style={{ color: '#ef4444', fontSize: 16 }}>📍</span>
+            <span style={{ color: '#475569', fontSize: 14 }}>{address}</span>
+          </a>
+        )}
+      </div>
+
+      {/* ── Action Buttons ───────────────────────────────────────── */}
+      {(mapsUrl || website || provider.phone || provider.email) && (
+        <div style={s.actionRow}>
+          {mapsUrl    && <ActionBtn icon="↗" label="Route"    href={mapsUrl} bg="#eef2ff" color="#4338ca" />}
+          {website    && <ActionBtn icon="🌐" label="Website"  href={website} bg="#f5f3ff" color="#7c3aed" />}
+          {provider.phone && <ActionBtn icon="📞" label="Anrufen" href={`tel:${provider.phone}`} bg="#f0fdf4" color="#15803d" />}
+          {provider.email && <ActionBtn icon="✉️" label="E-Mail"  href={`mailto:${provider.email}`} bg="#eff6ff" color="#1d4ed8" />}
+        </div>
+      )}
+
+      {/* ── Content Card ─────────────────────────────────────────── */}
+      <div style={s.card}>
+
+        {/* Beschreibung */}
+        {provider.description && (
+          <div style={{ padding: '16px 0', borderBottom: '1px solid #f1f5f9' }}>
+            <p style={{ color: '#475569', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-line' }}>
+              {provider.description}
+            </p>
+          </div>
+        )}
+
+        {/* Kontakt-Details */}
+        {(provider.opening_hours || provider.phone || provider.email || website) && (
+          <Section title="Kontakt">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {provider.opening_hours && (
+                <div style={s.infoRow}>
+                  <span style={s.infoIcon}>🕐</span>
+                  <div><div style={s.infoLabel}>Öffnungszeiten</div>{provider.opening_hours}</div>
+                </div>
               )}
-            </div>
-
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-              {cats.map(c => <Tag key={c}>{c}</Tag>)}
-            </div>
-
-            {avgRating && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-                <Stars rating={parseFloat(avgRating)} />
-                <span style={{ fontWeight: 600, color: '#1e293b' }}>{avgRating}</span>
-                <span style={{ color: '#94a3b8', fontSize: 14 }}>({reviews.length} Bewertung{reviews.length !== 1 ? 'en' : ''})</span>
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
               {provider.phone && (
-                <a href={`tel:${provider.phone}`} style={styles.actionBtn}>📞 Anrufen</a>
+                <div style={s.infoRow}>
+                  <span style={s.infoIcon}>📞</span>
+                  <div><div style={s.infoLabel}>Telefon</div>
+                    <a href={`tel:${provider.phone}`} style={{ color: '#3b82f6' }}>{provider.phone}</a>
+                  </div>
+                </div>
               )}
               {provider.email && (
-                <a href={`mailto:${provider.email}`} style={styles.actionBtn}>✉️ E-Mail</a>
-              )}
-              {provider.website && (
-                <a href={provider.website.startsWith('http') ? provider.website : `https://${provider.website}`}
-                   target="_blank" rel="noopener noreferrer" style={styles.actionBtn}>🌐 Website</a>
-              )}
-              {mapsUrl && (
-                <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ ...styles.actionBtn, background: '#dcfce7', color: '#166534' }}>
-                  📍 Route
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={styles.grid}>
-        {/* Left column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-          {/* Beschreibung */}
-          {provider.description && (
-            <div style={styles.card}>
-              <h2 style={styles.sectionTitle}>Über uns</h2>
-              <p style={{ color: '#334155', lineHeight: 1.7, whiteSpace: 'pre-line' }}>{provider.description}</p>
-            </div>
-          )}
-
-          {/* Kontakt & Standort */}
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>Kontakt & Standort</h2>
-            <InfoRow icon="📍" label="Adresse" value={address} href={mapsUrl} />
-            <InfoRow icon="📞" label="Telefon" value={provider.phone} href={`tel:${provider.phone}`} />
-            <InfoRow icon="✉️" label="E-Mail" value={provider.email} href={`mailto:${provider.email}`} />
-            <InfoRow icon="🌐" label="Website" value={provider.website}
-              href={provider.website?.startsWith('http') ? provider.website : `https://${provider.website}`} />
-            {provider.opening_hours && (
-              <InfoRow icon="🕐" label="Öffnungszeiten" value={provider.opening_hours} />
-            )}
-          </div>
-
-          {/* Mini-Karte via OpenStreetMap Embed */}
-          {provider.latitude && provider.longitude && (
-            <div style={styles.card}>
-              <h2 style={styles.sectionTitle}>Karte</h2>
-              <div style={{ borderRadius: 10, overflow: 'hidden', height: 260 }}>
-                <iframe
-                  title="Standort"
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0, display: 'block' }}
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${provider.longitude - 0.01},${provider.latitude - 0.01},${provider.longitude + 0.01},${provider.latitude + 0.01}&layer=mapnik&marker=${provider.latitude},${provider.longitude}`}
-                />
-              </div>
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ display: 'block', textAlign: 'center', marginTop: 8, fontSize: 13, color: '#3b82f6' }}
-              >
-                In Google Maps öffnen →
-              </a>
-            </div>
-          )}
-        </div>
-
-        {/* Right column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-          {/* Marken */}
-          {brands.length > 0 && (
-            <div style={styles.card}>
-              <h2 style={styles.sectionTitle}>🔧 Marken</h2>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                {brands.map(b => <Tag key={b} color="#eff6ff" text="#1d4ed8">{b}</Tag>)}
-              </div>
-            </div>
-          )}
-
-          {/* Services */}
-          {services.length > 0 && (
-            <div style={styles.card}>
-              <h2 style={styles.sectionTitle}>⚙️ Leistungen</h2>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                {services.map(s => <Tag key={s} color="#f0fdf4" text="#166534">{s}</Tag>)}
-              </div>
-            </div>
-          )}
-
-          {/* Bewertungen */}
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>
-              ⭐ Bewertungen
-              {reviews.length > 0 && (
-                <span style={{ fontSize: 14, fontWeight: 400, color: '#64748b', marginLeft: 8 }}>
-                  ∅ {avgRating} · {reviews.length} Einträge
-                </span>
-              )}
-            </h2>
-
-            {reviews.length === 0 ? (
-              <p style={{ color: '#94a3b8', fontStyle: 'italic', marginTop: 8 }}>Noch keine Bewertungen vorhanden.</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 10 }}>
-                {reviews.map(r => (
-                  <div key={r.id} style={styles.reviewCard}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <Stars rating={r.rating} size={16} />
-                      <span style={{ fontSize: 12, color: '#94a3b8' }}>{formatDate(r.created_at)}</span>
-                    </div>
-                    {r.comment && (
-                      <p style={{ color: '#334155', lineHeight: 1.6, fontSize: 14, margin: 0, whiteSpace: 'pre-line' }}>
-                        „{r.comment}"
-                      </p>
-                    )}
-                    <div style={{ marginTop: 6, fontSize: 12, color: '#94a3b8' }}>
-                      — Eigner
-                    </div>
+                <div style={s.infoRow}>
+                  <span style={s.infoIcon}>✉️</span>
+                  <div><div style={s.infoLabel}>E-Mail</div>
+                    <a href={`mailto:${provider.email}`} style={{ color: '#3b82f6', wordBreak: 'break-all' }}>{provider.email}</a>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+              {website && (
+                <div style={s.infoRow}>
+                  <span style={s.infoIcon}>🌐</span>
+                  <div><div style={s.infoLabel}>Website</div>
+                    <a href={website} target="_blank" rel="noopener noreferrer"
+                       style={{ color: '#3b82f6', wordBreak: 'break-all' }}>{provider.website}</a>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Section>
+        )}
 
-          {/* Meta-Infos */}
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>ℹ️ Details</h2>
-            {provider.created_at && (
-              <InfoRow icon="📅" label="Eingetragen am" value={formatDate(provider.created_at)} />
-            )}
-            {provider.review_count != null && (
-              <InfoRow icon="💬" label="Bewertungen" value={`${provider.review_count}`} />
-            )}
-            {provider.rating != null && provider.rating > 0 && (
-              <InfoRow icon="⭐" label="Ø Bewertung" value={`${Number(provider.rating).toFixed(1)} / 5`} />
-            )}
-          </div>
-        </div>
+        {/* Leistungen */}
+        {services.length > 0 && (
+          <Section title="🔑 Leistungen">
+            <div style={s.tagRow}>
+              {services.map(s2 => <Tag key={s2}>{s2}</Tag>)}
+            </div>
+          </Section>
+        )}
+
+        {/* Marken */}
+        {brands.length > 0 && (
+          <Section title="🏷 Marken">
+            <div style={s.tagRow}>
+              {brands.map(b => <Tag key={b} bg="#fff7ed" color="#c2410c" border="#fed7aa">{b}</Tag>)}
+            </div>
+          </Section>
+        )}
+
+        {/* Bewertungen */}
+        <Section title={`⭐ Bewertungen${avgRating ? `  ·  ∅ ${avgRating}` : ''}`}>
+          {reviews.length === 0 ? (
+            <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>Noch keine Bewertungen.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {reviews.map(r => (
+                <div key={r.id} style={s.reviewCard}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <Stars rating={r.rating} size={15} />
+                    <span style={{ fontSize: 12, color: '#94a3b8' }}>{formatDate(r.created_at)}</span>
+                  </div>
+                  {r.comment && (
+                    <p style={{ color: '#334155', fontSize: 14, lineHeight: 1.65, margin: 0 }}>
+                      „{r.comment}"
+                    </p>
+                  )}
+                  <div style={{ marginTop: 6, fontSize: 12, color: '#94a3b8' }}>— Eigner</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
       </div>
 
-      {/* Footer */}
-      <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 13, marginTop: 32, paddingBottom: 24 }}>
+      <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 13, padding: '16px 0 32px' }}>
         Powered by <strong style={{ color: '#f97316' }}>Skipily</strong>
       </div>
     </div>
@@ -296,61 +280,105 @@ export default function ProviderPublicProfile() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = {
+const s = {
   page: {
-    maxWidth: 1000,
+    maxWidth: 640,
     margin: '0 auto',
-    padding: '24px 16px',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    background: '#f8fafc',
+    minHeight: '100vh',
   },
   center: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    minHeight: '60vh', textAlign: 'center', padding: 24,
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    justifyContent: 'center', minHeight: '60vh', textAlign: 'center', padding: 24,
   },
   spinner: {
     width: 36, height: 36, border: '3px solid #e2e8f0',
     borderTop: '3px solid #f97316', borderRadius: '50%',
     animation: 'spin 0.8s linear infinite',
   },
+  // ── Hero ──
+  hero: {
+    position: 'relative',
+    height: 180,
+    background: 'linear-gradient(160deg, #94a3b8 0%, #cbd5e1 60%, #e2e8f0 100%)',
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  backBtn: {
+    position: 'absolute', top: 16, left: 16,
+    background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)',
+    border: 'none', borderRadius: 20, padding: '6px 14px',
+    fontSize: 14, fontWeight: 600, color: '#334155',
+    textDecoration: 'none', cursor: 'pointer',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+  },
+  avatarWrap: {
+    width: 100, height: 100,
+    background: '#fff',
+    borderRadius: 22,
+    border: '3px solid #fff',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: -48,  // halb rausragen lassen
+    zIndex: 10,
+  },
+  // ── Identity ──
+  identity: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    padding: '60px 20px 16px',  // oben Platz für heraussteckendes Avatar
+    textAlign: 'center',
+  },
+  name: {
+    fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 8,
+  },
+  catPill: {
+    display: 'inline-flex', alignItems: 'center',
+    padding: '4px 12px', borderRadius: 20,
+    background: '#f0f9ff', color: '#0369a1',
+    fontSize: 13, fontWeight: 600,
+    border: '1px solid #bae6fd',
+  },
+  addressRow: {
+    display: 'flex', alignItems: 'center', gap: 6,
+    textDecoration: 'none', padding: '6px 0',
+  },
+  // ── Action Buttons ──
+  actionRow: {
+    display: 'flex', gap: 10, padding: '0 16px 16px',
+  },
+  // ── Card ──
   card: {
     background: '#fff',
-    borderRadius: 14,
-    padding: '20px 24px',
+    borderRadius: 16,
+    margin: '0 12px',
     boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
     border: '1px solid #f1f5f9',
+    overflow: 'hidden',
   },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: 16,
-    marginTop: 16,
+  section: {
+    padding: '16px 20px',
+    borderBottom: '1px solid #f8fafc',
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: 700,
-    color: '#1e293b',
-    marginBottom: 12,
-    paddingBottom: 8,
-    borderBottom: '1px solid #f1f5f9',
+    fontSize: 15, fontWeight: 700, color: '#1e293b', marginBottom: 12,
   },
-  avatar: {
-    width: 64, height: 64, borderRadius: 14,
-    background: 'linear-gradient(135deg, #f97316, #ea580c)',
-    color: '#fff', fontSize: 28, fontWeight: 700,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0,
+  tagRow: {
+    display: 'flex', flexWrap: 'wrap', gap: 6,
   },
-  actionBtn: {
-    display: 'inline-flex', alignItems: 'center', gap: 5,
-    padding: '7px 14px', borderRadius: 8,
-    background: '#eff6ff', color: '#1d4ed8',
-    fontSize: 14, fontWeight: 500, textDecoration: 'none',
-    border: '1px solid #bfdbfe',
+  infoRow: {
+    display: 'flex', gap: 12, alignItems: 'flex-start',
+  },
+  infoIcon: {
+    fontSize: 18, width: 24, flexShrink: 0, textAlign: 'center', marginTop: 2,
+  },
+  infoLabel: {
+    fontSize: 11, color: '#94a3b8', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.05em',
   },
   reviewCard: {
-    background: '#f8fafc',
-    borderRadius: 10,
-    padding: '12px 16px',
-    borderLeft: '3px solid #f59e0b',
+    background: '#f8fafc', borderRadius: 10,
+    padding: '12px 14px', borderLeft: '3px solid #f59e0b',
   },
 }
