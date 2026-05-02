@@ -257,14 +257,18 @@ export default function ProviderDetail() {
           <div className="pd-prompt-card" onClick={e => e.stopPropagation()}>
             <p className="pd-prompt-text">
               Für <strong>„{servicePrompt.label}"</strong> gibt es bei {provider.name} keine Produkte im Shop.
-              Soll bei allen Anbietern gesucht werden?
+              Wie möchtest du weitersuchen?
             </p>
-            <div className="pd-prompt-btns">
-              <button className="pd-prompt-cancel" onClick={() => setServicePrompt(null)}>Abbrechen</button>
+            <div className="pd-prompt-btns" style={{ flexDirection: 'column' }}>
               <button className="pd-prompt-confirm" onClick={() => {
                 setServicePrompt(null)
                 navigate(`/shop?q=${servicePrompt.query}`)
-              }}>Alle durchsuchen</button>
+              }}>🛒 Im Shop weitere Anbieter suchen</button>
+              <button className="pd-prompt-confirm" style={{ background: '#7c3aed' }} onClick={() => {
+                setServicePrompt(null)
+                navigate(`/services?search=${servicePrompt.query}`)
+              }}>🔍 Anderen Service-Partner finden</button>
+              <button className="pd-prompt-cancel" onClick={() => setServicePrompt(null)}>Abbrechen</button>
             </div>
           </div>
         </div>
