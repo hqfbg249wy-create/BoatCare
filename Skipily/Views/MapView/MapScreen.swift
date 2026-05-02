@@ -914,15 +914,21 @@ struct MapScreen: View {
                         guard !Task.isCancelled else { return }
 
                         if parts.count == 2 {
-                            // Erst Teil nach Komma als Ort versuchen ("Yanmar, Séte")
+                            // Kombi-Suche: beide Teile prüfen — welcher ist der Ort?
+                            // Schritt 1: Teil nach Komma als Ort probieren ("Yanmar, Séte")
                             combiKeyword = parts[0]
                             locationSearch.updateQuery(parts[1], near: currentRegion)
-                            // Nach 700 ms: falls keine Suggestions → Seiten tauschen ("Séte, Yanmar")
+                            // Schritt 2: Nach 500 ms prüfen ob Treffer geografisch sind.
+                            // Firmen-POIs (z.B. "Yanmar Stadion") haben Straßen-Adressen
+                            // im Untertitel — dann Seiten tauschen.
                             combiRetryTask = Task {
-                                try? await Task.sleep(nanoseconds: 700_000_000)
-                                guard !Task.isCancelled, locationSearch.suggestions.isEmpty else { return }
-                                combiKeyword = parts[1]
-                                locationSearch.updateQuery(parts[0], near: currentRegion)
+                                try? await Task.sleep(nanoseconds: 500_000_000)
+                                guard !Task.isCancelled else { return }
+                                let sugg = locationSearch.suggestions
+                                if sugg.isEmpty || !isGeographicResults(sugg, query: parts[1]) {
+                                    combiKeyword = parts[1]
+                                    locationSearch.updateQuery(parts[0], near: currentRegion)
+                                }
                             }
                         } else {
                             combiKeyword = ""
@@ -1354,6 +1360,22 @@ struct MapScreen: View {
         }
     }
     
+    /// Prüft ob Apple-Maps-Suggestions geografische Orte sind (Stadt/Land)
+    /// oder Firmen-POIs (Straße + Hausnummer im Untertitel).
+    /// Beispiel geografisch: "Sète" · "Frankreich"
+    /// Beispiel Firma:       "Yanmar Stadion" · "Competitieweg 20, Almere"
+    private func isGeographicResults(_ suggestions: [MKLocalSearchCompletion], query: String) -> Bool {
+        guard let top = suggestions.first else { return false }
+        let q = query.lowercased().trimmingCharacters(in: .whitespaces)
+        // Firmen-Indikator 1: Untertitel enthält Ziffern (Straßenadresse)
+        let subtitleHasDigits = top.subtitle.range(of: "\\d", options: .regularExpression) != nil
+        // Firmen-Indikator 2: Titel beginnt mit dem Suchbegriff (z.B. "Yanmar Stadion" bei Query "yanmar")
+        let titleStartsWithQuery = top.title.lowercased().hasPrefix(q)
+        // Wenn beides zutrifft → Firmen-Treffer, kein Ort
+        if titleStartsWithQuery && subtitleHasDigits { return false }
+        return true
+    }
+
     private func performSearch() {
         // Kombi-Suche ("Marke, Ort") oder reine Orts-Suche:
         // besten Apple-Maps-Vorschlag automatisch übernehmen → kein Extra-Tippen nötig.
