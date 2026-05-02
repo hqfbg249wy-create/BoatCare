@@ -681,3 +681,13 @@ a { color: var(--blue); text-decoration: none; }
   .shop-product-grid { grid-template-columns: 1fr; }
   .pd-contact-grid { grid-template-columns: 1fr 1fr; }
 }
+
+/* ── Provider Reviews ── */
+.pd-reviews-list { display: flex; flex-direction: column; gap: 10px; }
+.pd-review-card { background: #f8fafc; border-radius: 10px; padding: 12px 14px; border-left: 3px solid #f59e0b; }
+.pd-review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.pd-review-stars { display: flex; gap: 2px; }
+.pd-review-date { font-size: 12px; color: #94a3b8; }
+.pd-review-comment { color: #334155; font-size: 14px; line-height: 1.65; margin: 0 0 6px; }
+.pd-review-author { font-size: 12px; color: #94a3b8; }
+.pd-empty-reviews { color: #94a3b8; font-style: italic; margin: 0; }

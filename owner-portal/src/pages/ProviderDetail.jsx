@@ -58,6 +58,7 @@ export default function ProviderDetail() {
   const navigate = useNavigate()
   const [provider, setProvider] = useState(null)
   const [products, setProducts] = useState([])
+  const [reviews, setReviews] = useState([])
   const [isFavorite, setIsFavorite] = useState(false)
   const [loading, setLoading] = useState(true)
   const [userLocation, setUserLocation] = useState(null)
@@ -80,14 +81,16 @@ export default function ProviderDetail() {
 
   async function loadProvider() {
     setLoading(true)
-    const [{ data: prov }, { data: favs }, { data: prods }] = await Promise.all([
+    const [{ data: prov }, { data: favs }, { data: prods }, { data: revs }] = await Promise.all([
       supabase.from('service_providers').select('*').eq('id', id).single(),
       supabase.from('user_favorites').select('id').eq('user_id', user.id).eq('provider_id', id),
-      supabase.from('metashop_products').select('*, product_categories(*)').eq('provider_id', id).eq('is_active', true).limit(6)
+      supabase.from('metashop_products').select('*, product_categories(*)').eq('provider_id', id).eq('is_active', true).limit(6),
+      supabase.from('reviews').select('id, rating, comment, created_at').eq('service_provider_id', id).order('created_at', { ascending: false }),
     ])
     setProvider(prov)
     setIsFavorite((favs || []).length > 0)
     setProducts(prods || [])
+    setReviews(revs || [])
     setLoading(false)
   }
 
@@ -273,6 +276,36 @@ export default function ProviderDetail() {
           </div>
         </div>
       )}
+
+      {/* Reviews */}
+      <div className="pd-section">
+        <h3><Star size={16} /> Bewertungen{reviews.length > 0 ? ` · ∅ ${(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)}` : ''}</h3>
+        {reviews.length === 0 ? (
+          <p className="pd-empty-reviews">Noch keine Bewertungen.</p>
+        ) : (
+          <div className="pd-reviews-list">
+            {reviews.map(r => (
+              <div key={r.id} className="pd-review-card">
+                <div className="pd-review-header">
+                  <div className="pd-review-stars">
+                    {[1,2,3,4,5].map(i => (
+                      <Star key={i} size={14}
+                        fill={i <= r.rating ? '#f59e0b' : 'none'}
+                        color={i <= r.rating ? '#f59e0b' : '#cbd5e1'}
+                      />
+                    ))}
+                  </div>
+                  <span className="pd-review-date">
+                    {new Date(r.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                  </span>
+                </div>
+                {r.comment && <p className="pd-review-comment">„{r.comment}"</p>}
+                <div className="pd-review-author">— Eigner</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Map */}
       {provider.latitude && provider.longitude && provider.latitude !== 0 && (
