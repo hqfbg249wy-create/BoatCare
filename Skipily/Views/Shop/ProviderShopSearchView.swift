@@ -13,15 +13,13 @@ struct ProviderShopSearchView: View {
     let searchTerm: String
 
     @State private var products: [Product] = []
-    @State private var aiSuggestions: [Product] = []
-    @State private var aiKeywords: [String] = []
     @State private var isLoading = true
-    @State private var isLoadingAI = false
     @State private var errorMessage: String?
+    @State private var showBroaderSearchPrompt = false
+    @State private var navigateToGlobal = false
 
     private let productService = ProductService.shared
     private let promotionService = PromotionService.shared
-    private let aiService = AIChatService.shared
 
     /// True if searching across all providers (providerId is a dummy UUID)
     private var isGlobalSearch: Bool {
@@ -70,6 +68,12 @@ struct ProviderShopSearchView: View {
                     .padding(.top, 60)
                 } else if products.isEmpty {
                     emptyStateWithAIFallback
+                    // Hidden NavigationLink activated programmatically after user confirms
+                    NavigationLink(destination: ProviderShopSearchView(
+                        providerId: UUID(),
+                        providerName: "Alle",
+                        searchTerm: searchTerm
+                    ), isActive: $navigateToGlobal) { EmptyView() }
                 } else {
                     LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(products) { product in
@@ -95,11 +99,11 @@ struct ProviderShopSearchView: View {
         .task { await loadProducts() }
     }
 
-    // MARK: - Empty state + AI fallback
+    // MARK: - Empty state
 
     @ViewBuilder
     private var emptyStateWithAIFallback: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 24) {
             VStack(spacing: 12) {
                 Image(systemName: "shippingbox")
                     .font(.system(size: 48))
@@ -111,57 +115,37 @@ struct ProviderShopSearchView: View {
                     .font(.callout)
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
+                    .padding(.horizontal)
             }
             .padding(.top, 40)
 
-            if isLoadingAI {
-                VStack(spacing: 8) {
-                    ProgressView()
-                    Text("shop.ai_searching".loc)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 20)
-            } else if !aiSuggestions.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "sparkles")
-                            .foregroundStyle(.orange)
-                        Text("shop.ai_suggestions".loc)
-                            .font(.headline)
-                        Spacer()
+            if !isGlobalSearch {
+                Button {
+                    showBroaderSearchPrompt = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass")
+                        Text("Bei allen Anbietern suchen")
+                            .fontWeight(.semibold)
                     }
-                    if !aiKeywords.isEmpty {
-                        Text("Gefunden über: \(aiKeywords.joined(separator: " · "))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.orange)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
-                .padding(.horizontal)
-
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(aiSuggestions) { product in
-                        NavigationLink {
-                            ProductDetailView(product: product)
-                        } label: {
-                            ProductCardView(
-                                product: product,
-                                promotionBadge: promotionService.promotionBadgeText(for: product),
-                                discountedPrice: promotionService.displayDiscountedPrice(for: product)
-                            )
-                        }
-                        .buttonStyle(.plain)
+                .padding(.horizontal, 32)
+                .confirmationDialog(
+                    "Keine Treffer bei \(providerName)",
+                    isPresented: $showBroaderSearchPrompt,
+                    titleVisibility: .visible
+                ) {
+                    Button("Alle Anbieter durchsuchen") {
+                        navigateToGlobal = true
                     }
-                }
-                .padding(.horizontal)
-            } else if !aiKeywords.isEmpty {
-                // AI hat Vorschläge gemacht, aber auch die lieferten 0 Treffer.
-                VStack(spacing: 8) {
-                    Text("Auch zu den KI-Vorschlägen (\(aiKeywords.joined(separator: ", "))) gab es keine passenden Produkte im Shop.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+                    Button("Abbrechen", role: .cancel) { }
+                } message: {
+                    Text("Für „\(searchTerm)" gibt es bei \(providerName) keine Produkte. Soll bei allen Anbietern gesucht werden?")
                 }
             }
         }
@@ -172,8 +156,6 @@ struct ProviderShopSearchView: View {
     private func loadProducts() async {
         isLoading = true
         errorMessage = nil
-        aiSuggestions = []
-        aiKeywords = []
         do {
             if isGlobalSearch {
                 // Breite Volltextsuche über name/manufacturer/description/part_number
@@ -202,54 +184,11 @@ struct ProviderShopSearchView: View {
                     if product.tags?.contains(where: { $0.lowercased().contains(term) }) == true { return true }
                     return false
                 }
-                // If no exact match, show all provider products
-                if products.isEmpty { products = allProducts }
             }
         } catch {
             errorMessage = "Fehler: \(error.localizedDescription)"
         }
         isLoading = false
-
-        // Wenn die direkte Suche nichts ergab → AI-Fallback starten
-        if products.isEmpty && errorMessage == nil {
-            await runAIFallback()
-        }
     }
 
-    /// Fragt Claude nach alternativen Suchbegriffen und re-queryed damit den Shop.
-    private func runAIFallback() async {
-        isLoadingAI = true
-        defer { isLoadingAI = false }
-
-        do {
-            let alternatives = try await aiService.suggestSearchAlternatives(
-                originalQuery: searchTerm
-            )
-            aiKeywords = alternatives
-            guard !alternatives.isEmpty else { return }
-
-            // Für jedes Keyword eine kleine Suche und Ergebnisse dedupen.
-            var seen = Set<UUID>()
-            var collected: [Product] = []
-            for keyword in alternatives {
-                if let found = try? await productService.searchProductsBroad(
-                    query: keyword,
-                    limit: 10
-                ) {
-                    for product in found where !seen.contains(product.id) {
-                        seen.insert(product.id)
-                        collected.append(product)
-                    }
-                }
-                // Harte Obergrenze, sonst wird's unübersichtlich
-                if collected.count >= 24 { break }
-            }
-            aiSuggestions = collected
-        } catch {
-            // AI nicht erreichbar oder nicht eingeloggt – wir zeigen einfach
-            // den regulären Leerzustand, kein zusätzlicher Fehler.
-            aiKeywords = []
-            aiSuggestions = []
-        }
-    }
 }
