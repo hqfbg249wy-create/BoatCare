@@ -14,6 +14,7 @@ import Promotions from './pages/Promotions'
 import Messages from './pages/Messages'
 import MarketInsights from './pages/MarketInsights'
 import Profile from './pages/Profile'
+import ProviderPublicProfile from './pages/ProviderPublicProfile'
 
 /**
  * Liest beim allerersten Mount den URL-Hash aus. Supabase leitet Reset-,
@@ -96,9 +97,15 @@ function ProtectedRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <ProtectedRoutes />
-      </AuthProvider>
+      {/* Öffentliche Route: Provider-Profil ohne Login erreichbar */}
+      <Routes>
+        <Route path="/provider/:id" element={<ProviderPublicProfile />} />
+        <Route path="*" element={
+          <AuthProvider>
+            <ProtectedRoutes />
+          </AuthProvider>
+        } />
+      </Routes>
     </BrowserRouter>
   )
 }
