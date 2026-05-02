@@ -228,9 +228,14 @@
                     <button class="filter-btn" onclick="window.toggleProviderView('categories')">📊 Nach Kategorien</button>
                 </div>
                 <div class="search-bar">
-                    <input type="text" id="provider-search" placeholder="Suchen nach Name, Stadt oder Kategorie...">
+                    <input type="text" id="provider-search"
+                           placeholder="Name, Marke, Dienstleistung, Stadt …"
+                           oninput="window.searchProviders()"
+                           style="flex:1;">
                     <button id="search-btn" class="btn-primary" onclick="window.searchProviders()">🔍 Suchen</button>
+                    <button class="btn-secondary" onclick="document.getElementById('provider-search').value=''; window.searchProviders();" title="Suche leeren">✕</button>
                 </div>
+                <div id="provider-search-info" style="font-size:13px; color:#64748b; margin-bottom:8px;"></div>
                 <div id="providers-list"></div>
                 <div id="providers-by-category" style="display: none;"></div>
             </div>

@@ -1064,31 +1064,72 @@ async function rejectSuggestion(suggestionId) {
 // SERVICE PROVIDERS
 // ============================================
 
+// ─── Provider-Cache (einmal laden, live client-seitig filtern) ───────────────
+let _providerCache = null;
+
 async function loadProviders(searchQuery = '') {
     try {
-        let query = supabaseClient
-            .from('service_providers')
-            .select('*')
-            .order('name');
+        // Beim ersten Aufruf alle Provider laden und cachen
+        if (!_providerCache) {
+            const list = document.getElementById('providers-list');
+            if (list) list.innerHTML = '<p style="color:#64748b;">⏳ Lade alle Betriebe…</p>';
 
-        if (searchQuery) {
-            query = query.or(`name.ilike.%${searchQuery}%,city.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%`);
+            const { data, error } = await supabaseClient
+                .from('service_providers')
+                .select('*')
+                .order('name')
+                .limit(5000);
+            if (error) throw error;
+            _providerCache = data || [];
         }
 
-        const { data: providers, error } = await query.limit(100);
-
-        if (error) throw error;
-
-        displayProviders(providers);
+        const filtered = _filterProviders(_providerCache, searchQuery);
+        displayProviders(filtered);
     } catch (error) {
         console.error('Fehler:', error);
         alert('Fehler beim Laden der Provider');
     }
 }
 
+/**
+ * Client-seitige Multi-Feld-Suche (identisch zur App-Logik):
+ * Name · Kategorie(n) · Stadt · Beschreibung · Marken · Services · Adresse
+ * Alle Suchbegriff-Wörter müssen im Haystack enthalten sein (AND-Logik).
+ */
+function _filterProviders(providers, query) {
+    if (!query || !query.trim()) return providers;
+    const words = query.toLowerCase().trim().split(/\s+/);
+    return providers.filter(p => {
+        const haystack = [
+            p.name        || '',
+            p.category    || '',
+            p.category2   || '',
+            p.category3   || '',
+            p.description || '',
+            p.city        || '',
+            p.address     || '',
+            (Array.isArray(p.brands)   ? p.brands.join(' ')   : (p.brands   || '')),
+            (Array.isArray(p.services) ? p.services.join(' ') : (p.services || '')),
+        ].join(' ').toLowerCase();
+        return words.every(w => haystack.includes(w));
+    });
+}
+
+/** Cache nach Änderungen (Add/Delete/Edit) invalidieren */
+function _invalidateProviderCache() { _providerCache = null; }
+
 function displayProviders(providers) {
     const list = document.getElementById('providers-list');
+    const info = document.getElementById('provider-search-info');
     list.innerHTML = '';
+
+    const query = document.getElementById('provider-search')?.value.trim() || '';
+    const total = _providerCache ? _providerCache.length : providers.length;
+    if (info) {
+        info.textContent = query
+            ? `${providers.length} von ${total} Betrieben gefunden`
+            : `${total} Betriebe geladen`;
+    }
 
     if (!providers || providers.length === 0) {
         list.innerHTML = '<p>Keine Provider gefunden</p>';
@@ -1096,6 +1137,10 @@ function displayProviders(providers) {
     }
 
     providers.forEach(provider => {
+        const brands   = Array.isArray(provider.brands)   ? provider.brands.join(', ')   : (provider.brands   || '');
+        const services = Array.isArray(provider.services) ? provider.services.join(', ') : (provider.services || '');
+        const cats     = [provider.category, provider.category2, provider.category3].filter(Boolean).join(' · ');
+
         const item = document.createElement('div');
         item.className = 'list-item';
         item.innerHTML = `
@@ -1107,10 +1152,12 @@ function displayProviders(providers) {
                     🗑️ Löschen
                 </button>
             </div>
-            <div class="list-item-content">${provider.category || 'Keine Kategorie'}</div>
+            <div class="list-item-content">${cats || 'Keine Kategorie'}</div>
             <div class="list-item-meta">
                 <span>📍 ${provider.city || 'Keine Stadt'}</span>
                 ${provider.phone ? `<span>📞 ${provider.phone}</span>` : ''}
+                ${brands   ? `<span>🔧 ${brands}</span>`   : ''}
+                ${services ? `<span>⚙️ ${services}</span>` : ''}
             </div>
         `;
         item.addEventListener('click', (e) => {
@@ -1123,7 +1170,7 @@ function displayProviders(providers) {
 }
 
 function searchProviders() {
-    const query = document.getElementById('provider-search').value;
+    const query = document.getElementById('provider-search').value.trim();
     loadProviders(query);
 }
 
@@ -1533,6 +1580,7 @@ async function updateProvider(providerId) {
 
         alert('✅ Provider erfolgreich aktualisiert!');
         document.getElementById('provider-modal').classList.remove('active');
+        _invalidateProviderCache();
         loadProviders();
         loadDashboard();
         // Map aktualisieren falls aktiv
@@ -1562,6 +1610,7 @@ async function deleteProvider(providerId) {
             alert('⚠️ Provider konnte nicht gelöscht werden');
         }
 
+        _invalidateProviderCache();
         loadProviders();
         loadDashboard();
         // Map aktualisieren falls aktiv
