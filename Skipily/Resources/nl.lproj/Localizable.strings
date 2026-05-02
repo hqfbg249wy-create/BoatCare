@@ -22,7 +22,7 @@
 "category.painting" = "Schilderwerk / Antifouling";
 
 // MARK: - Map Screen
-"map.search_placeholder" = "Zoek servicebedrijven...";
+"map.search_placeholder" = "Naam, merk, plaats – of gecombineerd...";
 "map.no_results" = "Geen servicebedrijven gevonden";
 "map.loading" = "Laden...";
 "map.filter_title" = "Filter op categorie";

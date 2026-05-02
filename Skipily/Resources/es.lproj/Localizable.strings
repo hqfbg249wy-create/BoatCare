@@ -22,7 +22,7 @@
 "category.painting" = "Pintura / Antifouling";
 
 // MARK: - Map Screen
-"map.search_placeholder" = "Buscar proveedores de servicio...";
+"map.search_placeholder" = "Nombre, marca, lugar – o combinado...";
 "map.no_results" = "No se encontraron proveedores";
 "map.loading" = "Cargando...";
 "map.filter_title" = "Filtrar por categoría";

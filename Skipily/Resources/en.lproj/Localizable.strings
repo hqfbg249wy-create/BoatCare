@@ -25,7 +25,7 @@
 "category.transport" = "Yacht Transort";
 
 // MARK: - Map Screen
-"map.search_placeholder" = "Search service providers...";
+"map.search_placeholder" = "Name, brand, place – or combined...";
 "map.no_results" = "No service providers found";
 "map.loading" = "Loading...";
 "map.filter_title" = "Filter by category";

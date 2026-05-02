@@ -301,6 +301,12 @@ struct MapScreen: View {
     @State private var showingAssistant = false
     @State private var showingProfile = false
 
+    /// Kombinations-Suche: Keyword-Teil wenn "Marke, Ort" oder "Ort, Marke" eingegeben wurde.
+    /// Bleibt gesetzt solange locationFocus aktiv ist, damit visibleProviders beide Filter kombiniert.
+    @State private var combiKeyword: String = ""
+    /// Retry-Task: falls nach 700 ms keine Orts-Suggestions → andere Seite versuchen
+    @State private var combiRetryTask: Task<Void, Never>?
+
     /// Debounce-Task: verzögert den Region-Reload um 0.5 s nach dem letzten Kamera-Stop
     @State private var regionLoadTask: Task<Void, Never>?
     /// Zuletzt geladene Region – verhindert doppelte Fetches bei minimaler Bewegung
@@ -330,14 +336,17 @@ struct MapScreen: View {
             }
         }
 
-        if !searchText.isEmpty {
-            let words = searchText.lowercased().split(separator: " ").map { String($0) }
+        // Keyword-Filter: entweder searchText (Normalsuche) oder combiKeyword (Kombisuche)
+        let keyword = combiKeyword.isEmpty ? searchText : combiKeyword
+        if !keyword.isEmpty {
+            let words = keyword.lowercased().split(separator: " ").map { String($0) }
             filtered = filtered.filter { provider in
                 let haystack = [
                     provider.name,
                     provider.category,
                     provider.description ?? "",
                     provider.address,
+                    provider.city ?? "",
                     provider.brands?.joined(separator: " ") ?? "",
                     provider.services?.joined(separator: " ") ?? ""
                 ].joined(separator: " ").lowercased()
@@ -690,7 +699,7 @@ struct MapScreen: View {
             }
             
             // Suchradius-Kreis
-            if let userLocation = userLocation, !searchText.isEmpty {
+            if let userLocation = userLocation, !searchText.isEmpty || locationFocus != nil {
                 MapCircle(
                     center: userLocation,
                     radius: searchRadius * 1000
@@ -891,11 +900,32 @@ struct MapScreen: View {
                 })
                 .textFieldStyle(.plain)
                 .onChange(of: searchText) { _, newValue in
-                    // Debounced Typeahead-Suche an Apple Maps
+                    combiRetryTask?.cancel()
                     locationSearchDebounce?.cancel()
+
+                    // Kombi-Suche erkennen: "Marke, Ort"  oder  "Ort, Marke"
+                    let parts = newValue
+                        .components(separatedBy: ",")
+                        .map { $0.trimmingCharacters(in: .whitespaces) }
+                        .filter { !$0.isEmpty }
+
                     locationSearchDebounce = Task {
                         try? await Task.sleep(nanoseconds: 250_000_000)
-                        if !Task.isCancelled {
+                        guard !Task.isCancelled else { return }
+
+                        if parts.count == 2 {
+                            // Erst Teil nach Komma als Ort versuchen ("Yanmar, Séte")
+                            combiKeyword = parts[0]
+                            locationSearch.updateQuery(parts[1], near: currentRegion)
+                            // Nach 700 ms: falls keine Suggestions → Seiten tauschen ("Séte, Yanmar")
+                            combiRetryTask = Task {
+                                try? await Task.sleep(nanoseconds: 700_000_000)
+                                guard !Task.isCancelled, locationSearch.suggestions.isEmpty else { return }
+                                combiKeyword = parts[1]
+                                locationSearch.updateQuery(parts[0], near: currentRegion)
+                            }
+                        } else {
+                            combiKeyword = ""
                             locationSearch.updateQuery(newValue, near: currentRegion)
                         }
                     }
@@ -904,12 +934,14 @@ struct MapScreen: View {
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                 }
 
-                if !searchText.isEmpty || locationFocus != nil {
+                if !searchText.isEmpty || locationFocus != nil || !combiKeyword.isEmpty {
                     Button {
                         searchText = ""
                         searchResults = []
                         selectedResult = nil
                         locationFocus = nil
+                        combiKeyword = ""
+                        combiRetryTask?.cancel()
                         locationSearch.clear()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
@@ -966,15 +998,26 @@ struct MapScreen: View {
         }
     }
 
-    /// Chip "📍 Hafen Cuxhaven · 12 Provider in 50 km" mit Reset-X
+    /// Chip "📍 Séte · 🔍 Yanmar  ·  N Provider in R km" mit Reset-X
     private func locationFocusChip(_ focus: ResolvedLocation) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "mappin.circle.fill")
                 .foregroundStyle(.blue)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(focus.title)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(focus.title)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                    if !combiKeyword.isEmpty {
+                        Text("·")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Label(combiKeyword, systemImage: "magnifyingglass")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.blue)
+                            .lineLimit(1)
+                    }
+                }
                 Text(String(format: "map.location_focus_count".loc, visibleProviders.count, Int(searchRadius)))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -984,6 +1027,8 @@ struct MapScreen: View {
             Button {
                 locationFocus = nil
                 searchText = ""
+                combiKeyword = ""
+                combiRetryTask?.cancel()
                 locationSearch.clear()
             } label: {
                 Image(systemName: "xmark.circle.fill")
@@ -1062,6 +1107,9 @@ struct MapScreen: View {
                 span: MKCoordinateSpan(latitudeDelta: degSpan, longitudeDelta: degSpan)
             ))
             locationSearch.clear()
+            combiRetryTask?.cancel()
+            // Suchfeld leeren — combiKeyword bleibt als Provider-Filter aktiv
+            searchText = ""
             // Tastatur weg
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
                                             to: nil, from: nil, for: nil)
