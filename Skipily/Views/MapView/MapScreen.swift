@@ -895,10 +895,10 @@ struct MapScreen: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
 
-                TextField("map.search_placeholder".loc, text: $searchText, onCommit: {
-                    performSearch()
-                })
+                TextField("map.search_placeholder".loc, text: $searchText)
                 .textFieldStyle(.plain)
+                .submitLabel(.search)
+                .onSubmit { performSearch() }
                 .onChange(of: searchText) { _, newValue in
                     combiRetryTask?.cancel()
                     locationSearchDebounce?.cancel()
@@ -1355,9 +1355,28 @@ struct MapScreen: View {
     }
     
     private func performSearch() {
-        // Filterung passiert rein lokal über visibleProviders – kein extra DB-Aufruf nötig.
-        // Bei Suche kann die aktuelle Region neu geladen werden, um Treffer außerhalb des
-        // aktuellen Ausschnitts zu finden (optional: Apple Maps Suche bleibt erhalten).
+        // Kombi-Suche ("Marke, Ort") oder reine Orts-Suche:
+        // besten Apple-Maps-Vorschlag automatisch übernehmen → kein Extra-Tippen nötig.
+        let hasLocationQuery = !combiKeyword.isEmpty || !searchText.isEmpty
+
+        if hasLocationQuery {
+            Task {
+                // Suggestions evtl. noch unterwegs → kurz warten
+                if locationSearch.suggestions.isEmpty {
+                    try? await Task.sleep(nanoseconds: 600_000_000)
+                }
+                if let best = locationSearch.suggestions.first {
+                    await selectLocationSuggestion(best)
+                } else {
+                    // Keine Orts-Treffer → nur Tastatur schließen, Keyword-Filter bleibt
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                                    to: nil, from: nil, for: nil)
+                }
+            }
+            return
+        }
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                        to: nil, from: nil, for: nil)
     }
     
     private func calculateRoute(to item: MKMapItem) {
