@@ -15,8 +15,8 @@ struct ProviderShopSearchView: View {
     @State private var products: [Product] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
-    @State private var showBroaderSearchPrompt = false
     @State private var navigateToGlobal = false
+    @State private var navigateToServiceSearch = false
 
     private let productService = ProductService.shared
     private let promotionService = PromotionService.shared
@@ -68,12 +68,17 @@ struct ProviderShopSearchView: View {
                     .padding(.top, 60)
                 } else if products.isEmpty {
                     emptyStateWithAIFallback
-                    // Hidden NavigationLink activated programmatically after user confirms
+                    // Hidden NavigationLinks activated programmatically after user confirms
                     NavigationLink(destination: ProviderShopSearchView(
                         providerId: UUID(),
                         providerName: "Alle",
                         searchTerm: searchTerm
                     ), isActive: $navigateToGlobal) { EmptyView() }
+                    NavigationLink(destination: ServiceSearchFromMaintenance(
+                        equipmentName: searchTerm,
+                        category: "",
+                        manufacturer: ""
+                    ), isActive: $navigateToServiceSearch) { EmptyView() }
                 } else {
                     LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(products) { product in
@@ -120,33 +125,36 @@ struct ProviderShopSearchView: View {
             .padding(.top, 40)
 
             if !isGlobalSearch {
-                Button {
-                    showBroaderSearchPrompt = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "magnifyingglass")
-                        Text("Bei allen Anbietern suchen")
+                VStack(spacing: 10) {
+                    Text("Wie möchtest du weitersuchen?")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        navigateToGlobal = true
+                    } label: {
+                        Label("Im Shop weitere Anbieter suchen", systemImage: "cart.fill")
                             .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.orange)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.orange)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    Button {
+                        navigateToServiceSearch = true
+                    } label: {
+                        Label("Anderen Service-Partner finden", systemImage: "wrench.and.screwdriver.fill")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.purple)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
                 }
                 .padding(.horizontal, 32)
-                .confirmationDialog(
-                    "Keine Treffer bei \(providerName)",
-                    isPresented: $showBroaderSearchPrompt,
-                    titleVisibility: .visible
-                ) {
-                    Button("Alle Anbieter durchsuchen") {
-                        navigateToGlobal = true
-                    }
-                    Button("Abbrechen", role: .cancel) { }
-                } message: {
-                    Text("Für „\(searchTerm)" gibt es bei \(providerName) keine Produkte. Soll bei allen Anbietern gesucht werden?")
-                }
             }
         }
     }
