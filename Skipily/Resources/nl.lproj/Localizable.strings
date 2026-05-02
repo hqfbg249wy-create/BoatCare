@@ -724,6 +724,7 @@
 
 // Locatie zoeken op de kaart
 "map.location_suggestions" = "Plaatsen (Apple Maps)";
+"map.combi_search_hint" = "Tik een plaats → providers met dit zoekwoord in de buurt";
 "map.location_focus_count" = "%d providers binnen %d km";
 
 // Provider-briefing & foto-chat

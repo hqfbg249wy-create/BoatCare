@@ -1045,17 +1045,40 @@ struct MapScreen: View {
     /// Apple-Maps-Vorschläge ("Hafen Cuxhaven", Adressen, POIs)
     private var locationSuggestionsList: some View {
         VStack(spacing: 0) {
-            HStack {
+            // Header — im Kombi-Modus Keyword-Hinweis anzeigen
+            HStack(spacing: 6) {
                 Image(systemName: "mappin.and.ellipse")
                     .font(.caption)
                 Text("map.location_suggestions".loc)
                     .font(.caption.weight(.semibold))
+                if !combiKeyword.isEmpty {
+                    Text("·")
+                        .font(.caption)
+                    Label(combiKeyword, systemImage: "magnifyingglass")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.blue)
+                        .lineLimit(1)
+                }
                 Spacer()
             }
             .foregroundStyle(.secondary)
             .padding(.horizontal, 12)
             .padding(.top, 8)
             .padding(.bottom, 4)
+
+            // Kombi-Hinweis-Zeile: erklärt was nach Auswahl passiert
+            if !combiKeyword.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: "info.circle")
+                        .font(.caption2)
+                    Text("map.combi_search_hint".loc)
+                        .font(.caption2)
+                        .lineLimit(2)
+                }
+                .foregroundStyle(.blue.opacity(0.8))
+                .padding(.horizontal, 12)
+                .padding(.bottom, 6)
+            }
 
             ForEach(locationSearch.suggestions.prefix(5), id: \.self) { suggestion in
                 Button {

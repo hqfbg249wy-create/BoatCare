@@ -727,6 +727,7 @@ Ausrüstung unter Boote ergänzen.";
 
 // Ortssuche (MKLocalSearch) auf der Map
 "map.location_suggestions" = "Orte (Apple Maps)";
+"map.combi_search_hint" = "Ort antippen → zeigt Provider mit diesem Keyword in der Nähe";
 "map.location_focus_count" = "%d Provider in %d km Umkreis";
 
 // Provider-Briefing & Foto-Chat

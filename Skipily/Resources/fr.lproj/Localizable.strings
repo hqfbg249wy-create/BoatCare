@@ -724,6 +724,7 @@
 
 // Recherche de lieu sur la carte
 "map.location_suggestions" = "Lieux (Apple Maps)";
+"map.combi_search_hint" = "Appuyez sur un lieu → prestataires avec ce mot-clé à proximité";
 "map.location_focus_count" = "%d prestataires dans %d km";
 
 // Briefing au prestataire & chat avec photo

@@ -724,6 +724,7 @@
 
 // Location search (MKLocalSearch) on map
 "map.location_suggestions" = "Places (Apple Maps)";
+"map.combi_search_hint" = "Tap a place → shows matching providers nearby";
 "map.location_focus_count" = "%d providers within %d km";
 
 // Provider briefing & photo chat

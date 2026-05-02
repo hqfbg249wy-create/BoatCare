@@ -724,6 +724,7 @@
 
 // Ricerca località sulla mappa
 "map.location_suggestions" = "Luoghi (Apple Maps)";
+"map.combi_search_hint" = "Tocca un luogo → fornitori con questa parola chiave nelle vicinanze";
 "map.location_focus_count" = "%d fornitori entro %d km";
 
 // Briefing al fornitore & chat con foto
