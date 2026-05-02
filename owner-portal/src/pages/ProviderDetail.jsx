@@ -270,15 +270,15 @@ export default function ProviderDetail() {
         </div>
       )}
 
-      {/* Brands - clickable buttons to shop */}
+      {/* Brands */}
       {brands.length > 0 && (
         <div className="pd-section">
           <h3><Tag size={16} /> Marken</h3>
           <div className="pd-tag-list">
             {brands.map((b, i) => (
-              <Link key={i} to={`/shop?q=${encodeURIComponent(b)}`} className="pd-tag-btn pd-tag-orange">
+              <button key={i} className="pd-tag-btn pd-tag-orange" onClick={() => handleServiceClick(b)}>
                 {b}
-              </Link>
+              </button>
             ))}
           </div>
         </div>
