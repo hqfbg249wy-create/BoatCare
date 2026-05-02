@@ -24,7 +24,7 @@
 "category.painting" = "Lackierung / Antifouling";
 
 // MARK: - Map Screen
-"map.search_placeholder" = "Name, Marke, Ort – oder kombiniert...";
+"map.search_placeholder" = "Name, Marke oder Dienstleistung...";
 "map.no_results" = "Keine Servicebetriebe gefunden";
 "map.loading" = "Wird geladen...";
 "map.filter_title" = "Nach Kategorie filtern";

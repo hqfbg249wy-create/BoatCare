@@ -274,13 +274,7 @@ struct MapScreen: View {
     @Environment(\.horizontalSizeClass) private var hSize
     @StateObject private var locationManager = LocationManager()
     @StateObject private var providerManager = ServiceProviderManager()
-    @StateObject private var locationSearch = LocationSearchService()
     @State private var cameraPosition: MapCameraPosition = .automatic
-    /// Gewählter Ort aus der MKLocalSearch-Vorschlagsliste (Hafen, Stadt, …).
-    /// Setzt den Mittelpunkt für die Provider-Distanzfilterung.
-    @State private var locationFocus: ResolvedLocation?
-    /// Debounce für die Typeahead-Suche
-    @State private var locationSearchDebounce: Task<Void, Never>?
     @State private var currentRegion: MKCoordinateRegion?
     @State private var currentZoomLevel: Double = 0.05 // Latitudedelta - kleinerer Wert = mehr Zoom
     @State private var searchText = ""
@@ -292,7 +286,6 @@ struct MapScreen: View {
     @State private var userLocation: CLLocationCoordinate2D?
     @State private var showingLocationError = false
     @State private var locationErrorMessage = ""
-    @State private var searchRadius: Double = 10.0
     @State private var showingRadiusPicker = false
     @State private var selectedCategory: ServiceCategory = .all
     @State private var showingAddBusiness = false
@@ -300,12 +293,6 @@ struct MapScreen: View {
     @State private var showingLogin = false
     @State private var showingAssistant = false
     @State private var showingProfile = false
-
-    /// Kombinations-Suche: Keyword-Teil wenn "Marke, Ort" oder "Ort, Marke" eingegeben wurde.
-    /// Bleibt gesetzt solange locationFocus aktiv ist, damit visibleProviders beide Filter kombiniert.
-    @State private var combiKeyword: String = ""
-    /// Retry-Task: falls nach 700 ms keine Orts-Suggestions → andere Seite versuchen
-    @State private var combiRetryTask: Task<Void, Never>?
 
     /// Debounce-Task: verzögert den Region-Reload um 0.5 s nach dem letzten Kamera-Stop
     @State private var regionLoadTask: Task<Void, Never>?
@@ -318,8 +305,6 @@ struct MapScreen: View {
     @State private var clusterProviders: [BoatServiceProvider]?
     // Fixierter Zoom-Level solange eine Kachel offen ist – verhindert Raus-Zoomen beim Swipen
     @State private var cardZoomLevel: Double?
-
-    let radiusOptions: [Double] = [5, 10, 25, 50, 100, 200, 500, 1000]
 
     // UserDefaults Keys für Kamera-Position Speicherung
     private let cameraLatKey = "MapScreen.Camera.Latitude"
@@ -336,10 +321,9 @@ struct MapScreen: View {
             }
         }
 
-        // Keyword-Filter: entweder searchText (Normalsuche) oder combiKeyword (Kombisuche)
-        let keyword = combiKeyword.isEmpty ? searchText : combiKeyword
-        if !keyword.isEmpty {
-            let words = keyword.lowercased().split(separator: " ").map { String($0) }
+        // Textfilter: Name, Kategorie, Beschreibung, Stadt, Marken, Services
+        if !searchText.isEmpty {
+            let words = searchText.lowercased().split(separator: " ").map { String($0) }
             filtered = filtered.filter { provider in
                 let haystack = [
                     provider.name,
@@ -352,21 +336,6 @@ struct MapScreen: View {
                 ].joined(separator: " ").lowercased()
                 return words.allSatisfy { haystack.contains($0) }
             }
-        }
-
-        // Wenn ein Ort fokussiert ist (z.B. "Hafen Cuxhaven"), nur Provider
-        // im aktuellen searchRadius (km) anzeigen — sortiert nach Distanz.
-        if let focus = locationFocus {
-            let center = CLLocation(latitude: focus.coordinate.latitude,
-                                    longitude: focus.coordinate.longitude)
-            let radiusMeters = searchRadius * 1000
-            filtered = filtered.compactMap { p -> (BoatServiceProvider, CLLocationDistance)? in
-                let pLoc = CLLocation(latitude: p.latitude, longitude: p.longitude)
-                let d = center.distance(from: pLoc)
-                return d <= radiusMeters ? (p, d) : nil
-            }
-            .sorted { $0.1 < $1.1 }
-            .map { $0.0 }
         }
 
         return filtered
@@ -557,9 +526,6 @@ struct MapScreen: View {
         .onChange(of: locationManager.authorizationStatus) { oldValue, newValue in
             handleAuthorizationChange(newValue)
         }
-        .onChange(of: searchRadius) { _, _ in
-            // visibleProviders filtert reaktiv – kein DB-Aufruf nötig
-        }
         .onChange(of: selectedCategory) { _, _ in
             // visibleProviders filtert reaktiv – kein DB-Aufruf nötig
         }
@@ -696,16 +662,6 @@ struct MapScreen: View {
                             .frame(width: 20, height: 20)
                     }
                 }
-            }
-            
-            // Suchradius-Kreis
-            if let userLocation = userLocation, !searchText.isEmpty || locationFocus != nil {
-                MapCircle(
-                    center: userLocation,
-                    radius: searchRadius * 1000
-                )
-                .foregroundStyle(.blue.opacity(0.1))
-                .stroke(.blue, lineWidth: 2)
             }
             
             // Supabase Service Providers: Cluster oder einzelne Pins (je nach Zoom)
@@ -896,59 +852,17 @@ struct MapScreen: View {
                     .foregroundColor(.secondary)
 
                 TextField("map.search_placeholder".loc, text: $searchText)
-                .textFieldStyle(.plain)
-                .submitLabel(.search)
-                .onSubmit { performSearch() }
-                .onChange(of: searchText) { _, newValue in
-                    combiRetryTask?.cancel()
-                    locationSearchDebounce?.cancel()
-
-                    // Kombi-Suche erkennen: "Marke, Ort"  oder  "Ort, Marke"
-                    let parts = newValue
-                        .components(separatedBy: ",")
-                        .map { $0.trimmingCharacters(in: .whitespaces) }
-                        .filter { !$0.isEmpty }
-
-                    locationSearchDebounce = Task {
-                        try? await Task.sleep(nanoseconds: 250_000_000)
-                        guard !Task.isCancelled else { return }
-
-                        if parts.count == 2 {
-                            // Kombi-Suche: beide Teile prüfen — welcher ist der Ort?
-                            // Schritt 1: Teil nach Komma als Ort probieren ("Yanmar, Séte")
-                            combiKeyword = parts[0]
-                            locationSearch.updateQuery(parts[1], near: currentRegion)
-                            // Schritt 2: Nach 500 ms prüfen ob Treffer geografisch sind.
-                            // Firmen-POIs (z.B. "Yanmar Stadion") haben Straßen-Adressen
-                            // im Untertitel — dann Seiten tauschen.
-                            combiRetryTask = Task {
-                                try? await Task.sleep(nanoseconds: 500_000_000)
-                                guard !Task.isCancelled else { return }
-                                let sugg = locationSearch.suggestions
-                                if sugg.isEmpty || !isGeographicResults(sugg, query: parts[1]) {
-                                    combiKeyword = parts[1]
-                                    locationSearch.updateQuery(parts[0], near: currentRegion)
-                                }
-                            }
-                        } else {
-                            combiKeyword = ""
-                            locationSearch.updateQuery(newValue, near: currentRegion)
-                        }
+                    .textFieldStyle(.plain)
+                    .submitLabel(.search)
+                    .onSubmit {
+                        UIApplication.shared.sendAction(
+                            #selector(UIResponder.resignFirstResponder),
+                            to: nil, from: nil, for: nil)
                     }
-                }
-                .onSubmit {
-                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                }
 
-                if !searchText.isEmpty || locationFocus != nil || !combiKeyword.isEmpty {
+                if !searchText.isEmpty {
                     Button {
                         searchText = ""
-                        searchResults = []
-                        selectedResult = nil
-                        locationFocus = nil
-                        combiKeyword = ""
-                        combiRetryTask?.cancel()
-                        locationSearch.clear()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.secondary)
@@ -995,155 +909,6 @@ struct MapScreen: View {
             .cornerRadius(12)
             .shadow(radius: 3)
 
-            // Fokus-Chip + Vorschläge unter dem Suchfeld
-            if let focus = locationFocus {
-                locationFocusChip(focus)
-            } else if !locationSearch.suggestions.isEmpty && !searchText.isEmpty {
-                locationSuggestionsList
-            }
-        }
-    }
-
-    /// Chip "📍 Séte · 🔍 Yanmar  ·  N Provider in R km" mit Reset-X
-    private func locationFocusChip(_ focus: ResolvedLocation) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "mappin.circle.fill")
-                .foregroundStyle(.blue)
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(focus.title)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                    if !combiKeyword.isEmpty {
-                        Text("·")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Label(combiKeyword, systemImage: "magnifyingglass")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.blue)
-                            .lineLimit(1)
-                    }
-                }
-                Text(String(format: "map.location_focus_count".loc, visibleProviders.count, Int(searchRadius)))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            Spacer()
-            Button {
-                locationFocus = nil
-                searchText = ""
-                combiKeyword = ""
-                combiRetryTask?.cancel()
-                locationSearch.clear()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial)
-        .cornerRadius(10)
-        .shadow(radius: 2)
-    }
-
-    /// Apple-Maps-Vorschläge ("Hafen Cuxhaven", Adressen, POIs)
-    private var locationSuggestionsList: some View {
-        VStack(spacing: 0) {
-            // Header — im Kombi-Modus Keyword-Hinweis anzeigen
-            HStack(spacing: 6) {
-                Image(systemName: "mappin.and.ellipse")
-                    .font(.caption)
-                Text("map.location_suggestions".loc)
-                    .font(.caption.weight(.semibold))
-                if !combiKeyword.isEmpty {
-                    Text("·")
-                        .font(.caption)
-                    Label(combiKeyword, systemImage: "magnifyingglass")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.blue)
-                        .lineLimit(1)
-                }
-                Spacer()
-            }
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 12)
-            .padding(.top, 8)
-            .padding(.bottom, 4)
-
-            // Kombi-Hinweis-Zeile: erklärt was nach Auswahl passiert
-            if !combiKeyword.isEmpty {
-                HStack(spacing: 4) {
-                    Image(systemName: "info.circle")
-                        .font(.caption2)
-                    Text("map.combi_search_hint".loc)
-                        .font(.caption2)
-                        .lineLimit(2)
-                }
-                .foregroundStyle(.blue.opacity(0.8))
-                .padding(.horizontal, 12)
-                .padding(.bottom, 6)
-            }
-
-            ForEach(locationSearch.suggestions.prefix(5), id: \.self) { suggestion in
-                Button {
-                    Task { await selectLocationSuggestion(suggestion) }
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "mappin")
-                            .foregroundStyle(.blue)
-                            .frame(width: 20)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(suggestion.title)
-                                .font(.subheadline)
-                                .foregroundStyle(.primary)
-                                .lineLimit(1)
-                            if !suggestion.subtitle.isEmpty {
-                                Text(suggestion.subtitle)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                            }
-                        }
-                        Spacer()
-                        Image(systemName: "arrow.up.left.and.arrow.down.right")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                }
-                .buttonStyle(.plain)
-                Divider()
-            }
-        }
-        .background(.ultraThinMaterial)
-        .cornerRadius(10)
-        .shadow(radius: 2)
-    }
-
-    /// Auflösen der Apple-Suggestion → Karte schwenken + Provider-Filter setzen
-    @MainActor
-    private func selectLocationSuggestion(_ suggestion: MKLocalSearchCompletion) async {
-        do {
-            let resolved = try await locationSearch.resolve(suggestion)
-            locationFocus = resolved
-            // Karte zentrieren auf den gewählten Ort, Span ~ searchRadius
-            let degSpan = max(0.05, searchRadius / 60.0) // grobe Faustformel: 1° ≈ 111 km
-            cameraPosition = .region(MKCoordinateRegion(
-                center: resolved.coordinate,
-                span: MKCoordinateSpan(latitudeDelta: degSpan, longitudeDelta: degSpan)
-            ))
-            locationSearch.clear()
-            combiRetryTask?.cancel()
-            // Suchfeld leeren — combiKeyword bleibt als Provider-Filter aktiv
-            searchText = ""
-            // Tastatur weg
-            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
-                                            to: nil, from: nil, for: nil)
-        } catch {
-            print("LocationSearch resolve failed: \(error.localizedDescription)")
         }
     }
 
@@ -1360,46 +1125,6 @@ struct MapScreen: View {
         }
     }
     
-    /// Prüft ob Apple-Maps-Suggestions geografische Orte sind (Stadt/Land)
-    /// oder Firmen-POIs (Straße + Hausnummer im Untertitel).
-    /// Beispiel geografisch: "Sète" · "Frankreich"
-    /// Beispiel Firma:       "Yanmar Stadion" · "Competitieweg 20, Almere"
-    private func isGeographicResults(_ suggestions: [MKLocalSearchCompletion], query: String) -> Bool {
-        guard let top = suggestions.first else { return false }
-        let q = query.lowercased().trimmingCharacters(in: .whitespaces)
-        // Firmen-Indikator 1: Untertitel enthält Ziffern (Straßenadresse)
-        let subtitleHasDigits = top.subtitle.range(of: "\\d", options: .regularExpression) != nil
-        // Firmen-Indikator 2: Titel beginnt mit dem Suchbegriff (z.B. "Yanmar Stadion" bei Query "yanmar")
-        let titleStartsWithQuery = top.title.lowercased().hasPrefix(q)
-        // Wenn beides zutrifft → Firmen-Treffer, kein Ort
-        if titleStartsWithQuery && subtitleHasDigits { return false }
-        return true
-    }
-
-    private func performSearch() {
-        // Kombi-Suche ("Marke, Ort") oder reine Orts-Suche:
-        // besten Apple-Maps-Vorschlag automatisch übernehmen → kein Extra-Tippen nötig.
-        let hasLocationQuery = !combiKeyword.isEmpty || !searchText.isEmpty
-
-        if hasLocationQuery {
-            Task {
-                // Suggestions evtl. noch unterwegs → kurz warten
-                if locationSearch.suggestions.isEmpty {
-                    try? await Task.sleep(nanoseconds: 600_000_000)
-                }
-                if let best = locationSearch.suggestions.first {
-                    await selectLocationSuggestion(best)
-                } else {
-                    // Keine Orts-Treffer → nur Tastatur schließen, Keyword-Filter bleibt
-                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
-                                                    to: nil, from: nil, for: nil)
-                }
-            }
-            return
-        }
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
-                                        to: nil, from: nil, for: nil)
-    }
     
     private func calculateRoute(to item: MKMapItem) {
         guard let userLocation = userLocation else { return }

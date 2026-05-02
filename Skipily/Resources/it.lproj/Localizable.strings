@@ -22,7 +22,7 @@
 "category.painting" = "Verniciatura / Antivegetativa";
 
 // MARK: - Map Screen
-"map.search_placeholder" = "Nome, marca, luogo – o combinato...";
+"map.search_placeholder" = "Nome, marca o servizio...";
 "map.no_results" = "Nessun fornitore trovato";
 "map.loading" = "Caricamento...";
 "map.filter_title" = "Filtra per categoria";
