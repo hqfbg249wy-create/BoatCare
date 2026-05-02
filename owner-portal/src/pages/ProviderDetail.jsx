@@ -307,19 +307,6 @@ export default function ProviderDetail() {
         )}
       </div>
 
-      {/* Map */}
-      {provider.latitude && provider.longitude && provider.latitude !== 0 && (
-        <div className="pd-section">
-          <h3><MapPin size={16} /> Standort</h3>
-          <div className="pd-static-map">
-            <img
-              src={`https://staticmap.openstreetmap.de/staticmap.php?center=${provider.latitude},${provider.longitude}&zoom=14&size=600x300&maptype=mapnik&markers=${provider.latitude},${provider.longitude},red-pushpin`}
-              alt="Standort"
-              className="pd-map-img"
-            />
-          </div>
-        </div>
-      )}
     </div>
   )
 }
