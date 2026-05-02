@@ -63,6 +63,7 @@ export default function ProviderDetail() {
   const [loading, setLoading] = useState(true)
   const [userLocation, setUserLocation] = useState(null)
   const [distance, setDistance] = useState(null)
+  const [servicePrompt, setServicePrompt] = useState(null) // { label, query }
 
   useEffect(() => {
     if (user && id) loadProvider()
@@ -92,6 +93,22 @@ export default function ProviderDetail() {
     setProducts(prods || [])
     setReviews(revs || [])
     setLoading(false)
+  }
+
+  async function handleServiceClick(service) {
+    // Check if this provider has matching products in their shop
+    const { data } = await supabase
+      .from('metashop_products')
+      .select('id')
+      .eq('provider_id', id)
+      .eq('is_active', true)
+      .ilike('name', `%${service}%`)
+      .limit(1)
+    if (data && data.length > 0) {
+      navigate(`/shop?provider=${id}&q=${encodeURIComponent(service)}`)
+    } else {
+      setServicePrompt({ label: service, query: encodeURIComponent(service) })
+    }
   }
 
   async function toggleFavorite() {
@@ -220,16 +237,35 @@ export default function ProviderDetail() {
         </div>
       )}
 
-      {/* Services - clickable buttons to shop */}
+      {/* Services */}
       {services.length > 0 && (
         <div className="pd-section">
           <h3><Wrench size={16} /> Leistungen</h3>
           <div className="pd-tag-list">
             {services.map((s, i) => (
-              <Link key={i} to={`/services?search=${encodeURIComponent(s)}`} className="pd-tag-btn pd-tag-green">
+              <button key={i} className="pd-tag-btn pd-tag-green" onClick={() => handleServiceClick(s)}>
                 {s}
-              </Link>
+              </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Service search prompt — shown when provider has no matching products */}
+      {servicePrompt && (
+        <div className="pd-overlay" onClick={() => setServicePrompt(null)}>
+          <div className="pd-prompt-card" onClick={e => e.stopPropagation()}>
+            <p className="pd-prompt-text">
+              Für <strong>„{servicePrompt.label}"</strong> gibt es bei {provider.name} keine Produkte im Shop.
+              Soll bei allen Anbietern gesucht werden?
+            </p>
+            <div className="pd-prompt-btns">
+              <button className="pd-prompt-cancel" onClick={() => setServicePrompt(null)}>Abbrechen</button>
+              <button className="pd-prompt-confirm" onClick={() => {
+                setServicePrompt(null)
+                navigate(`/services?search=${servicePrompt.query}`)
+              }}>Alle durchsuchen</button>
+            </div>
           </div>
         </div>
       )}

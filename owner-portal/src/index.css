@@ -691,3 +691,14 @@ a { color: var(--blue); text-decoration: none; }
 .pd-review-comment { color: #334155; font-size: 14px; line-height: 1.65; margin: 0 0 6px; }
 .pd-review-author { font-size: 12px; color: #94a3b8; }
 .pd-empty-reviews { color: #94a3b8; font-style: italic; margin: 0; }
+
+/* ── Service prompt overlay ── */
+.pd-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; display: flex; align-items: flex-end; justify-content: center; padding-bottom: env(safe-area-inset-bottom, 0); }
+.pd-prompt-card { background: #fff; border-radius: 20px 20px 0 0; width: 100%; max-width: 640px; padding: 24px 20px 28px; box-shadow: 0 -4px 24px rgba(0,0,0,0.15); }
+.pd-prompt-text { font-size: 15px; color: #1e293b; line-height: 1.55; margin: 0 0 20px; }
+.pd-prompt-btns { display: flex; gap: 10px; }
+.pd-prompt-cancel { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(--gray-200); background: #f8fafc; color: #64748b; font-size: 15px; font-weight: 600; cursor: pointer; }
+.pd-prompt-confirm { flex: 2; padding: 12px; border-radius: 12px; border: none; background: var(--primary); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+.pd-prompt-confirm:hover { background: var(--primary-hover); }
+/* make service tag-buttons look same as tag links */
+button.pd-tag-btn { cursor: pointer; background: none; font-family: inherit; }
