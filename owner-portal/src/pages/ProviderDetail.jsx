@@ -263,7 +263,7 @@ export default function ProviderDetail() {
               <button className="pd-prompt-cancel" onClick={() => setServicePrompt(null)}>Abbrechen</button>
               <button className="pd-prompt-confirm" onClick={() => {
                 setServicePrompt(null)
-                navigate(`/services?search=${servicePrompt.query}`)
+                navigate(`/shop?q=${servicePrompt.query}`)
               }}>Alle durchsuchen</button>
             </div>
           </div>
