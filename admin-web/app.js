@@ -4652,56 +4652,209 @@ function emailFinderLog(msg, type = 'info') {
     log.scrollTop = log.scrollHeight;
 }
 
-/**
- * Crawlt eine URL und gibt den extrahierten Text zurück.
- * Nutzt Crawl4AI oder den Scraper-Backend.
- */
-async function crawlPageText(url, source) {
-    if (source === 'crawl4ai') {
-        const resp = await fetch(`${CRAWL4AI_SERVICE_URL}/crawl`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url }),
-            signal: AbortSignal.timeout(15000)
-        });
-        if (!resp.ok) return null;
-        const data = await resp.json();
-        if (data.robots_blocked || !data.success) return null;
-        // Crawl4AI gibt structured data zurück – wir brauchen den Rohtext
-        // Zusammensetzen aus allen verfügbaren Feldern
-        return [data.markdown || '', data.raw_text || '', data.email || '', data.description || ''].join('\n');
-    } else {
-        // Scraper-Backend: /api/scrape-website gibt email direkt zurück
-        const resp = await fetch(`${SCRAPER_URL}/api/scrape-website`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url }),
-            signal: AbortSignal.timeout(15000)
-        });
-        if (!resp.ok) return null;
-        const data = await resp.json();
-        // Gib den email direkt zurück als Text, damit extractEmailsFromText ihn findet
-        return data.email ? `email: ${data.email}` : (data.raw_text || data.markdown || null);
+// ─────────────────────────────────────────────────────────────────────────────
+// CRAWL HELPER — gibt { text, html } zurück statt nur Text
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function crawlPageRaw(url, source) {
+    try {
+        if (source === 'crawl4ai') {
+            const resp = await fetch(`${CRAWL4AI_SERVICE_URL}/crawl`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url }),
+                signal: AbortSignal.timeout(15000)
+            });
+            if (!resp.ok) return { text: null, html: null };
+            const data = await resp.json();
+            if (data.robots_blocked || !data.success) return { text: null, html: null };
+            const text = [data.markdown || '', data.raw_text || '',
+                          data.email || '', data.description || ''].join('\n');
+            const html = data.html || data.raw_html || data.cleaned_html || '';
+            return { text, html };
+        } else {
+            const resp = await fetch(`${SCRAPER_URL}/api/scrape-website`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url }),
+                signal: AbortSignal.timeout(15000)
+            });
+            if (!resp.ok) return { text: null, html: null };
+            const data = await resp.json();
+            const text = data.email ? `email: ${data.email}` : (data.raw_text || data.markdown || null);
+            return { text, html: data.html || '' };
+        }
+    } catch {
+        return { text: null, html: null };
     }
 }
 
-/**
- * Extrahiert Links aus HTML-Text, die auf Kontakt/Impressum-Seiten zeigen.
- * Gibt relative Pfade zurück (z.B. "/de/kontakt" statt "https://example.com/de/kontakt").
- */
+// Rückwärtskompatibel (nur Text) — weiterhin intern genutzt
+async function crawlPageText(url, source) {
+    const { text } = await crawlPageRaw(url, source);
+    return text;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QUELLE 1 — JSON-LD / Schema.org (im HTML eingebettet)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _collectEmailsFromJsonNode(node, found) {
+    if (!node || typeof node !== 'object') return;
+    // Direkte email-Felder
+    for (const key of ['email', 'contactEmail', 'customerServiceEmail']) {
+        if (typeof node[key] === 'string' && node[key].includes('@')) {
+            found.add(node[key].toLowerCase().trim());
+        }
+    }
+    // Rekursiv in Arrays und Objekten
+    for (const val of Object.values(node)) {
+        if (Array.isArray(val)) val.forEach(v => _collectEmailsFromJsonNode(v, found));
+        else if (val && typeof val === 'object') _collectEmailsFromJsonNode(val, found);
+    }
+}
+
+function extractEmailsFromJsonLD(html) {
+    if (!html) return [];
+    const found = new Set();
+    const scriptRegex = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+    for (const m of html.matchAll(scriptRegex)) {
+        try {
+            const parsed = JSON.parse(m[1].trim());
+            const items = Array.isArray(parsed) ? parsed : [parsed];
+            for (const item of items) _collectEmailsFromJsonNode(item, found);
+        } catch { /* invalid JSON — skip */ }
+    }
+    return [...found];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QUELLE 2 — Meta-Tags + hCard/vCard Microformats
+// ─────────────────────────────────────────────────────────────────────────────
+
+function extractEmailsFromMeta(html) {
+    if (!html) return [];
+    const found = new Set();
+    const stdRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/gi;
+
+    // <meta name="email|contact|author" content="...">
+    const metaRegex = /<meta[^>]+(?:name|property)=["'](?:email|contact|author|og:email)[^"']*["'][^>]*content=["']([^"']+)["']/gi;
+    for (const m of html.matchAll(metaRegex)) {
+        for (const e of (m[1] || '').matchAll(stdRegex)) found.add(e[0].toLowerCase());
+    }
+    // Auch Content-first-Variante
+    const metaRegex2 = /<meta[^>]+content=["']([^"']+)["'][^>]*(?:name|property)=["'](?:email|contact)[^"']*["']/gi;
+    for (const m of html.matchAll(metaRegex2)) {
+        for (const e of (m[1] || '').matchAll(stdRegex)) found.add(e[0].toLowerCase());
+    }
+    // class="email" im HTML (hCard Microformat)
+    const hcardRegex = /class=["'][^"']*\bemail\b[^"']*["'][^>]*>([^<]{3,80})</gi;
+    for (const m of html.matchAll(hcardRegex)) {
+        for (const e of m[1].matchAll(stdRegex)) found.add(e[0].toLowerCase());
+    }
+
+    const excluded = /\.(png|jpg|jpeg|gif|svg|css|js|woff|ttf|eot|ico)$/i;
+    const noreply  = /^(noreply|no-reply|mailer-daemon|postmaster|donotreply)/i;
+    return [...found].filter(e => !excluded.test(e) && !noreply.test(e));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QUELLE 3 — Sitemap.xml → echte Kontaktseiten-URLs entdecken
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function fetchSitemapContactUrls(baseUrl) {
+    const contactKw = /kontakt|impressum|contact|about|imprint|legal|privacy|team|datenschutz|mentions|aviso|chi-siamo|qui-somme/i;
+    const urlRegex  = /<loc>\s*(https?:\/\/[^\s<]+)\s*<\/loc>/gi;
+    const collected = new Set();
+
+    const tryParse = async (sitemapUrl) => {
+        try {
+            const resp = await fetch(sitemapUrl, { signal: AbortSignal.timeout(8000) });
+            if (!resp.ok) return;
+            const xml = await resp.text();
+            // Sitemap-Index → rekursiv
+            const subSitemaps = [...xml.matchAll(/<sitemap>[\s\S]*?<loc>\s*(https?:\/\/[^\s<]+)\s*<\/loc>/gi)]
+                .map(m => m[1]).slice(0, 4);
+            for (const sub of subSitemaps) await tryParse(sub);
+            // Normale URLs
+            for (const m of xml.matchAll(urlRegex)) {
+                const u = m[1];
+                if (contactKw.test(u)) {
+                    try {
+                        const parsed = new URL(u);
+                        const base   = new URL(baseUrl);
+                        if (parsed.hostname === base.hostname) collected.add(parsed.pathname);
+                    } catch { /* ignore */ }
+                }
+            }
+        } catch { /* sitemap nicht erreichbar */ }
+    };
+
+    await Promise.all([
+        tryParse(`${baseUrl}/sitemap.xml`),
+        tryParse(`${baseUrl}/sitemap_index.xml`),
+    ]);
+
+    return [...collected].slice(0, 8);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QUELLE 4 — RDAP / WHOIS (kein API-Key, öffentliche IANA-Daten)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _extractDomain(website) {
+    try {
+        return new URL(website.startsWith('http') ? website : 'https://' + website)
+            .hostname.replace(/^www\./, '');
+    } catch { return null; }
+}
+
+function _collectRdapEmails(entity, found) {
+    if (!entity) return;
+    // vCard-Array-Format: [["email", {}, "text", "info@example.com"], ...]
+    const vcard = entity.vcardArray ? (entity.vcardArray[1] || []) : [];
+    for (const prop of vcard) {
+        if (prop[0] === 'email' && typeof prop[3] === 'string' && prop[3].includes('@')) {
+            found.add(prop[3].toLowerCase().trim());
+        }
+    }
+    // Verschachtelte Entities
+    for (const nested of (entity.entities || [])) _collectRdapEmails(nested, found);
+}
+
+async function lookupRdapEmail(domain) {
+    if (!domain) return [];
+    try {
+        // Öffentlicher RDAP-Proxy (IANA-Standard, kein API-Key)
+        const resp = await fetch(`https://rdap.org/domain/${encodeURIComponent(domain)}`, {
+            headers: { Accept: 'application/rdap+json' },
+            signal: AbortSignal.timeout(8000)
+        });
+        if (!resp.ok) return [];
+        const data = await resp.json();
+        const found = new Set();
+        for (const entity of (data.entities || [])) _collectRdapEmails(entity, found);
+        // GDPR-Schutz-Mails rausfiltern
+        const privacy = /privacy|protect|redacted|registrar|abuse|noreply|whoisguard|domains|proxy/i;
+        return [...found].filter(e => e.includes('@') && !privacy.test(e));
+    } catch {
+        return [];
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LINK-HARVESTING aus Homepage
+// ─────────────────────────────────────────────────────────────────────────────
+
 function harvestContactLinks(htmlText, baseUrl) {
     if (!htmlText) return [];
     const contactKeywords = /kontakt|impressum|contact|about|imprint|legal|privacy|team|datenschutz|mentions|aviso|chi-siamo|qui-somme/i;
     const links = new Set();
-
-    // href="..." aus dem HTML extrahieren
     const hrefRegex = /href=["']([^"'#?]+)["']/gi;
     for (const m of htmlText.matchAll(hrefRegex)) {
         const href = m[1].trim();
         if (!contactKeywords.test(href)) continue;
-
         if (href.startsWith('http')) {
-            // Nur Links zur gleichen Domain
             try {
                 const u = new URL(href);
                 const base = new URL(baseUrl);
@@ -4711,60 +4864,99 @@ function harvestContactLinks(htmlText, baseUrl) {
             links.add(href);
         }
     }
-    return [...links].slice(0, 6); // max 6 zusätzliche Links verfolgen
+    return [...links].slice(0, 8);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// HAUPT-FUNKTION — Multi-Quellen-Suche für einen Provider
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Durchsucht die Website eines Providers nach E-Mail-Adressen.
- * Strategie:
- *  1. Homepage crawlen → E-Mails direkt extrahieren
- *  2. Links auf Kontakt/Impressum aus Homepage harvesten
- *  3. Typische Subpfade probieren (/impressum, /kontakt, …)
- *  Stoppt sobald E-Mails gefunden und mind. 2 Seiten gecheckt.
+ * Sucht E-Mail-Adressen für einen Provider über mehrere Quellen:
+ *  Phase 1 — Website-Crawl (Homepage)  + JSON-LD + Meta-Tags
+ *  Phase 2 — Sitemap-Discovery → echte Kontaktseiten
+ *  Phase 3 — Bekannte Subpfade + geerntete Links
+ *  Phase 4 — RDAP/WHOIS-Lookup (Domain-Registrar)
+ *  Phase 5 — Domain-Rateversuch (opt-in)
  */
 async function findEmailsForProvider(provider, source) {
-    const baseUrl = provider.website.replace(/\/+$/, '');
-    const allEmails = new Set();
-    let foundOnPage = '';
-    let homepageText = null;
+    const baseUrl     = provider.website.replace(/\/+$/, '');
+    const domain      = _extractDomain(baseUrl);
+    const allEmails   = new Set();
+    let foundOnPage   = '';
+    let foundSource   = '';
 
-    // 1. Homepage zuerst
+    const useJsonLD   = document.getElementById('source-jsonld')?.checked !== false;
+    const useSitemap  = document.getElementById('source-sitemap')?.checked !== false;
+    const useRdap     = document.getElementById('source-rdap')?.checked !== false;
+
+    const addEmails = (emails, src) => {
+        if (!emails.length) return;
+        emails.forEach(e => allEmails.add(e));
+        if (!foundSource) foundSource = src;
+    };
+
+    // ── Phase 1: Homepage ────────────────────────────────────────────────────
+    let homepageHtml = '';
     try {
-        homepageText = await crawlPageText(baseUrl, source);
-        if (homepageText) {
-            const emails = extractEmailsFromText(homepageText);
-            for (const e of emails) allEmails.add(e);
-            if (emails.length > 0) foundOnPage = '/';
-        }
+        const { text, html } = await crawlPageRaw(baseUrl, source);
+        homepageHtml = html || '';
+        if (text) addEmails(extractEmailsFromText(text), '/');
+        if (useJsonLD && html) addEmails(extractEmailsFromJsonLD(html), '/ (JSON-LD)');
+        if (html) addEmails(extractEmailsFromMeta(html), '/ (Meta)');
+        if (allEmails.size > 0) foundOnPage = foundSource;
     } catch { /* Homepage nicht erreichbar */ }
 
     if (emailFinderAbort) return { emails: [...allEmails], foundOnPage };
 
-    // 2. Kontakt-Links aus Homepage harvesten (deutlich bessere Trefferquote)
-    const harvestedPaths = homepageText ? harvestContactLinks(homepageText, baseUrl) : [];
-
-    // 3. Kanddiaten zusammenstellen: geerntete Links zuerst, dann bekannte Pfade
-    const knownPaths = EMAIL_SUBPAGES.filter(p => p !== ''); // Homepage schon gecheckt
-    const candidates = [
-        ...harvestedPaths.filter(h => !knownPaths.includes(h)),  // geerntete first
-        ...knownPaths,
-    ];
-
-    for (const subpage of candidates) {
-        if (emailFinderAbort) break;
-        // Abbrechen wenn genug E-Mails und mind. 3 Seiten gecheckt
-        if (allEmails.size > 0 && candidates.indexOf(subpage) >= 3) break;
-
-        const url = baseUrl + subpage;
+    // ── Phase 2: Sitemap-Discovery ───────────────────────────────────────────
+    if (allEmails.size === 0 && useSitemap) {
         try {
-            const text = await crawlPageText(url, source);
-            if (!text) continue;
-            const emails = extractEmailsFromText(text);
-            if (emails.length > 0) {
-                for (const e of emails) allEmails.add(e);
-                if (!foundOnPage) foundOnPage = subpage;
+            const sitemapPaths = await fetchSitemapContactUrls(baseUrl);
+            if (sitemapPaths.length > 0) {
+                emailFinderLog(`    📋 Sitemap: ${sitemapPaths.length} Kontaktseite(n) gefunden`, 'info');
+                for (const path of sitemapPaths) {
+                    if (emailFinderAbort) break;
+                    const { text, html } = await crawlPageRaw(baseUrl + path, source);
+                    if (text) addEmails(extractEmailsFromText(text), path + ' (Sitemap)');
+                    if (useJsonLD && html) addEmails(extractEmailsFromJsonLD(html), path + ' (JSON-LD)');
+                    if (html) addEmails(extractEmailsFromMeta(html), path + ' (Meta)');
+                    if (allEmails.size > 0) { foundOnPage = foundSource; break; }
+                }
             }
-        } catch { /* Subpage nicht erreichbar */ }
+        } catch { /* Sitemap nicht erreichbar */ }
+    }
+
+    // ── Phase 3: Geerntete Links + bekannte Subpfade ─────────────────────────
+    if (allEmails.size === 0) {
+        const harvestedPaths = harvestContactLinks(homepageHtml, baseUrl);
+        const knownPaths     = EMAIL_SUBPAGES.filter(p => p !== '');
+        const candidates     = [
+            ...harvestedPaths.filter(h => !knownPaths.includes(h)),
+            ...knownPaths,
+        ];
+
+        for (const subpage of candidates) {
+            if (emailFinderAbort) break;
+            if (allEmails.size > 0 && candidates.indexOf(subpage) >= 4) break;
+            try {
+                const { text, html } = await crawlPageRaw(baseUrl + subpage, source);
+                if (text) addEmails(extractEmailsFromText(text), subpage);
+                if (useJsonLD && html) addEmails(extractEmailsFromJsonLD(html), subpage + ' (JSON-LD)');
+                if (html) addEmails(extractEmailsFromMeta(html), subpage + ' (Meta)');
+                if (allEmails.size > 0) { foundOnPage = foundSource; break; }
+            } catch { /* Subpage nicht erreichbar */ }
+        }
+    }
+
+    // ── Phase 4: RDAP/WHOIS ──────────────────────────────────────────────────
+    if (allEmails.size === 0 && useRdap && domain) {
+        try {
+            emailFinderLog(`    🔎 RDAP-Lookup: ${domain}`, 'info');
+            const rdapEmails = await lookupRdapEmail(domain);
+            addEmails(rdapEmails, `RDAP (${domain})`);
+            if (allEmails.size > 0) foundOnPage = foundSource;
+        } catch { /* RDAP fehlgeschlagen */ }
     }
 
     return { emails: [...allEmails], foundOnPage };

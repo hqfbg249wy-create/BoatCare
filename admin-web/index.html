@@ -483,8 +483,9 @@
                         <span id="email-finder-stats" style="font-size:12px; color:#64748b; background:#dbeafe; padding:3px 10px; border-radius:12px; cursor:pointer;" onclick="window.loadEmailFinderStats()" title="Klicken zum Aktualisieren">📊 Lade...</span>
                     </div>
                     <p style="font-size:13px; color:#475569; margin-bottom:12px;">
-                        Durchsucht Websites aller Betriebe ohne E-Mail (Homepage + geerntete Links + Impressum/Kontakt-Pfade).
-                        Erkennt auch verschleierte Adressen wie <code>[at]</code>, <code>(at)</code>, <code>&#123;at&#125;</code>, HTML-Entities (<code>&amp;#64;</code>).
+                        Multi-Quellen-Suche: Website-Crawl mit JSON-LD/Schema.org-Erkennung + Sitemap-Discovery +
+                        RDAP/WHOIS-Abfrage + Domain-Rateversuch. Erkennt auch verschleierte Adressen
+                        (<code>[at]</code>, <code>(at)</code>, HTML-Entities <code>&amp;#64;</code>, JS-Obfuskation).
                     </p>
 
                     <div class="form-row">
@@ -500,7 +501,7 @@
                             <input type="number" id="email-finder-limit" value="50" min="1" max="500">
                         </div>
                         <div class="form-group" style="flex:1;">
-                            <label>Quelle</label>
+                            <label>Crawl-Quelle</label>
                             <select id="email-finder-source">
                                 <option value="crawl4ai">Crawl4AI (lokal)</option>
                                 <option value="scraper">Scraper Backend</option>
@@ -508,12 +509,38 @@
                         </div>
                     </div>
 
-                    <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
-                        <input type="checkbox" id="email-guess-fallback" style="width:auto;">
-                        <label for="email-guess-fallback" style="font-size:13px; color:#374151; margin:0; cursor:pointer;">
-                            Domain-Rateversuch als Fallback (info@ / kontakt@ / mail@)
-                            <span style="color:#94a3b8; font-size:11px;">— wenn keine E-Mail auf der Website gefunden</span>
-                        </label>
+                    <!-- Zusätzliche Quellen -->
+                    <div style="margin-top:12px; background:#f8fafc; border-radius:6px; padding:12px; border:1px solid #e2e8f0;">
+                        <div style="font-size:12px; font-weight:600; color:#374151; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
+                            Zusätzliche Quellen
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#374151; cursor:pointer;">
+                                <input type="checkbox" id="source-jsonld" checked style="width:auto;">
+                                <span>
+                                    <strong>JSON-LD / Schema.org</strong> — strukturierte Daten im HTML (sehr effektiv bei modernen Websites)
+                                </span>
+                            </label>
+                            <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#374151; cursor:pointer;">
+                                <input type="checkbox" id="source-sitemap" checked style="width:auto;">
+                                <span>
+                                    <strong>Sitemap.xml</strong> — entdeckt echte Kontakt/Impressum-URLs statt URL-Raten
+                                </span>
+                            </label>
+                            <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#374151; cursor:pointer;">
+                                <input type="checkbox" id="source-rdap" checked style="width:auto;">
+                                <span>
+                                    <strong>RDAP / WHOIS</strong> — Domain-Registrar-Daten (kein API-Key nötig, GDPR-geschützte Domains werden übersprungen)
+                                </span>
+                            </label>
+                            <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#374151; cursor:pointer;">
+                                <input type="checkbox" id="email-guess-fallback" style="width:auto;">
+                                <span>
+                                    <strong>Domain-Rateversuch</strong> — info@ / kontakt@ / mail@ wenn alle anderen Quellen leer
+                                    <span style="color:#94a3b8; font-size:11px;">(als Rateversuch markiert)</span>
+                                </span>
+                            </label>
+                        </div>
                     </div>
 
                     <div style="display:flex; gap:10px; margin-top:15px;">
