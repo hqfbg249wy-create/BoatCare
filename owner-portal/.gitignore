@@ -31,3 +31,7 @@ android/.idea
 android/local.properties
 android/captures
 android/.cxx
+
+# Signing keystore – niemals ins Repository!
+android/*.keystore
+android/*.jks
