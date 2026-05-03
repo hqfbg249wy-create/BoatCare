@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Skipily</string>
+    <string name="title_activity_main">Skipily</string>
+    <string name="package_name">app.skipily.owner</string>
+    <string name="custom_url_scheme">app.skipily.owner</string>
+</resources>
