@@ -70,26 +70,51 @@ struct SkipilyApp: App {
 struct RootView: View {
     @EnvironmentObject var authService: AuthService
     @State private var showSplash = true
+    @State private var showTour = false
 
     var body: some View {
-        if showSplash {
-            SplashView()
-                .task {
-                    // Previously we slept a hard 1 s on top of the network
-                    // restoreSession() which made cold starts feel sluggish.
-                    // Now we dismiss as soon as the session is known, but
-                    // keep a tiny 200 ms minimum so the splash doesn't flash.
-                    async let restore: Void = authService.restoreSession()
-                    async let minDisplay: Void = Task.sleep(nanoseconds: 200_000_000)
-                    _ = try? await (restore, minDisplay)
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        showSplash = false
+        Group {
+            if showSplash {
+                SplashView()
+                    .task {
+                        // Previously we slept a hard 1 s on top of the network
+                        // restoreSession() which made cold starts feel sluggish.
+                        // Now we dismiss as soon as the session is known, but
+                        // keep a tiny 200 ms minimum so the splash doesn't flash.
+                        async let restore: Void = authService.restoreSession()
+                        async let minDisplay: Void = Task.sleep(nanoseconds: 200_000_000)
+                        _ = try? await (restore, minDisplay)
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showSplash = false
+                        }
                     }
+            } else if authService.isAuthenticated {
+                if showTour {
+                    // Dunkler Platzhalter während Tour läuft – verhindert,
+                    // dass MapScreen & Co. im Hintergrund initialisiert werden
+                    // und dabei abstürzen.
+                    Color(hex: 0x050D18).ignoresSafeArea()
+                } else {
+                    MainTabView()
                 }
-        } else if authService.isAuthenticated {
-            MainTabView()
-        } else {
-            LoginView()
+            } else {
+                LoginView()
+            }
+        }
+        // Tour wird als fullScreenCover über dem Platzhalter gezeigt
+        .fullScreenCover(isPresented: $showTour) {
+            AppTourView()
+        }
+        // Sobald Splash weg und eingeloggt: Tour prüfen
+        .onChange(of: showSplash) { _, stillShowing in
+            if !stillShowing && authService.isAuthenticated && !AppTourView.hasSeen {
+                showTour = true
+            }
+        }
+        .onChange(of: authService.isAuthenticated) { _, isAuth in
+            if isAuth && !showSplash && !AppTourView.hasSeen {
+                showTour = true
+            }
         }
     }
 }
