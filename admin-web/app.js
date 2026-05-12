@@ -8246,7 +8246,7 @@ async function loadCustomers() {
             .from('service_providers')
             .select(`
                 id, name, category, city, country, brands, services,
-                shop_active, commission_rate,
+                is_shop_active, commission_rate,
                 subscription_tier, subscription_status, free_until,
                 subscription_period_end, stripe_subscription_id,
                 stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled,
@@ -8292,7 +8292,7 @@ window.loadCustomers = loadCustomers;
 
 function renderCustomerStats(rows) {
     const total = rows.length;
-    const shops = rows.filter(r => r.shop_active).length;
+    const shops = rows.filter(r => r.is_shop_active).length;
     const pro   = rows.filter(r => r.subscription_tier === 'professional').length;
     const grant = rows.filter(r => r.subscription_tier === 'admin_grant').length;
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
@@ -8310,8 +8310,8 @@ function refreshCustomers() {
     let filtered = _customersAll;
 
     if (tierFilter !== 'all') filtered = filtered.filter(p => (p.subscription_tier || 'standard') === tierFilter);
-    if (shopFilter === 'active')   filtered = filtered.filter(p => p.shop_active);
-    if (shopFilter === 'inactive') filtered = filtered.filter(p => !p.shop_active);
+    if (shopFilter === 'active')   filtered = filtered.filter(p => p.is_shop_active);
+    if (shopFilter === 'inactive') filtered = filtered.filter(p => !p.is_shop_active);
 
     if (term) {
         filtered = filtered.filter(p => {
@@ -8386,7 +8386,7 @@ function renderCustomerList(rows) {
                 <td style="padding:8px; text-align:center; font-size:12px;">${fmtDate(validUntil)}</td>
                 <td style="padding:8px; text-align:center;">
                     <label style="cursor:pointer; display:inline-flex; align-items:center;">
-                        <input type="checkbox" ${p.shop_active ? 'checked' : ''}
+                        <input type="checkbox" ${p.is_shop_active ? 'checked' : ''}
                                onchange="window.toggleShopActive('${p.id}', this.checked)">
                     </label>
                 </td>
@@ -8433,7 +8433,7 @@ function renderCustomersByCategory(rows) {
                         ${escapeHtml(p.name || '—')}
                         ${p.subscription_tier === 'professional' ? ' ⭐' : ''}
                         ${p.subscription_tier === 'admin_grant'  ? ' 🎁' : ''}
-                        ${p.shop_active ? ' 🛒' : ''}
+                        ${p.is_shop_active ? ' 🛒' : ''}
                     </span>
                 `).join('')}
             </div>
