@@ -45,9 +45,9 @@
                     Änderungsanfragen
                     <span class="badge" id="suggestions-badge">0</span>
                 </button>
-                <button class="nav-item" data-page="providers" onclick="window.navigateToPage('providers')">
+                <button class="nav-item" data-page="customers" onclick="window.navigateToPage('customers')">
                     <span class="icon">🏢</span>
-                    ServiceProvider
+                    Provider
                 </button>
                 <button class="nav-item" data-page="map" onclick="window.navigateToPage('map')">
                     <span class="icon">🗺️</span>
@@ -86,17 +86,9 @@
                     <span class="icon">🔄</span>
                     Update-Suche
                 </button>
-                <button class="nav-item" data-page="shop-management" onclick="window.navigateToPage('shop-management')">
-                    <span class="icon">🛒</span>
-                    Shop-Verwaltung
-                </button>
                 <button class="nav-item" data-page="payments" onclick="window.navigateToPage('payments')">
                     <span class="icon">💳</span>
                     Zahlungen
-                </button>
-                <button class="nav-item" data-page="subscriptions" onclick="window.navigateToPage('subscriptions')">
-                    <span class="icon">⭐</span>
-                    Abos
                 </button>
                 <button class="nav-item" data-page="admin-orders" onclick="window.navigateToPage('admin-orders')">
                     <span class="icon">📦</span>
@@ -230,23 +222,91 @@
             </div>
 
             <!-- Providers Page -->
-            <div id="providers-page" class="page">
-                <h1>ServiceProvider</h1>
-                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <button class="filter-btn active" onclick="window.toggleProviderView('list')">📋 Liste</button>
-                    <button class="filter-btn" onclick="window.toggleProviderView('categories')">📊 Nach Kategorien</button>
+            <!-- ═════════════════════════════════════════════════════════════
+                 Unified Provider-Verwaltung
+                 ─ Ersetzt frühere Seiten: ServiceProvider, Shop-Verwaltung, Abos
+                 ─ Eine Tabelle mit allen relevanten Daten + Aktionen pro Provider
+                ════════════════════════════════════════════════════════════════ -->
+            <div id="customers-page" class="page">
+                <h1>🏢 Provider</h1>
+                <p class="subtitle">Stammdaten, Shop, Abo und Aktionen pro Kunde an einem Ort.</p>
+
+                <!-- Stats -->
+                <div class="stats-grid" id="customer-stats" style="margin-bottom:18px;">
+                    <div class="stat-card">
+                        <div class="stat-icon">🏢</div>
+                        <div class="stat-value" id="cust-total">–</div>
+                        <div class="stat-label">Provider gesamt</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🛒</div>
+                        <div class="stat-value" id="cust-shops">–</div>
+                        <div class="stat-label">Shops aktiv</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-value" id="cust-pro">–</div>
+                        <div class="stat-label">Professional</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🎁</div>
+                        <div class="stat-value" id="cust-grant">–</div>
+                        <div class="stat-label">Admin-Freischaltung</div>
+                    </div>
                 </div>
-                <div class="search-bar">
-                    <input type="text" id="provider-search"
-                           placeholder="Name, Marke, Dienstleistung, Stadt …"
-                           oninput="window.searchProviders()"
-                           style="flex:1;">
-                    <button id="search-btn" class="btn-primary" onclick="window.searchProviders()">🔍 Suchen</button>
-                    <button class="btn-secondary" onclick="document.getElementById('provider-search').value=''; window.searchProviders();" title="Suche leeren">✕</button>
+
+                <!-- Toolbar: Suche + Filter + Ansicht -->
+                <div style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; align-items:center;">
+                    <input type="text" id="cust-search"
+                           placeholder="Name, Kategorie, Stadt, Marke…"
+                           oninput="window.refreshCustomers()"
+                           style="flex:1; min-width:240px; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;">
+
+                    <select id="cust-filter-tier" onchange="window.refreshCustomers()"
+                            style="padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;">
+                        <option value="all">Alle Tiers</option>
+                        <option value="professional">Nur Professional</option>
+                        <option value="admin_grant">Nur Admin-Grant</option>
+                        <option value="standard">Nur Standard</option>
+                    </select>
+
+                    <select id="cust-filter-shop" onchange="window.refreshCustomers()"
+                            style="padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;">
+                        <option value="all">Shop: Alle</option>
+                        <option value="active">Shop: Aktiv</option>
+                        <option value="inactive">Shop: Inaktiv</option>
+                    </select>
+
+                    <button class="btn-primary" onclick="window.loadCustomers()" style="font-size:13px; padding:8px 16px;">🔄 Aktualisieren</button>
+                    <button class="btn-secondary" onclick="window.toggleCustomerView()" id="cust-view-toggle" style="font-size:13px; padding:8px 16px;">📊 Kategorien-Ansicht</button>
                 </div>
-                <div id="provider-search-info" style="font-size:13px; color:#64748b; margin-bottom:8px;"></div>
-                <div id="providers-list"></div>
-                <div id="providers-by-category" style="display: none;"></div>
+
+                <div id="cust-diag" style="font-size:13px; color:#475569; background:#f1f5f9; padding:8px 12px; border-radius:6px; margin-bottom:12px;">Wird geladen…</div>
+
+                <!-- Liste -->
+                <div class="card" id="cust-list-view" style="overflow-x:auto;">
+                    <table class="data-table" style="width:100%; border-collapse:collapse; font-size:14px;">
+                        <thead>
+                            <tr style="text-align:left; border-bottom:2px solid #e2e8f0; background:#fafafa;">
+                                <th style="padding:10px 8px;">Provider</th>
+                                <th style="padding:10px 8px;">Kategorie</th>
+                                <th style="padding:10px 8px; text-align:center;">Abo</th>
+                                <th style="padding:10px 8px; text-align:center;">Läuft bis</th>
+                                <th style="padding:10px 8px; text-align:center;">Shop</th>
+                                <th style="padding:10px 8px; text-align:center;">Provision</th>
+                                <th style="padding:10px 8px; text-align:center;">Produkte</th>
+                                <th style="padding:10px 8px; text-align:center;">Stripe</th>
+                                <th style="padding:10px 8px; text-align:right;">Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cust-tbody">
+                            <tr><td colspan="9" style="padding:30px; text-align:center; color:#94a3b8;">Wird geladen…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Kategorien-Ansicht -->
+                <div id="cust-category-view" style="display:none;"></div>
             </div>
 
             <!-- Map Page -->
@@ -657,8 +717,8 @@
                 </div>
             </div>
 
-            <!-- Shop-Verwaltung Page -->
-            <div id="shop-management-page" class="page">
+            <!-- Shop-Verwaltung Page (DEPRECATED — durch "Provider" ersetzt, bleibt für Backlinks) -->
+            <div id="shop-management-page" class="page" style="display:none;">
                 <h1>🛒 Shop-Verwaltung</h1>
                 <p class="subtitle">Provisionen und Shop-Freischaltung pro Provider verwalten</p>
 
@@ -784,8 +844,8 @@
                 </div>
             </div>
 
-            <!-- Abos / Subscriptions Page -->
-            <div id="subscriptions-page" class="page">
+            <!-- Abos Page (DEPRECATED — Funktion in "Provider" integriert) -->
+            <div id="subscriptions-page" class="page" style="display:none;">
                 <h1>⭐ Abo-Verwaltung</h1>
                 <p class="subtitle">Professional-Abos und Admin-Freischaltungen pro Provider verwalten.</p>
 

@@ -8225,6 +8225,253 @@ async function revokeSubscription(providerId) {
 }
 window.revokeSubscription = revokeSubscription;
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  Unified Provider-Verwaltung (Customers)
+//  Ersetzt: ServiceProvider-Liste, Shop-Verwaltung, Abos
+// ═══════════════════════════════════════════════════════════════════════════
+
+let _customersAll = [];        // Roh-Liste aller Provider mit Joins
+let _customerView = 'list';    // 'list' oder 'categories'
+
+async function loadCustomers() {
+    const tbody = document.getElementById('cust-tbody');
+    const diag  = document.getElementById('cust-diag');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="9" style="padding:30px; text-align:center; color:#94a3b8;">Wird geladen…</td></tr>';
+    if (diag) diag.textContent = 'Lade Provider…';
+
+    try {
+        // Alle Provider + Subscription-Daten + Stripe-Status in einem Query
+        const { data: providers, error } = await supabaseClient
+            .from('service_providers')
+            .select(`
+                id, name, category, city, country, brands, services,
+                shop_active, commission_rate,
+                subscription_tier, subscription_status, free_until,
+                subscription_period_end, stripe_subscription_id,
+                stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled,
+                logo_url
+            `)
+            .order('name', { ascending: true })
+            .limit(5000);
+
+        if (error) throw error;
+
+        // Produkt-Anzahl pro Provider mit einem GROUP BY-ähnlichen Query
+        const productCounts = {};
+        try {
+            const { data: prodCounts } = await supabaseClient
+                .from('products')
+                .select('provider_id')
+                .eq('is_active', true)
+                .limit(50000);
+            (prodCounts || []).forEach(p => {
+                productCounts[p.provider_id] = (productCounts[p.provider_id] || 0) + 1;
+            });
+        } catch (e) {
+            console.warn('Konnte Produkt-Anzahlen nicht laden:', e);
+        }
+
+        _customersAll = (providers || []).map(p => ({
+            ...p,
+            product_count: productCounts[p.id] || 0,
+        }));
+
+        renderCustomerStats(_customersAll);
+        refreshCustomers();
+        if (diag) {
+            diag.textContent = `${_customersAll.length} Provider geladen.`;
+        }
+    } catch (err) {
+        console.error('loadCustomers error:', err);
+        if (diag) diag.textContent = 'Fehler: ' + err.message;
+        tbody.innerHTML = `<tr><td colspan="9" style="padding:20px; color:#ef4444;">Fehler: ${escapeHtml(err.message)}</td></tr>`;
+    }
+}
+window.loadCustomers = loadCustomers;
+
+function renderCustomerStats(rows) {
+    const total = rows.length;
+    const shops = rows.filter(r => r.shop_active).length;
+    const pro   = rows.filter(r => r.subscription_tier === 'professional').length;
+    const grant = rows.filter(r => r.subscription_tier === 'admin_grant').length;
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('cust-total', total);
+    set('cust-shops', shops);
+    set('cust-pro', pro);
+    set('cust-grant', grant);
+}
+
+function refreshCustomers() {
+    const term       = (document.getElementById('cust-search')?.value || '').toLowerCase().trim();
+    const tierFilter = document.getElementById('cust-filter-tier')?.value || 'all';
+    const shopFilter = document.getElementById('cust-filter-shop')?.value || 'all';
+
+    let filtered = _customersAll;
+
+    if (tierFilter !== 'all') filtered = filtered.filter(p => (p.subscription_tier || 'standard') === tierFilter);
+    if (shopFilter === 'active')   filtered = filtered.filter(p => p.shop_active);
+    if (shopFilter === 'inactive') filtered = filtered.filter(p => !p.shop_active);
+
+    if (term) {
+        filtered = filtered.filter(p => {
+            const blob = [
+                p.name, p.category, p.city, p.country,
+                ...(Array.isArray(p.brands)   ? p.brands   : []),
+                ...(Array.isArray(p.services) ? p.services : []),
+            ].filter(Boolean).join(' ').toLowerCase();
+            return blob.includes(term);
+        });
+    }
+
+    if (_customerView === 'categories') {
+        renderCustomersByCategory(filtered);
+    } else {
+        renderCustomerList(filtered);
+    }
+}
+window.refreshCustomers = refreshCustomers;
+
+function renderCustomerList(rows) {
+    document.getElementById('cust-list-view').style.display = '';
+    document.getElementById('cust-category-view').style.display = 'none';
+
+    const tbody = document.getElementById('cust-tbody');
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="9" style="padding:30px; text-align:center; color:#94a3b8;">Keine Provider mit diesen Filtern.</td></tr>';
+        return;
+    }
+
+    const tierBadge = (tier) => {
+        if (tier === 'professional') return '<span style="background:#dcfce7; color:#15803d; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700;">⭐ Pro</span>';
+        if (tier === 'admin_grant')  return '<span style="background:#fef3c7; color:#854d0e; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700;">🎁 Grant</span>';
+        return '<span style="background:#f1f5f9; color:#475569; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700;">Std</span>';
+    };
+
+    const fmtDate = (iso) => {
+        if (!iso) return '<span style="color:#cbd5e1;">—</span>';
+        const d = new Date(iso);
+        const now = new Date();
+        const days = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
+        const s = d.toLocaleDateString('de-DE');
+        if (days < 0)   return `<span style="color:#ef4444;">${s}</span>`;
+        if (days <= 30) return `<span style="color:#f59e0b;">${s}</span>`;
+        return `<span style="color:#475569;">${s}</span>`;
+    };
+
+    const stripeChip = (p) => {
+        if (!p.stripe_account_id)        return '<span title="Kein Stripe-Konto" style="color:#cbd5e1;">—</span>';
+        if (p.stripe_charges_enabled && p.stripe_payouts_enabled)
+            return '<span title="Stripe vollständig aktiv" style="color:#15803d; font-weight:700;">✓</span>';
+        return '<span title="Stripe-Einrichtung unvollständig" style="color:#f59e0b; font-weight:700;">⏳</span>';
+    };
+
+    tbody.innerHTML = rows.map(p => {
+        const tier   = p.subscription_tier || 'standard';
+        const validUntil = tier === 'admin_grant' ? p.free_until : p.subscription_period_end;
+        const safeName = escapeHtml((p.name || '').replace(/'/g, "\\'"));
+
+        const grantBtn = tier !== 'admin_grant'
+            ? `<button title="Professional kostenfrei freischalten" onclick="window.grantSubscriptionPrompt('${p.id}', '${safeName}')" style="background:#fef3c7; color:#854d0e; border:1px solid #fde68a; padding:4px 9px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; margin:0 2px;">🎁</button>`
+            : `<button title="Admin-Freischaltung widerrufen" onclick="window.revokeSubscription('${p.id}')" style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; padding:4px 9px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; margin:0 2px;">↺</button>`;
+
+        return `
+            <tr style="border-bottom:1px solid #f1f5f9;" data-id="${p.id}">
+                <td style="padding:8px;">
+                    <div style="font-weight:600; color:#0f172a;">${escapeHtml(p.name || '—')}</div>
+                    <div style="font-size:11px; color:#94a3b8;">${escapeHtml(p.city || '')}</div>
+                </td>
+                <td style="padding:8px; font-size:13px; color:#475569;">${escapeHtml(p.category || '—')}</td>
+                <td style="padding:8px; text-align:center;">${tierBadge(tier)}</td>
+                <td style="padding:8px; text-align:center; font-size:12px;">${fmtDate(validUntil)}</td>
+                <td style="padding:8px; text-align:center;">
+                    <label style="cursor:pointer; display:inline-flex; align-items:center;">
+                        <input type="checkbox" ${p.shop_active ? 'checked' : ''}
+                               onchange="window.toggleShopActive('${p.id}', this.checked)">
+                    </label>
+                </td>
+                <td style="padding:8px; text-align:center;">
+                    <input type="number" min="0" max="100" step="0.5"
+                           value="${p.commission_rate ?? 10}"
+                           onchange="window.updateCommissionRate('${p.id}', this.value)"
+                           style="width:60px; padding:3px 6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px; text-align:right;">%
+                </td>
+                <td style="padding:8px; text-align:center; font-size:13px; color:#475569;">${p.product_count || 0}</td>
+                <td style="padding:8px; text-align:center;">${stripeChip(p)}</td>
+                <td style="padding:8px; text-align:right; white-space:nowrap;">
+                    ${grantBtn}
+                    <button title="Login anlegen / einladen" onclick="window.openProviderInvite && window.openProviderInvite('${p.id}', '${safeName}') || window.navigateToPage('invite-provider')" style="background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; padding:4px 9px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; margin:0 2px;">✉</button>
+                    <button title="Bearbeiten" onclick="window.editProviderInline && window.editProviderInline('${p.id}')" style="background:#f1f5f9; color:#334155; border:1px solid #e2e8f0; padding:4px 9px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; margin:0 2px;">✏️</button>
+                    <button title="Löschen" onclick="window.deleteProvider('${p.id}')" style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; padding:4px 9px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; margin:0 2px;">🗑</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function renderCustomersByCategory(rows) {
+    document.getElementById('cust-list-view').style.display = 'none';
+    const container = document.getElementById('cust-category-view');
+    container.style.display = '';
+
+    const byCat = {};
+    rows.forEach(p => {
+        const c = p.category || 'sonstige';
+        if (!byCat[c]) byCat[c] = [];
+        byCat[c].push(p);
+    });
+
+    const cats = Object.keys(byCat).sort();
+    container.innerHTML = cats.map(c => `
+        <div class="card" style="margin-bottom:14px;">
+            <h3 style="margin:0 0 8px; font-size:15px; color:#0f172a; text-transform:capitalize;">
+                ${escapeHtml(c)} <span style="color:#94a3b8; font-weight:400;">(${byCat[c].length})</span>
+            </h3>
+            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                ${byCat[c].map(p => `
+                    <span style="background:#f1f5f9; padding:4px 10px; border-radius:14px; font-size:12px; color:#334155;">
+                        ${escapeHtml(p.name || '—')}
+                        ${p.subscription_tier === 'professional' ? ' ⭐' : ''}
+                        ${p.subscription_tier === 'admin_grant'  ? ' 🎁' : ''}
+                        ${p.shop_active ? ' 🛒' : ''}
+                    </span>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+function toggleCustomerView() {
+    _customerView = (_customerView === 'list') ? 'categories' : 'list';
+    const btn = document.getElementById('cust-view-toggle');
+    if (btn) btn.textContent = (_customerView === 'list') ? '📊 Kategorien-Ansicht' : '📋 Listen-Ansicht';
+    refreshCustomers();
+}
+window.toggleCustomerView = toggleCustomerView;
+
+// Inline-Edit: einfach zum Bearbeiten den Provider auf der "Provider hinzufügen"-Seite öffnen
+// (Existing handler reuses; falls nicht da, einfaches Prompt-Update als Fallback)
+window.editProviderInline = window.editProviderInline || async function(providerId) {
+    const p = _customersAll.find(x => x.id === providerId);
+    if (!p) return;
+    const newName = prompt('Name', p.name);
+    if (newName === null) return;
+    const newCity = prompt('Stadt', p.city || '');
+    if (newCity === null) return;
+    const newCat  = prompt('Kategorie', p.category || '');
+    if (newCat === null) return;
+    try {
+        const { error } = await supabaseClient
+            .from('service_providers')
+            .update({ name: newName, city: newCity, category: newCat })
+            .eq('id', providerId);
+        if (error) throw error;
+        loadCustomers();
+    } catch (err) {
+        alert('Fehler: ' + err.message);
+    }
+};
+
 // ── Automatisch laden wenn Admin-Seite oder User-Seite geöffnet wird ─────────
 (function hookAdminPageNav() {
     const origNav = window.navigateToPage;
@@ -8236,6 +8483,11 @@ window.revokeSubscription = revokeSubscription;
         if (page === 'market-analysis')   loadMarketAnalysis();
         if (page === 'review-moderation') loadModerationQueue();
         if (page === 'subscriptions')     loadSubscriptions();
+        if (page === 'customers')         loadCustomers();
+        // Alte Pages auf die neue umleiten falls noch Direct-Links existieren
+        if (page === 'providers' || page === 'shop-management') {
+            setTimeout(() => origNav('customers'), 0);
+        }
     };
     // Badge direkt beim Laden befüllen
     refreshModerationBadge();
