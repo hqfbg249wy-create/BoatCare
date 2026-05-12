@@ -39,6 +39,10 @@ export default function Profile() {
   const [brandInput, setBrandInput] = useState('')
   const [products, setProducts] = useState([])
 
+  // Subscription / Professional-Upgrade
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false)
+  const [subscriptionMessage, setSubscriptionMessage] = useState(null)
+
   useEffect(() => {
     if (provider) {
       setForm({
@@ -59,7 +63,7 @@ export default function Profile() {
       setServices(Array.isArray(provider.services) ? provider.services : [])
       setBrands(Array.isArray(provider.brands) ? provider.brands : [])
 
-      // Check Stripe URL params for return from onboarding
+      // Check Stripe URL params for return from onboarding / subscription
       const params = new URLSearchParams(window.location.search)
       if (params.get('stripe') === 'success') {
         setStripeMessage({ type: 'success', text: 'Stripe-Einrichtung abgeschlossen! Ihr Konto wird geprüft.' })
@@ -67,6 +71,13 @@ export default function Profile() {
         loadProvider(user.id)
       } else if (params.get('stripe') === 'refresh') {
         setStripeMessage({ type: 'info', text: 'Bitte schließen Sie die Stripe-Einrichtung ab.' })
+        window.history.replaceState({}, '', '/profile')
+      } else if (params.get('subscription') === 'success') {
+        setSubscriptionMessage({ type: 'success', text: 'Abo abgeschlossen! Die Aktivierung kann ein paar Sekunden dauern.' })
+        window.history.replaceState({}, '', '/profile')
+        loadProvider(user.id)
+      } else if (params.get('subscription') === 'cancelled') {
+        setSubscriptionMessage({ type: 'info', text: 'Abo-Abschluss abgebrochen.' })
         window.history.replaceState({}, '', '/profile')
       }
     }
@@ -211,6 +222,65 @@ export default function Profile() {
 
   function handleChange(e) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  // ─── Professional-Abo ────────────────────────────────────────────────────
+  async function startSubscriptionCheckout() {
+    setSubscriptionLoading(true)
+    setSubscriptionMessage(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Nicht angemeldet')
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
+      const res = await fetch(`${supabaseUrl}/functions/v1/create-subscription-checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ provider_id: provider.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Checkout-Fehler')
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error('Keine Checkout-URL erhalten')
+      }
+    } catch (err) {
+      setSubscriptionMessage({ type: 'error', text: 'Fehler: ' + err.message })
+    } finally {
+      setSubscriptionLoading(false)
+    }
+  }
+
+  async function openBillingPortal() {
+    setSubscriptionLoading(true)
+    setSubscriptionMessage(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Nicht angemeldet')
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
+      const res = await fetch(`${supabaseUrl}/functions/v1/create-billing-portal`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ provider_id: provider.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Billing-Portal nicht erreichbar')
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error('Keine Portal-URL erhalten')
+      }
+    } catch (err) {
+      setSubscriptionMessage({ type: 'error', text: 'Fehler: ' + err.message })
+    } finally {
+      setSubscriptionLoading(false)
+    }
   }
 
   async function handleSubmit(e) {
@@ -578,6 +648,93 @@ export default function Profile() {
           </div>
         )}
       </div>
+
+      {/* ─── Skipily-Abo (Professional / Standard) ─────────────────────── */}
+      {(() => {
+        const tier            = provider.subscription_tier   || 'standard'
+        const status          = provider.subscription_status || 'active'
+        const isProfessional  = tier === 'professional' && status === 'active'
+        const isAdminGrant    = tier === 'admin_grant'
+        const validUntil      = tier === 'admin_grant' ? provider.free_until : provider.subscription_period_end
+        const accent          = isProfessional ? '#15803d' : isAdminGrant ? '#854d0e' : '#475569'
+        const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' }) : null
+
+        return (
+          <div className="card" style={{ borderLeft: `4px solid ${accent}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                ⭐ Skipily-Abo
+              </h2>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '4px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 700,
+                background: isProfessional ? '#d1fae5' : isAdminGrant ? '#fef3c7' : '#f1f5f9',
+                color: accent,
+              }}>
+                {isProfessional ? '⭐ Professional aktiv' : isAdminGrant ? '🎁 Admin-Freischaltung' : 'Standard'}
+              </span>
+            </div>
+
+            {subscriptionMessage && (
+              <div className={`message message-${subscriptionMessage.type}`} style={{ marginBottom: 12 }}>
+                {subscriptionMessage.text}
+              </div>
+            )}
+
+            {validUntil && (
+              <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: 12 }}>
+                {isAdminGrant ? 'Kostenfreie Nutzung bis ' : 'Nächste Verlängerung am '}
+                <strong>{fmtDate(validUntil)}</strong>
+              </p>
+            )}
+
+            {tier === 'standard' && (
+              <div>
+                <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: 12, lineHeight: 1.6 }}>
+                  Mit <strong>Professional</strong> erhältst du erweiterte Features: priorisierte
+                  Sichtbarkeit in der App, API-Zugang, Webhook-Integration, Werbeplätze und
+                  Markt-Analytics für deine Region.
+                </p>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={startSubscriptionCheckout}
+                  disabled={subscriptionLoading}
+                >
+                  {subscriptionLoading
+                    ? <><Loader size={16} className="spin" /> Wird vorbereitet…</>
+                    : <>⭐ Auf Professional upgraden</>}
+                </button>
+              </div>
+            )}
+
+            {isProfessional && (
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={openBillingPortal}
+                  disabled={subscriptionLoading}
+                >
+                  {subscriptionLoading
+                    ? <><Loader size={16} className="spin" /> Lädt…</>
+                    : <><ExternalLink size={16} /> Abo verwalten / kündigen</>}
+                </button>
+                <span style={{ alignSelf: 'center', fontSize: '0.85rem', color: 'var(--gray-400)' }}>
+                  Rechnungen, Zahlungsmethoden und Kündigung im Stripe-Portal.
+                </span>
+              </div>
+            )}
+
+            {isAdminGrant && (
+              <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginTop: 8 }}>
+                Du nutzt Skipily Professional aktuell <strong>kostenfrei</strong> über eine
+                Admin-Freischaltung. Nach Ablauf kannst du regulär upgraden.
+              </p>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Images: Logo + Cover — only editable by the provider, not by app users */}
       <div className="card">

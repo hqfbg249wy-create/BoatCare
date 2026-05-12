@@ -163,6 +163,78 @@ serve(async (req: Request) => {
         break;
       }
 
+      // ─── Subscription Lifecycle ─────────────────────────────────────────
+      // Wenn der Provider ein Professional-Abo abschließt, ändert oder
+      // kündigt, synchronisieren wir subscription_tier/_status/_period_end
+      // auf service_providers.
+      case "customer.subscription.created":
+      case "customer.subscription.updated":
+      case "customer.subscription.deleted": {
+        const sub = event.data.object as any;
+        const providerId = sub.metadata?.provider_id;
+
+        // Status-Mapping Stripe → unsere subscription_status-Enum
+        const stripeStatus: string = sub.status; // active, past_due, canceled, trialing, ...
+        let ourStatus = "active";
+        if (stripeStatus === "canceled" || stripeStatus === "incomplete_expired") ourStatus = "cancelled";
+        else if (stripeStatus === "past_due" || stripeStatus === "unpaid")        ourStatus = "past_due";
+        else if (stripeStatus === "trialing")                                     ourStatus = "trial";
+        else if (stripeStatus === "active")                                       ourStatus = "active";
+        else                                                                       ourStatus = "expired";
+
+        const periodEnd = sub.current_period_end
+          ? new Date(sub.current_period_end * 1000).toISOString()
+          : null;
+        const startedAt = sub.start_date
+          ? new Date(sub.start_date * 1000).toISOString()
+          : null;
+
+        // Bei Kündigung/Deletion fallen wir auf "standard" zurück
+        const effectiveTier =
+          (event.type === "customer.subscription.deleted" || stripeStatus === "canceled")
+            ? "standard"
+            : "professional";
+
+        const updateFields: Record<string, unknown> = {
+          subscription_tier:        effectiveTier,
+          subscription_status:      ourStatus,
+          subscription_period_end:  periodEnd,
+          stripe_subscription_id:   sub.id,
+        };
+        if (startedAt) updateFields.subscription_started_at = startedAt;
+
+        // Provider bevorzugt über metadata.provider_id finden, sonst über Customer-ID
+        let query = supabase.from("service_providers").update(updateFields);
+        if (providerId) {
+          query = query.eq("id", providerId);
+        } else if (sub.customer) {
+          query = query.eq("stripe_customer_id", sub.customer);
+        } else {
+          console.warn("Subscription event ohne provider_id und ohne customer — skipped");
+          break;
+        }
+        const { error: updErr } = await query;
+        if (updErr) {
+          console.error(`Subscription update failed for ${sub.id}:`, updErr);
+        } else {
+          console.log(`Subscription ${event.type} → ${providerId || sub.customer}: tier=${effectiveTier}, status=${ourStatus}`);
+        }
+        break;
+      }
+
+      case "invoice.payment_failed": {
+        // Failed recurring charge → mark past_due (Stripe sendet meist auch
+        // ein customer.subscription.updated, aber wir setzen es sicherheitshalber).
+        const invoice = event.data.object as any;
+        if (invoice.subscription) {
+          await supabase
+            .from("service_providers")
+            .update({ subscription_status: "past_due" })
+            .eq("stripe_subscription_id", invoice.subscription);
+        }
+        break;
+      }
+
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }
