@@ -8036,6 +8036,169 @@ async function refreshModerationBadge() {
     } catch { /* ignorieren */ }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  Abo-Verwaltung (Subscriptions)
+// ═══════════════════════════════════════════════════════════════════════════
+
+let _subscriptionsCache = []; // [{id, name, city, subscription_tier, subscription_status, free_until, ...}]
+
+async function loadSubscriptions() {
+    const tbody = document.getElementById('subscriptions-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:30px; text-align:center; color:#64748b;">Wird geladen…</td></tr>';
+
+    const tierFilter = document.getElementById('sub-filter-tier')?.value || 'all';
+
+    try {
+        let query = supabaseClient
+            .from('service_providers')
+            .select('id, name, city, subscription_tier, subscription_status, free_until, subscription_period_end, stripe_subscription_id, subscription_notes')
+            .order('name', { ascending: true })
+            .limit(500);
+
+        if (tierFilter !== 'all') {
+            query = query.eq('subscription_tier', tierFilter);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        _subscriptionsCache = data || [];
+        renderSubscriptions(_subscriptionsCache);
+        await loadSubscriptionStats();
+    } catch (err) {
+        console.error('loadSubscriptions error:', err);
+        tbody.innerHTML = `<tr><td colspan="5" style="padding:20px; color:#ef4444;">Fehler: ${escapeHtml(err.message)}</td></tr>`;
+    }
+}
+window.loadSubscriptions = loadSubscriptions;
+
+function filterSubscriptions(term) {
+    const t = (term || '').toLowerCase().trim();
+    if (!t) return renderSubscriptions(_subscriptionsCache);
+    renderSubscriptions(
+        _subscriptionsCache.filter(p =>
+            (p.name || '').toLowerCase().includes(t) ||
+            (p.city || '').toLowerCase().includes(t)
+        )
+    );
+}
+window.filterSubscriptions = filterSubscriptions;
+
+function renderSubscriptions(rows) {
+    const tbody = document.getElementById('subscriptions-tbody');
+    if (!tbody) return;
+
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:30px; text-align:center; color:#64748b;">Keine Provider mit diesem Filter.</td></tr>';
+        return;
+    }
+
+    const tierBadge = (tier) => {
+        if (tier === 'professional') return '<span style="background:#dcfce7; color:#15803d; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600;">⭐ Professional</span>';
+        if (tier === 'admin_grant')  return '<span style="background:#fef3c7; color:#854d0e; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600;">🎁 Admin-Grant</span>';
+        return '<span style="background:#f1f5f9; color:#475569; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600;">Standard</span>';
+    };
+
+    const statusColor = (s) => {
+        if (s === 'active')    return 'color:#15803d;';
+        if (s === 'cancelled' || s === 'expired') return 'color:#ef4444;';
+        if (s === 'past_due')  return 'color:#f59e0b;';
+        return 'color:#64748b;';
+    };
+
+    const fmtDate = (iso) => {
+        if (!iso) return '<span style="color:#cbd5e1;">—</span>';
+        const d = new Date(iso);
+        const now = new Date();
+        const days = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
+        const dateStr = d.toLocaleDateString('de-DE');
+        if (days < 0)  return `<span style="color:#ef4444;">${dateStr} (abgelaufen)</span>`;
+        if (days <= 30) return `<span style="color:#f59e0b;">${dateStr} (${days} Tage)</span>`;
+        return `<span>${dateStr}</span>`;
+    };
+
+    tbody.innerHTML = rows.map(p => {
+        const tier   = p.subscription_tier || 'standard';
+        const status = p.subscription_status || 'active';
+        const validUntil = tier === 'admin_grant' ? p.free_until : p.subscription_period_end;
+
+        const grantBtn = tier !== 'admin_grant'
+            ? `<button onclick="window.grantSubscriptionPrompt('${p.id}', '${escapeHtml((p.name||'').replace(/'/g,"\\'"))}')" style="background:#fef3c7; color:#854d0e; border:1px solid #fde68a; padding:5px 10px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; margin-right:6px;">🎁 Freischalten</button>`
+            : `<button onclick="window.revokeSubscription('${p.id}')" style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; padding:5px 10px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; margin-right:6px;">↺ Widerrufen</button>`;
+
+        return `
+            <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:10px;">
+                    <div style="font-weight:600; color:#0f172a;">${escapeHtml(p.name || '—')}</div>
+                    <div style="font-size:12px; color:#94a3b8;">${escapeHtml(p.city || '')}</div>
+                </td>
+                <td style="padding:10px;">${tierBadge(tier)}</td>
+                <td style="padding:10px;"><span style="${statusColor(status)} font-weight:600; font-size:13px;">${status}</span></td>
+                <td style="padding:10px;">${fmtDate(validUntil)}</td>
+                <td style="padding:10px; text-align:right;">
+                    ${grantBtn}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function loadSubscriptionStats() {
+    try {
+        const tiers = ['standard', 'professional', 'admin_grant'];
+        const results = await Promise.all(tiers.map(t =>
+            supabaseClient.from('service_providers')
+                .select('id', { count: 'exact', head: true })
+                .eq('subscription_tier', t)
+        ));
+        document.getElementById('sub-stat-standard').textContent     = results[0].count ?? 0;
+        document.getElementById('sub-stat-professional').textContent = results[1].count ?? 0;
+        document.getElementById('sub-stat-admin-grant').textContent  = results[2].count ?? 0;
+    } catch (err) {
+        console.warn('Subscription stats error:', err);
+    }
+}
+
+async function grantSubscriptionPrompt(providerId, providerName) {
+    const monthsStr = prompt(`Wie viele Monate Professional kostenlos für "${providerName}"? (1-12)`, '3');
+    if (!monthsStr) return;
+    const months = parseInt(monthsStr, 10);
+    if (isNaN(months) || months < 1 || months > 12) {
+        alert('Bitte eine Zahl zwischen 1 und 12 eingeben.');
+        return;
+    }
+    const note = prompt('Notiz (optional, z.B. "Pilot-Partner"):', '') || null;
+
+    try {
+        const { error } = await supabaseClient.rpc('admin_grant_subscription', {
+            p_provider_id: providerId,
+            p_months:      months,
+            p_note:        note,
+        });
+        if (error) throw error;
+        alert(`✅ ${providerName} hat jetzt ${months} Monat${months > 1 ? 'e' : ''} Professional kostenlos.`);
+        loadSubscriptions();
+    } catch (err) {
+        alert('Fehler: ' + err.message);
+    }
+}
+window.grantSubscriptionPrompt = grantSubscriptionPrompt;
+
+async function revokeSubscription(providerId) {
+    if (!confirm('Admin-Freischaltung wirklich widerrufen? Der Provider fällt zurück auf Standard.')) return;
+    try {
+        const { error } = await supabaseClient.rpc('admin_revoke_subscription', {
+            p_provider_id: providerId,
+        });
+        if (error) throw error;
+        loadSubscriptions();
+    } catch (err) {
+        alert('Fehler: ' + err.message);
+    }
+}
+window.revokeSubscription = revokeSubscription;
+
 // ── Automatisch laden wenn Admin-Seite oder User-Seite geöffnet wird ─────────
 (function hookAdminPageNav() {
     const origNav = window.navigateToPage;
@@ -8046,6 +8209,7 @@ async function refreshModerationBadge() {
         if (page === 'users')             loadUsers();
         if (page === 'market-analysis')   loadMarketAnalysis();
         if (page === 'review-moderation') loadModerationQueue();
+        if (page === 'subscriptions')     loadSubscriptions();
     };
     // Badge direkt beim Laden befüllen
     refreshModerationBadge();

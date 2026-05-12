@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe, Image as ImageIcon, Upload, Trash2 } from 'lucide-react'
+import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe, Image as ImageIcon, Upload, Trash2, Tag, Wrench, Plus, X, Eye } from 'lucide-react'
 
 // Storage bucket created by database/038_provider_images_bucket.sql
 const PROVIDER_IMAGES_BUCKET = 'provider-images'
@@ -32,6 +32,13 @@ export default function Profile() {
   const logoInputRef = useRef(null)
   const coverInputRef = useRef(null)
 
+  // Services + Brands chip editors (linked to shop products)
+  const [services, setServices] = useState([])
+  const [brands, setBrands] = useState([])
+  const [serviceInput, setServiceInput] = useState('')
+  const [brandInput, setBrandInput] = useState('')
+  const [products, setProducts] = useState([])
+
   useEffect(() => {
     if (provider) {
       setForm({
@@ -49,6 +56,8 @@ export default function Profile() {
         shop_description: provider.shop_description || '',
         slogan: provider.slogan || '',
       })
+      setServices(Array.isArray(provider.services) ? provider.services : [])
+      setBrands(Array.isArray(provider.brands) ? provider.brands : [])
 
       // Check Stripe URL params for return from onboarding
       const params = new URLSearchParams(window.location.search)
@@ -77,6 +86,63 @@ export default function Profile() {
       setWebhookUrl(provider.webhook_url || '')
     }
   }, [provider])
+
+  // Load shop products (used for auto-suggesting brands/services + linking chips)
+  useEffect(() => {
+    if (!provider?.id) return
+    supabase
+      .from('products')
+      .select('id, name, manufacturer, tags')
+      .eq('provider_id', provider.id)
+      .eq('is_active', true)
+      .then(({ data }) => setProducts(data || []))
+      .catch(() => setProducts([]))
+  }, [provider?.id])
+
+  // Auto-suggest brands from product manufacturers that aren't yet on the brand list
+  const suggestedBrands = useMemo(() => {
+    const fromProducts = new Set(
+      products.map(p => (p.manufacturer || '').trim()).filter(Boolean)
+    )
+    const lowerBrands = new Set(brands.map(b => b.toLowerCase()))
+    return [...fromProducts].filter(b => !lowerBrands.has(b.toLowerCase())).slice(0, 12)
+  }, [products, brands])
+
+  // Auto-suggest services from product tags
+  const suggestedServices = useMemo(() => {
+    const fromTags = new Set()
+    products.forEach(p => (p.tags || []).forEach(t => t && fromTags.add(t.trim())))
+    const lowerServices = new Set(services.map(s => s.toLowerCase()))
+    return [...fromTags].filter(s => !lowerServices.has(s.toLowerCase())).slice(0, 12)
+  }, [products, services])
+
+  // Count how many shop products match a given brand/service (text match on name/manufacturer/tags)
+  function productMatchCount(term) {
+    if (!term) return 0
+    const t = term.toLowerCase()
+    return products.filter(p =>
+      (p.manufacturer || '').toLowerCase().includes(t)
+      || (p.name || '').toLowerCase().includes(t)
+      || (p.tags || []).some(tag => (tag || '').toLowerCase().includes(t))
+    ).length
+  }
+
+  function addService(s) {
+    const v = (s || '').trim()
+    if (!v || services.some(x => x.toLowerCase() === v.toLowerCase())) return
+    setServices([...services, v])
+  }
+  function removeService(s) {
+    setServices(services.filter(x => x !== s))
+  }
+  function addBrand(b) {
+    const v = (b || '').trim()
+    if (!v || brands.some(x => x.toLowerCase() === v.toLowerCase())) return
+    setBrands([...brands, v])
+  }
+  function removeBrand(b) {
+    setBrands(brands.filter(x => x !== b))
+  }
 
   async function loadStripeStatus() {
     try {
@@ -169,6 +235,8 @@ export default function Profile() {
           tax_id: form.tax_id,
           shop_description: form.shop_description,
           slogan: form.slogan,
+          services,
+          brands,
         })
         .eq('id', provider.id)
 
@@ -386,8 +454,23 @@ export default function Profile() {
 
   return (
     <div className="page">
-      <h1>Stammdaten</h1>
-      <p className="subtitle">Bearbeiten Sie Ihre Unternehmensdaten</p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 8 }}>
+        <div>
+          <h1 style={{ marginBottom: 4 }}>Stammdaten</h1>
+          <p className="subtitle" style={{ margin: 0 }}>
+            So sehen Kunden dein Profil in der Skipily-App. Leistungen und Marken werden anklickbar und führen Kunden zu passenden Produkten.
+          </p>
+        </div>
+        <a
+          href={`/provider/${provider.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-secondary"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
+          <Eye size={16} /> Live-Vorschau
+        </a>
+      </div>
 
       {message && (
         <div className={`message message-${message.type}`}>{message.text}</div>
@@ -711,6 +794,201 @@ export default function Profile() {
               <input name="opening_hours" value={form.opening_hours} onChange={handleChange} placeholder="Mo-Fr 8-17 Uhr" />
             </div>
           </div>
+        </div>
+
+        {/* ─── Leistungen (Services) ─────────────────────────────────────── */}
+        <div className="card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <Wrench size={20} style={{ color: 'var(--primary)' }} />
+            <h2 style={{ margin: 0 }}>Leistungen</h2>
+          </div>
+          <p className="hint" style={{ marginBottom: 16 }}>
+            Welche Services bietest du an? Diese erscheinen als anklickbare Tags auf deinem Profil. Klickt ein Kunde in der App auf eine Leistung, wird automatisch nach passenden Produkten in deinem Shop gesucht.
+          </p>
+
+          {/* Existing services as chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            {services.length === 0 && (
+              <span style={{ color: 'var(--gray-400)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                Noch keine Leistungen hinterlegt.
+              </span>
+            )}
+            {services.map(s => {
+              const cnt = productMatchCount(s)
+              return (
+                <span key={s} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '6px 10px 6px 12px', borderRadius: 20,
+                  background: '#f0fdf4', color: '#166534',
+                  border: '1px solid #bbf7d0', fontSize: 13, fontWeight: 500,
+                }}>
+                  {s}
+                  {cnt > 0 && (
+                    <span style={{
+                      background: '#dcfce7', color: '#15803d',
+                      borderRadius: 10, padding: '1px 7px',
+                      fontSize: 11, fontWeight: 700,
+                    }} title={`${cnt} passende Produkte im Shop`}>
+                      {cnt} 📦
+                    </span>
+                  )}
+                  <button type="button" onClick={() => removeService(s)}
+                    style={{
+                      border: 'none', background: 'transparent', cursor: 'pointer',
+                      color: '#166534', padding: 0, display: 'flex', alignItems: 'center',
+                    }}
+                    title="Entfernen">
+                    <X size={14} />
+                  </button>
+                </span>
+              )
+            })}
+          </div>
+
+          {/* Add input */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="text"
+              value={serviceInput}
+              onChange={e => setServiceInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  addService(serviceInput)
+                  setServiceInput('')
+                }
+              }}
+              placeholder="z.B. Antifouling, Motorservice, Winterlager…"
+              style={{ flex: 1 }}
+            />
+            <button type="button" className="btn-secondary"
+              onClick={() => { addService(serviceInput); setServiceInput('') }}>
+              <Plus size={14} /> Hinzufügen
+            </button>
+          </div>
+
+          {/* Suggestions from shop products (tags) */}
+          {suggestedServices.length > 0 && (
+            <div style={{ marginTop: 14, padding: 12, background: 'var(--gray-50)', borderRadius: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-500)', marginBottom: 8 }}>
+                💡 Aus deinen Shop-Produkten erkannt — zum Übernehmen klicken:
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {suggestedServices.map(s => (
+                  <button key={s} type="button"
+                    onClick={() => addService(s)}
+                    style={{
+                      padding: '4px 10px', borderRadius: 16,
+                      background: '#fff', border: '1px dashed #cbd5e1',
+                      color: '#475569', fontSize: 12, cursor: 'pointer',
+                    }}>
+                    + {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ─── Marken (Brands) ─────────────────────────────────────────────── */}
+        <div className="card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <Tag size={20} style={{ color: 'var(--primary)' }} />
+            <h2 style={{ margin: 0 }}>Marken</h2>
+          </div>
+          <p className="hint" style={{ marginBottom: 16 }}>
+            Welche Marken/Hersteller führst oder servicierst du? Klickt ein Kunde in der App eine Marke an, werden passende Produkte aus deinem Shop angezeigt.
+          </p>
+
+          {/* Existing brands as chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            {brands.length === 0 && (
+              <span style={{ color: 'var(--gray-400)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                Noch keine Marken hinterlegt.
+              </span>
+            )}
+            {brands.map(b => {
+              const cnt = productMatchCount(b)
+              return (
+                <span key={b} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '6px 10px 6px 12px', borderRadius: 20,
+                  background: '#fff7ed', color: '#c2410c',
+                  border: '1px solid #fed7aa', fontSize: 13, fontWeight: 500,
+                }}>
+                  {b}
+                  {cnt > 0 && (
+                    <span style={{
+                      background: '#ffedd5', color: '#9a3412',
+                      borderRadius: 10, padding: '1px 7px',
+                      fontSize: 11, fontWeight: 700,
+                    }} title={`${cnt} Produkte dieser Marke im Shop`}>
+                      {cnt} 📦
+                    </span>
+                  )}
+                  <button type="button" onClick={() => removeBrand(b)}
+                    style={{
+                      border: 'none', background: 'transparent', cursor: 'pointer',
+                      color: '#c2410c', padding: 0, display: 'flex', alignItems: 'center',
+                    }}
+                    title="Entfernen">
+                    <X size={14} />
+                  </button>
+                </span>
+              )
+            })}
+          </div>
+
+          {/* Add input */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="text"
+              value={brandInput}
+              onChange={e => setBrandInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  addBrand(brandInput)
+                  setBrandInput('')
+                }
+              }}
+              placeholder="z.B. Volvo Penta, Yamaha, Raymarine…"
+              style={{ flex: 1 }}
+            />
+            <button type="button" className="btn-secondary"
+              onClick={() => { addBrand(brandInput); setBrandInput('') }}>
+              <Plus size={14} /> Hinzufügen
+            </button>
+          </div>
+
+          {/* Suggestions from shop products (manufacturers) */}
+          {suggestedBrands.length > 0 && (
+            <div style={{ marginTop: 14, padding: 12, background: 'var(--gray-50)', borderRadius: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-500)', marginBottom: 8 }}>
+                💡 Hersteller aus deinem Shop — zum Übernehmen klicken:
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {suggestedBrands.map(b => (
+                  <button key={b} type="button"
+                    onClick={() => addBrand(b)}
+                    style={{
+                      padding: '4px 10px', borderRadius: 16,
+                      background: '#fff', border: '1px dashed #cbd5e1',
+                      color: '#475569', fontSize: 12, cursor: 'pointer',
+                    }}>
+                    + {b}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {products.length > 0 && (
+            <p style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 12 }}>
+              {products.length} Produkt{products.length === 1 ? '' : 'e'} in deinem Shop —
+              die Zahl neben jedem Chip zeigt, wie viele davon zu dieser Marke/Leistung passen.
+            </p>
+          )}
         </div>
 
         <div className="card">

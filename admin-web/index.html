@@ -94,6 +94,10 @@
                     <span class="icon">💳</span>
                     Zahlungen
                 </button>
+                <button class="nav-item" data-page="subscriptions" onclick="window.navigateToPage('subscriptions')">
+                    <span class="icon">⭐</span>
+                    Abos
+                </button>
                 <button class="nav-item" data-page="admin-orders" onclick="window.navigateToPage('admin-orders')">
                     <span class="icon">📦</span>
                     Bestellungen
@@ -777,6 +781,71 @@
                     <div id="stripe-accounts-list" style="display:flex;flex-direction:column;gap:12px;">
                         <p style="color:#94a3b8;text-align:center;padding:20px;">Laden...</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- Abos / Subscriptions Page -->
+            <div id="subscriptions-page" class="page">
+                <h1>⭐ Abo-Verwaltung</h1>
+                <p class="subtitle">Professional-Abos und Admin-Freischaltungen pro Provider verwalten.</p>
+
+                <!-- Stats -->
+                <div class="stats-grid" id="subscription-stats" style="margin-bottom:20px;">
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-info">
+                            <span id="sub-stat-standard" class="stat-number">–</span>
+                            <span class="stat-label">Standard</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-info">
+                            <span id="sub-stat-professional" class="stat-number">–</span>
+                            <span class="stat-label">Professional (zahlend)</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🎁</div>
+                        <div class="stat-info">
+                            <span id="sub-stat-admin-grant" class="stat-number">–</span>
+                            <span class="stat-label">Admin-Freischaltung</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Toolbar -->
+                <div style="display:flex; gap:10px; margin-bottom:16px; align-items:center; flex-wrap:wrap;">
+                    <input id="sub-search" type="text" placeholder="Provider suchen..."
+                           oninput="window.filterSubscriptions(this.value)"
+                           style="flex:1; min-width:240px; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;" />
+                    <select id="sub-filter-tier" onchange="window.loadSubscriptions()"
+                            style="padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;">
+                        <option value="all">Alle Tiers</option>
+                        <option value="professional">Nur Professional</option>
+                        <option value="admin_grant">Nur Admin-Freischaltungen</option>
+                        <option value="standard">Nur Standard</option>
+                    </select>
+                    <button class="btn-primary" onclick="window.loadSubscriptions()" style="font-size:13px; padding:8px 16px;">
+                        🔄 Aktualisieren
+                    </button>
+                </div>
+
+                <div class="card" style="overflow-x:auto;">
+                    <table id="subscriptions-table" style="width:100%; border-collapse:collapse; font-size:14px;">
+                        <thead>
+                            <tr style="text-align:left; border-bottom:2px solid #e2e8f0;">
+                                <th style="padding:10px;">Provider</th>
+                                <th style="padding:10px;">Tier</th>
+                                <th style="padding:10px;">Status</th>
+                                <th style="padding:10px;">Läuft bis</th>
+                                <th style="padding:10px; text-align:right;">Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subscriptions-tbody">
+                            <tr><td colspan="5" style="padding:30px; text-align:center; color:#64748b;">Wird geladen…</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
