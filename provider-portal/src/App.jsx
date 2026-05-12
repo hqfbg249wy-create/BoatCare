@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import Layout from './components/Layout'
+import MFAChallenge from './components/MFAChallenge'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import ForgotPassword from './pages/ForgotPassword'
@@ -33,7 +34,7 @@ function useAuthFlowFromHash() {
 }
 
 function ProtectedRoutes() {
-  const { user, provider, loading, mfaEnrolled, refreshMfaStatus } = useAuth()
+  const { user, provider, loading, mfaEnrolled, mfaRequired, refreshMfaStatus } = useAuth()
   const flowType = useAuthFlowFromHash()
 
   if (loading) {
@@ -61,6 +62,9 @@ function ProtectedRoutes() {
       </Routes>
     )
   }
+
+  // MFA challenge after password login
+  if (mfaRequired) return <MFAChallenge />
 
   if (!provider) {
     return (
