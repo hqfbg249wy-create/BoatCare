@@ -3339,15 +3339,22 @@ function showLogin() {
 
             console.log('✅ Login erfolgreich:', data);
 
-            // Kurz warten und dann neu laden
-            setTimeout(() => {
-                window.location.reload();
-            }, 500);
+            // MFA-Prüfung
+            const { data: aal } = await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
+            if (aal?.nextLevel === 'aal2' && aal?.currentLevel !== 'aal2') {
+                // MFA erforderlich – Challenge anzeigen
+                const { data: factors } = await supabaseClient.auth.mfa.listFactors();
+                const totpFactor = (factors?.totp ?? []).find(f => f.status === 'verified');
+                if (totpFactor) {
+                    showMFAChallenge(totpFactor.id);
+                    return;
+                }
+            }
+
+            setTimeout(() => { window.location.reload(); }, 500);
 
         } catch (error) {
             console.error('❌ Login fehlgeschlagen:', error);
-
-            // Fehler anzeigen
             let errorMessage = 'Login fehlgeschlagen';
             if (error.message.includes('Invalid login credentials')) {
                 errorMessage = 'Ungültige E-Mail oder Passwort';
@@ -3356,13 +3363,60 @@ function showLogin() {
             } else {
                 errorMessage = error.message;
             }
-
             errorDiv.textContent = errorMessage;
             errorDiv.style.display = 'block';
-
-            // Button wieder aktivieren
             btn.disabled = false;
             btn.textContent = 'Anmelden';
+        }
+    });
+}
+
+function showMFAChallenge(factorId) {
+    document.body.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f8fafc;padding:20px;">
+            <div style="background:white;border-radius:16px;padding:40px 32px;max-width:400px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.1);text-align:center;">
+                <div style="font-size:3rem;margin-bottom:12px;">🔐</div>
+                <h2 style="font-size:1.3rem;margin-bottom:8px;color:#0f172a;">Zwei-Faktor-Authentifizierung</h2>
+                <p style="color:#64748b;font-size:0.9rem;margin-bottom:24px;">Gib den 6-stelligen Code aus deiner Authenticator-App ein.</p>
+                <div id="mfa-error" style="display:none;background:#fef2f2;color:#991b1b;border-radius:8px;padding:10px;margin-bottom:14px;font-size:0.85rem;"></div>
+                <form id="mfa-form">
+                    <input id="mfa-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+                        placeholder="000000" autocomplete="one-time-code" autofocus
+                        style="text-align:center;font-size:2rem;font-weight:700;letter-spacing:0.4em;padding:14px;border:2px solid #e2e8f0;border-radius:12px;outline:none;width:100%;margin-bottom:14px;color:#0f172a;"
+                        oninput="this.value=this.value.replace(/\\D/g,'')"
+                    />
+                    <button id="mfa-btn" type="submit"
+                        style="width:100%;padding:12px;background:#f97316;color:white;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;">
+                        Bestätigen
+                    </button>
+                </form>
+                <button onclick="supabaseClient.auth.signOut().then(()=>window.location.reload())"
+                    style="margin-top:16px;background:none;border:none;color:#94a3b8;font-size:0.85rem;cursor:pointer;">
+                    Abmelden
+                </button>
+            </div>
+        </div>`;
+
+    document.getElementById('mfa-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const code = document.getElementById('mfa-code').value;
+        const btn = document.getElementById('mfa-btn');
+        const errDiv = document.getElementById('mfa-error');
+        btn.disabled = true;
+        btn.textContent = 'Wird geprüft…';
+        errDiv.style.display = 'none';
+        try {
+            const { data: challenge, error: cErr } = await supabaseClient.auth.mfa.challenge({ factorId });
+            if (cErr) throw cErr;
+            const { error } = await supabaseClient.auth.mfa.verify({ factorId, challengeId: challenge.id, code });
+            if (error) throw error;
+            window.location.reload();
+        } catch {
+            errDiv.textContent = 'Code ungültig oder abgelaufen. Bitte erneut versuchen.';
+            errDiv.style.display = 'block';
+            document.getElementById('mfa-code').value = '';
+            btn.disabled = false;
+            btn.textContent = 'Bestätigen';
         }
     });
 }
@@ -6162,7 +6216,7 @@ async function loadReviews() {
     try {
         const { data: reviews, error } = await supabaseClient
             .from('reviews')
-            .select('id, service_provider_id, user_id, rating, comment, created_at, service_providers(name, category, city)')
+            .select('id, service_provider_id, author_id, rating, comment, created_at, service_providers(name, category, city)')
             .order('created_at', { ascending: false })
             .limit(500);
 
@@ -6244,7 +6298,7 @@ function filterReviews() {
             + '      </span>'
             + '    </div>'
             + '    <div style="font-size:14px; color:#374151; white-space:pre-wrap; word-break:break-word;">' + esc(r.comment) + '</div>'
-            + '    <div style="font-size:11px; color:#94a3b8; margin-top:6px;">User-ID: ' + r.user_id + '</div>'
+            + '    <div style="font-size:11px; color:#94a3b8; margin-top:6px;">User-ID: ' + r.author_id + '</div>'
             + '  </div>'
             + '  <button onclick="window.adminDeleteReview(\'' + r.id + '\', \'' + esc(providerName).replace(/'/g, "\\'") + '\')"'
             + '          class="review-delete-btn">'
@@ -7268,8 +7322,8 @@ async function loadAdminList() {
     try {
         const { data, error } = await supabaseClient
             .from('profiles')
-            .select('id, email, full_name, created_at')
-            .eq('role', 'admin')
+            .select('id, email, full_name, role, created_at')
+            .in('role', ['admin', 'admin_readonly'])
             .order('created_at', { ascending: true });
 
         if (error) throw error;
@@ -7278,23 +7332,54 @@ async function loadAdminList() {
             return;
         }
 
+        const myId = currentUser?.id;
+        const isReadonly = window.currentAdminRole === 'admin_readonly';
+
         listBox.innerHTML = `
             <table style="width:100%;border-collapse:collapse;font-size:14px;">
                 <thead>
-                    <tr style="text-align:left;border-bottom:1px solid #e2e8f0;">
-                        <th style="padding:8px 4px;">E-Mail</th>
-                        <th style="padding:8px 4px;">Name</th>
-                        <th style="padding:8px 4px;">Angelegt</th>
+                    <tr style="text-align:left;border-bottom:2px solid #e2e8f0;">
+                        <th style="padding:8px 6px;">E-Mail</th>
+                        <th style="padding:8px 6px;">Name</th>
+                        <th style="padding:8px 6px;">Rolle</th>
+                        <th style="padding:8px 6px;">Angelegt</th>
+                        <th style="padding:8px 6px;text-align:right;">Aktionen</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${data.map(a => `
+                    ${data.map(a => {
+                        const isSelf = a.id === myId;
+                        const canEdit = !isReadonly && !isSelf;
+                        return `
                         <tr style="border-bottom:1px solid #f1f5f9;">
-                            <td style="padding:6px 4px;"><code>${a.email || '—'}</code></td>
-                            <td style="padding:6px 4px;">${a.full_name || '—'}</td>
-                            <td style="padding:6px 4px;color:#64748b;">${a.created_at ? new Date(a.created_at).toLocaleDateString('de-DE') : '—'}</td>
-                        </tr>
-                    `).join('')}
+                            <td style="padding:7px 6px;">
+                                <code style="font-size:12px;">${escapeHtml(a.email || '—')}</code>
+                                ${isSelf ? ' <span style="font-size:11px;color:#16a34a;">(Sie)</span>' : ''}
+                            </td>
+                            <td style="padding:7px 6px;">${escapeHtml(a.full_name || '—')}</td>
+                            <td style="padding:7px 6px;">
+                                ${canEdit
+                                    ? `<select onchange="window.changeAdminRole('${a.id}', this.value, '${a.role}')"
+                                               style="padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;">
+                                           <option value="admin"          ${a.role==='admin'          ? 'selected':''}>Admin (voll)</option>
+                                           <option value="admin_readonly" ${a.role==='admin_readonly' ? 'selected':''}>Read-only</option>
+                                           <option value="user"           >Zu Nutzer herabstufen</option>
+                                       </select>`
+                                    : roleBadge(a.role)}
+                            </td>
+                            <td style="padding:7px 6px;color:#64748b;font-size:12px;">
+                                ${a.created_at ? new Date(a.created_at).toLocaleDateString('de-DE') : '—'}
+                            </td>
+                            <td style="padding:7px 6px;text-align:right;">
+                                ${canEdit
+                                    ? `<button onclick="window.deleteAdminUser('${a.id}', '${escapeHtml(a.email || '')}')"
+                                               style="padding:5px 12px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:6px;font-size:12px;cursor:pointer;">
+                                           🗑️ Löschen
+                                       </button>`
+                                    : '<span style="color:#94a3b8;font-size:12px;">—</span>'}
+                            </td>
+                        </tr>`;
+                    }).join('')}
                 </tbody>
             </table>
         `;
@@ -7303,6 +7388,53 @@ async function loadAdminList() {
         listBox.innerHTML = `<div style="color:#dc2626;">Fehler beim Laden: ${err.message}</div>`;
     }
 }
+
+async function changeAdminRole(userId, newRole, oldRole) {
+    if (newRole === oldRole) return;
+    const label = newRole === 'user' ? 'Nutzer (kein Admin mehr)' : newRole === 'admin_readonly' ? 'Read-only Admin' : 'Vollständiger Admin';
+    if (!confirm(`Admin-Rolle wirklich auf "${label}" ändern?`)) {
+        await loadAdminList();
+        return;
+    }
+    try {
+        const { error } = await supabaseClient.rpc('admin_set_user_role', {
+            target_user_id: userId,
+            new_role: newRole
+        });
+        if (error) throw error;
+        await loadAdminList();
+        // Auch die Benutzerliste aktualisieren, falls sie gerade angezeigt wird
+        if (document.getElementById('users-body')) await loadUsers();
+    } catch (err) {
+        alert('Fehler beim Ändern der Rolle: ' + err.message);
+        await loadAdminList();
+    }
+}
+window.changeAdminRole = changeAdminRole;
+
+async function deleteAdminUser(userId, email) {
+    const confirmText = `Admin-Account "${email}" und ALLE zugehörigen Daten endgültig löschen?\n\nDieser Vorgang ist nicht rückgängig zu machen.`;
+    if (!confirm(confirmText)) return;
+
+    const typed = prompt(`Zur Bestätigung bitte E-Mail-Adresse eingeben:\n${email}`);
+    if (typed !== email) {
+        alert('E-Mail stimmt nicht überein – Löschung abgebrochen.');
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient.rpc('admin_delete_user', {
+            target_user_id: userId
+        });
+        if (error) throw error;
+        alert('✅ Admin-Account gelöscht.');
+        await loadAdminList();
+        if (document.getElementById('users-body')) await loadUsers();
+    } catch (err) {
+        alert('Fehler beim Löschen: ' + err.message);
+    }
+}
+window.deleteAdminUser = deleteAdminUser;
 
 // ============================================================
 // Benutzer-Verwaltung
@@ -7730,14 +7862,191 @@ async function runMarketSnapshot() {
 }
 window.runMarketSnapshot = runMarketSnapshot;
 
-// Automatisch laden wenn Admin-Seite oder User-Seite geöffnet wird
+// ── Bewertungs-Moderation ─────────────────────────────────────────────────────
+
+async function loadModerationQueue() {
+    const listEl   = document.getElementById('moderation-list');
+    const countEl  = document.getElementById('moderation-count-label');
+    const badgeEl  = document.getElementById('moderation-badge');
+    if (!listEl) return;
+
+    listEl.textContent = 'Wird geladen…';
+
+    try {
+        // Alle Bewertungen, die gemeldet ODER nicht genehmigt sind
+        const { data: reviews, error } = await supabaseClient
+            .from('reviews')
+            .select(`
+                id,
+                rating,
+                comment,
+                moderation_reason,
+                is_approved,
+                is_reported,
+                created_at,
+                author_id,
+                service_provider_id,
+                service_providers ( name )
+            `)
+            .or('is_reported.eq.true,is_approved.eq.false')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Badge updaten
+        const count = reviews ? reviews.length : 0;
+        if (badgeEl) {
+            badgeEl.textContent = count;
+            badgeEl.style.display = count > 0 ? 'inline' : 'none';
+        }
+        if (countEl) {
+            countEl.textContent = count === 0
+                ? 'Keine ausstehenden Bewertungen'
+                : `${count} ausstehende Bewertung${count !== 1 ? 'en' : ''}`;
+        }
+
+        if (count === 0) {
+            listEl.innerHTML = '<p style="color:#16a34a; font-weight:600;">✅ Keine ausstehenden Bewertungen – alles sauber!</p>';
+            return;
+        }
+
+        listEl.innerHTML = reviews.map(r => {
+            const providerName = r.service_providers?.name || '(Unbekannter Betrieb)';
+            const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+            const dateStr = new Date(r.created_at).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+            const commentHtml = r.comment
+                ? `<p style="margin:8px 0 0; font-style:italic; color:#1e293b;">"${escapeHtml(r.comment)}"</p>`
+                : '<p style="margin:8px 0 0; color:#94a3b8; font-style:italic;">Kein Kommentar – nur Sternebewertung</p>';
+            const reasonHtml = r.moderation_reason
+                ? `<p style="margin:6px 0 0; font-size:12px; color:#b45309; background:#fef3c7; border-radius:6px; padding:5px 10px;">
+                       🤖 KI-Begründung: ${escapeHtml(r.moderation_reason)}
+                   </p>`
+                : '';
+
+            return `
+            <div id="mod-card-${r.id}" style="background:white; border:1px solid #e2e8f0; border-radius:10px; padding:16px; margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,.06);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+                    <div>
+                        <span style="font-weight:700; font-size:15px;">${escapeHtml(providerName)}</span>
+                        <span style="margin-left:10px; color:#f59e0b; font-size:16px;">${stars}</span>
+                        <span style="margin-left:8px; font-size:12px; color:#94a3b8;">${dateStr}</span>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button
+                            onclick="window.approveReview('${r.id}')"
+                            style="background:#16a34a; color:white; border:none; border-radius:7px; padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer;">
+                            ✅ Freigeben
+                        </button>
+                        <button
+                            onclick="window.deleteReviewAdmin('${r.id}', '${escapeHtml(providerName).replace(/'/g, "\\'")}')"
+                            style="background:#ef4444; color:white; border:none; border-radius:7px; padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer;">
+                            🗑️ Löschen
+                        </button>
+                    </div>
+                </div>
+                ${commentHtml}
+                ${reasonHtml}
+            </div>`;
+        }).join('');
+
+    } catch (err) {
+        console.error('loadModerationQueue Fehler:', err);
+        if (listEl) listEl.innerHTML = `<p style="color:#ef4444;">Fehler beim Laden: ${escapeHtml(err.message)}</p>`;
+    }
+}
+window.loadModerationQueue = loadModerationQueue;
+
+async function approveReview(reviewId) {
+    const card = document.getElementById(`mod-card-${reviewId}`);
+    try {
+        const { error } = await supabaseClient
+            .from('reviews')
+            .update({ is_approved: true, is_reported: false, moderation_reason: null })
+            .eq('id', reviewId);
+        if (error) throw error;
+
+        // Karte aus DOM entfernen und Badge reduzieren
+        if (card) card.remove();
+        updateModerationBadge(-1);
+    } catch (err) {
+        alert('Fehler beim Freigeben: ' + err.message);
+    }
+}
+window.approveReview = approveReview;
+
+async function deleteReviewAdmin(reviewId, providerName) {
+    if (!confirm(`Bewertung für "${providerName}" wirklich unwiderruflich löschen?`)) return;
+    const card = document.getElementById(`mod-card-${reviewId}`);
+    try {
+        const { error } = await supabaseClient
+            .from('reviews')
+            .delete()
+            .eq('id', reviewId);
+        if (error) throw error;
+
+        if (card) card.remove();
+        updateModerationBadge(-1);
+    } catch (err) {
+        alert('Fehler beim Löschen: ' + err.message);
+    }
+}
+window.deleteReviewAdmin = deleteReviewAdmin;
+
+function updateModerationBadge(delta) {
+    const badgeEl  = document.getElementById('moderation-badge');
+    const countEl  = document.getElementById('moderation-count-label');
+    const listEl   = document.getElementById('moderation-list');
+    if (!badgeEl) return;
+
+    const current = parseInt(badgeEl.textContent, 10) || 0;
+    const next    = Math.max(0, current + delta);
+    badgeEl.textContent  = next;
+    badgeEl.style.display = next > 0 ? 'inline' : 'none';
+    if (countEl) {
+        countEl.textContent = next === 0
+            ? 'Keine ausstehenden Bewertungen'
+            : `${next} ausstehende Bewertung${next !== 1 ? 'en' : ''}`;
+    }
+    if (next === 0 && listEl && listEl.querySelectorAll('[id^="mod-card-"]').length === 0) {
+        listEl.innerHTML = '<p style="color:#16a34a; font-weight:600;">✅ Keine ausstehenden Bewertungen – alles sauber!</p>';
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+// Badge beim Seitenstart befüllen (ohne die Queue zu öffnen)
+async function refreshModerationBadge() {
+    const badgeEl = document.getElementById('moderation-badge');
+    if (!badgeEl) return;
+    try {
+        const { count } = await supabaseClient
+            .from('reviews')
+            .select('id', { count: 'exact', head: true })
+            .or('is_reported.eq.true,is_approved.eq.false');
+        const n = count || 0;
+        badgeEl.textContent  = n;
+        badgeEl.style.display = n > 0 ? 'inline' : 'none';
+    } catch { /* ignorieren */ }
+}
+
+// ── Automatisch laden wenn Admin-Seite oder User-Seite geöffnet wird ─────────
 (function hookAdminPageNav() {
     const origNav = window.navigateToPage;
     if (!origNav) return;
     window.navigateToPage = function(page) {
         origNav.apply(this, arguments);
-        if (page === 'invite-admin')   loadAdminList();
-        if (page === 'users')          loadUsers();
-        if (page === 'market-analysis') loadMarketAnalysis();
+        if (page === 'invite-admin')      loadAdminList();
+        if (page === 'users')             loadUsers();
+        if (page === 'market-analysis')   loadMarketAnalysis();
+        if (page === 'review-moderation') loadModerationQueue();
     };
+    // Badge direkt beim Laden befüllen
+    refreshModerationBadge();
 })();

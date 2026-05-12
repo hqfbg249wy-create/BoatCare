@@ -57,6 +57,11 @@
                     <span class="icon">⭐</span>
                     Bewertungen
                 </button>
+                <button class="nav-item" data-page="review-moderation" onclick="window.navigateToPage('review-moderation')">
+                    <span class="icon">🛡️</span>
+                    Moderation
+                    <span id="moderation-badge" style="display:none; background:#ef4444; color:white; border-radius:999px; font-size:11px; font-weight:700; padding:1px 7px; margin-left:4px;">0</span>
+                </button>
                 <button class="nav-item" data-page="add-provider" onclick="window.navigateToPage('add-provider')">
                     <span class="icon">➕</span>
                     Provider hinzufügen
@@ -378,6 +383,17 @@
                 </div>
                 <div id="reviews-stats" style="margin-bottom: 16px; font-size: 14px; color: #64748b;"></div>
                 <div id="reviews-list"></div>
+            </div>
+
+            <!-- Bewertungs-Moderation -->
+            <div id="review-moderation-page" class="page">
+                <h1>🛡️ Bewertungs-Moderation</h1>
+                <p class="subtitle">Von der KI markierte Bewertungen (Hate-Speech, unangemessene Inhalte). Bitte prüfen und freigeben oder löschen.</p>
+                <div style="display:flex; gap:10px; margin-bottom:16px; align-items:center;">
+                    <button class="btn-primary" onclick="window.loadModerationQueue()" style="font-size:13px; padding:7px 16px;">🔄 Aktualisieren</button>
+                    <span id="moderation-count-label" style="font-size:13px; color:#64748b;"></span>
+                </div>
+                <div id="moderation-list" style="color:#64748b;">Wird geladen…</div>
             </div>
 
             <!-- Provider-Suche (Google Places) -->
