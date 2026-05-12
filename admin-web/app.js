@@ -6313,20 +6313,46 @@ async function adminDeleteReview(reviewId, providerName) {
     if (!confirm('Bewertung fuer "' + providerName + '" wirklich entfernen?\n\nDies kann nicht rueckgaengig gemacht werden.')) return;
 
     try {
-        const { data, error } = await supabaseClient.rpc('admin_delete_review', {
-            p_review_id: reviewId
-        });
+        // Provider-ID des betroffenen Reviews merken, damit wir hinterher das
+        // aggregierte Rating neu berechnen können.
+        const review = allLoadedReviews.find(r => r.id === reviewId);
+        const providerId = review?.service_provider_id;
+
+        const { error } = await supabaseClient
+            .from('reviews')
+            .delete()
+            .eq('id', reviewId);
 
         if (error) throw error;
-        if (data?.error) throw new Error(data.error);
 
         // Lokal entfernen und neu rendern
         allLoadedReviews = allLoadedReviews.filter(r => r.id !== reviewId);
         filterReviews();
 
-        const avgInfo = data.avg_rating !== undefined
-            ? ' Neuer Durchschnitt: ' + data.avg_rating + ' (' + data.review_count + ' Bewertungen)'
-            : '';
+        // Rating-Aggregate für diesen Provider aus DB nachladen (best effort)
+        let avgInfo = '';
+        if (providerId) {
+            try {
+                const { data: agg } = await supabaseClient
+                    .from('reviews')
+                    .select('rating')
+                    .eq('service_provider_id', providerId);
+                const cnt = (agg || []).length;
+                const avg = cnt > 0
+                    ? (agg.reduce((s, r) => s + (r.rating || 0), 0) / cnt).toFixed(1)
+                    : '–';
+                avgInfo = ` Neuer Durchschnitt: ${avg} (${cnt} Bewertungen)`;
+                // Optional: Provider-Tabelle aktualisieren — wenn RLS es erlaubt
+                await supabaseClient
+                    .from('service_providers')
+                    .update({
+                        rating: cnt > 0 ? parseFloat(avg) : null,
+                        review_count: cnt,
+                    })
+                    .eq('id', providerId);
+            } catch (e) { /* ignorieren */ }
+        }
+
         alert('Bewertung entfernt.' + avgInfo);
 
     } catch (error) {
