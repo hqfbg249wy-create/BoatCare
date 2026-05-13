@@ -1,10 +1,13 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import { supabase } from '../lib/supabase'
-import { Plus, Pencil, Trash2, Search, Upload, X, Save, Loader, Image as ImageIcon, Package, CheckSquare, Square, FileSpreadsheet, Download } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Plus, Pencil, Trash2, Search, Upload, X, Save, Loader, Image as ImageIcon, Package, CheckSquare, Square, FileSpreadsheet, Download, Lock } from 'lucide-react'
 
 export default function Products() {
   const { provider } = useAuth()
+  const access = useFeatureAccess()
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -105,6 +108,17 @@ export default function Products() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+
+    // Tier-Limit prüfen: Standard-Provider können max. 10 Produkte anlegen
+    if (editing === 'new' && Number.isFinite(access.limits.maxProducts)
+        && products.length >= access.limits.maxProducts) {
+      setMessage({
+        type: 'error',
+        text: `Standard-Tarif erlaubt max. ${access.limits.maxProducts} Produkte. Bitte upgrade auf Pro für unbegrenzte Produkte.`,
+      })
+      return
+    }
+
     setSaving(true)
     setMessage(null)
 
@@ -500,6 +514,10 @@ export default function Products() {
   }
 
   // ---- Product List ----
+  const productLimit  = access.limits.maxProducts
+  const limitReached  = products.length >= productLimit
+  const remaining     = Number.isFinite(productLimit) ? productLimit - products.length : null
+
   return (
     <div className="page">
       <div className="page-header">
@@ -521,8 +539,8 @@ export default function Products() {
           <button
             className="btn-secondary"
             onClick={() => csvInputRef.current?.click()}
-            disabled={csvImporting}
-            title="Produkte aus CSV-Datei importieren"
+            disabled={csvImporting || limitReached}
+            title={limitReached ? 'Produkt-Limit erreicht — auf Pro upgraden' : 'Produkte aus CSV-Datei importieren'}
           >
             {csvImporting
               ? <><Loader size={16} className="spin" /> Importiere…</>
@@ -535,11 +553,46 @@ export default function Products() {
             onChange={handleCsvUpload}
             style={{ display: 'none' }}
           />
-          <button className="btn-primary" onClick={() => { setEditing('new'); setForm(emptyForm()); setMessage(null) }}>
-            <Plus size={16} /> Neues Produkt
-          </button>
+          {limitReached ? (
+            <Link
+              to="/profile"
+              className="btn-primary"
+              style={{ background: '#15803d', display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+              title={`Standard-Tarif: max. ${productLimit} Produkte`}
+            >
+              <Lock size={16} /> Limit erreicht — auf Pro upgraden
+            </Link>
+          ) : (
+            <button className="btn-primary" onClick={() => { setEditing('new'); setForm(emptyForm()); setMessage(null) }}>
+              <Plus size={16} /> Neues Produkt
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Limit-Hinweis für Standard-Provider */}
+      {access.isStandard && (
+        <div style={{
+          padding: '10px 14px',
+          background: limitReached ? '#fef3c7' : '#f0fdf4',
+          border: `1px solid ${limitReached ? '#fde68a' : '#bbf7d0'}`,
+          borderRadius: 8,
+          fontSize: 13,
+          color: limitReached ? '#854d0e' : '#15803d',
+          marginBottom: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+        }}>
+          <span>
+            {limitReached
+              ? <>Produkt-Limit erreicht ({products.length} / {productLimit}). Mit <strong>Pro</strong> hast du keine Begrenzung.</>
+              : <>Standard-Tarif: noch <strong>{remaining}</strong> von <strong>{productLimit}</strong> Produkten frei. Mit <strong>Pro</strong> unbegrenzt.</>
+            }
+          </span>
+          <Link to="/profile" style={{ color: limitReached ? '#92400e' : '#166534', fontWeight: 600, textDecoration: 'underline' }}>
+            ⭐ Jetzt upgraden
+          </Link>
+        </div>
+      )}
 
       {message && <div className={`message message-${message.type}`}>{message.text}</div>}
 

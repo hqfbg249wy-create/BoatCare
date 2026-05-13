@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { useFeatureAccess } from '../hooks/useFeatureAccess'
+import FeatureLock from '../components/FeatureLock'
 import { supabase } from '../lib/supabase'
-import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe, Image as ImageIcon, Upload, Trash2, Tag, Wrench, Plus, X, Eye } from 'lucide-react'
+import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe, Image as ImageIcon, Upload, Trash2, Tag, Wrench, Plus, X, Eye, Lock } from 'lucide-react'
 
 // Storage bucket created by database/038_provider_images_bucket.sql
 const PROVIDER_IMAGES_BUCKET = 'provider-images'
@@ -9,6 +11,7 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5 MB (matches bucket limit)
 
 export default function Profile() {
   const { provider, loadProvider, user } = useAuth()
+  const access = useFeatureAccess()
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
@@ -1331,12 +1334,28 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* API Integration Section */}
+        {/* API Integration Section — Pro+ */}
         <div className="card" style={{ borderLeft: '4px solid var(--primary)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
             <Key size={20} style={{ color: 'var(--primary)' }} />
             <h2 style={{ margin: 0 }}>API & Integration</h2>
+            {!access.canApiAccess && (
+              <span style={{
+                background: '#d1fae5', color: '#15803d',
+                padding: '2px 10px', borderRadius: 12,
+                fontSize: 11, fontWeight: 700,
+              }}>⭐ Pro</span>
+            )}
           </div>
+
+          {!access.canApiAccess ? (
+            <FeatureLock requiredTier="Pro" feature="API & Webhook-Integration" icon="🔌">
+              Mit der REST API synchronisierst du deine Produkte direkt aus deinem
+              Warenwirtschafts-System. Bestelländerungen werden per Webhook live an
+              dein System gemeldet. Verfügbar ab dem <strong>Pro</strong>-Tarif.
+            </FeatureLock>
+          ) : (
+          <>
           <p className="hint" style={{ marginBottom: '16px' }}>
             Nutze die REST API um Produkte automatisch zu synchronisieren. Dein API-Schlüssel ermöglicht Zugriff auf die Produkt-Verwaltung.
           </p>
@@ -1408,6 +1427,8 @@ export default function Profile() {
                 Produkte erstellen, aktualisieren und abfragen. GET-Anfragen sind ohne Authentifizierung möglich.
               </span>
             </div>
+          )}
+          </>
           )}
         </div>
 

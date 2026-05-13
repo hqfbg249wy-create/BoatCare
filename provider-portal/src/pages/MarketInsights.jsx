@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { useFeatureAccess } from '../hooks/useFeatureAccess'
+import FeatureLock from '../components/FeatureLock'
 import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -11,6 +13,7 @@ import {
 
 export default function MarketInsights() {
   const { provider } = useAuth()
+  const access = useFeatureAccess()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [insights, setInsights] = useState(null)
@@ -161,6 +164,21 @@ export default function MarketInsights() {
       }
       return false
     })
+  }
+
+  // Feature-Gate: Marktanalyse ist Enterprise-only
+  if (!access.canAnalytics) {
+    return (
+      <div className="page">
+        <h1>📈 Marktanalyse</h1>
+        <FeatureLock requiredTier="Enterprise" feature="Markt-Analytics" icon="📈">
+          Sieh genau, welche Ausrüstung in deiner Region nachgefragt wird, welche
+          Hersteller dominieren und welche Bootstypen wachsen. Inklusive
+          Drilldown-Reports und Handlungsempfehlungen für deinen Shop.
+          Verfügbar im <strong>Enterprise</strong>-Tarif.
+        </FeatureLock>
+      </div>
+    )
   }
 
   if (loading) return <div className="loading">Laden...</div>

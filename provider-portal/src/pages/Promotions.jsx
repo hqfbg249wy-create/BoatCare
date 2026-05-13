@@ -1,11 +1,14 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { useFeatureAccess } from '../hooks/useFeatureAccess'
+import FeatureLock from '../components/FeatureLock'
 import { supabase } from '../lib/supabase'
 import { useLocation } from 'react-router-dom'
 import { Plus, Pencil, Trash2, Tag, X, Save, Loader, BarChart3, TrendingUp, Users, ShoppingCart } from 'lucide-react'
 
 export default function Promotions() {
   const { provider } = useAuth()
+  const access = useFeatureAccess()
   const location = useLocation()
   const [promotions, setPromotions] = useState([])
   const [categories, setCategories] = useState([])
@@ -289,6 +292,20 @@ export default function Promotions() {
             </button>
           </div>
         </form>
+      </div>
+    )
+  }
+
+  // Feature-Gate: Promotions sind Enterprise-only
+  if (!access.canPromotions) {
+    return (
+      <div className="page">
+        <h1>🏷️ Angebote & Rabatte</h1>
+        <FeatureLock requiredTier="Enterprise" feature="Promotions & Werbeplätze" icon="🏷️">
+          Mit gezielten Angeboten erreichst du genau die Bootseigner, die zu deinen
+          Produkten und Dienstleistungen passen — gefiltert nach Bootstyp, Hersteller
+          oder Region. Verfügbar im <strong>Enterprise</strong>-Tarif.
+        </FeatureLock>
       </div>
     )
   }

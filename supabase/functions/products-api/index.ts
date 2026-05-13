@@ -42,16 +42,30 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("authorization");
 
     if (apiKey) {
-      // Validate provider API key
+      // Validate provider API key + Subscription-Tier prüfen (API ist Pro+)
       const { data: providerData, error: keyErr } = await supabase
         .from("service_providers")
-        .select("id")
+        .select("id, subscription_tier, subscription_status, free_until")
         .eq("api_key", apiKey)
         .eq("is_shop_active", true)
         .single();
 
       if (keyErr || !providerData) {
         return jsonResponse({ error: "Invalid API key" }, 401);
+      }
+
+      // Tier-Gate: API ist nur für Pro/Enterprise oder Admin-Grants verfügbar
+      const tier = providerData.subscription_tier;
+      const status = providerData.subscription_status;
+      const grantActive = tier === "admin_grant"
+        && (providerData.free_until === null || new Date(providerData.free_until) > new Date());
+      const paidActive  = tier === "professional" && status === "active";
+
+      if (!grantActive && !paidActive) {
+        return jsonResponse({
+          error: "API-Zugang ist nur im Pro- oder Enterprise-Tarif verfügbar. Bitte im Provider-Portal upgraden.",
+          upgrade_required: true,
+        }, 403);
       }
       providerId = providerData.id;
     } else if (authHeader) {
