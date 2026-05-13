@@ -84,17 +84,18 @@ serve(async (req: Request) => {
     // Provider laden und prüfen, dass der eingeloggte User zugriffsberechtigt ist
     const { data: provider, error: provErr } = await supabase
       .from("service_providers")
-      .select("id, name, email, user_id, owner_user_id, stripe_customer_id, subscription_tier, subscription_status")
+      .select("id, name, email, user_id, stripe_customer_id, subscription_tier, subscription_status")
       .eq("id", providerId)
       .single();
 
     if (provErr || !provider) {
-      return new Response(JSON.stringify({ error: "Provider nicht gefunden" }),
+      console.error("Provider lookup failed:", provErr?.message, "id=", providerId);
+      return new Response(JSON.stringify({ error: "Provider nicht gefunden: " + (provErr?.message || "kein Datensatz") }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const allowedUserIds = [provider.user_id, provider.owner_user_id].filter(Boolean);
-    if (allowedUserIds.length > 0 && !allowedUserIds.includes(user.id)) {
+    // Berechtigungs-Check: nur der zugeordnete User darf Checkout starten
+    if (provider.user_id && provider.user_id !== user.id) {
       return new Response(JSON.stringify({ error: "Keine Berechtigung für diesen Provider" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }

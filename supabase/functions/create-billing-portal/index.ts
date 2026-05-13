@@ -48,16 +48,15 @@ serve(async (req: Request) => {
 
     const { data: provider, error: provErr } = await supabase
       .from("service_providers")
-      .select("id, user_id, owner_user_id, stripe_customer_id")
+      .select("id, user_id, stripe_customer_id")
       .eq("id", provider_id)
       .single();
 
     if (provErr || !provider) {
-      return new Response(JSON.stringify({ error: "Provider nicht gefunden" }),
+      return new Response(JSON.stringify({ error: "Provider nicht gefunden: " + (provErr?.message || "kein Datensatz") }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const allowed = [provider.user_id, provider.owner_user_id].filter(Boolean);
-    if (allowed.length > 0 && !allowed.includes(user.id)) {
+    if (provider.user_id && provider.user_id !== user.id) {
       return new Response(JSON.stringify({ error: "Keine Berechtigung" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
