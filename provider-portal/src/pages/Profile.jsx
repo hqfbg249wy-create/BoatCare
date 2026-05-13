@@ -288,9 +288,15 @@ export default function Profile() {
       await loadProvider(user.id)
 
       if (showSuccess && data.status === 'synced') {
+        const planLabel = ({
+          pro_monthly:  'Pro · Monatlich',
+          pro_yearly:   'Pro · Jährlich',
+          ent_monthly:  'Enterprise · Monatlich',
+          ent_yearly:   'Enterprise · Jährlich',
+        })[data.plan] || data.tier
         setSubscriptionMessage({
           type: 'success',
-          text: `Abo aktiv: ${data.plan?.replace('_', ' · ') || data.tier}.`,
+          text: `Abo aktiv: ${planLabel}.`,
         })
       } else if (showSuccess && data.status === 'no_subscription') {
         setSubscriptionMessage({ type: 'info', text: 'Kein aktives Abo bei Stripe gefunden.' })
@@ -739,10 +745,56 @@ export default function Profile() {
               </div>
             )}
 
-            {validUntil && (
+            {/* Aktive Pro/Enterprise-Anzeige: kompakte Plan-Karte */}
+            {isProfessional && validUntil && (() => {
+              const planPrice = ({
+                pro_monthly: { amount: 79,   per: 'Monat', features: ['API-Zugang', 'Webhook', 'Priorisierte Sichtbarkeit'] },
+                pro_yearly:  { amount: 789,  per: 'Jahr',  features: ['API-Zugang', 'Webhook', 'Priorisierte Sichtbarkeit', '17 % Jahresrabatt'] },
+                ent_monthly: { amount: 199,  per: 'Monat', features: ['Alle Pro-Features', 'Werbeplätze', 'Markt-Analytics', 'Multi-User'] },
+                ent_yearly:  { amount: 1999, per: 'Jahr',  features: ['Alle Pro-Features', 'Werbeplätze', 'Markt-Analytics', 'Multi-User', '17 % Jahresrabatt'] },
+              })[plan] || null
+
+              return (
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  gap: 16, padding: '14px 16px', borderRadius: 12,
+                  background: isEnterprise ? 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                  border: `1px solid ${isEnterprise ? '#e9d5ff' : '#bbf7d0'}`,
+                  marginBottom: 14, flexWrap: 'wrap',
+                }}>
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    {planPrice && (
+                      <div style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', lineHeight: 1.1 }}>
+                        {planPrice.amount} €
+                        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--gray-500)' }}> / {planPrice.per}</span>
+                      </div>
+                    )}
+                    <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 4 }}>
+                      Nächste Verlängerung am <strong style={{ color: '#0f172a' }}>{fmtDate(validUntil)}</strong>
+                    </div>
+                    {planPrice && (
+                      <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {planPrice.features.map(f => (
+                          <span key={f} style={{
+                            fontSize: 11, fontWeight: 600,
+                            padding: '2px 8px', borderRadius: 10,
+                            background: '#fff', color: accent,
+                            border: `1px solid ${isEnterprise ? '#e9d5ff' : '#bbf7d0'}`,
+                          }}>✓ {f}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 40, lineHeight: 1, opacity: 0.85 }}>
+                    {isEnterprise ? '💎' : '⭐'}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {isAdminGrant && validUntil && (
               <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: 12 }}>
-                {isAdminGrant ? 'Kostenfreie Nutzung bis ' : 'Nächste Verlängerung am '}
-                <strong>{fmtDate(validUntil)}</strong>
+                Kostenfreie Nutzung bis <strong>{fmtDate(validUntil)}</strong>
               </p>
             )}
 
@@ -821,20 +873,29 @@ export default function Profile() {
             )}
 
             {isProfessional && (
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
                 <button
                   type="button"
                   className="btn-secondary"
                   onClick={openBillingPortal}
                   disabled={subscriptionLoading}
+                  style={{ fontSize: '0.9rem' }}
                 >
                   {subscriptionLoading
-                    ? <><Loader size={16} className="spin" /> Lädt…</>
-                    : <><ExternalLink size={16} /> Abo verwalten / kündigen</>}
+                    ? <><Loader size={14} className="spin" /> Lädt…</>
+                    : <><ExternalLink size={14} /> Abo verwalten / kündigen</>}
                 </button>
-                <span style={{ alignSelf: 'center', fontSize: '0.85rem', color: 'var(--gray-400)' }}>
-                  Rechnungen, Zahlungsmethoden und Kündigung im Stripe-Portal.
-                </span>
+                <button
+                  type="button"
+                  onClick={() => syncSubscriptionFromStripe(true)}
+                  title="Status manuell mit Stripe abgleichen"
+                  style={{
+                    background: 'transparent', border: '1px solid var(--gray-200)',
+                    color: 'var(--gray-500)', padding: '6px 12px', borderRadius: 6,
+                    fontSize: '0.8rem', cursor: 'pointer',
+                  }}>
+                  🔄 Aktualisieren
+                </button>
               </div>
             )}
 
