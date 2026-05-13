@@ -8279,7 +8279,7 @@ async function loadCustomers() {
             const { data, error: pageErr } = await supabaseClient
                 .from('service_providers')
                 .select(`
-                    id, name, category, city, country,
+                    id, name, category, city, country, email, user_id,
                     is_shop_active, commission_rate,
                     subscription_tier, subscription_status, subscription_plan, free_until,
                     subscription_period_end, stripe_account_id,
@@ -8466,6 +8466,7 @@ async function openProviderModal(providerId) {
     document.getElementById('edit-services').value      = '';
 
     renderModalSubscriptionStatus();
+    renderModalUserStatus();
     document.getElementById('provider-edit-modal').style.display = 'block';
     document.body.style.overflow = 'hidden';
 
@@ -8515,6 +8516,93 @@ function renderModalSubscriptionStatus() {
     }
     document.getElementById('edit-sub-current').innerHTML = html;
 }
+
+function renderModalUserStatus() {
+    const p = _editingProvider;
+    const statusEl = document.getElementById('edit-user-status');
+    const btn      = document.getElementById('edit-invite-btn');
+    if (!p || !statusEl || !btn) return;
+
+    const email = p.email || '';
+    const hasEmail = !!email;
+    const isLinked = !!p.user_id;
+
+    if (!hasEmail) {
+        statusEl.innerHTML = `<span style="color:#b45309;">⚠️ Keine E-Mail hinterlegt — bitte zuerst speichern.</span>`;
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+        return;
+    }
+
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.style.cursor = 'pointer';
+
+    if (isLinked) {
+        statusEl.innerHTML = `✅ Account verknüpft · <span style="font-family:monospace;">${escapeHtml(email)}</span>`;
+        btn.textContent = '🔁 Login-Link erneut senden';
+    } else {
+        statusEl.innerHTML = `Noch kein Account · <span style="font-family:monospace;">${escapeHtml(email)}</span>`;
+        btn.textContent = '✉️ Zugangsdaten senden';
+    }
+}
+
+async function sendProviderInvite() {
+    if (!_editingProvider) return;
+    const btn       = document.getElementById('edit-invite-btn');
+    const resultBox = document.getElementById('edit-invite-result');
+    const origLabel = btn.textContent;
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Wird gesendet…';
+    if (resultBox) resultBox.style.display = 'none';
+
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) throw new Error('Nicht eingeloggt');
+
+        // Edge-Function aufrufen
+        const supabaseUrl = supabaseClient.supabaseUrl;
+        const res = await fetch(`${supabaseUrl}/functions/v1/invite-existing-provider`, {
+            method: 'POST',
+            headers: {
+                'Content-Type':  'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ provider_id: _editingProvider.id }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Einladung fehlgeschlagen');
+
+        if (resultBox) {
+            resultBox.style.display = '';
+            resultBox.style.background = '#dcfce7';
+            resultBox.style.color      = '#166534';
+            resultBox.style.border     = '1px solid #bbf7d0';
+            resultBox.innerHTML = '✅ ' + escapeHtml(data.message || 'Erfolgreich versendet.');
+        }
+
+        // Cache refresh + Status neu rendern
+        await reloadProviderInCache(_editingProvider.id);
+        renderModalUserStatus();
+    } catch (err) {
+        console.error('sendProviderInvite error:', err);
+        if (resultBox) {
+            resultBox.style.display = '';
+            resultBox.style.background = '#fee2e2';
+            resultBox.style.color      = '#991b1b';
+            resultBox.style.border     = '1px solid #fecaca';
+            resultBox.innerHTML = '❌ ' + escapeHtml(err.message);
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = origLabel;
+        // Status-Render setzt das richtige Label danach
+        renderModalUserStatus();
+    }
+}
+window.sendProviderInvite = sendProviderInvite;
 
 function closeProviderModal() {
     document.getElementById('provider-edit-modal').style.display = 'none';
