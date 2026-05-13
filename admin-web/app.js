@@ -1666,48 +1666,70 @@ async function handleAddProvider(e) {
 }
 
 async function geocodeAddress() {
-    const address = document.querySelector('input[name="address"]').value;
-    const city = document.querySelector('input[name="city"]').value;
-    const country = document.querySelector('input[name="country"]').value;
+    // Add-Provider-Formular nutzt die Feld-Namen street + postal_code (NICHT address)
+    const form = document.getElementById('add-provider-form')
+                 || document.querySelector('#add-provider-page form');
+
+    const getVal = (n) => (form?.querySelector(`input[name="${n}"]`)?.value || '').trim();
+    const street     = getVal('street');
+    const postalCode = getVal('postal_code');
+    const city       = getVal('city');
+    const country    = getVal('country');
 
     if (!city) {
-        alert('Bitte geben Sie mindestens eine Stadt ein');
+        alert('Bitte gib mindestens eine Stadt ein.');
         return;
     }
 
-    const fullAddress = [address, city, country].filter(x => x).join(', ');
+    const fullAddress = [street, postalCode, city, country].filter(Boolean).join(', ');
+    const btn = document.getElementById('geocode-btn');
+    const origLabel = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Suche…'; }
+
+    const nominatimFetch = async (params) => {
+        const url = 'https://nominatim.openstreetmap.org/search?' + params + '&format=json&limit=1';
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+    };
 
     try {
-        if (USE_NOMINATIM) {
-            // OpenStreetMap Nominatim (kostenlos)
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(fullAddress)}&format=json&limit=1`);
-            const data = await response.json();
+        let data = [];
 
-            if (data && data.length > 0) {
-                document.querySelector('input[name="latitude"]').value = data[0].lat;
-                document.querySelector('input[name="longitude"]').value = data[0].lon;
-                alert('✅ Koordinaten gefunden!');
-            } else {
-                alert('❌ Keine Koordinaten gefunden');
-            }
-        } else {
-            // Google Maps Geocoding API
-            const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${GOOGLE_MAPS_API_KEY}`);
-            const data = await response.json();
+        // Versuch 1: strukturiert
+        const sp = new URLSearchParams();
+        if (street)     sp.set('street', street);
+        if (postalCode) sp.set('postalcode', postalCode);
+        if (city)       sp.set('city', city);
+        if (country)    sp.set('country', country);
+        data = await nominatimFetch(sp.toString());
 
-            if (data.results && data.results.length > 0) {
-                document.querySelector('input[name="latitude"]').value = data.results[0].geometry.location.lat;
-                document.querySelector('input[name="longitude"]').value = data.results[0].geometry.location.lng;
-                alert('✅ Koordinaten gefunden!');
-            } else {
-                alert('❌ Keine Koordinaten gefunden');
-            }
+        // Versuch 2: freie Volltext-Suche
+        if (!data?.length) {
+            data = await nominatimFetch('q=' + encodeURIComponent(fullAddress));
         }
-    } catch (error) {
-        console.error('Geocoding Fehler:', error);
-        alert('Fehler beim Geocoding');
+
+        // Versuch 3: nur Stadt + Land
+        if (!data?.length) {
+            const fb = [city, country].filter(Boolean).join(', ');
+            data = await nominatimFetch('q=' + encodeURIComponent(fb));
+        }
+
+        if (data?.length) {
+            form.querySelector('input[name="latitude"]').value  = data[0].lat;
+            form.querySelector('input[name="longitude"]').value = data[0].lon;
+            alert(`✅ Koordinaten gefunden:\n${data[0].lat}, ${data[0].lon}\n${data[0].display_name}`);
+        } else {
+            alert('❌ Keine Koordinaten gefunden für:\n' + fullAddress);
+        }
+    } catch (err) {
+        console.error('Geocoding Fehler:', err);
+        alert('Fehler beim Geocoding: ' + err.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = origLabel; }
     }
 }
+window.geocodeAddress = geocodeAddress;
 
 async function geocodeForEditForm() {
     const form = document.getElementById('edit-provider-form');
