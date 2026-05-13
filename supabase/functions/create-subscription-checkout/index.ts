@@ -22,9 +22,19 @@ import { corsHeaders } from "../_shared/cors.ts";
 
 const supabaseUrl       = Deno.env.get("SUPABASE_URL") ?? "";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const priceId           = Deno.env.get("STRIPE_PROFESSIONAL_PRICE_ID") ?? "";
+const defaultPriceId    = Deno.env.get("STRIPE_PROFESSIONAL_PRICE_ID") ?? "";
 const returnUrl         = Deno.env.get("STRIPE_SUBSCRIPTION_RETURN_URL")
                           ?? "https://provider.skipily.app/profile";
+
+// Whitelist erlaubter Stripe-Price-IDs. Wird sowohl als Sicherheits-Gate
+// (kein beliebiger Client darf zufällige Preise nutzen) als auch als
+// Fallback verwendet, falls kein env-Default gesetzt ist.
+const ALLOWED_PRICE_IDS: string[] = [
+  "price_1TWIBKAKSxHR03mTLBHJkIvb", // Pro Monatlich
+  "price_1TWI7bAKSxHR03mTLIBshinq", // Pro Jährlich
+  "price_1TWIDLAKSxHR03mT7o48URgq", // Enterprise Monatlich
+  "price_1TWIE6AKSxHR03mT2gFOvwdw", // Enterprise Jährlich
+];
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -36,11 +46,6 @@ serve(async (req: Request) => {
   }
 
   try {
-    if (!priceId) {
-      return new Response(JSON.stringify({ error: "STRIPE_PROFESSIONAL_PRICE_ID nicht konfiguriert" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
     const authHeader = req.headers.get("Authorization") || "";
     const accessToken = authHeader.replace(/^Bearer\s+/i, "");
     if (!accessToken) {
@@ -52,6 +57,17 @@ serve(async (req: Request) => {
     const providerId = body.provider_id;
     if (!providerId) {
       return new Response(JSON.stringify({ error: "provider_id fehlt" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // price_id aus Request bevorzugen, sonst env-Default. Muss in der Whitelist sein.
+    const requestedPriceId: string = (body.price_id || defaultPriceId || "").trim();
+    if (!requestedPriceId) {
+      return new Response(JSON.stringify({ error: "price_id fehlt" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (!ALLOWED_PRICE_IDS.includes(requestedPriceId)) {
+      return new Response(JSON.stringify({ error: "Unbekannte price_id" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -102,7 +118,7 @@ serve(async (req: Request) => {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [{ price: requestedPriceId, quantity: 1 }],
       success_url: `${returnUrl}?subscription=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${returnUrl}?subscription=cancelled`,
       allow_promotion_codes: true,

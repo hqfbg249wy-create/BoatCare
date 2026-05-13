@@ -195,11 +195,25 @@ serve(async (req: Request) => {
             ? "standard"
             : "professional";
 
+        // Aktiver Preis ist immer das erste Subscription-Item (wir nutzen nur 1 line item)
+        const stripePriceId: string | null = sub.items?.data?.[0]?.price?.id ?? null;
+
+        // price_id → plan-code Mapping (Source of Truth ist auch SQL, hier zur Resilienz)
+        const PLAN_MAP: Record<string, string> = {
+          "price_1TWIBKAKSxHR03mTLBHJkIvb": "pro_monthly",
+          "price_1TWI7bAKSxHR03mTLIBshinq": "pro_yearly",
+          "price_1TWIDLAKSxHR03mT7o48URgq": "ent_monthly",
+          "price_1TWIE6AKSxHR03mT2gFOvwdw": "ent_yearly",
+        };
+        const planCode = (stripePriceId && PLAN_MAP[stripePriceId]) || null;
+
         const updateFields: Record<string, unknown> = {
           subscription_tier:        effectiveTier,
           subscription_status:      ourStatus,
           subscription_period_end:  periodEnd,
           stripe_subscription_id:   sub.id,
+          stripe_price_id:          stripePriceId,
+          subscription_plan:        effectiveTier === "standard" ? null : planCode,
         };
         if (startedAt) updateFields.subscription_started_at = startedAt;
 

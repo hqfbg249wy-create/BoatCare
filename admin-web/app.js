@@ -8259,7 +8259,7 @@ async function loadCustomers() {
                 .select(`
                     id, name, category, city, country,
                     is_shop_active, commission_rate,
-                    subscription_tier, subscription_status, free_until,
+                    subscription_tier, subscription_status, subscription_plan, free_until,
                     subscription_period_end, stripe_account_id,
                     stripe_charges_enabled, stripe_payouts_enabled
                 `)
@@ -8361,8 +8361,19 @@ function renderCustomerList(rows) {
         return;
     }
 
-    const tierBadge = (tier, validUntil) => {
-        if (tier === 'professional') return '<span style="background:#dcfce7; color:#15803d; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700;">⭐ Pro</span>';
+    const planShortLabel = (planCode) => ({
+        pro_monthly: 'Pro·M', pro_yearly: 'Pro·J',
+        ent_monthly: 'Ent·M', ent_yearly: 'Ent·J',
+    })[planCode] || '';
+
+    const tierBadge = (tier, validUntil, plan) => {
+        if (tier === 'professional') {
+            const isEnt = plan === 'ent_monthly' || plan === 'ent_yearly';
+            const bg    = isEnt ? '#f3e8ff' : '#dcfce7';
+            const fg    = isEnt ? '#7e22ce' : '#15803d';
+            const lbl   = isEnt ? '💎 ' : '⭐ ';
+            return `<span style="background:${bg}; color:${fg}; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700;">${lbl}${planShortLabel(plan) || (isEnt ? 'Enterprise' : 'Pro')}</span>`;
+        }
         if (tier === 'admin_grant') {
             const lbl = validUntil ? '🎁 Grant' : '🎁 ∞';
             return `<span style="background:#fef3c7; color:#854d0e; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700;">${lbl}</span>`;
@@ -8383,7 +8394,7 @@ function renderCustomerList(rows) {
                 <div style="flex:1; min-width:0;">
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                         <span style="font-weight:600; color:#0f172a; font-size:15px;">${escapeHtml(p.name || '—')}</span>
-                        ${tierBadge(tier, validUntil)}
+                        ${tierBadge(tier, validUntil, p.subscription_plan)}
                         ${shopChip}
                     </div>
                     <div style="font-size:12px; color:#94a3b8; margin-top:2px;">

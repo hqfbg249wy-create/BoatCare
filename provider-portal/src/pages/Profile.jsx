@@ -224,8 +224,19 @@ export default function Profile() {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
-  // ─── Professional-Abo ────────────────────────────────────────────────────
-  async function startSubscriptionCheckout() {
+  // ─── Skipily-Abo: vier wählbare Pläne ────────────────────────────────────
+  const SUBSCRIPTION_PLANS = [
+    { code: 'pro_monthly',  tier: 'Pro',        period: 'Monatlich', price: 79,   per: 'Monat',
+      price_id: 'price_1TWIBKAKSxHR03mTLBHJkIvb' },
+    { code: 'pro_yearly',   tier: 'Pro',        period: 'Jährlich',  price: 789,  per: 'Jahr',
+      price_id: 'price_1TWI7bAKSxHR03mTLIBshinq',  savings: 'Spare 17 %' },
+    { code: 'ent_monthly',  tier: 'Enterprise', period: 'Monatlich', price: 199,  per: 'Monat',
+      price_id: 'price_1TWIDLAKSxHR03mT7o48URgq' },
+    { code: 'ent_yearly',   tier: 'Enterprise', period: 'Jährlich',  price: 1999, per: 'Jahr',
+      price_id: 'price_1TWIE6AKSxHR03mT2gFOvwdw', savings: 'Spare 17 %' },
+  ]
+
+  async function startSubscriptionCheckout(priceId) {
     setSubscriptionLoading(true)
     setSubscriptionMessage(null)
     try {
@@ -238,7 +249,7 @@ export default function Profile() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ provider_id: provider.id }),
+        body: JSON.stringify({ provider_id: provider.id, price_id: priceId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Checkout-Fehler')
@@ -649,15 +660,24 @@ export default function Profile() {
         )}
       </div>
 
-      {/* ─── Skipily-Abo (Professional / Standard) ─────────────────────── */}
+      {/* ─── Skipily-Abo (Pro / Enterprise / Standard / Admin-Grant) ─── */}
       {(() => {
         const tier            = provider.subscription_tier   || 'standard'
         const status          = provider.subscription_status || 'active'
+        const plan            = provider.subscription_plan
         const isProfessional  = tier === 'professional' && status === 'active'
+        const isEnterprise    = isProfessional && (plan === 'ent_monthly' || plan === 'ent_yearly')
         const isAdminGrant    = tier === 'admin_grant'
         const validUntil      = tier === 'admin_grant' ? provider.free_until : provider.subscription_period_end
-        const accent          = isProfessional ? '#15803d' : isAdminGrant ? '#854d0e' : '#475569'
+        const accent          = isEnterprise ? '#7e22ce' : isProfessional ? '#15803d' : isAdminGrant ? '#854d0e' : '#475569'
         const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' }) : null
+
+        const planLabel = ({
+          pro_monthly:  'Pro · monatlich',
+          pro_yearly:   'Pro · jährlich',
+          ent_monthly:  'Enterprise · monatlich',
+          ent_yearly:   'Enterprise · jährlich',
+        })[plan] || (isProfessional ? 'Pro' : '')
 
         return (
           <div className="card" style={{ borderLeft: `4px solid ${accent}` }}>
@@ -668,10 +688,12 @@ export default function Profile() {
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '4px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 700,
-                background: isProfessional ? '#d1fae5' : isAdminGrant ? '#fef3c7' : '#f1f5f9',
+                background: isEnterprise ? '#f3e8ff' : isProfessional ? '#d1fae5' : isAdminGrant ? '#fef3c7' : '#f1f5f9',
                 color: accent,
               }}>
-                {isProfessional ? '⭐ Professional aktiv' : isAdminGrant ? '🎁 Admin-Freischaltung' : 'Standard'}
+                {isEnterprise   ? `💎 Enterprise${planLabel ? ' · ' + planLabel.split('· ')[1] : ''}` :
+                 isProfessional ? `⭐ ${planLabel || 'Pro'}` :
+                 isAdminGrant   ? '🎁 Admin-Freischaltung' : 'Standard'}
               </span>
             </div>
 
@@ -690,21 +712,62 @@ export default function Profile() {
 
             {tier === 'standard' && (
               <div>
-                <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: 12, lineHeight: 1.6 }}>
-                  Mit <strong>Professional</strong> erhältst du erweiterte Features: priorisierte
-                  Sichtbarkeit in der App, API-Zugang, Webhook-Integration, Werbeplätze und
-                  Markt-Analytics für deine Region.
+                <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: 14, lineHeight: 1.6 }}>
+                  Mit <strong>Pro</strong> erhältst du erweiterte Features (API-Zugang,
+                  Webhook-Integration, priorisierte Sichtbarkeit). Mit <strong>Enterprise</strong>
+                  zusätzlich Werbeplätze, Markt-Analytics und Multi-User-Verwaltung.
                 </p>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={startSubscriptionCheckout}
-                  disabled={subscriptionLoading}
-                >
-                  {subscriptionLoading
-                    ? <><Loader size={16} className="spin" /> Wird vorbereitet…</>
-                    : <>⭐ Auf Professional upgraden</>}
-                </button>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+                  {SUBSCRIPTION_PLANS.map(plan => {
+                    const isEnterprise = plan.tier === 'Enterprise'
+                    return (
+                      <button
+                        key={plan.code}
+                        type="button"
+                        onClick={() => startSubscriptionCheckout(plan.price_id)}
+                        disabled={subscriptionLoading}
+                        style={{
+                          textAlign: 'left',
+                          padding: '14px 16px',
+                          borderRadius: 12,
+                          border: `2px solid ${isEnterprise ? '#a855f7' : '#22c55e'}`,
+                          background: '#fff',
+                          cursor: subscriptionLoading ? 'wait' : 'pointer',
+                          transition: 'transform .12s, box-shadow .12s',
+                          position: 'relative',
+                        }}
+                        onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)' }}
+                        onMouseOut={e =>  { e.currentTarget.style.transform = '';                  e.currentTarget.style.boxShadow = '' }}
+                      >
+                        {plan.savings && (
+                          <span style={{
+                            position: 'absolute', top: -8, right: 12,
+                            background: '#facc15', color: '#713f12',
+                            padding: '2px 8px', borderRadius: 10,
+                            fontSize: 10, fontWeight: 700,
+                          }}>{plan.savings}</span>
+                        )}
+                        <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.04em', color: isEnterprise ? '#7e22ce' : '#15803d', textTransform: 'uppercase' }}>
+                          {plan.tier}
+                        </div>
+                        <div style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginTop: 2 }}>
+                          {plan.price} €
+                          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--gray-500)' }}> / {plan.per}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 2 }}>
+                          {plan.period === 'Jährlich'
+                            ? `≈ ${(plan.price / 12).toLocaleString('de-DE', { maximumFractionDigits: 0 })} € / Monat`
+                            : 'monatlich kündbar'}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+                {subscriptionLoading && (
+                  <p style={{ marginTop: 10, fontSize: 13, color: 'var(--gray-500)' }}>
+                    <Loader size={14} className="spin" /> Checkout wird vorbereitet…
+                  </p>
+                )}
               </div>
             )}
 
