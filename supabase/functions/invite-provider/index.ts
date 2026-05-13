@@ -58,6 +58,36 @@ Deno.serve(async (req) => {
       return json({ error: "email und company_name sind Pflicht" }, 400);
     }
 
+    // ── 2.5) Vor-Check: existiert die E-Mail schon irgendwo?
+    //   - profiles: andere Rolle (admin, buyer, …)
+    //   - service_providers: schon eingeladen / aktiv
+    //   Sonst gibt Supabase Auth einen kryptischen "Database error saving new user"
+    const { data: existingProfile } = await admin
+      .from("profiles")
+      .select("id, role")
+      .ilike("email", email)
+      .maybeSingle();
+
+    if (existingProfile) {
+      return json({
+        error: `Diese E-Mail ist bereits als ${existingProfile.role || "Benutzer"} registriert. Bitte eine andere Adresse verwenden.`,
+      }, 409);
+    }
+
+    const { data: existingProvider } = await admin
+      .from("service_providers")
+      .select("id, name, user_id")
+      .ilike("email", email)
+      .maybeSingle();
+
+    if (existingProvider) {
+      return json({
+        error: existingProvider.user_id
+          ? `Es gibt bereits einen aktiven Provider "${existingProvider.name}" mit dieser E-Mail.`
+          : `Es gibt schon einen unverknüpften Provider-Eintrag "${existingProvider.name}" mit dieser E-Mail. Bitte den vorhandenen Eintrag bearbeiten statt neu einzuladen.`,
+      }, 409);
+    }
+
     // ── 3) User einladen (schickt Magic-Link-Mail) ──
     const { data: invited, error: inviteErr } =
       await admin.auth.admin.inviteUserByEmail(email, {
@@ -72,7 +102,12 @@ Deno.serve(async (req) => {
       });
 
     if (inviteErr) {
-      return json({ error: inviteErr.message }, 400);
+      console.error("inviteUserByEmail failed:", JSON.stringify(inviteErr));
+      const msg = inviteErr.message || String(inviteErr);
+      const friendly = msg.includes("Database error")
+        ? "Anlegen des Users fehlgeschlagen. Mögliche Ursachen: E-Mail bereits als Auth-User vorhanden, oder der Provider-Signup-Trigger lehnt die Daten ab. Bitte das Function-Log im Supabase-Dashboard prüfen."
+        : msg;
+      return json({ error: friendly, raw: msg }, 400);
     }
 
     // Der Trigger handle_new_provider_signup legt beim INSERT
