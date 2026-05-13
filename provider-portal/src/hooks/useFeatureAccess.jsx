@@ -44,11 +44,14 @@ export function useFeatureAccess() {
   const isPaidActive = tier === 'professional' && status === 'active'
   const isAdminGrant = tier === 'admin_grant'
 
-  const isEnterprise = (isPaidActive || isAdminGrant)
-    && (plan === 'ent_monthly' || plan === 'ent_yearly')
+  // Admin-Grants öffnen alle Features (entspricht Enterprise),
+  // außer der Admin hat explizit einen Pro-Plan-Code gesetzt.
+  const isEnterprise =
+       (isPaidActive && (plan === 'ent_monthly' || plan === 'ent_yearly'))
+    || (isAdminGrant && plan !== 'pro_monthly' && plan !== 'pro_yearly')
 
   // Pro-Niveau gilt für: bezahlte Pro-Abos, Enterprise-Abos (haben Pro inklusive),
-  // UND Admin-Grants (auch ohne expliziten Plan-Code)
+  // UND Admin-Grants
   const isPro = isPaidActive || isAdminGrant
 
   const level = isEnterprise ? 'enterprise' : isPro ? 'pro' : 'standard'
