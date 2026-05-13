@@ -73,9 +73,11 @@ export default function Profile() {
         setStripeMessage({ type: 'info', text: 'Bitte schließen Sie die Stripe-Einrichtung ab.' })
         window.history.replaceState({}, '', '/profile')
       } else if (params.get('subscription') === 'success') {
-        setSubscriptionMessage({ type: 'success', text: 'Abo abgeschlossen! Die Aktivierung kann ein paar Sekunden dauern.' })
+        setSubscriptionMessage({ type: 'success', text: 'Abo abgeschlossen! Wird mit Stripe synchronisiert…' })
         window.history.replaceState({}, '', '/profile')
-        loadProvider(user.id)
+        // Aktiv mit Stripe synchronisieren — unabhängig davon ob der
+        // Webhook schon angekommen ist
+        syncSubscriptionFromStripe(true)
       } else if (params.get('subscription') === 'cancelled') {
         setSubscriptionMessage({ type: 'info', text: 'Abo-Abschluss abgebrochen.' })
         window.history.replaceState({}, '', '/profile')
@@ -262,6 +264,40 @@ export default function Profile() {
       setSubscriptionMessage({ type: 'error', text: 'Fehler: ' + err.message })
     } finally {
       setSubscriptionLoading(false)
+    }
+  }
+
+  async function syncSubscriptionFromStripe(showSuccess = false) {
+    if (!provider?.id) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
+      const res = await fetch(`${supabaseUrl}/functions/v1/sync-subscription-status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ provider_id: provider.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Sync fehlgeschlagen')
+
+      // Provider-State neu laden, damit das UI den neuen Tier zeigt
+      await loadProvider(user.id)
+
+      if (showSuccess && data.status === 'synced') {
+        setSubscriptionMessage({
+          type: 'success',
+          text: `Abo aktiv: ${data.plan?.replace('_', ' · ') || data.tier}.`,
+        })
+      } else if (showSuccess && data.status === 'no_subscription') {
+        setSubscriptionMessage({ type: 'info', text: 'Kein aktives Abo bei Stripe gefunden.' })
+      }
+    } catch (err) {
+      console.warn('Subscription-Sync:', err)
+      if (showSuccess) setSubscriptionMessage({ type: 'error', text: 'Sync fehlgeschlagen: ' + err.message })
     }
   }
 
@@ -712,11 +748,24 @@ export default function Profile() {
 
             {tier === 'standard' && (
               <div>
-                <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: 14, lineHeight: 1.6 }}>
-                  Mit <strong>Pro</strong> erhältst du erweiterte Features (API-Zugang,
-                  Webhook-Integration, priorisierte Sichtbarkeit). Mit <strong>Enterprise</strong>
-                  zusätzlich Werbeplätze, Markt-Analytics und Multi-User-Verwaltung.
-                </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+                  <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', margin: 0, lineHeight: 1.6, flex: 1, minWidth: 240 }}>
+                    Mit <strong>Pro</strong> erhältst du erweiterte Features (API-Zugang,
+                    Webhook-Integration, priorisierte Sichtbarkeit). Mit <strong>Enterprise</strong>
+                    zusätzlich Werbeplätze, Markt-Analytics und Multi-User-Verwaltung.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => syncSubscriptionFromStripe(true)}
+                    title="Status manuell mit Stripe abgleichen"
+                    style={{
+                      background: 'transparent', border: '1px solid var(--gray-200)',
+                      color: 'var(--gray-500)', padding: '4px 10px', borderRadius: 6,
+                      fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}>
+                    🔄 Status aktualisieren
+                  </button>
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
                   {SUBSCRIPTION_PLANS.map(plan => {
                     const isEnterprise = plan.tier === 'Enterprise'
