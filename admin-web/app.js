@@ -8234,10 +8234,10 @@ let _customersAll = [];        // Roh-Liste aller Provider mit Joins
 let _customerView = 'list';    // 'list' oder 'categories'
 
 async function loadCustomers() {
-    const tbody = document.getElementById('cust-tbody');
-    const diag  = document.getElementById('cust-diag');
-    if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="9" style="padding:30px; text-align:center; color:#94a3b8;">Wird geladen…</td></tr>';
+    const listEl = document.getElementById('cust-list-view');
+    const diag   = document.getElementById('cust-diag');
+    if (!listEl) return;
+    listEl.innerHTML = '<div class="card" style="padding:30px; text-align:center; color:#94a3b8;">Provider werden geladen…</div>';
     if (diag) diag.textContent = 'Lade Provider…';
 
     try {
@@ -8272,7 +8272,7 @@ async function loadCustomers() {
     } catch (err) {
         console.error('loadCustomers error:', err);
         if (diag) diag.textContent = 'Fehler: ' + err.message;
-        tbody.innerHTML = `<tr><td colspan="9" style="padding:20px; color:#ef4444;">Fehler: ${escapeHtml(err.message)}</td></tr>`;
+        if (listEl) listEl.innerHTML = `<div class="card" style="padding:20px; color:#ef4444;">Fehler: ${escapeHtml(err.message)}</div>`;
     }
 }
 window.loadCustomers = loadCustomers;
