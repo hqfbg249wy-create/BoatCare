@@ -283,30 +283,121 @@
 
                 <div id="cust-diag" style="font-size:13px; color:#475569; background:#f1f5f9; padding:8px 12px; border-radius:6px; margin-bottom:12px;">Wird geladen…</div>
 
-                <!-- Liste -->
-                <div class="card" id="cust-list-view" style="overflow-x:auto;">
-                    <table class="data-table" style="width:100%; border-collapse:collapse; font-size:14px;">
-                        <thead>
-                            <tr style="text-align:left; border-bottom:2px solid #e2e8f0; background:#fafafa;">
-                                <th style="padding:10px 8px;">Provider</th>
-                                <th style="padding:10px 8px;">Kategorie</th>
-                                <th style="padding:10px 8px; text-align:center;">Abo</th>
-                                <th style="padding:10px 8px; text-align:center;">Läuft bis</th>
-                                <th style="padding:10px 8px; text-align:center;">Shop</th>
-                                <th style="padding:10px 8px; text-align:center;">Provision</th>
-                                <th style="padding:10px 8px; text-align:center;">Produkte</th>
-                                <th style="padding:10px 8px; text-align:center;">Stripe</th>
-                                <th style="padding:10px 8px; text-align:right;">Aktionen</th>
-                            </tr>
-                        </thead>
-                        <tbody id="cust-tbody">
-                            <tr><td colspan="9" style="padding:30px; text-align:center; color:#94a3b8;">Wird geladen…</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+                <!-- Liste: kompakte Provider-Karten -->
+                <div id="cust-list-view"></div>
 
                 <!-- Kategorien-Ansicht -->
                 <div id="cust-category-view" style="display:none;"></div>
+            </div>
+
+            <!-- ═════════════════════════════════════════════════════════════
+                 Modal: Provider bearbeiten (Abo + Shop + Stammdaten)
+                ════════════════════════════════════════════════════════════════ -->
+            <div id="provider-edit-modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:1000; padding:20px; overflow-y:auto;" onclick="if(event.target===this) window.closeProviderModal()">
+                <div style="max-width:760px; margin:30px auto; background:#fff; border-radius:14px; box-shadow:0 10px 40px rgba(0,0,0,0.2); overflow:hidden;" onclick="event.stopPropagation()">
+
+                    <!-- Header -->
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid #e2e8f0; background:#f8fafc;">
+                        <div>
+                            <div id="edit-modal-title" style="font-size:18px; font-weight:700; color:#0f172a;">Provider bearbeiten</div>
+                            <div id="edit-modal-subtitle" style="font-size:12px; color:#64748b; margin-top:2px;"></div>
+                        </div>
+                        <button onclick="window.closeProviderModal()" style="background:transparent; border:none; font-size:24px; color:#64748b; cursor:pointer; padding:4px 10px;">×</button>
+                    </div>
+
+                    <!-- Steuerung: Shop + Abo (immer sichtbar oben) -->
+                    <div style="padding:18px 22px; background:linear-gradient(180deg,#fffbeb 0%, #ffffff 100%); border-bottom:1px solid #fde68a;">
+                        <div style="font-size:13px; font-weight:700; color:#92400e; margin-bottom:14px; text-transform:uppercase; letter-spacing:0.04em;">Steuerung</div>
+
+                        <!-- Shop-Aktivierung + Provision -->
+                        <div style="display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-bottom:16px;">
+                            <label style="display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; color:#334155; cursor:pointer;">
+                                <input type="checkbox" id="edit-shop-active" style="width:18px; height:18px;">
+                                🛒 Shop aktivieren
+                            </label>
+                            <label style="font-size:14px; color:#334155;">
+                                Provision:
+                                <input type="number" id="edit-commission" min="0" max="100" step="0.5"
+                                       style="width:70px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; margin-left:6px;">%
+                            </label>
+                        </div>
+
+                        <!-- Abo-Status anzeigen -->
+                        <div id="edit-sub-current" style="padding:10px 12px; background:#fff; border:1px solid #fde68a; border-radius:8px; font-size:13px; color:#475569; margin-bottom:14px;"></div>
+
+                        <!-- Abo-Aktionen -->
+                        <div id="edit-sub-actions" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                            <span style="font-size:13px; color:#475569; margin-right:4px;">🎁 Freischalten:</span>
+                            <button class="btn-secondary" onclick="window.grantFromModal(1)"  style="font-size:12px; padding:5px 11px;">1 Monat</button>
+                            <button class="btn-secondary" onclick="window.grantFromModal(3)"  style="font-size:12px; padding:5px 11px;">3 Monate</button>
+                            <button class="btn-secondary" onclick="window.grantFromModal(6)"  style="font-size:12px; padding:5px 11px;">6 Monate</button>
+                            <button class="btn-secondary" onclick="window.grantFromModal(12)" style="font-size:12px; padding:5px 11px;">12 Monate</button>
+                            <button class="btn-secondary" onclick="window.grantFromModal(0)"  style="font-size:12px; padding:5px 11px; background:#fef3c7; color:#854d0e; border-color:#fde68a; font-weight:600;">∞ Dauerhaft</button>
+                            <button class="btn-secondary" onclick="window.revokeFromModal()"  style="font-size:12px; padding:5px 11px; background:#fee2e2; color:#991b1b; border-color:#fecaca;">↺ Widerrufen</button>
+                        </div>
+                    </div>
+
+                    <!-- Stammdaten-Editor -->
+                    <div style="padding:18px 22px;">
+                        <div style="font-size:13px; font-weight:700; color:#0f172a; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.04em;">Stammdaten</div>
+
+                        <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px;">
+                            <label style="font-size:13px; color:#475569;">
+                                Name
+                                <input id="edit-name" type="text" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
+                            </label>
+                            <label style="font-size:13px; color:#475569;">
+                                Kategorie
+                                <input id="edit-category" type="text" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
+                            </label>
+                            <label style="font-size:13px; color:#475569; grid-column:span 2;">
+                                Beschreibung
+                                <textarea id="edit-description" rows="2" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px; resize:vertical;"></textarea>
+                            </label>
+                            <label style="font-size:13px; color:#475569;">
+                                Straße
+                                <input id="edit-street" type="text" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
+                            </label>
+                            <label style="font-size:13px; color:#475569;">
+                                PLZ / Stadt
+                                <div style="display:flex; gap:6px; margin-top:4px;">
+                                    <input id="edit-postal" type="text" placeholder="PLZ" style="width:80px; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                                    <input id="edit-city" type="text" placeholder="Stadt" style="flex:1; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                                </div>
+                            </label>
+                            <label style="font-size:13px; color:#475569;">
+                                Land
+                                <input id="edit-country" type="text" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
+                            </label>
+                            <label style="font-size:13px; color:#475569;">
+                                Telefon
+                                <input id="edit-phone" type="text" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
+                            </label>
+                            <label style="font-size:13px; color:#475569;">
+                                E-Mail
+                                <input id="edit-email" type="email" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
+                            </label>
+                            <label style="font-size:13px; color:#475569;">
+                                Website
+                                <input id="edit-website" type="text" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
+                            </label>
+                            <label style="font-size:13px; color:#475569; grid-column:span 2;">
+                                Marken (Komma-getrennt)
+                                <input id="edit-brands" type="text" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
+                            </label>
+                            <label style="font-size:13px; color:#475569; grid-column:span 2;">
+                                Leistungen (Komma-getrennt)
+                                <input id="edit-services" type="text" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="padding:14px 22px; border-top:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:flex-end; gap:8px;">
+                        <button class="btn-secondary" onclick="window.closeProviderModal()">Abbrechen</button>
+                        <button class="btn-primary" id="edit-save-btn" onclick="window.saveProviderModal()">💾 Speichern</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Map Page -->

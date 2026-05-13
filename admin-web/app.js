@@ -8244,14 +8244,7 @@ async function loadCustomers() {
         // Alle Provider + Subscription-Daten + Stripe-Status in einem Query
         const { data: providers, error } = await supabaseClient
             .from('service_providers')
-            .select(`
-                id, name, category, city, country, brands, services,
-                is_shop_active, commission_rate,
-                subscription_tier, subscription_status, free_until,
-                subscription_period_end, stripe_subscription_id,
-                stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled,
-                logo_url
-            `)
+            .select('*')
             .order('name', { ascending: true })
             .limit(5000);
 
@@ -8333,81 +8326,242 @@ function refreshCustomers() {
 window.refreshCustomers = refreshCustomers;
 
 function renderCustomerList(rows) {
-    document.getElementById('cust-list-view').style.display = '';
+    const listEl = document.getElementById('cust-list-view');
+    listEl.style.display = '';
     document.getElementById('cust-category-view').style.display = 'none';
 
-    const tbody = document.getElementById('cust-tbody');
     if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="9" style="padding:30px; text-align:center; color:#94a3b8;">Keine Provider mit diesen Filtern.</td></tr>';
+        listEl.innerHTML = '<div class="card" style="padding:30px; text-align:center; color:#94a3b8;">Keine Provider mit diesen Filtern.</div>';
         return;
     }
 
-    const tierBadge = (tier) => {
+    const tierBadge = (tier, validUntil) => {
         if (tier === 'professional') return '<span style="background:#dcfce7; color:#15803d; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700;">⭐ Pro</span>';
-        if (tier === 'admin_grant')  return '<span style="background:#fef3c7; color:#854d0e; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700;">🎁 Grant</span>';
-        return '<span style="background:#f1f5f9; color:#475569; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700;">Std</span>';
+        if (tier === 'admin_grant') {
+            const lbl = validUntil ? '🎁 Grant' : '🎁 ∞';
+            return `<span style="background:#fef3c7; color:#854d0e; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700;">${lbl}</span>`;
+        }
+        return '';
     };
 
-    const fmtDate = (iso) => {
-        if (!iso) return '<span style="color:#cbd5e1;">—</span>';
-        const d = new Date(iso);
-        const now = new Date();
-        const days = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
-        const s = d.toLocaleDateString('de-DE');
-        if (days < 0)   return `<span style="color:#ef4444;">${s}</span>`;
-        if (days <= 30) return `<span style="color:#f59e0b;">${s}</span>`;
-        return `<span style="color:#475569;">${s}</span>`;
-    };
-
-    const stripeChip = (p) => {
-        if (!p.stripe_account_id)        return '<span title="Kein Stripe-Konto" style="color:#cbd5e1;">—</span>';
-        if (p.stripe_charges_enabled && p.stripe_payouts_enabled)
-            return '<span title="Stripe vollständig aktiv" style="color:#15803d; font-weight:700;">✓</span>';
-        return '<span title="Stripe-Einrichtung unvollständig" style="color:#f59e0b; font-weight:700;">⏳</span>';
-    };
-
-    tbody.innerHTML = rows.map(p => {
-        const tier   = p.subscription_tier || 'standard';
+    listEl.innerHTML = rows.map(p => {
+        const tier       = p.subscription_tier || 'standard';
         const validUntil = tier === 'admin_grant' ? p.free_until : p.subscription_period_end;
-        const safeName = escapeHtml((p.name || '').replace(/'/g, "\\'"));
-
-        const grantBtn = tier !== 'admin_grant'
-            ? `<button title="Professional kostenfrei freischalten" onclick="window.grantSubscriptionPrompt('${p.id}', '${safeName}')" style="background:#fef3c7; color:#854d0e; border:1px solid #fde68a; padding:4px 9px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; margin:0 2px;">🎁</button>`
-            : `<button title="Admin-Freischaltung widerrufen" onclick="window.revokeSubscription('${p.id}')" style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; padding:4px 9px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; margin:0 2px;">↺</button>`;
+        const safeName   = escapeHtml((p.name || '').replace(/'/g, "\\'"));
+        const shopChip   = p.is_shop_active
+            ? '<span style="background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600;">🛒 Shop aktiv</span>'
+            : '';
 
         return `
-            <tr style="border-bottom:1px solid #f1f5f9;" data-id="${p.id}">
-                <td style="padding:8px;">
-                    <div style="font-weight:600; color:#0f172a;">${escapeHtml(p.name || '—')}</div>
-                    <div style="font-size:11px; color:#94a3b8;">${escapeHtml(p.city || '')}</div>
-                </td>
-                <td style="padding:8px; font-size:13px; color:#475569;">${escapeHtml(p.category || '—')}</td>
-                <td style="padding:8px; text-align:center;">${tierBadge(tier)}</td>
-                <td style="padding:8px; text-align:center; font-size:12px;">${fmtDate(validUntil)}</td>
-                <td style="padding:8px; text-align:center;">
-                    <label style="cursor:pointer; display:inline-flex; align-items:center;">
-                        <input type="checkbox" ${p.is_shop_active ? 'checked' : ''}
-                               onchange="window.toggleShopActive('${p.id}', this.checked)">
-                    </label>
-                </td>
-                <td style="padding:8px; text-align:center;">
-                    <input type="number" min="0" max="100" step="0.5"
-                           value="${p.commission_rate ?? 10}"
-                           onchange="window.updateCommissionRate('${p.id}', this.value)"
-                           style="width:60px; padding:3px 6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px; text-align:right;">%
-                </td>
-                <td style="padding:8px; text-align:center; font-size:13px; color:#475569;">${p.product_count || 0}</td>
-                <td style="padding:8px; text-align:center;">${stripeChip(p)}</td>
-                <td style="padding:8px; text-align:right; white-space:nowrap;">
-                    ${grantBtn}
-                    <button title="Login anlegen / einladen" onclick="window.openProviderInvite && window.openProviderInvite('${p.id}', '${safeName}') || window.navigateToPage('invite-provider')" style="background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; padding:4px 9px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; margin:0 2px;">✉</button>
-                    <button title="Bearbeiten" onclick="window.editProviderInline && window.editProviderInline('${p.id}')" style="background:#f1f5f9; color:#334155; border:1px solid #e2e8f0; padding:4px 9px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; margin:0 2px;">✏️</button>
-                    <button title="Löschen" onclick="window.deleteProvider('${p.id}')" style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; padding:4px 9px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; margin:0 2px;">🗑</button>
-                </td>
-            </tr>
+            <div class="card" style="padding:12px 16px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:14px;">
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="font-weight:600; color:#0f172a; font-size:15px;">${escapeHtml(p.name || '—')}</span>
+                        ${tierBadge(tier, validUntil)}
+                        ${shopChip}
+                    </div>
+                    <div style="font-size:12px; color:#94a3b8; margin-top:2px;">
+                        ${escapeHtml(p.category || '')}${p.category && p.city ? ' · ' : ''}${escapeHtml(p.city || '')}
+                        ${p.product_count ? ` · ${p.product_count} Produkte` : ''}
+                    </div>
+                </div>
+                <div style="display:flex; gap:6px; flex-shrink:0;">
+                    <button onclick="window.openProviderModal('${p.id}')"
+                            style="background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; padding:7px 14px; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer;">
+                        ✏️ Bearbeiten
+                    </button>
+                    <button onclick="window.deleteProviderConfirm('${p.id}', '${safeName}')"
+                            style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; padding:7px 14px; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer;">
+                        🗑 Löschen
+                    </button>
+                </div>
+            </div>
         `;
     }).join('');
 }
+
+// ─── Bearbeiten-Modal ─────────────────────────────────────────────────────
+let _editingProvider = null;
+
+function openProviderModal(providerId) {
+    const p = _customersAll.find(x => x.id === providerId);
+    if (!p) return;
+    _editingProvider = { ...p };
+
+    document.getElementById('edit-modal-title').textContent    = p.name || 'Provider bearbeiten';
+    document.getElementById('edit-modal-subtitle').textContent = `${p.category || ''} · ${p.city || ''}`;
+    document.getElementById('edit-shop-active').checked = !!p.is_shop_active;
+    document.getElementById('edit-commission').value    = p.commission_rate ?? 10;
+    document.getElementById('edit-name').value          = p.name || '';
+    document.getElementById('edit-category').value      = p.category || '';
+    document.getElementById('edit-description').value   = p.description || '';
+    document.getElementById('edit-street').value        = p.street || '';
+    document.getElementById('edit-postal').value        = p.postal_code || '';
+    document.getElementById('edit-city').value          = p.city || '';
+    document.getElementById('edit-country').value       = p.country || '';
+    document.getElementById('edit-phone').value         = p.phone || '';
+    document.getElementById('edit-email').value         = p.email || '';
+    document.getElementById('edit-website').value       = p.website || '';
+    document.getElementById('edit-brands').value        = (p.brands   || []).join(', ');
+    document.getElementById('edit-services').value      = (p.services || []).join(', ');
+
+    renderModalSubscriptionStatus();
+    document.getElementById('provider-edit-modal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+window.openProviderModal = openProviderModal;
+
+function renderModalSubscriptionStatus() {
+    const p = _editingProvider;
+    if (!p) return;
+    const tier   = p.subscription_tier || 'standard';
+    const until  = tier === 'admin_grant' ? p.free_until : p.subscription_period_end;
+    const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('de-DE') : null;
+
+    let html = '';
+    if (tier === 'professional') {
+        html = `<strong>⭐ Professional</strong> aktiv${until ? ` · Nächste Verlängerung: ${fmtDate(until)}` : ''}`;
+    } else if (tier === 'admin_grant') {
+        if (until) {
+            const days = Math.ceil((new Date(until) - new Date()) / (1000*60*60*24));
+            const color = days < 0 ? '#ef4444' : days < 30 ? '#f59e0b' : '#15803d';
+            html = `🎁 <strong>Admin-Freischaltung</strong> bis <span style="color:${color}; font-weight:600;">${fmtDate(until)}</span> (${days} Tage)`;
+        } else {
+            html = `🎁 <strong>Admin-Freischaltung</strong> · <span style="color:#15803d; font-weight:600;">dauerhaft (kein Ablauf)</span>`;
+        }
+    } else {
+        html = '<strong>Standard</strong> · Kostenfrei, keine Pro-Features';
+    }
+    document.getElementById('edit-sub-current').innerHTML = html;
+}
+
+function closeProviderModal() {
+    document.getElementById('provider-edit-modal').style.display = 'none';
+    document.body.style.overflow = '';
+    _editingProvider = null;
+}
+window.closeProviderModal = closeProviderModal;
+
+async function grantFromModal(months) {
+    if (!_editingProvider) return;
+    const name = _editingProvider.name || 'diesen Provider';
+    const msg  = months === 0
+        ? `${name} DAUERHAFT auf Professional freischalten (kein Ablauf)?`
+        : `${name} für ${months} Monat${months > 1 ? 'e' : ''} kostenfrei auf Professional freischalten?`;
+    if (!confirm(msg)) return;
+
+    try {
+        const { error } = await supabaseClient.rpc('admin_grant_subscription', {
+            p_provider_id: _editingProvider.id,
+            p_months:      months === 0 ? null : months,
+            p_note:        months === 0 ? 'Dauerhafte Freischaltung durch Admin' : null,
+        });
+        if (error) throw error;
+
+        // Lokalen Cache refreshen + Modal-Status neu rendern
+        await reloadProviderInCache(_editingProvider.id);
+        renderModalSubscriptionStatus();
+        refreshCustomers();
+    } catch (err) {
+        alert('Fehler: ' + err.message);
+    }
+}
+window.grantFromModal = grantFromModal;
+
+async function revokeFromModal() {
+    if (!_editingProvider) return;
+    if (!confirm('Admin-Freischaltung widerrufen? Provider fällt zurück auf Standard.')) return;
+    try {
+        const { error } = await supabaseClient.rpc('admin_revoke_subscription', {
+            p_provider_id: _editingProvider.id,
+        });
+        if (error) throw error;
+        await reloadProviderInCache(_editingProvider.id);
+        renderModalSubscriptionStatus();
+        refreshCustomers();
+    } catch (err) {
+        alert('Fehler: ' + err.message);
+    }
+}
+window.revokeFromModal = revokeFromModal;
+
+async function reloadProviderInCache(providerId) {
+    try {
+        const { data, error } = await supabaseClient
+            .from('service_providers')
+            .select('*')
+            .eq('id', providerId)
+            .single();
+        if (error) throw error;
+        const idx = _customersAll.findIndex(x => x.id === providerId);
+        if (idx >= 0) _customersAll[idx] = { ..._customersAll[idx], ...data };
+        if (_editingProvider && _editingProvider.id === providerId) {
+            _editingProvider = { ..._editingProvider, ...data };
+        }
+        renderCustomerStats(_customersAll);
+    } catch (err) {
+        console.warn('reloadProviderInCache failed:', err);
+    }
+}
+
+async function saveProviderModal() {
+    if (!_editingProvider) return;
+    const btn = document.getElementById('edit-save-btn');
+    btn.disabled = true; btn.textContent = 'Speichern…';
+    try {
+        const parseCsv = (s) => (s || '')
+            .split(',').map(x => x.trim()).filter(Boolean);
+
+        const payload = {
+            name:           document.getElementById('edit-name').value.trim() || null,
+            category:       document.getElementById('edit-category').value.trim() || null,
+            description:    document.getElementById('edit-description').value.trim() || null,
+            street:         document.getElementById('edit-street').value.trim() || null,
+            postal_code:    document.getElementById('edit-postal').value.trim() || null,
+            city:           document.getElementById('edit-city').value.trim() || null,
+            country:        document.getElementById('edit-country').value.trim() || null,
+            phone:          document.getElementById('edit-phone').value.trim() || null,
+            email:          document.getElementById('edit-email').value.trim() || null,
+            website:        document.getElementById('edit-website').value.trim() || null,
+            brands:         parseCsv(document.getElementById('edit-brands').value),
+            services:       parseCsv(document.getElementById('edit-services').value),
+            is_shop_active: document.getElementById('edit-shop-active').checked,
+            commission_rate: parseFloat(document.getElementById('edit-commission').value) || 0,
+        };
+
+        const { error } = await supabaseClient
+            .from('service_providers')
+            .update(payload)
+            .eq('id', _editingProvider.id);
+        if (error) throw error;
+
+        await reloadProviderInCache(_editingProvider.id);
+        refreshCustomers();
+        closeProviderModal();
+    } catch (err) {
+        alert('Fehler beim Speichern: ' + err.message);
+    } finally {
+        btn.disabled = false; btn.textContent = '💾 Speichern';
+    }
+}
+window.saveProviderModal = saveProviderModal;
+
+async function deleteProviderConfirm(providerId, providerName) {
+    if (!confirm(`Provider "${providerName}" wirklich unwiderruflich löschen?\n\nAlle zugehörigen Daten gehen verloren.`)) return;
+    try {
+        const { error } = await supabaseClient
+            .from('service_providers')
+            .delete()
+            .eq('id', providerId);
+        if (error) throw error;
+        _customersAll = _customersAll.filter(x => x.id !== providerId);
+        renderCustomerStats(_customersAll);
+        refreshCustomers();
+    } catch (err) {
+        alert('Fehler beim Löschen: ' + err.message);
+    }
+}
+window.deleteProviderConfirm = deleteProviderConfirm;
 
 function renderCustomersByCategory(rows) {
     document.getElementById('cust-list-view').style.display = 'none';
