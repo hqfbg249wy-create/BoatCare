@@ -1,5 +1,9 @@
 {
   "outputDirectory": ".",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/((?!api|_next|favicon|.*\\..*).*)", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
