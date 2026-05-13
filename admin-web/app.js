@@ -8242,39 +8242,33 @@ async function loadCustomers() {
 
     try {
         // Alle Provider + Subscription-Daten + Stripe-Status in einem Query
+        // Schlanke Liste — nur Felder die in der Listen-Ansicht gezeigt werden.
+        // Detail-Felder (description, address, contacts) lädt das Modal on-demand
+        // pro Provider, damit nicht 4000+ Zeilen × alle Spalten übertragen werden.
         const { data: providers, error } = await supabaseClient
             .from('service_providers')
-            .select('*')
+            .select(`
+                id, name, category, city, country,
+                is_shop_active, commission_rate,
+                subscription_tier, subscription_status, free_until,
+                subscription_period_end, stripe_account_id,
+                stripe_charges_enabled, stripe_payouts_enabled
+            `)
             .order('name', { ascending: true })
             .limit(5000);
 
         if (error) throw error;
 
-        // Produkt-Anzahl pro Provider mit einem GROUP BY-ähnlichen Query
-        const productCounts = {};
-        try {
-            const { data: prodCounts } = await supabaseClient
-                .from('products')
-                .select('provider_id')
-                .eq('is_active', true)
-                .limit(50000);
-            (prodCounts || []).forEach(p => {
-                productCounts[p.provider_id] = (productCounts[p.provider_id] || 0) + 1;
-            });
-        } catch (e) {
-            console.warn('Konnte Produkt-Anzahlen nicht laden:', e);
-        }
-
-        _customersAll = (providers || []).map(p => ({
-            ...p,
-            product_count: productCounts[p.id] || 0,
-        }));
+        _customersAll = (providers || []).map(p => ({ ...p, product_count: 0 }));
 
         renderCustomerStats(_customersAll);
         refreshCustomers();
         if (diag) {
             diag.textContent = `${_customersAll.length} Provider geladen.`;
         }
+
+        // Produkt-Anzahlen asynchron im Hintergrund nachladen (blockiert nicht die Liste)
+        loadProductCountsBackground();
     } catch (err) {
         console.error('loadCustomers error:', err);
         if (diag) diag.textContent = 'Fehler: ' + err.message;
@@ -8282,6 +8276,23 @@ async function loadCustomers() {
     }
 }
 window.loadCustomers = loadCustomers;
+
+async function loadProductCountsBackground() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('products')
+            .select('provider_id')
+            .eq('is_active', true)
+            .limit(50000);
+        if (error) { console.warn('Produkt-Counts:', error); return; }
+        const counts = {};
+        (data || []).forEach(p => { counts[p.provider_id] = (counts[p.provider_id] || 0) + 1; });
+        _customersAll.forEach(p => { p.product_count = counts[p.id] || 0; });
+        refreshCustomers();
+    } catch (e) {
+        console.warn('Produkt-Counts fehlgeschlagen:', e);
+    }
+}
 
 function renderCustomerStats(rows) {
     const total = rows.length;
@@ -8383,31 +8394,53 @@ function renderCustomerList(rows) {
 // ─── Bearbeiten-Modal ─────────────────────────────────────────────────────
 let _editingProvider = null;
 
-function openProviderModal(providerId) {
-    const p = _customersAll.find(x => x.id === providerId);
-    if (!p) return;
-    _editingProvider = { ...p };
+async function openProviderModal(providerId) {
+    const cached = _customersAll.find(x => x.id === providerId);
+    if (!cached) return;
 
-    document.getElementById('edit-modal-title').textContent    = p.name || 'Provider bearbeiten';
-    document.getElementById('edit-modal-subtitle').textContent = `${p.category || ''} · ${p.city || ''}`;
-    document.getElementById('edit-shop-active').checked = !!p.is_shop_active;
-    document.getElementById('edit-commission').value    = p.commission_rate ?? 10;
-    document.getElementById('edit-name').value          = p.name || '';
-    document.getElementById('edit-category').value      = p.category || '';
-    document.getElementById('edit-description').value   = p.description || '';
-    document.getElementById('edit-street').value        = p.street || '';
-    document.getElementById('edit-postal').value        = p.postal_code || '';
-    document.getElementById('edit-city').value          = p.city || '';
-    document.getElementById('edit-country').value       = p.country || '';
-    document.getElementById('edit-phone').value         = p.phone || '';
-    document.getElementById('edit-email').value         = p.email || '';
-    document.getElementById('edit-website').value       = p.website || '';
-    document.getElementById('edit-brands').value        = (p.brands   || []).join(', ');
-    document.getElementById('edit-services').value      = (p.services || []).join(', ');
+    // Modal direkt mit Basisdaten öffnen — Detailfelder kommen asynchron nach.
+    _editingProvider = { ...cached };
+    document.getElementById('edit-modal-title').textContent    = cached.name || 'Provider bearbeiten';
+    document.getElementById('edit-modal-subtitle').textContent = `${cached.category || ''} · ${cached.city || ''}`;
+    document.getElementById('edit-shop-active').checked = !!cached.is_shop_active;
+    document.getElementById('edit-commission').value    = cached.commission_rate ?? 10;
+    document.getElementById('edit-name').value          = cached.name || '';
+    document.getElementById('edit-category').value      = cached.category || '';
+    document.getElementById('edit-city').value          = cached.city || '';
+    document.getElementById('edit-country').value       = cached.country || '';
+    document.getElementById('edit-description').value   = '';
+    document.getElementById('edit-street').value        = '';
+    document.getElementById('edit-postal').value        = '';
+    document.getElementById('edit-phone').value         = '';
+    document.getElementById('edit-email').value         = '';
+    document.getElementById('edit-website').value       = '';
+    document.getElementById('edit-brands').value        = '';
+    document.getElementById('edit-services').value      = '';
 
     renderModalSubscriptionStatus();
     document.getElementById('provider-edit-modal').style.display = 'block';
     document.body.style.overflow = 'hidden';
+
+    // Detailfelder nachladen
+    try {
+        const { data, error } = await supabaseClient
+            .from('service_providers')
+            .select('description, street, postal_code, phone, email, website, brands, services')
+            .eq('id', providerId)
+            .single();
+        if (error) throw error;
+        _editingProvider = { ..._editingProvider, ...data };
+        document.getElementById('edit-description').value = data.description || '';
+        document.getElementById('edit-street').value      = data.street || '';
+        document.getElementById('edit-postal').value      = data.postal_code || '';
+        document.getElementById('edit-phone').value       = data.phone || '';
+        document.getElementById('edit-email').value       = data.email || '';
+        document.getElementById('edit-website').value     = data.website || '';
+        document.getElementById('edit-brands').value      = (data.brands   || []).join(', ');
+        document.getElementById('edit-services').value    = (data.services || []).join(', ');
+    } catch (err) {
+        console.warn('Detail-Felder laden fehlgeschlagen:', err);
+    }
 }
 window.openProviderModal = openProviderModal;
 
