@@ -8243,23 +8243,38 @@ async function loadCustomers() {
     try {
         // Alle Provider + Subscription-Daten + Stripe-Status in einem Query
         // Schlanke Liste — nur Felder die in der Listen-Ansicht gezeigt werden.
-        // Detail-Felder (description, address, contacts) lädt das Modal on-demand
-        // pro Provider, damit nicht 4000+ Zeilen × alle Spalten übertragen werden.
-        const { data: providers, error } = await supabaseClient
-            .from('service_providers')
-            .select(`
-                id, name, category, city, country,
-                is_shop_active, commission_rate,
-                subscription_tier, subscription_status, free_until,
-                subscription_period_end, stripe_account_id,
-                stripe_charges_enabled, stripe_payouts_enabled
-            `)
-            .order('name', { ascending: true })
-            .limit(5000);
+        // Detail-Felder lädt das Modal on-demand pro Provider, damit nicht 4000+
+        // Zeilen × alle Spalten übertragen werden.
+        //
+        // Supabase liefert standardmäßig max. 1000 Zeilen pro Request — wir
+        // paginieren in 1000er-Blöcken über die volle Liste.
+        const PAGE_SIZE = 1000;
+        const allProviders = [];
+        let page = 0;
+        while (true) {
+            const from = page * PAGE_SIZE;
+            const to   = from + PAGE_SIZE - 1;
+            const { data, error: pageErr } = await supabaseClient
+                .from('service_providers')
+                .select(`
+                    id, name, category, city, country,
+                    is_shop_active, commission_rate,
+                    subscription_tier, subscription_status, free_until,
+                    subscription_period_end, stripe_account_id,
+                    stripe_charges_enabled, stripe_payouts_enabled
+                `)
+                .order('name', { ascending: true })
+                .range(from, to);
+            if (pageErr) throw pageErr;
+            const batch = data || [];
+            allProviders.push(...batch);
+            if (diag) diag.textContent = `${allProviders.length} Provider geladen…`;
+            if (batch.length < PAGE_SIZE) break;     // letzte Seite erreicht
+            if (page > 20) break;                    // Sicherheits-Stop bei 20k
+            page++;
+        }
 
-        if (error) throw error;
-
-        _customersAll = (providers || []).map(p => ({ ...p, product_count: 0 }));
+        _customersAll = allProviders.map(p => ({ ...p, product_count: 0 }));
 
         renderCustomerStats(_customersAll);
         refreshCustomers();
