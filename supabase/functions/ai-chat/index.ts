@@ -5,6 +5,7 @@
 
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkAiQuota, recordAiUsage } from "../_shared/aiQuota.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
@@ -183,8 +184,25 @@ Deno.serve(async (req) => {
     }
 
     // Request Body parsen
-    const { messages, boatContext, lang } = await req.json();
+    const { messages, boatContext, lang, providerId } = await req.json();
     const userLang: string = (typeof lang === "string" && ["de","en","fr","es","it","nl"].includes(lang)) ? lang : "de";
+
+    // ── AI-Quota-Check vor dem teuren API-Call
+    const quota = await checkAiQuota({
+      userId:     user.id,
+      providerId: providerId || null,
+      feature:    "chat",
+    });
+    if (!quota.allowed) {
+      return new Response(
+        JSON.stringify({
+          error:        quota.reason || "KI-Kontingent aufgebraucht",
+          upgrade_hint: quota.upgradeHint,
+          quota_exhausted: true,
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     const LANG_NAMES: Record<string,string> = {
       de: "German", en: "English", fr: "French",
       es: "Spanish", it: "Italian", nl: "Dutch",
@@ -323,8 +341,23 @@ Deno.serve(async (req) => {
     const result = await anthropicResponse.json();
     const reply = result.content?.[0]?.text ?? "Entschuldigung, ich konnte keine Antwort generieren.";
 
+    // ── Quota verbuchen (nicht-blockierend)
+    const usedTokens =
+      (result.usage?.input_tokens ?? 0) + (result.usage?.output_tokens ?? 0);
+    recordAiUsage({
+      userId:     user.id,
+      providerId: providerId || null,
+      feature:    "chat",
+      source:     quota.source!,
+      costTokens: usedTokens,
+      metadata:   { model: MODEL, lang: userLang },
+    }).catch(() => null);
+
     return new Response(
-      JSON.stringify({ reply }),
+      JSON.stringify({
+        reply,
+        quota: { source: quota.source, remaining: (quota.remaining ?? Infinity) - 1, limit: quota.limit },
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 

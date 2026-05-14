@@ -27,6 +27,8 @@
 // =====================================================================
 
 import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkAiQuota, recordAiUsage } from "../_shared/aiQuota.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
@@ -56,8 +58,38 @@ Deno.serve(async (req) => {
       return json({ error: "Server-Konfiguration fehlt" }, 500);
     }
 
+    // ── Auth (für Quota-Tracking)
+    const authHeader = req.headers.get("Authorization") ?? "";
+    let userId: string | null = null;
+    if (authHeader.startsWith("Bearer ")) {
+      const sb = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const { data } = await sb.auth.getUser();
+      userId = data.user?.id ?? null;
+    }
+    if (!userId) {
+      return json({ error: "Nicht authentifiziert" }, 401);
+    }
+
     const body = await req.json().catch(() => ({}));
-    const { boat, existing_equipment, lang } = body ?? {};
+    const { boat, existing_equipment, lang, providerId } = body ?? {};
+
+    // ── AI-Quota-Check vor dem teuren API-Call
+    const quota = await checkAiQuota({
+      userId,
+      providerId: providerId || null,
+      feature:    "suggest_equipment",
+    });
+    if (!quota.allowed) {
+      return json({
+        error:        quota.reason || "KI-Kontingent aufgebraucht",
+        upgrade_hint: quota.upgradeHint,
+        quota_exhausted: true,
+      }, 402);
+    }
 
     const userLang: Lang = (typeof lang === "string" && SUPPORTED_LANGS.includes(lang)) ? lang : "de";
     const langName = LANG_NAMES[userLang];
@@ -162,7 +194,22 @@ Stay realistic for the boat type.`;
       }))
       .filter((s) => s.name.length > 0);
 
-    return json({ suggestions });
+    // ── Quota verbuchen (nicht-blockierend)
+    const usedTokens =
+      (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0);
+    recordAiUsage({
+      userId,
+      providerId: providerId || null,
+      feature:    "suggest_equipment",
+      source:     quota.source!,
+      costTokens: usedTokens,
+      metadata:   { model: MODEL, lang: userLang },
+    }).catch(() => null);
+
+    return json({
+      suggestions,
+      quota: { source: quota.source, remaining: (quota.remaining ?? Infinity) - 1, limit: quota.limit },
+    });
   } catch (err) {
     console.error("suggest-equipment error:", err);
     return json(
