@@ -46,6 +46,13 @@ export default function Profile() {
   const [subscriptionLoading, setSubscriptionLoading] = useState(false)
   const [subscriptionMessage, setSubscriptionMessage] = useState(null)
 
+  // Team-Verwaltung (Enterprise-Feature)
+  const [teamMembers, setTeamMembers] = useState([])
+  const [teamInviteEmail, setTeamInviteEmail] = useState('')
+  const [teamInviteRole, setTeamInviteRole] = useState('member')
+  const [teamLoading, setTeamLoading] = useState(false)
+  const [teamMessage, setTeamMessage] = useState(null)
+
   useEffect(() => {
     if (provider) {
       setForm({
@@ -309,6 +316,81 @@ export default function Profile() {
       if (showSuccess) setSubscriptionMessage({ type: 'error', text: 'Sync fehlgeschlagen: ' + err.message })
     }
   }
+
+  // ─── Team-Verwaltung ─────────────────────────────────────────────────────
+  async function loadTeamMembers() {
+    if (!provider?.id) return
+    setTeamLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('provider_members')
+        .select('email, role, invited_at, accepted_at, user_id')
+        .eq('provider_id', provider.id)
+        .order('invited_at', { ascending: true })
+      if (error) throw error
+      setTeamMembers(data || [])
+    } catch (err) {
+      console.warn('Team laden:', err)
+    } finally {
+      setTeamLoading(false)
+    }
+  }
+
+  async function inviteTeamMember() {
+    const email = teamInviteEmail.trim().toLowerCase()
+    if (!email) {
+      setTeamMessage({ type: 'error', text: 'Bitte eine E-Mail-Adresse eingeben.' })
+      return
+    }
+    setTeamLoading(true)
+    setTeamMessage(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Nicht angemeldet')
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
+      const res = await fetch(`${supabaseUrl}/functions/v1/invite-provider-member`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          provider_id: provider.id,
+          email,
+          role: teamInviteRole,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Einladung fehlgeschlagen')
+      setTeamMessage({ type: 'success', text: data.message || 'Einladung gesendet.' })
+      setTeamInviteEmail('')
+      await loadTeamMembers()
+    } catch (err) {
+      setTeamMessage({ type: 'error', text: 'Fehler: ' + err.message })
+    } finally {
+      setTeamLoading(false)
+    }
+  }
+
+  async function removeTeamMember(email) {
+    if (!confirm(`Mitglied ${email} wirklich entfernen?`)) return
+    try {
+      const { error } = await supabase
+        .from('provider_members')
+        .delete()
+        .eq('provider_id', provider.id)
+        .eq('email', email)
+      if (error) throw error
+      await loadTeamMembers()
+    } catch (err) {
+      setTeamMessage({ type: 'error', text: 'Fehler beim Entfernen: ' + err.message })
+    }
+  }
+
+  // Team beim Provider-Load nachziehen, wenn Enterprise-Tier aktiv ist
+  useEffect(() => {
+    if (provider?.id && access.isEnterprise) loadTeamMembers()
+  }, [provider?.id, access.isEnterprise])
 
   async function openBillingPortal() {
     setSubscriptionLoading(true)
@@ -1332,6 +1414,115 @@ export default function Profile() {
               <input name="tax_id" value={form.tax_id} onChange={handleChange} placeholder="DE123456789" />
             </div>
           </div>
+        </div>
+
+        {/* ─── Team-Verwaltung (Enterprise only) ──────────────────────── */}
+        <div className="card" style={{ borderLeft: '4px solid #7e22ce' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <span style={{ fontSize: 22 }}>👥</span>
+            <h2 style={{ margin: 0 }}>Team</h2>
+            <span style={{
+              background: access.isEnterprise ? '#f3e8ff' : '#f1f5f9',
+              color:      access.isEnterprise ? '#7e22ce' : '#475569',
+              padding: '2px 10px', borderRadius: 12,
+              fontSize: 11, fontWeight: 700,
+            }}>💎 Enterprise</span>
+          </div>
+
+          {!access.isEnterprise ? (
+            <FeatureLock requiredTier="Enterprise" feature="Team-Verwaltung" icon="👥">
+              Lade Mitarbeiter zu deinem Provider-Konto ein. Jedes Team-Mitglied
+              hat eigene Login-Daten, ihr seht gemeinsam Anfragen, Bestellungen
+              und den Shop. Verfügbar im <strong>Enterprise</strong>-Tarif.
+            </FeatureLock>
+          ) : (
+            <>
+              <p className="hint" style={{ marginBottom: 16 }}>
+                Lade Mitarbeiter ein, die mit dir gemeinsam dieses Provider-Konto verwalten.
+                Sie sehen denselben Posteingang, dieselben Bestellungen und denselben Shop.
+              </p>
+
+              {teamMessage && (
+                <div className={`message message-${teamMessage.type}`} style={{ marginBottom: 12 }}>
+                  {teamMessage.text}
+                </div>
+              )}
+
+              {/* Mitglieder-Liste */}
+              {teamMembers.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+                  {teamMembers.map(m => (
+                    <div key={m.email} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      background: '#fafafa',
+                      border: '1px solid var(--gray-200)',
+                      borderRadius: 8,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: 18 }}>{m.accepted_at ? '✅' : '⏳'}</span>
+                        <div style={{ overflow: 'hidden' }}>
+                          <div style={{ fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {m.email}
+                          </div>
+                          <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>
+                            {m.role === 'admin' ? '🛡️ Admin' : '👤 Mitglied'}
+                            {' · '}
+                            {m.accepted_at ? 'Aktiv' : 'Einladung verschickt'}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeTeamMember(m.email)}
+                        style={{
+                          background: 'transparent', border: '1px solid #fecaca',
+                          color: '#991b1b', padding: '4px 10px', borderRadius: 6,
+                          fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        }}>
+                        Entfernen
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Einladungsformular */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <input
+                  type="email"
+                  placeholder="mitarbeiter@firma.de"
+                  value={teamInviteEmail}
+                  onChange={e => setTeamInviteEmail(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); inviteTeamMember() } }}
+                  style={{ flex: 1, minWidth: 220 }}
+                />
+                <select
+                  value={teamInviteRole}
+                  onChange={e => setTeamInviteRole(e.target.value)}
+                  style={{ padding: '8px 12px', border: '1px solid var(--gray-200)', borderRadius: 8 }}
+                >
+                  <option value="member">👤 Mitglied</option>
+                  <option value="admin">🛡️ Admin</option>
+                </select>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={inviteTeamMember}
+                  disabled={teamLoading}
+                >
+                  {teamLoading
+                    ? <><Loader size={14} className="spin" /> Sende…</>
+                    : <><Plus size={14} /> Einladen</>}
+                </button>
+              </div>
+
+              <p className="hint" style={{ marginTop: 10, fontSize: 12 }}>
+                Eingeladene Mitarbeiter erhalten einen Magic-Link per E-Mail. Beim ersten Klick
+                werden sie automatisch zum Provider-Konto verknüpft.
+              </p>
+            </>
+          )}
         </div>
 
         {/* API Integration Section — Pro+ */}

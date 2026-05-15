@@ -7590,6 +7590,13 @@ function renderUsers(users) {
                 <td style="padding:10px 12px; color:#64748b; font-size:12px;">${fmtDate(u.last_sign_in_at)}</td>
                 <td style="padding:10px 12px; color:#64748b; font-size:12px;">${fmtDate(u.created_at)}</td>
                 <td style="padding:10px 12px; text-align:right; white-space:nowrap;">
+                    ${!isReadonly
+                        ? `<button onclick="window.grantPlusPrompt('${u.id}', '${escapeHtml(u.email || '')}')"
+                                   style="padding:6px 10px; background:#f3e8ff; color:#7e22ce; border:1px solid #e9d5ff; border-radius:6px; font-size:12px; cursor:pointer; margin-right:6px;"
+                                   title="Skipily Plus gewähren (z.B. Custom-Vertrag bei mehr als 10 Booten)">
+                            ⭐ Plus
+                          </button>`
+                        : ''}
                     ${u.email && !isReadonly
                         ? `<button onclick="window.sendPasswordReset('${escapeHtml(u.email)}')"
                                    style="padding:6px 10px; background:#e0f2fe; color:#075985; border:1px solid #7dd3fc; border-radius:6px; font-size:12px; cursor:pointer; margin-right:6px;"
@@ -7669,6 +7676,68 @@ async function sendPasswordReset(email) {
     }
 }
 window.sendPasswordReset = sendPasswordReset;
+
+// ─── Skipily-Plus für User gewähren (Custom-Vertrag oder Test) ──────────
+async function grantPlusPrompt(userId, email) {
+    const plan = prompt(
+        `Skipily-Plus für "${email}" gewähren.\n\n` +
+        `Welcher Plan?\n` +
+        `  1 = Individual (1 User, alle Boote)\n` +
+        `  2 = Family (1 Boot, bis 5 User)\n` +
+        `  3 = Fleet (1 User, bis 4 Boote)\n` +
+        `  4 = Enterprise (Custom, viele Boote)\n\n` +
+        `Bitte 1-4 eingeben:`,
+        '1'
+    );
+    if (!plan) return;
+    const planMap = {
+        '1': 'plus_individual',
+        '2': 'plus_family',
+        '3': 'plus_fleet',
+        '4': 'plus_enterprise',
+    };
+    const planCode = planMap[plan.trim()];
+    if (!planCode) { alert('Ungültige Eingabe.'); return; }
+
+    const monthsStr = prompt('Wie viele Monate? (1–60, leer = unbegrenzt)', '12');
+    if (monthsStr === null) return;
+    const months = monthsStr.trim() === '' ? null : parseInt(monthsStr.trim(), 10);
+    if (months !== null && (isNaN(months) || months < 1 || months > 60)) {
+        alert('Bitte eine Zahl zwischen 1 und 60 oder leer lassen.');
+        return;
+    }
+
+    let maxBoats = null;
+    if (planCode === 'plus_fleet' || planCode === 'plus_enterprise') {
+        const mb = prompt(
+            planCode === 'plus_fleet'
+                ? 'Max. Anzahl Boote (Standard 4, bei mehr als 10 = Custom):'
+                : 'Max. Anzahl Boote im Enterprise-Plan:',
+            planCode === 'plus_fleet' ? '4' : '20'
+        );
+        if (mb === null) return;
+        maxBoats = parseInt(mb.trim(), 10);
+        if (isNaN(maxBoats) || maxBoats < 1) { alert('Ungültige Zahl.'); return; }
+    }
+
+    const note = prompt('Notiz (optional, z.B. "Charter-Custom-Vertrag XY GmbH"):', '') || null;
+
+    try {
+        const { error } = await supabaseClient.rpc('admin_grant_plus_subscription', {
+            p_user_id:     userId,
+            p_plan:        planCode,
+            p_months:      months,
+            p_family_boat: null,
+            p_max_boats:   maxBoats,
+            p_note:        note,
+        });
+        if (error) throw error;
+        alert(`✅ ${email} hat jetzt ${planCode} (${months === null ? 'unbegrenzt' : months + ' Monate'}).`);
+    } catch (err) {
+        alert('Fehler: ' + err.message);
+    }
+}
+window.grantPlusPrompt = grantPlusPrompt;
 
 window.loadUsers = loadUsers;
 
