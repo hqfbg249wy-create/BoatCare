@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import { supabase } from '../lib/supabase'
-import { MessageSquare, Send, Search } from 'lucide-react'
+import { MessageSquare, Send, Search, Sparkles, Loader } from 'lucide-react'
 
 export default function Messages() {
   const { provider, user } = useAuth()
+  const access = useFeatureAccess()
   const [conversations, setConversations] = useState([])
   const [selected, setSelected] = useState(null)
   const [messages, setMessages] = useState([])
@@ -13,7 +15,44 @@ export default function Messages() {
   const [sending, setSending] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [unreadCounts, setUnreadCounts] = useState({})
+  const [suggestingReply, setSuggestingReply] = useState(false)
+  const [suggestError, setSuggestError] = useState(null)
   const messagesEnd = useRef(null)
+
+  async function suggestReply() {
+    if (!selected) return
+    setSuggestingReply(true)
+    setSuggestError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Nicht angemeldet')
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
+      const res = await fetch(`${supabaseUrl}/functions/v1/suggest-reply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ conversation_id: selected.id, lang: 'de' }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        if (data.quota_exhausted) {
+          setSuggestError(data.upgrade_hint || data.error || 'KI-Kontingent aufgebraucht')
+        } else {
+          setSuggestError(data.error || 'Fehler beim Generieren')
+        }
+        return
+      }
+      if (data.reply) {
+        setNewMsg(prev => prev ? `${prev}\n\n${data.reply}` : data.reply)
+      }
+    } catch (err) {
+      setSuggestError('Fehler: ' + err.message)
+    } finally {
+      setSuggestingReply(false)
+    }
+  }
 
   const loadConversations = useCallback(async () => {
     if (!provider) return
@@ -262,12 +301,49 @@ export default function Messages() {
                 )}
                 <div ref={messagesEnd} />
               </div>
-              <form className="chat-input" onSubmit={sendMessage}>
+              {suggestError && (
+                <div style={{
+                  margin: '0 16px 8px', padding: '8px 12px',
+                  background: '#fef2f2', color: '#991b1b',
+                  border: '1px solid #fecaca', borderRadius: 8,
+                  fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                }}>
+                  <span>{suggestError}</span>
+                  <button onClick={() => setSuggestError(null)}
+                    style={{ background: 'none', border: 'none', color: '#991b1b', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>
+                    ×
+                  </button>
+                </div>
+              )}
+              <form className="chat-input" onSubmit={sendMessage} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {access.isPro && (
+                  <button
+                    type="button"
+                    onClick={suggestReply}
+                    disabled={suggestingReply || sending}
+                    title="KI-Antwort vorschlagen (verbraucht 1 Call aus deinem Pro-/Enterprise-Kontingent)"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '8px 12px',
+                      background: '#f3e8ff',
+                      color: '#7e22ce',
+                      border: '1px solid #e9d5ff',
+                      borderRadius: 8,
+                      fontSize: 13, fontWeight: 600,
+                      cursor: suggestingReply ? 'wait' : 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}>
+                    {suggestingReply
+                      ? <><Loader size={14} className="spin" /> Generiere…</>
+                      : <><Sparkles size={14} /> KI-Antwort</>}
+                  </button>
+                )}
                 <input
                   value={newMsg}
                   onChange={e => setNewMsg(e.target.value)}
-                  placeholder="Nachricht schreiben..."
+                  placeholder={access.isPro ? 'Nachricht schreiben oder KI-Antwort generieren…' : 'Nachricht schreiben...'}
                   disabled={sending}
+                  style={{ flex: 1 }}
                 />
                 <button type="submit" disabled={sending || !newMsg.trim()}>
                   <Send size={18} />

@@ -3,11 +3,57 @@ import { useAuth } from '../hooks/useAuth'
 import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import { supabase } from '../lib/supabase'
 import { Link } from 'react-router-dom'
-import { Plus, Pencil, Trash2, Search, Upload, X, Save, Loader, Image as ImageIcon, Package, CheckSquare, Square, FileSpreadsheet, Download, Lock } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, Upload, X, Save, Loader, Image as ImageIcon, Package, CheckSquare, Square, FileSpreadsheet, Download, Lock, Sparkles } from 'lucide-react'
 
 export default function Products() {
   const { provider } = useAuth()
   const access = useFeatureAccess()
+  const [generatingDesc, setGeneratingDesc] = useState(false)
+  const [genDescError, setGenDescError] = useState(null)
+
+  async function generateDescription() {
+    if (!form.name?.trim()) {
+      setGenDescError('Bitte zuerst den Produkt-Namen eintragen.')
+      return
+    }
+    setGeneratingDesc(true)
+    setGenDescError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Nicht angemeldet')
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
+      const res = await fetch(`${supabaseUrl}/functions/v1/generate-product-description`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          name: form.name,
+          manufacturer: form.manufacturer,
+          part_number:  form.part_number,
+          category:     form.category,
+          lang: 'de',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        if (data.quota_exhausted) {
+          setGenDescError(data.upgrade_hint || data.error)
+        } else {
+          setGenDescError(data.error || 'Fehler beim Generieren')
+        }
+        return
+      }
+      if (data.description) {
+        setForm(prev => ({ ...prev, description: data.description }))
+      }
+    } catch (err) {
+      setGenDescError('Fehler: ' + err.message)
+    } finally {
+      setGeneratingDesc(false)
+    }
+  }
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -417,8 +463,37 @@ export default function Products() {
               </div>
             </div>
             <div className="form-group">
-              <label>Beschreibung</label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, gap: 8 }}>
+                <label style={{ margin: 0 }}>Beschreibung</label>
+                {access.isPro && (
+                  <button
+                    type="button"
+                    onClick={generateDescription}
+                    disabled={generatingDesc}
+                    title="Beschreibung per KI generieren (verbraucht 1 Call aus dem Pro-/Enterprise-Kontingent)"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '4px 10px',
+                      background: '#f3e8ff', color: '#7e22ce',
+                      border: '1px solid #e9d5ff', borderRadius: 6,
+                      fontSize: 12, fontWeight: 600,
+                      cursor: generatingDesc ? 'wait' : 'pointer',
+                    }}>
+                    {generatingDesc
+                      ? <><Loader size={12} className="spin" /> Generiere…</>
+                      : <><Sparkles size={12} /> KI generieren</>}
+                  </button>
+                )}
+              </div>
               <textarea name="description" value={form.description} onChange={handleChange} rows={4} />
+              {genDescError && (
+                <div style={{
+                  marginTop: 6, padding: '6px 10px',
+                  background: '#fef2f2', color: '#991b1b',
+                  border: '1px solid #fecaca', borderRadius: 6,
+                  fontSize: 12,
+                }}>{genDescError}</div>
+              )}
             </div>
           </div>
 
