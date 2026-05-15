@@ -138,9 +138,30 @@ serve(async (req: Request) => {
       }
     );
   } catch (err) {
-    console.error("Error creating payment intent:", err);
+    // Detaillierte Fehler-Diagnose für die Function-Logs
+    const errAny = err as any;
+    const diag = {
+      message: errAny?.message ?? "unknown",
+      type:    errAny?.type ?? errAny?.name ?? "Error",
+      code:    errAny?.code ?? null,
+      stripe_request_id: errAny?.requestId ?? null,
+      stripe_status:     errAny?.statusCode ?? null,
+      stack: typeof errAny?.stack === "string" ? errAny.stack.split("\n").slice(0, 3).join(" | ") : null,
+    };
+    console.error("create-payment-intent FAILED:", JSON.stringify(diag, null, 2));
+
+    // Einige typische Stripe-Fehler in nutzerfreundlichen Klartext übersetzen
+    let friendly = diag.message;
+    if (diag.code === "secret_key_required" || diag.message?.includes("Invalid API Key")) {
+      friendly = "STRIPE_SECRET_KEY ist nicht (korrekt) gesetzt. Bitte im Supabase Dashboard prüfen.";
+    } else if (diag.code === "resource_missing" && diag.message?.includes("acct_")) {
+      friendly = "Provider hat eine Stripe-Account-ID die in deinem Stripe-Account nicht existiert. Test- vs Live-Modus verwechselt?";
+    } else if (diag.message?.includes("account") && diag.message?.includes("transfer")) {
+      friendly = "Stripe-Connect-Konto des Providers ist nicht für Transfers freigeschaltet.";
+    }
+
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: friendly, diag }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

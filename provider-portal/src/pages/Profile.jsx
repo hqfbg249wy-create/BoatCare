@@ -387,6 +387,23 @@ export default function Profile() {
     }
   }
 
+  async function changeTeamRole(email, newRole) {
+    const member = teamMembers.find(m => m.email === email)
+    if (!member || member.role === newRole) return
+    try {
+      const { error } = await supabase
+        .from('provider_members')
+        .update({ role: newRole })
+        .eq('provider_id', provider.id)
+        .eq('email', email)
+      if (error) throw error
+      setTeamMessage({ type: 'success', text: `Rolle für ${email} ist jetzt ${newRole === 'admin' ? 'Admin' : 'Mitglied'}.` })
+      await loadTeamMembers()
+    } catch (err) {
+      setTeamMessage({ type: 'error', text: 'Fehler beim Ändern: ' + err.message })
+    }
+  }
+
   // Team beim Provider-Load nachziehen, wenn Enterprise-Tier aktiv ist
   useEffect(() => {
     if (provider?.id && access.isEnterprise) loadTeamMembers()
@@ -1466,12 +1483,21 @@ export default function Profile() {
                             {m.email}
                           </div>
                           <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>
-                            {m.role === 'admin' ? '🛡️ Admin' : '👤 Mitglied'}
-                            {' · '}
                             {m.accepted_at ? 'Aktiv' : 'Einladung verschickt'}
                           </div>
                         </div>
                       </div>
+                      <select
+                        value={m.role}
+                        onChange={e => changeTeamRole(m.email, e.target.value)}
+                        title="Rolle ändern"
+                        style={{
+                          padding: '5px 8px', border: '1px solid var(--gray-200)', borderRadius: 6,
+                          fontSize: 12, background: '#fff', cursor: 'pointer',
+                        }}>
+                        <option value="member">👤 Mitglied</option>
+                        <option value="admin">🛡️ Admin</option>
+                      </select>
                       <button
                         type="button"
                         onClick={() => removeTeamMember(m.email)}
