@@ -100,18 +100,31 @@ Deno.serve(async (req) => {
 
     // ── Einladungsmail
     if (existingProfile) {
-      // User existiert — sofort verknüpfen, einen Magic-Link schicken, kein neuer Account
-      const { error: linkErr } = await admin.auth.admin.generateLink({
-        type:    "magiclink",
-        email:   normalizedEmail,
-        options: { redirectTo: "https://provider.skipily.app/" },
-      });
-      if (linkErr) console.warn("Magiclink konnte nicht erzeugt werden:", linkErr);
+      // User existiert bereits — wir nutzen den anon-Client für resetPasswordForEmail.
+      // Wichtig: admin.auth.admin.generateLink() erzeugt NUR den Link, sendet aber
+      // KEINE Mail. resetPasswordForEmail (über anon-Key) triggert dagegen den
+      // Supabase-Mailversand mit dem konfigurierten "Reset Password"-Template.
+      const anonClient = createClient(
+        SUPABASE_URL,
+        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      );
+      const { error: mailErr } = await anonClient.auth.resetPasswordForEmail(
+        normalizedEmail,
+        { redirectTo: "https://provider.skipily.app/" },
+      );
+      if (mailErr) {
+        console.warn("Recovery-Mail konnte nicht versendet werden:", mailErr);
+        return json({
+          ok: true,
+          mode: "linked-existing",
+          message: `${normalizedEmail} wurde als ${memberRole} hinzugefügt, aber die Login-Mail konnte nicht versendet werden: ${mailErr.message}. Bitte das Team-Mitglied manuell informieren — es kann sich mit dem bestehenden Passwort einloggen.`,
+        });
+      }
 
       return json({
         ok: true,
         mode: "linked-existing",
-        message: `${normalizedEmail} ist bereits registriert und wurde als ${memberRole} hinzugefügt. Login-Link wurde verschickt.`,
+        message: `${normalizedEmail} ist bereits registriert und wurde als ${memberRole} hinzugefügt. Login-Link wurde per E-Mail verschickt.`,
       });
     }
 
