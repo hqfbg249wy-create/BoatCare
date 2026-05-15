@@ -109,7 +109,7 @@ struct PlusUpgradeSheet: View {
     }
 
     @ViewBuilder
-    private func planCard(_ product: Product) -> some View {
+    private func planCard(_ product: StoreKit.Product) -> some View {
         let isPurchasing = purchasing == product.id
         let isActive = manager.purchasedProductIDs.contains(product.id)
 
@@ -166,7 +166,7 @@ struct PlusUpgradeSheet: View {
         .disabled(isPurchasing || isActive)
     }
 
-    private func periodText(_ period: Product.SubscriptionPeriod) -> String {
+    private func periodText(_ period: StoreKit.Product.SubscriptionPeriod) -> String {
         switch period.unit {
         case .day:   return "pro Tag"
         case .week:  return "pro Woche"
@@ -176,7 +176,7 @@ struct PlusUpgradeSheet: View {
         }
     }
 
-    private func buy(_ product: Product) async {
+    private func buy(_ product: StoreKit.Product) async {
         purchasing = product.id
         purchaseError = nil
         defer { purchasing = nil }

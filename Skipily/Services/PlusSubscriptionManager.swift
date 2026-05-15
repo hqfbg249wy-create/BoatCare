@@ -2,18 +2,19 @@
 //  PlusSubscriptionManager.swift
 //  Skipily
 //
-//  StoreKit 2 Manager für Skipily Plus.
+//  StoreKit-2-Manager für Skipily Plus.
 //  - Lädt verfügbare Produkte aus dem App Store
 //  - Kauft / restored Abos
 //  - Synchronisiert jede erfolgreiche Transaktion mit dem Skipily-Backend
 //  - Beobachtet Transaction.updates kontinuierlich (Renewal, Refund, Family-Sharing)
 //
-//  Verwendung:
-//    .environmentObject(PlusSubscriptionManager.shared)
-//    Task { await PlusSubscriptionManager.shared.loadProducts() }
+//  Hinweis: Die App hat einen eigenen `Product`-Typ für Shop-Artikel
+//  (`Skipily/Models/Product.swift`). Deshalb verwenden wir hier konsequent
+//  `StoreKit.Product` damit's keine Namens-Kollision gibt.
 //
 
 import Foundation
+import Combine       // für @Published / ObservableObject
 import StoreKit
 
 @MainActor
@@ -24,11 +25,11 @@ final class PlusSubscriptionManager: ObservableObject {
     static let productIDs: [String] = [
         "skipily.plus.monthly",
         "skipily.plus.yearly",
-        "skipily.pro.monthly",        // = plus_family Mapping
+        "skipily.pro.monthly",        // = plus_family Mapping im Backend
         "skipily.pro.yearly"
     ]
 
-    @Published private(set) var products: [Product] = []
+    @Published private(set) var products: [StoreKit.Product] = []
     @Published private(set) var purchasedProductIDs: Set<String> = []
     @Published private(set) var isLoading = false
     @Published var lastError: String?
@@ -46,30 +47,32 @@ final class PlusSubscriptionManager: ObservableObject {
         isLoading = true
         defer { isLoading = false }
         do {
-            let storeProducts = try await Product.products(for: Self.productIDs)
+            let storeProducts = try await StoreKit.Product.products(for: Self.productIDs)
             self.products = storeProducts.sorted { $0.price < $1.price }
             await refreshPurchasedState()
         } catch {
             lastError = "Produkte konnten nicht geladen werden: \(error.localizedDescription)"
+            AppLog.error("PlusManager.loadProducts: \(error)")
         }
     }
 
     // MARK: - Kauf
-    func purchase(_ product: Product) async throws -> Bool {
+    /// Liefert `true` wenn der Kauf erfolgreich war, `false` bei Cancel/Pending.
+    func purchase(_ product: StoreKit.Product) async throws -> Bool {
         let result = try await product.purchase()
 
         switch result {
         case .success(let verification):
+            // verification.jwsRepresentation ist der signierte JWS,
+            // den wir an unser Backend schicken können.
+            let signedJWS = verification.jwsRepresentation
             let transaction = try checkVerified(verification)
-            await syncWithBackend(transaction: transaction)
+            await syncWithBackend(jws: signedJWS)
             await transaction.finish()
             await refreshPurchasedState()
             return true
 
-        case .userCancelled:
-            return false
-
-        case .pending:
+        case .userCancelled, .pending:
             return false
 
         @unknown default:
@@ -90,7 +93,7 @@ final class PlusSubscriptionManager: ObservableObject {
     // MARK: - Aktuell gültige Subscriptions ermitteln
     func refreshPurchasedState() async {
         var active: Set<String> = []
-        for await result in Transaction.currentEntitlements {
+        for await result in StoreKit.Transaction.currentEntitlements {
             if case .verified(let tx) = result {
                 if tx.revocationDate == nil && (tx.expirationDate ?? .distantFuture) > Date() {
                     active.insert(tx.productID)
@@ -102,13 +105,14 @@ final class PlusSubscriptionManager: ObservableObject {
 
     var hasActivePlus: Bool { !purchasedProductIDs.isEmpty }
 
-    // MARK: - Listener für Background-Updates (Renewal, Refund, Family Sharing)
+    // MARK: - Listener für Background-Updates (Renewal, Refund, Family-Sharing)
     private func listenForTransactions() -> Task<Void, Never> {
         Task.detached(priority: .background) {
-            for await update in Transaction.updates {
+            for await update in StoreKit.Transaction.updates {
                 guard case .verified(let tx) = update else { continue }
+                let jws = update.jwsRepresentation
                 await MainActor.run {
-                    Task { await PlusSubscriptionManager.shared.syncWithBackend(transaction: tx) }
+                    Task { await PlusSubscriptionManager.shared.syncWithBackend(jws: jws) }
                 }
                 await tx.finish()
             }
@@ -117,7 +121,8 @@ final class PlusSubscriptionManager: ObservableObject {
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
         switch result {
-        case .verified(let value): return value
+        case .verified(let value):
+            return value
         case .unverified(_, let error):
             throw error
         }
@@ -126,23 +131,24 @@ final class PlusSubscriptionManager: ObservableObject {
     // MARK: - Backend-Sync
     /// Schickt den signierten JWS einer Transaktion an unsere Edge Function
     /// damit `user_subscriptions` aktualisiert wird.
-    private func syncWithBackend(transaction: Transaction) async {
-        guard let jwsRepresentation = transactionJWS(for: transaction) else { return }
-
+    private func syncWithBackend(jws: String) async {
         do {
-            // Auth-Token holen (vom SupabaseManager — Implementation projektspezifisch)
             guard let accessToken = await SupabaseAuthHelper.currentAccessToken() else {
-                AppLog.warn("PlusSync: kein Access-Token")
+                AppLog.warning("PlusSync: kein Access-Token, abbruch")
                 return
             }
 
-            let url = URL(string: "\(SupabaseConfig.url)/functions/v1/verify-apple-receipt")!
+            guard let url = URL(string: "\(SupabaseConfig.url)/functions/v1/verify-apple-receipt") else {
+                AppLog.error("PlusSync: ungueltige Backend-URL")
+                return
+            }
+
             var req = URLRequest(url: url)
             req.httpMethod = "POST"
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
             req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
             req.httpBody = try JSONSerialization.data(withJSONObject: [
-                "transaction_jws": jwsRepresentation,
+                "transaction_jws": jws,
                 "environment": Self.currentEnvironment()
             ])
 
@@ -151,24 +157,11 @@ final class PlusSubscriptionManager: ObservableObject {
                 let bodyText = String(data: data, encoding: .utf8) ?? ""
                 AppLog.error("PlusSync \(http.statusCode): \(bodyText)")
             } else {
-                AppLog.info("PlusSync erfolgreich")
+                AppLog.info("PlusSync erfolgreich verbucht")
             }
         } catch {
             AppLog.error("PlusSync fehlgeschlagen: \(error.localizedDescription)")
         }
-    }
-
-    /// StoreKit 2 stellt die JWS-Representation aus dem Transaction-Objekt bereit.
-    private func transactionJWS(for transaction: Transaction) -> String? {
-        // jsonRepresentation existiert auf Transaction nicht direkt — die signierte
-        // Representation kommt aus VerificationResult.jwsRepresentation. Falls die
-        // Transaction aus Transaction.updates / Transaction.currentEntitlements
-        // bezogen wurde, müssen wir die VerificationResult Variante speichern.
-        // Fallback: Apple's JWS-Endpoint per appAccountToken-Lookup …
-        // Praktisch: wir reichern syncWithBackend mit der JWS direkt aus der
-        // VerificationResult an (siehe purchase()-Codepath).
-        // Hier nur Fallback-Stub:
-        return nil
     }
 
     private static func currentEnvironment() -> String {
@@ -180,17 +173,13 @@ final class PlusSubscriptionManager: ObservableObject {
     }
 }
 
-// MARK: - Hilfs-Stubs (durch echte Implementation ersetzen)
+// MARK: - Auth-Helper Stub
+/// Bitte durch die echte Implementation deines AuthService ersetzen, sobald
+/// die Plus-Sheet in die App eingebunden wird.
+///   z.B.   return AuthService.shared.currentSession?.accessToken
 private enum SupabaseAuthHelper {
     static func currentAccessToken() async -> String? {
-        // TODO: Aus deinem AuthService / SupabaseManager holen
-        // return AuthService.shared.currentSession?.accessToken
+        // TODO: An den echten AuthService anbinden
         return nil
     }
-}
-
-private enum AppLog {
-    static func info (_ m: String) { print("[Plus][INFO] \(m)") }
-    static func warn (_ m: String) { print("[Plus][WARN] \(m)") }
-    static func error(_ m: String) { print("[Plus][ERR ] \(m)") }
 }
