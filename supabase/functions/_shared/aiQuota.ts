@@ -3,16 +3,29 @@
 // Wird von allen AI-Edge-Functions (ai-chat, suggest-equipment, translate-*)
 // genutzt, um vor dem teuren API-Aufruf zu prüfen, ob der User noch Quota hat.
 //
-// Reihenfolge der Quellen (zuerst kommt zuerst zum Zug):
-//   1) plus            — User hat aktive Skipily-Plus-Subscription
-//   2) provider_quota  — Provider hat im Pool noch Calls übrig
-//   3) free            — User hat seinen 5-Calls/Monat-Free-Tier noch übrig
+// Quoten:
+//   plus            → Skipily Plus / Family / Fleet / Enterprise → unbegrenzt
+//   provider_quota  → Provider-Pool (für provider-initiierte Calls; aktuell noch ungenutzt)
+//   free            → 2 Calls/Monat für Bootseigner, NUR für chat-Feature
 //
-// Wenn keine Quelle Calls hat → { allowed: false, reason }
+// Plus-Only Features:
+//   photo_analysis      — Schadens-Fotos analysieren
+//   suggest_equipment   — Ausrüstungsvorschläge
+//   → diese verbrauchen IMMER aus Plus, niemals aus Free-Tier
+//
+// Features die Free dürfen:
+//   chat                → 2/M frei
+//   translate_*         → Skipily-intern, kein User-Quota
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const FREE_TIER_LIMIT = 5;
+const FREE_TIER_LIMIT = 2;
+
+// Welche Features sind Plus-exklusiv (keine Free-Tier-Option)?
+const PLUS_ONLY_FEATURES = new Set([
+  "photo_analysis",
+  "suggest_equipment",
+]);
 
 export interface QuotaCheckResult {
   allowed: boolean;
@@ -21,11 +34,13 @@ export interface QuotaCheckResult {
   limit?: number;
   reason?: string;
   upgradeHint?: string;
+  requiresPlus?: boolean;       // True wenn das Feature nur mit Plus läuft
 }
 
 export interface QuotaCheckParams {
   userId: string;
   providerId?: string | null;
+  boatId?: string | null;        // wichtig für Family/Fleet-Plus
   feature: "chat" | "photo_analysis" | "suggest_equipment"
          | "translate_text" | "translate_product" | "translate_provider";
 }
@@ -50,26 +65,22 @@ function adminClient(): SupabaseClient {
 export async function checkAiQuota(p: QuotaCheckParams): Promise<QuotaCheckResult> {
   const sb = adminClient();
   const yearMonth = ym();
+  const isPlusOnly = PLUS_ONLY_FEATURES.has(p.feature);
 
-  // 1) Plus-Subscription?
-  const { data: sub } = await sb
-    .from("user_subscriptions")
-    .select("status, expires_at")
-    .eq("user_id", p.userId)
-    .maybeSingle();
+  // 1) Plus-Zugang? (per RPC, berücksichtigt Individual/Family/Fleet/Enterprise + Boat-Match)
+  const { data: hasPlus } = await sb.rpc("user_has_plus", {
+    p_user_id: p.userId,
+    p_boat_id: p.boatId ?? null,
+  });
 
-  const plusActive = sub
-    && sub.status === "active"
-    && (!sub.expires_at || new Date(sub.expires_at) > new Date());
-
-  if (plusActive) {
+  if (hasPlus === true) {
     return { allowed: true, source: "plus", remaining: Infinity, limit: Infinity };
   }
 
-  // 2) Provider-Quota? (nur wenn der Call in einem Provider-Kontext steht)
+  // 2) Provider-Quota? (nur bei provider-initiierten Calls — aktuell selten genutzt)
   if (p.providerId) {
-    const { data: quotaRow } = await sb.rpc("provider_ai_quota", { p_provider_id: p.providerId });
-    const limit = (typeof quotaRow === "number" ? quotaRow : 0);
+    const { data: quotaLimit } = await sb.rpc("provider_ai_quota", { p_provider_id: p.providerId });
+    const limit = (typeof quotaLimit === "number" ? quotaLimit : 0);
     if (limit > 0) {
       const { data: used } = await sb
         .from("ai_monthly_usage")
@@ -85,7 +96,17 @@ export async function checkAiQuota(p: QuotaCheckParams): Promise<QuotaCheckResul
     }
   }
 
-  // 3) Free-Tier (persönlicher Counter)
+  // 3) Plus-only Feature ohne Plus → 402
+  if (isPlusOnly) {
+    return {
+      allowed:     false,
+      requiresPlus: true,
+      reason:      "Dieses Feature ist Skipily Plus vorbehalten.",
+      upgradeHint: "Hole dir Skipily Plus für unbegrenzte KI, Schadens-Foto-Analyse und Ausrüstungs-Empfehlungen.",
+    };
+  }
+
+  // 4) Free-Tier (nur für chat)
   const { data: personalUsed } = await sb
     .from("ai_monthly_usage")
     .select("call_count")
@@ -107,10 +128,9 @@ export async function checkAiQuota(p: QuotaCheckParams): Promise<QuotaCheckResul
   // Alle Quellen leer
   return {
     allowed:     false,
-    reason:      "Du hast dein KI-Kontingent für diesen Monat aufgebraucht.",
-    upgradeHint: p.providerId
-      ? "Bitte deinen Provider, auf Pro oder Enterprise upzugraden — oder hole dir Skipily Plus für unbegrenzte Nutzung."
-      : "Hole dir Skipily Plus in der iOS-App für unbegrenzte KI-Nutzung.",
+    requiresPlus: true,
+    reason:      `Du hast deine ${FREE_TIER_LIMIT} kostenlosen KI-Anfragen für diesen Monat aufgebraucht.`,
+    upgradeHint: "Mit Skipily Plus (4,99 €/M) bekommst du unbegrenzte KI-Nutzung — inkl. Foto-Analyse und Ausrüstungs-Empfehlungen.",
   };
 }
 
@@ -138,7 +158,6 @@ export async function recordAiUsage(args: {
       p_metadata:     args.metadata ?? null,
     });
   } catch (err) {
-    // Verbuchung fehlgeschlagen → loggen, aber den eigentlichen Response nicht blockieren.
     console.error("recordAiUsage failed:", err);
   }
 }
