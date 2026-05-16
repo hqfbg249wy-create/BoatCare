@@ -5,7 +5,10 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/((?!\\.well-known/|api/|assets/).*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
