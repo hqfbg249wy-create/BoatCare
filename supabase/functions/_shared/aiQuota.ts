@@ -19,7 +19,7 @@
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const FREE_TIER_LIMIT = 2;
+const FREE_TIER_LIMIT = 5;
 
 // Welche Features sind Plus-exklusiv (keine Free-Tier-Option)?
 const PLUS_ONLY_FEATURES = new Set([
@@ -125,12 +125,13 @@ export async function checkAiQuota(p: QuotaCheckParams): Promise<QuotaCheckResul
     };
   }
 
-  // Alle Quellen leer
+  // Alle Quellen leer — UX-relevant: das iOS-Frontend muss dies in einen
+  // Upgrade-Button verwandeln, nicht als Fehlermeldung anzeigen.
   return {
     allowed:     false,
     requiresPlus: true,
     reason:      `Du hast deine ${FREE_TIER_LIMIT} kostenlosen KI-Anfragen für diesen Monat aufgebraucht.`,
-    upgradeHint: "Mit Skipily Plus (4,99 €/M) bekommst du unbegrenzte KI-Nutzung — inkl. Foto-Analyse und Ausrüstungs-Empfehlungen.",
+    upgradeHint: "Mit Skipily Plus bekommst du unbegrenzte KI, Schadens-Foto-Analyse und Ausrüstungs-Empfehlungen.",
   };
 }
 

@@ -38,6 +38,9 @@ struct EquipmentBriefingView: View {
     @State private var generatingBriefing = false
     @State private var errorMessage: String?
 
+    // Neu: Compose-Sheet öffnen, sobald ein Provider ausgewählt wurde
+    @State private var showingInquiryCompose = false
+
     // MARK: - Body
 
     var body: some View {
@@ -93,6 +96,30 @@ struct EquipmentBriefingView: View {
                 }
             }
             .task { await loadProviders() }
+            .sheet(isPresented: $showingInquiryCompose, onDismiss: {
+                // Wenn der User in der Compose-View „Abbrechen" gedrückt hat,
+                // bleibt der Provider-Picker offen, damit er einen anderen
+                // Anbieter wählen kann.
+                selectedProvider = nil
+            }) {
+                if let p = selectedProvider {
+                    InquiryComposeView(
+                        editing: nil,
+                        providerId: p.id,
+                        providerName: p.name,
+                        providerEmail: p.email,
+                        preselectedEquipmentId: equipmentId,
+                        onSave: {
+                            // Nach erfolgreichem Speichern/Senden den ganzen Flow schließen.
+                            await MainActor.run {
+                                showingInquiryCompose = false
+                                dismiss()
+                            }
+                        }
+                    )
+                    .environmentObject(authService)
+                }
+            }
         }
     }
 
@@ -217,7 +244,9 @@ struct EquipmentBriefingView: View {
 
     private func selectProvider(_ p: ServiceProvider) {
         selectedProvider = p
-        Task { await generateBriefing(for: p) }
+        // Statt inline-Briefing → in den Anfrage-Compose-Flow wechseln,
+        // mit diesem Equipment vorausgewählt.
+        showingInquiryCompose = true
     }
 
     private func generateBriefing(for provider: ServiceProvider) async {
@@ -379,45 +408,69 @@ enum EquipmentBriefingBuilder {
 
         for boatId in sortedBoatIds {
             let boat = boats[boatId]
-            // Boot-Header
+            // Boot-Header mit ALLEN verfügbaren Bootsdaten
             lines.append("## \(boat?.name ?? "briefing.section_boat".loc)")
-            if let t = boat?.boat_type, !t.isEmpty { lines.append("- **\("briefing.boat_type".loc):** \(t)") }
+            if let t = boat?.boat_type, !t.isEmpty { lines.append("- \("briefing.boat_type".loc): \(t)") }
             if let m = boat?.manufacturer, !m.isEmpty {
                 let model = (boat?.model.flatMap { $0.isEmpty ? nil : " \($0)" }) ?? ""
-                lines.append("- **\("briefing.boat_model".loc):** \(m)\(model)")
+                lines.append("- \("briefing.boat_model".loc): \(m)\(model)")
             }
-            if let y = boat?.year { lines.append("- **\("briefing.boat_year".loc):** \(y)") }
+            if let y = boat?.year { lines.append("- \("briefing.boat_year".loc): \(y)") }
             if let l = boat?.length_meters {
                 let s = l.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(l)) : String(format: "%.1f", l)
-                lines.append("- **\("briefing.boat_length".loc):** \(s) m")
+                lines.append("- \("briefing.boat_length".loc): \(s) m")
             }
-            if let p = boat?.home_port, !p.isEmpty { lines.append("- **\("briefing.boat_home_port".loc):** \(p)") }
+            if let p = boat?.home_port, !p.isEmpty { lines.append("- \("briefing.boat_home_port".loc): \(p)") }
+            if let e = boat?.engine, !e.isEmpty { lines.append("- Motor: \(e)") }
             lines.append("")
 
-            // Equipment-Einträge dieses Bootes
+            // Equipment-Einträge dieses Bootes — vollständige Datenausgabe.
+            // Der Provider braucht für eine fundierte Antwort alle vorhandenen
+            // Felder. Der User kann später Infos löschen, aber das Hinzufügen
+            // aus der Mail ist nicht möglich, daher: lieber zu viel als zu wenig.
             for eq in (grouped[boatId] ?? []) {
                 lines.append("### \(eq.name ?? "–")")
+
                 if let c = eq.category, !c.isEmpty {
-                    lines.append("- **\("briefing.eq_category".loc):** \("equipment.cat.\(c)".loc)")
+                    lines.append("- \("briefing.eq_category".loc): \("equipment.cat.\(c)".loc)")
                 }
                 if let m = eq.manufacturer, !m.isEmpty {
                     let model = eq.model.flatMap { $0.isEmpty ? nil : " \($0)" } ?? ""
-                    lines.append("- **\("briefing.eq_brand".loc):** \(m)\(model)")
+                    lines.append("- \("briefing.eq_brand".loc): \(m)\(model)")
                 }
-                if let s = eq.serial_number, !s.isEmpty { lines.append("- **\("briefing.eq_serial".loc):** \(s)") }
-                if let p = eq.part_number, !p.isEmpty { lines.append("- **\("briefing.eq_part".loc):** \(p)") }
-                if let d = eq.dimensions, !d.isEmpty { lines.append("- **\("briefing.eq_dimensions".loc):** \(d)") }
-                if let l = eq.location_on_boat, !l.isEmpty { lines.append("- **\("briefing.eq_location".loc):** \(l)") }
-                if let lmd = eq.last_maintenance_date, !lmd.isEmpty { lines.append("- **\("briefing.eq_last_maint".loc):** \(lmd)") }
-                if let nmd = eq.next_maintenance_date, !nmd.isEmpty { lines.append("- **\("briefing.eq_next_maint".loc):** \(nmd)") }
-                if let cy = eq.maintenance_cycle_years { lines.append("- **\("briefing.eq_cycle".loc):** \(cy) \("briefing.years".loc)") }
+                if let s = eq.serial_number, !s.isEmpty {
+                    lines.append("- \("briefing.eq_serial".loc): \(s)")
+                }
+                if let p = eq.part_number, !p.isEmpty {
+                    lines.append("- \("briefing.eq_part".loc): \(p)")
+                }
+                if let d = eq.dimensions, !d.isEmpty {
+                    lines.append("- \("briefing.eq_dimensions".loc): \(d)")
+                }
+                if let l = eq.location_on_boat, !l.isEmpty {
+                    lines.append("- \("briefing.eq_location".loc): \(l)")
+                }
+                if let inst = eq.installation_date, !inst.isEmpty {
+                    lines.append("- Installationsdatum: \(inst)")
+                }
+                if let lmd = eq.last_maintenance_date, !lmd.isEmpty {
+                    lines.append("- \("briefing.eq_last_maint".loc): \(lmd)")
+                }
+                if let nmd = eq.next_maintenance_date, !nmd.isEmpty {
+                    lines.append("- \("briefing.eq_next_maint".loc): \(nmd)")
+                }
+                if let cy = eq.maintenance_cycle_years {
+                    lines.append("- \("briefing.eq_cycle".loc): \(cy) \("briefing.years".loc)")
+                }
+
                 if let desc = eq.item_description, !desc.isEmpty {
                     lines.append("")
+                    lines.append("**Beschreibung:**")
                     lines.append(desc)
                 }
                 if let notes = eq.notes, !notes.isEmpty {
                     lines.append("")
-                    lines.append("_\("briefing.section_notes".loc): \(notes)_")
+                    lines.append("**\("briefing.section_notes".loc):** \(notes)")
                 }
                 if let photoStr = eq.photo_url, !photoStr.isEmpty {
                     let urls = photoStr.components(separatedBy: ",")
@@ -425,7 +478,7 @@ enum EquipmentBriefingBuilder {
                         .filter { !$0.isEmpty }
                     if !urls.isEmpty {
                         lines.append("")
-                        lines.append("**\("briefing.section_photos".loc):**")
+                        lines.append("\("briefing.section_photos".loc):")
                         for (i, u) in urls.enumerated() { lines.append("\(i + 1). \(u)") }
                     }
                 }
@@ -491,40 +544,40 @@ enum EquipmentBriefingBuilder {
 
         // Boat
         lines.append("## \("briefing.section_boat".loc)")
-        if let n = boat.name, !n.isEmpty { lines.append("- **\("briefing.boat_name".loc):** \(n)") }
-        if let t = boat.boat_type, !t.isEmpty { lines.append("- **\("briefing.boat_type".loc):** \(t)") }
+        if let n = boat.name, !n.isEmpty { lines.append("- \("briefing.boat_name".loc): \(n)") }
+        if let t = boat.boat_type, !t.isEmpty { lines.append("- \("briefing.boat_type".loc): \(t)") }
         if let m = boat.manufacturer, !m.isEmpty {
             let model = boat.model.flatMap { $0.isEmpty ? nil : " \($0)" } ?? ""
-            lines.append("- **\("briefing.boat_model".loc):** \(m)\(model)")
+            lines.append("- \("briefing.boat_model".loc): \(m)\(model)")
         }
-        if let y = boat.year { lines.append("- **\("briefing.boat_year".loc):** \(y)") }
+        if let y = boat.year { lines.append("- \("briefing.boat_year".loc): \(y)") }
         if let l = boat.length_meters {
             let s = l.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(l)) : String(format: "%.1f", l)
-            lines.append("- **\("briefing.boat_length".loc):** \(s) m")
+            lines.append("- \("briefing.boat_length".loc): \(s) m")
         }
-        if let p = boat.home_port, !p.isEmpty { lines.append("- **\("briefing.boat_home_port".loc):** \(p)") }
-        if let e = boat.engine, !e.isEmpty { lines.append("- **\("briefing.boat_engine".loc):** \(e)") }
+        if let p = boat.home_port, !p.isEmpty { lines.append("- \("briefing.boat_home_port".loc): \(p)") }
+        if let e = boat.engine, !e.isEmpty { lines.append("- \("briefing.boat_engine".loc): \(e)") }
         lines.append("")
 
         // Equipment
         lines.append("## \("briefing.section_equipment".loc)")
-        if let n = eq.name, !n.isEmpty { lines.append("- **\("briefing.eq_name".loc):** \(n)") }
+        if let n = eq.name, !n.isEmpty { lines.append("- \("briefing.eq_name".loc): \(n)") }
         if let c = eq.category, !c.isEmpty {
             let catLoc = "equipment.cat.\(c)".loc
-            lines.append("- **\("briefing.eq_category".loc):** \(catLoc)")
+            lines.append("- \("briefing.eq_category".loc): \(catLoc)")
         }
         if let m = eq.manufacturer, !m.isEmpty {
             let model = eq.model.flatMap { $0.isEmpty ? nil : " \($0)" } ?? ""
-            lines.append("- **\("briefing.eq_brand".loc):** \(m)\(model)")
+            lines.append("- \("briefing.eq_brand".loc): \(m)\(model)")
         }
-        if let s = eq.serial_number, !s.isEmpty { lines.append("- **\("briefing.eq_serial".loc):** \(s)") }
-        if let p = eq.part_number, !p.isEmpty { lines.append("- **\("briefing.eq_part".loc):** \(p)") }
-        if let d = eq.dimensions, !d.isEmpty { lines.append("- **\("briefing.eq_dimensions".loc):** \(d)") }
-        if let l = eq.location_on_boat, !l.isEmpty { lines.append("- **\("briefing.eq_location".loc):** \(l)") }
-        if let i = eq.installation_date, !i.isEmpty { lines.append("- **\("briefing.eq_installed".loc):** \(i)") }
-        if let lmd = eq.last_maintenance_date, !lmd.isEmpty { lines.append("- **\("briefing.eq_last_maint".loc):** \(lmd)") }
-        if let nmd = eq.next_maintenance_date, !nmd.isEmpty { lines.append("- **\("briefing.eq_next_maint".loc):** \(nmd)") }
-        if let cy = eq.maintenance_cycle_years { lines.append("- **\("briefing.eq_cycle".loc):** \(cy) \("briefing.years".loc)") }
+        if let s = eq.serial_number, !s.isEmpty { lines.append("- \("briefing.eq_serial".loc): \(s)") }
+        if let p = eq.part_number, !p.isEmpty { lines.append("- \("briefing.eq_part".loc): \(p)") }
+        if let d = eq.dimensions, !d.isEmpty { lines.append("- \("briefing.eq_dimensions".loc): \(d)") }
+        if let l = eq.location_on_boat, !l.isEmpty { lines.append("- \("briefing.eq_location".loc): \(l)") }
+        if let i = eq.installation_date, !i.isEmpty { lines.append("- \("briefing.eq_installed".loc): \(i)") }
+        if let lmd = eq.last_maintenance_date, !lmd.isEmpty { lines.append("- \("briefing.eq_last_maint".loc): \(lmd)") }
+        if let nmd = eq.next_maintenance_date, !nmd.isEmpty { lines.append("- \("briefing.eq_next_maint".loc): \(nmd)") }
+        if let cy = eq.maintenance_cycle_years { lines.append("- \("briefing.eq_cycle".loc): \(cy) \("briefing.years".loc)") }
         lines.append("")
 
         // Description / notes

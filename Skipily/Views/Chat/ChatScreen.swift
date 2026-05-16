@@ -24,6 +24,8 @@ struct LocalChatMessage: Identifiable, Equatable {
     var feedback: ChatFeedback?
     /// Public-URLs hochgeladener Foto-Anhänge.
     var attachmentUrls: [String]
+    /// Markiert Karten die statt eines Fehlers einen Plus-Upgrade-CTA anzeigen.
+    var isUpgradePrompt: Bool
 
     init(
         id: UUID = UUID(),
@@ -32,7 +34,8 @@ struct LocalChatMessage: Identifiable, Equatable {
         isUser: Bool,
         timestamp: Date = Date(),
         feedback: ChatFeedback? = nil,
-        attachmentUrls: [String] = []
+        attachmentUrls: [String] = [],
+        isUpgradePrompt: Bool = false
     ) {
         self.id = id
         self.remoteId = remoteId
@@ -41,6 +44,7 @@ struct LocalChatMessage: Identifiable, Equatable {
         self.timestamp = timestamp
         self.feedback = feedback
         self.attachmentUrls = attachmentUrls
+        self.isUpgradePrompt = isUpgradePrompt
     }
 }
 
@@ -69,6 +73,9 @@ struct ChatScreen: View {
     // Kamera
     @State private var showingCamera = false
     @State private var cameraImage: UIImage?
+
+    // Plus-Upgrade-Sheet bei erreichtem Free-Tier-Limit
+    @State private var showPlusUpgradeSheet = false
     private var cameraAvailable: Bool { UIImagePickerController.isSourceTypeAvailable(.camera) }
 
     struct PendingPhoto: Identifiable, Equatable {
@@ -101,7 +108,10 @@ struct ChatScreen: View {
                     LazyVStack(spacing: 12) {
                         ForEach(messages) { msg in
                             VStack(alignment: msg.isUser ? .trailing : .leading, spacing: 4) {
-                                MessageBubble(message: msg)
+                                MessageBubble(
+                                    message: msg,
+                                    onUpgradeTap: { showPlusUpgradeSheet = true }
+                                )
                                     .id(msg.id)
 
                                 if !msg.isUser, msg.remoteId != nil {
@@ -339,6 +349,10 @@ struct ChatScreen: View {
             CameraPickerView(image: $cameraImage)
                 .ignoresSafeArea()
         }
+        // Plus-Upgrade-Sheet bei aufgebrauchtem KI-Limit
+        .sheet(isPresented: $showPlusUpgradeSheet) {
+            PlusUpgradeSheet(reason: "Du hast deine kostenlosen KI-Anfragen für diesen Monat aufgebraucht.")
+        }
         .onChange(of: cameraImage) { _, img in
             guard let img else { return }
             cameraImage = nil   // sofort zurücksetzen, damit Binding sauber bleibt
@@ -554,6 +568,19 @@ struct ChatScreen: View {
                     }
                 }
                 messages.append(assistantMsg)
+            } catch let aiErr as AIChatError {
+                if case .quotaExhausted(let reason, let hint) = aiErr {
+                    // Spezialfall: KEINE Fehlermeldung — stattdessen markiere
+                    // die Message als Upgrade-Karte. Die View rendert das
+                    // automatisch als Plus-CTA statt als roten Fehlertext.
+                    var card = LocalChatMessage(text: "\(reason)\n\n\(hint)", isUser: false)
+                    card.isUpgradePrompt = true
+                    messages.append(card)
+                    showPlusUpgradeSheet = true
+                } else {
+                    let errorMsg = "chat.error_prefix".loc + (aiErr.localizedDescription)
+                    messages.append(LocalChatMessage(text: errorMsg, isUser: false))
+                }
             } catch {
                 let errorMsg = "chat.error_prefix".loc + (error.localizedDescription)
                 messages.append(LocalChatMessage(text: errorMsg, isUser: false))
@@ -604,10 +631,76 @@ struct ChatScreen: View {
 
 // MARK: - Message Bubble
 
-struct MessageBubble: View {
-    let message: LocalChatMessage
+/// Plus-Upgrade-CTA als Chat-Karte. Wird statt einer Fehlermeldung gezeigt,
+/// wenn der User sein KI-Limit erreicht hat — dezenter und einladender.
+struct UpgradeCard: View {
+    let text: String
+    let action: () -> Void
 
     var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 30))
+                .foregroundStyle(.white)
+                .frame(width: 60, height: 60)
+                .background(
+                    LinearGradient(colors: [Color.purple, Color.orange],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+                .clipShape(Circle())
+
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 4)
+
+            Button(action: action) {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                    Text("Skipily Plus ansehen")
+                        .fontWeight(.semibold)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(
+                    LinearGradient(colors: [Color.purple, Color.orange],
+                                   startPoint: .leading, endPoint: .trailing)
+                )
+                .foregroundStyle(.white)
+                .clipShape(Capsule())
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color(.systemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.purple.opacity(0.3), lineWidth: 1.5)
+        )
+        .shadow(color: .purple.opacity(0.1), radius: 8, y: 2)
+    }
+}
+
+struct MessageBubble: View {
+    let message: LocalChatMessage
+    /// Wird gerufen wenn der User auf den Plus-Upgrade-CTA tippt.
+    var onUpgradeTap: (() -> Void)? = nil
+
+    @ViewBuilder
+    var body: some View {
+        if message.isUpgradePrompt {
+            UpgradeCard(text: message.text, action: { onUpgradeTap?() })
+                .padding(.horizontal, 4)
+        } else {
+            regularBubble
+        }
+    }
+
+    @ViewBuilder private var regularBubble: some View {
         HStack(alignment: .top, spacing: 8) {
             if message.isUser {
                 Spacer(minLength: 50)

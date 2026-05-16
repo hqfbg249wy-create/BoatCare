@@ -16,6 +16,8 @@
 // =====================================================================
 
 import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { recordAiUsage } from "../_shared/aiQuota.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
@@ -73,7 +75,32 @@ Deno.serve(async (req) => {
       return json({ translations: {} });
     }
 
-    const translations = await translateBatch(items, lang, apiKey);
+    const { translations, usedTokens } = await translateBatch(items, lang, apiKey);
+
+    // Tracking ohne Gate: Übersetzungen sind System-getriggert (User liest
+    // Reviews in fremder Sprache) → kein User-Limit. Aber wir loggen, damit
+    // wir Kosten und Hot-Pfade sehen.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (authHeader.startsWith("Bearer ")) {
+      try {
+        const sb = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+          { global: { headers: { Authorization: authHeader } } },
+        );
+        const { data: { user } } = await sb.auth.getUser();
+        if (user) {
+          recordAiUsage({
+            userId: user.id,
+            feature: "translate_text",
+            source: "free",  // System-getriggert, kein Plus-Verbrauch
+            costTokens: usedTokens,
+            metadata: { lang, item_count: items.length, untracked_gate: true },
+          }).catch(() => null);
+        }
+      } catch { /* tracking failure must not break the response */ }
+    }
+
     return json({ translations });
   } catch (err) {
     console.error("translate-text error:", err);
@@ -90,7 +117,7 @@ async function translateBatch(
   items: TextItem[],
   lang: Lang,
   apiKey: string,
-): Promise<Record<string, string>> {
+): Promise<{ translations: Record<string, string>; usedTokens: number }> {
   const langName = LANG_NAMES[lang];
 
   const indexed = items.map((it, i) => ({ idx: i + 1, id: it.id, text: it.text }));
@@ -142,7 +169,8 @@ ${JSON.stringify(indexed, null, 2)}`;
     const translated = (entry.text ?? "").trim();
     if (translated) out[orig.id] = translated;
   }
-  return out;
+  const usedTokens = (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0);
+  return { translations: out, usedTokens };
 }
 
 function json(body: unknown, status = 200) {

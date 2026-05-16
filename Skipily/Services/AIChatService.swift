@@ -156,10 +156,12 @@ class AIChatService {
             throw AIChatError.networkError
         }
 
-        // Response parsen
+        // Response parsen — quota_exhausted/upgrade_hint kommen vom Quota-Gate (402)
         struct APIResponse: Codable {
             let reply: String?
             let error: String?
+            let upgrade_hint: String?
+            let quota_exhausted: Bool?
         }
 
         let apiResponse = try JSONDecoder().decode(APIResponse.self, from: data)
@@ -172,9 +174,22 @@ class AIChatService {
             return reply
         case 401:
             throw AIChatError.notAuthenticated
+        case 402:
+            // Limit erreicht oder Plus-only Feature → spezieller Error-Typ
+            throw AIChatError.quotaExhausted(
+                reason:      apiResponse.error ?? "KI-Kontingent aufgebraucht",
+                upgradeHint: apiResponse.upgrade_hint ?? "Mit Skipily Plus weiter chatten."
+            )
         case 502:
             throw AIChatError.aiServiceError(apiResponse.error ?? "AI-Service nicht erreichbar")
         default:
+            // Auch andere Status-Codes können quota_exhausted=true setzen
+            if apiResponse.quota_exhausted == true {
+                throw AIChatError.quotaExhausted(
+                    reason:      apiResponse.error ?? "KI-Kontingent aufgebraucht",
+                    upgradeHint: apiResponse.upgrade_hint ?? "Mit Skipily Plus weiter chatten."
+                )
+            }
             throw AIChatError.serverError(httpResponse.statusCode, apiResponse.error ?? "Unbekannter Fehler")
         }
     }
@@ -578,6 +593,9 @@ enum AIChatError: LocalizedError {
     case emptyResponse
     case aiServiceError(String)
     case serverError(Int, String)
+    /// Free-Tier-Limit erreicht ODER Plus-only Feature ohne Plus. Das UI
+    /// soll daraus einen Plus-Upgrade-Button machen, NICHT eine Fehlermeldung.
+    case quotaExhausted(reason: String, upgradeHint: String)
 
     var errorDescription: String? {
         switch self {
@@ -593,6 +611,8 @@ enum AIChatError: LocalizedError {
             return msg
         case .serverError(_, let msg):
             return msg
+        case .quotaExhausted(let reason, _):
+            return reason
         }
     }
 }
