@@ -1,0 +1,94 @@
+<!--
+  Skipily-Plus-Section — eigenständiges Snippet zum Einbau in WordPress/Elementor
+
+  ▸ Elementor Pro:
+      1. Auf skipily.app einloggen, "Mit Elementor bearbeiten"
+      2. Zwischen den bestehenden Sektionen rechts neben dem Plus-Symbol
+         "Widget hinzufügen" → "HTML"
+      3. Den gesamten Code-Block UNTERHALB dieses Kommentars einfügen
+      4. Speichern → Vorschau prüfen
+
+  ▸ Klassischer Gutenberg-Editor (ohne Elementor):
+      1. WordPress-Adminbereich → Seiten → Startseite
+      2. Block "Benutzerdefiniertes HTML" einfügen
+      3. Code unten einfügen
+      4. Aktualisieren
+
+  ▸ Custom CSS (falls die sk-xxx Klassen im Theme nicht greifen):
+      → Alle Styles sind als inline-style hinterlegt, das funktioniert
+        unabhängig vom Theme. Du musst kein CSS hinzufügen.
+-->
+
+<section style="background:#fafafa; padding:60px 20px;">
+  <div style="max-width:980px; margin:0 auto;">
+
+    <p style="text-align:center; color:#7e22ce; font-weight:700; letter-spacing:.08em; text-transform:uppercase; font-size:13px; margin:0 0 8px;">
+      ✨ Skipily Plus
+    </p>
+
+    <h2 style="text-align:center; font-size:36px; line-height:1.2; color:#0f172a; margin:0 0 16px;">
+      Mehr aus deinem Boot herausholen
+    </h2>
+
+    <p style="text-align:center; font-size:18px; color:#475569; max-width:680px; margin:0 auto 32px;">
+      Plus überschreitet die kostenfreie KI-Grenze, gibt dir Foto-Analysen für Schäden
+      und schlägt fehlende Ausrüstung vor — alles unbegrenzt.
+    </p>
+
+    <!-- Feature-Karten -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:18px; margin:32px 0;">
+      <div style="background:#fff; border:1px solid #e9d5ff; border-radius:14px; padding:22px;">
+        <div style="font-size:28px;">💬</div>
+        <h4 style="margin:8px 0 4px; color:#0f172a;">Unbegrenzte KI-Chats</h4>
+        <p style="color:#475569; font-size:14px; margin:0;">
+          Frag den Skipily-Assistenten so oft du willst — zu Wartung, Ersatzteilen, Servicedienstleistern.
+        </p>
+      </div>
+      <div style="background:#fff; border:1px solid #e9d5ff; border-radius:14px; padding:22px;">
+        <div style="font-size:28px;">📷</div>
+        <h4 style="margin:8px 0 4px; color:#0f172a;">Schadens-Foto-Analyse</h4>
+        <p style="color:#475569; font-size:14px; margin:0;">
+          Foto vom Defekt aufnehmen, KI beschreibt was zu sehen ist und schlägt passende Ersatzteile vor.
+        </p>
+      </div>
+      <div style="background:#fff; border:1px solid #e9d5ff; border-radius:14px; padding:22px;">
+        <div style="font-size:28px;">📝</div>
+        <h4 style="margin:8px 0 4px; color:#0f172a;">Ausrüstungs-Empfehlungen</h4>
+        <p style="color:#475569; font-size:14px; margin:0;">
+          KI prüft was an deinem Boot typischerweise fehlt — nach Bootstyp, Baujahr und Region.
+        </p>
+      </div>
+    </div>
+
+    <!-- Preis-Karten -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:16px; max-width:780px; margin:0 auto;">
+      <div style="background:linear-gradient(135deg,#f5f3ff 0%,#ede9fe 100%); border:1px solid #c4b5fd; border-radius:14px; padding:20px; text-align:center;">
+        <div style="font-size:13px; font-weight:700; color:#6b21a8; text-transform:uppercase; letter-spacing:.05em;">Plus</div>
+        <div style="font-size:32px; font-weight:800; color:#0f172a; margin:4px 0;">
+          4,99 €<span style="font-size:14px; font-weight:500; color:#64748b;"> / Monat</span>
+        </div>
+        <div style="font-size:12px; color:#64748b;">Für einzelne Bootseigner — alle Plus-Features.</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%); border:1px solid #f59e0b; border-radius:14px; padding:20px; text-align:center;">
+        <div style="font-size:13px; font-weight:700; color:#92400e; text-transform:uppercase; letter-spacing:.05em;">Plus Familie</div>
+        <div style="font-size:32px; font-weight:800; color:#0f172a; margin:4px 0;">
+          9,99 €<span style="font-size:14px; font-weight:500; color:#64748b;"> / Monat</span>
+        </div>
+        <div style="font-size:12px; color:#64748b;">Eignergemeinschaft — bis 5 Skipper, 1 Boot.</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#dbeafe 0%,#bfdbfe 100%); border:1px solid #3b82f6; border-radius:14px; padding:20px; text-align:center;">
+        <div style="font-size:13px; font-weight:700; color:#1e40af; text-transform:uppercase; letter-spacing:.05em;">Plus Flotte</div>
+        <div style="font-size:32px; font-weight:800; color:#0f172a; margin:4px 0;">
+          29,99 €<span style="font-size:14px; font-weight:500; color:#64748b;"> / Monat</span>
+        </div>
+        <div style="font-size:12px; color:#64748b;">Charter &amp; Mehrbooteigner — bis 4 Boote inkl. CSV-Import.</div>
+      </div>
+    </div>
+
+    <p style="text-align:center; font-size:13px; color:#94a3b8; margin-top:24px;">
+      Alle Pläne monatlich kündbar · ab 10 Booten Custom-Vertrag —
+      <a href="mailto:contact@skipily.app" style="color:#7e22ce; text-decoration:none;">contact@skipily.app</a>
+    </p>
+
+  </div>
+</section>
