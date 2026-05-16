@@ -65,10 +65,15 @@ struct ProfileView: View {
     @State private var isSaving = false
     @State private var showSavedToast = false
     @State private var showLogoutConfirm = false
+    @State private var showTour = false
     @State private var showDeleteAccountConfirm = false
     @State private var showDeleteAccountFinalConfirm = false
     @State private var isDeletingAccount = false
     @State private var errorMessage: String?
+
+    // Skipily Plus
+    @StateObject private var plusManager = PlusSubscriptionManager.shared
+    @State private var showPlusSheet = false
 
     private var appVersionString: String {
         let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -101,8 +106,17 @@ struct ProfileView: View {
                 // MARK: - Payment Methods
                 paymentSection
 
+                // MARK: - Skipily Plus
+                plusSection
+
                 // MARK: - Save Button
                 saveButton
+
+                Divider()
+                    .padding(.horizontal, 16)
+
+                // MARK: - Tour erneut starten
+                tourButton
 
                 Divider()
                     .padding(.horizontal, 16)
@@ -150,9 +164,13 @@ struct ProfileView: View {
                 toastView("profile.saved_toast".loc, icon: "checkmark.circle.fill", color: AppColors.success)
             }
         }
+        .sheet(isPresented: $showPlusSheet) {
+            PlusUpgradeSheet(reason: nil)
+        }
         .task {
             loadProfile()
             await loadBoats()
+            await plusManager.loadProducts()
         }
     }
 
@@ -534,6 +552,136 @@ struct ProfileView: View {
         .padding(.horizontal, 16)
     }
 
+    // MARK: - Skipily Plus
+
+    /// Aktive Plus-Subscription-ID (irgendeine der vier Product-IDs) → daraus
+    /// leiten wir das Display-Label ab.
+    private var activePlusProductId: String? {
+        plusManager.purchasedProductIDs.first
+    }
+
+    private var plusSection: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "sparkles")
+                    .font(.title3)
+                    .foregroundStyle(
+                        LinearGradient(colors: [.purple, .orange],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+                Text("Skipily Plus")
+                    .font(.headline)
+                Spacer()
+            }
+
+            if plusManager.hasActivePlus {
+                // Aktiver Plus-User: Status + Verwalten
+                activePlusCard
+            } else {
+                // Free-User: CTA + Feature-Liste
+                inactivePlusCard
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .padding(.horizontal, 16)
+    }
+
+    @ViewBuilder
+    private var activePlusCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(displayPlanName(for: activePlusProductId))
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.green)
+                Spacer()
+                Text("AKTIV")
+                    .font(.caption2.bold())
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Color.green.opacity(0.15))
+                    .foregroundStyle(.green)
+                    .clipShape(Capsule())
+            }
+            Text("Unbegrenzte KI, Foto-Analyse, Ausrüstungs-Empfehlungen.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Button {
+                openAppleSubscriptionSettings()
+            } label: {
+                HStack {
+                    Image(systemName: "gear")
+                    Text("Abo verwalten / kündigen")
+                }
+                .font(.subheadline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color(.tertiarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    @ViewBuilder
+    private var inactivePlusCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            featureRow("Unbegrenzte KI-Chats")
+            featureRow("Schadens-Foto-Analyse")
+            featureRow("Ausrüstungs-Empfehlungen")
+
+            Button {
+                showPlusSheet = true
+            } label: {
+                HStack {
+                    Image(systemName: "sparkles")
+                    Text("Skipily Plus entdecken")
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    LinearGradient(colors: [.purple, .orange],
+                                   startPoint: .leading, endPoint: .trailing)
+                )
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    private func featureRow(_ text: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .font(.caption)
+            Text(text)
+                .font(.subheadline)
+        }
+    }
+
+    private func displayPlanName(for productId: String?) -> String {
+        switch productId {
+        case "skipily.plus.monthly": return "Skipily Plus · Monatlich"
+        case "skipily.plus.yearly":  return "Skipily Plus · Jährlich"
+        case "skipily.pro.monthly":  return "Skipily Plus Familie · Monatlich"
+        case "skipily.pro.yearly":   return "Skipily Plus Familie · Jährlich"
+        default:                     return "Skipily Plus aktiv"
+        }
+    }
+
+    /// Öffnet die System-Abo-Verwaltung. Apple's Standard-URL leitet zu
+    /// Settings → Apple-ID → Abonnements.
+    private func openAppleSubscriptionSettings() {
+        if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+            UIApplication.shared.open(url)
+        }
+    }
+
     // MARK: - Save Button
 
     private var saveButton: some View {
@@ -576,6 +724,32 @@ struct ProfileView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .padding(.horizontal, 16)
+    }
+
+    // MARK: - App-Tour erneut starten
+
+    private var tourButton: some View {
+        Button {
+            showTour = true
+        } label: {
+            HStack {
+                Image(systemName: "sparkles.rectangle.stack")
+                Text("profile.show_tour".loc)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.tertiary)
+                    .font(.caption)
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 50)
+            .background(AppColors.primary.opacity(0.08))
+            .foregroundStyle(AppColors.primary)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .padding(.horizontal, 16)
+        .fullScreenCover(isPresented: $showTour) {
+            AppTourView()
+        }
     }
 
     // MARK: - Delete Account Button
