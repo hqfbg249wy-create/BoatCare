@@ -7595,6 +7595,11 @@ function renderUsers(users) {
                                    style="padding:6px 10px; background:#f3e8ff; color:#7e22ce; border:1px solid #e9d5ff; border-radius:6px; font-size:12px; cursor:pointer; margin-right:6px;"
                                    title="Skipily Plus gewähren (z.B. Custom-Vertrag bei mehr als 10 Booten)">
                             ⭐ Plus
+                          </button>
+                          <button onclick="window.revokePlusPrompt('${u.id}', '${escapeHtml(u.email || '')}')"
+                                   style="padding:6px 10px; background:#fef3c7; color:#854d0e; border:1px solid #fde68a; border-radius:6px; font-size:12px; cursor:pointer; margin-right:6px;"
+                                   title="Plus-Abo widerrufen (Test-Reset — Apple/Stripe muss zusätzlich gekündigt werden)">
+                            🗑 Plus
                           </button>`
                         : ''}
                     ${u.email && !isReadonly
@@ -7738,6 +7743,33 @@ async function grantPlusPrompt(userId, email) {
     }
 }
 window.grantPlusPrompt = grantPlusPrompt;
+
+// ─── Plus widerrufen (Test-Reset) ────────────────────────────────────────
+async function revokePlusPrompt(userId, email) {
+    if (!confirm(
+        `Plus-Abo für "${email}" widerrufen?\n\n` +
+        `Setzt den DB-Status auf "revoked", sodass der User wieder als Free gilt.\n\n` +
+        `WICHTIG: Apple-/Stripe-Seite muss SEPARAT gekündigt werden:\n` +
+        `• Apple Sandbox: iPhone → Settings → App Store → Sandbox Account → Abos verwalten\n` +
+        `• Stripe Provider-Abo: Stripe Dashboard → Customers → Subscriptions → Cancel\n\n` +
+        `Fortfahren?`
+    )) return;
+
+    try {
+        const { data, error } = await supabaseClient.rpc('admin_revoke_plus_subscription', {
+            p_user_id: userId,
+        });
+        if (error) throw error;
+        if (!data) {
+            alert(`Kein aktives Plus-Abo für "${email}" gefunden — der User ist bereits Free.`);
+            return;
+        }
+        alert(`✅ Plus-Abo für "${email}" zurückgesetzt. Vergiss nicht: Apple/Stripe muss separat kündigen!`);
+    } catch (err) {
+        alert('Fehler: ' + err.message);
+    }
+}
+window.revokePlusPrompt = revokePlusPrompt;
 
 window.loadUsers = loadUsers;
 
@@ -8722,6 +8754,35 @@ async function revokeFromModal() {
     }
 }
 window.revokeFromModal = revokeFromModal;
+
+/// Setzt ein bezahltes Stripe-Pro/Enterprise-Abo in der DB zurück.
+/// Kündigt NICHT bei Stripe — das muss separat im Stripe-Dashboard erfolgen.
+/// Hauptverwendung: Test-Reset damit derselbe Test-Account erneut upgraden kann.
+async function resetStripeSubFromModal() {
+    if (!_editingProvider) return;
+    if (!confirm(
+        `Stripe-Abo für "${_editingProvider.name}" in der DB zurücksetzen?\n\n` +
+        `→ subscription_tier wird auf 'standard' gesetzt\n` +
+        `→ stripe_subscription_id wird geleert\n\n` +
+        `WICHTIG: Bei Stripe ist das Abo damit NICHT gekündigt!\n` +
+        `Im Stripe-Dashboard → Customers → Subscription → Cancel.\n\n` +
+        `Fortfahren?`
+    )) return;
+
+    try {
+        const { error } = await supabaseClient.rpc('admin_reset_provider_subscription', {
+            p_provider_id: _editingProvider.id,
+        });
+        if (error) throw error;
+        await reloadProviderInCache(_editingProvider.id);
+        renderModalSubscriptionStatus();
+        refreshCustomers();
+        alert(`DB-Status zurückgesetzt. Jetzt im Stripe-Dashboard das Abo des Customers manuell beenden.`);
+    } catch (err) {
+        alert('Fehler: ' + err.message);
+    }
+}
+window.resetStripeSubFromModal = resetStripeSubFromModal;
 
 async function reloadProviderInCache(providerId) {
     try {
