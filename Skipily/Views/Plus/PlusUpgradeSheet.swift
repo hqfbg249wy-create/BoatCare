@@ -38,8 +38,36 @@ struct PlusUpgradeSheet: View {
                         ProgressView("Pläne werden geladen…")
                             .padding()
                     } else if manager.products.isEmpty {
-                        Text("Keine Pläne verfügbar — bitte später erneut versuchen.")
-                            .foregroundStyle(.secondary)
+                        VStack(spacing: 12) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.title2)
+                                .foregroundStyle(.orange)
+                            Text("Pläne können gerade nicht geladen werden.")
+                                .font(.subheadline.bold())
+                                .multilineTextAlignment(.center)
+
+                            if let err = manager.lastError {
+                                Text(err)
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
+                            }
+
+                            Text("Mögliche Ursachen:\n• Produkte in App Store Connect noch nicht freigeschaltet\n• Kein gültiger Sandbox-Account auf diesem Gerät\n• Netzwerk-Problem")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.leading)
+                                .padding(.horizontal, 20)
+
+                            Button {
+                                Task { await manager.loadProducts() }
+                            } label: {
+                                Label("Erneut versuchen", systemImage: "arrow.clockwise")
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        .padding(.vertical)
                     } else {
                         VStack(spacing: 12) {
                             ForEach(manager.products, id: \.id) { product in

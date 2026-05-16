@@ -45,11 +45,23 @@ final class PlusSubscriptionManager: ObservableObject {
     // MARK: - Produkte laden
     func loadProducts() async {
         isLoading = true
+        lastError = nil
         defer { isLoading = false }
         do {
             let storeProducts = try await StoreKit.Product.products(for: Self.productIDs)
             self.products = storeProducts.sorted { $0.price < $1.price }
             await refreshPurchasedState()
+
+            // Hilfreiche Diagnose: wenn App Store Connect die Produkte nicht
+            // freigeschaltet hat (TestFlight ignoriert Skipily.storekit!),
+            // liefert products(for:) eine leere Liste OHNE throw.
+            if storeProducts.isEmpty {
+                let requested = Self.productIDs.joined(separator: ", ")
+                lastError = "App Store lieferte 0 Produkte für die IDs: \(requested). Prüfe in App Store Connect ob die Subscriptions angelegt UND zum Verkauf freigegeben sind."
+                AppLog.warning("PlusManager: 0 Products returned. Requested: \(requested)")
+            } else {
+                AppLog.info("PlusManager: \(storeProducts.count) Products geladen: \(storeProducts.map { $0.id }.joined(separator: ", "))")
+            }
         } catch {
             lastError = "Produkte konnten nicht geladen werden: \(error.localizedDescription)"
             AppLog.error("PlusManager.loadProducts: \(error)")
