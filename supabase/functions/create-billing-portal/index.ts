@@ -14,8 +14,22 @@ import { corsHeaders } from "../_shared/cors.ts";
 
 const supabaseUrl        = Deno.env.get("SUPABASE_URL") ?? "";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const returnUrl          = Deno.env.get("STRIPE_BILLING_PORTAL_RETURN_URL")
-                           ?? "https://provider.skipily.app/profile";
+
+/**
+ * Liefert eine valide Return-URL. Schützt vor falsch gesetzten Env-Werten
+ * (custom-Schemes, fehlendes https://, Leerzeichen). Wenn der Wert kein
+ * gültiger http(s)-URL ist, fällt die Function auf den Default zurück.
+ */
+function sanitizedReturnUrl(): string {
+  const raw = (Deno.env.get("STRIPE_BILLING_PORTAL_RETURN_URL") ?? "").trim();
+  const fallback = "https://provider.skipily.app/profile";
+  if (!raw) return fallback;
+  if (!raw.startsWith("https://") && !raw.startsWith("http://")) {
+    console.warn("STRIPE_BILLING_PORTAL_RETURN_URL ist kein http(s)-URL, falle zurück:", raw);
+    return fallback;
+  }
+  return raw;
+}
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -64,6 +78,9 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Kein Stripe-Kunde — bitte zuerst Abo abschließen" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
+    const returnUrl = sanitizedReturnUrl();
+    console.log("billing-portal returnUrl:", returnUrl);
 
     const session = await stripe.billingPortal.sessions.create({
       customer:   provider.stripe_customer_id,
