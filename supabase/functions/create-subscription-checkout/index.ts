@@ -23,8 +23,23 @@ import { corsHeaders } from "../_shared/cors.ts";
 const supabaseUrl       = Deno.env.get("SUPABASE_URL") ?? "";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const defaultPriceId    = Deno.env.get("STRIPE_PROFESSIONAL_PRICE_ID") ?? "";
-const returnUrl         = Deno.env.get("STRIPE_SUBSCRIPTION_RETURN_URL")
-                          ?? "https://provider.skipily.app/profile";
+
+/**
+ * Liefert eine valide Return-URL. Wenn STRIPE_SUBSCRIPTION_RETURN_URL leer,
+ * unsauber (z.B. ohne https://) oder ein App-Scheme ist, fallen wir auf die
+ * Default-Web-URL zurück. Apple-Pay-Redirects scheitern an custom Schemes mit
+ * "Safari kann die Seite nicht öffnen".
+ */
+function sanitizedReturnUrl(): string {
+  const raw  = (Deno.env.get("STRIPE_SUBSCRIPTION_RETURN_URL") ?? "").trim();
+  const fallback = "https://provider.skipily.app/profile";
+  if (!raw) return fallback;
+  if (!raw.startsWith("https://") && !raw.startsWith("http://")) {
+    console.warn("STRIPE_SUBSCRIPTION_RETURN_URL ist kein http(s)-URL, falle zurück:", raw);
+    return fallback;
+  }
+  return raw;
+}
 
 // Whitelist erlaubter Stripe-Price-IDs. Wird sowohl als Sicherheits-Gate
 // (kein beliebiger Client darf zufällige Preise nutzen) als auch als
@@ -115,13 +130,21 @@ serve(async (req: Request) => {
         .eq("id", provider.id);
     }
 
-    // Checkout Session
+    // Checkout Session — URLs werden sauber zusammengebaut, damit Apple Pay
+    // im Erfolgsfall sauber zurück redirecten kann (sonst "Safari kann die
+    // Seite nicht öffnen, da die Adresse ungültig ist" — passiert bei
+    // custom-Schemes oder fehlerhaftem STRIPE_SUBSCRIPTION_RETURN_URL).
+    const returnUrl = sanitizedReturnUrl();
+    const successUrl = `${returnUrl}${returnUrl.includes("?") ? "&" : "?"}subscription=success&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl  = `${returnUrl}${returnUrl.includes("?") ? "&" : "?"}subscription=cancelled`;
+    console.log("checkout-session URLs:", { successUrl, cancelUrl });
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: requestedPriceId, quantity: 1 }],
-      success_url: `${returnUrl}?subscription=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${returnUrl}?subscription=cancelled`,
+      success_url: successUrl,
+      cancel_url:  cancelUrl,
       allow_promotion_codes: true,
       subscription_data: {
         metadata: { provider_id: provider.id },
