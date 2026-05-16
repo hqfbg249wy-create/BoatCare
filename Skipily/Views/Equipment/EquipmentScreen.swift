@@ -585,13 +585,15 @@ struct EquipmentExpandableRow: View {
             case .service(let name, let category, let manufacturer):
                 ServiceSearchFromMaintenance(equipmentName: name, category: category, manufacturer: manufacturer)
                     .environmentObject(authService)
-            case .spareParts(let name, let manufacturer, let model, _, _):
-                ProviderShopSearchView(
-                    providerId: UUID(),
-                    providerName: "Alle",
-                    searchTerm: [name, manufacturer, model]
-                        .filter { !$0.isEmpty }
-                        .joined(separator: " ")
+            case .spareParts(let name, let manufacturer, let model, let partNumber, let dimensions):
+                // Neue Zwei-Sektionen-Ansicht mit Match-Konfidenz
+                // (1:1-Ersatzteile zuerst, dann Alternativen & Zubehör)
+                EquipmentPartsSearchView(
+                    name: name,
+                    manufacturer: manufacturer,
+                    model: model,
+                    partNumber: partNumber,
+                    dimensions: dimensions
                 )
                 .environmentObject(authService)
             case .aiAssistant(let question):
@@ -791,8 +793,14 @@ struct EquipmentDetailView: View {
                         .foregroundStyle(.blue)
                 }
                 NavigationLink {
-                    MetashopSearchFromEquipment(item: item)
-                        .environmentObject(authService)
+                    EquipmentPartsSearchView(
+                        name: item.name,
+                        manufacturer: item.manufacturer,
+                        model: item.model,
+                        partNumber: item.partNumber,
+                        dimensions: item.dimensions
+                    )
+                    .environmentObject(authService)
                 } label: {
                     Label("equipment.find_parts".loc, systemImage: "cart")
                         .foregroundStyle(.purple)
@@ -800,7 +808,7 @@ struct EquipmentDetailView: View {
                 Button {
                     showingBriefing = true
                 } label: {
-                    Label("equipment.send_briefing".loc, systemImage: "paperplane.fill")
+                    Label("Service-Anfrage senden", systemImage: "paperplane.fill")
                         .foregroundStyle(.green)
                 }
             }
@@ -832,7 +840,8 @@ struct EquipmentDetailView: View {
             }
         }
         .sheet(isPresented: $showingBriefing) {
-            EquipmentBriefingView(equipmentId: item.id, boatId: item.boatId)
+            ServiceRequestFlow(equipmentId: item.id, boatId: item.boatId)
+                .environmentObject(authService)
         }
         .confirmationDialog("equipment.delete_confirm".loc, isPresented: $showingDeleteConfirm, titleVisibility: .visible) {
             Button("general.delete".loc, role: .destructive) { onDelete(); dismiss() }
@@ -1952,14 +1961,27 @@ struct EquipmentPartsSearchView: View {
     let partNumber: String
     let dimensions: String
     @EnvironmentObject var authService: AuthService
-    @State private var exactParts: [MetashopProduct] = []
-    @State private var accessories: [MetashopProduct] = []
+
+    @State private var originals: [MatchedProduct] = []     // Score 100 (Artikelnummer-Match)
+    @State private var derivates: [MatchedProduct] = []     // Score 60–99 (Hersteller+Modell)
+    @State private var related:   [MatchedProduct] = []     // Score < 60 (passende Ergänzung)
     @State private var isSearching = false
     @State private var hasSearched = false
 
+    private let productService = ProductService.shared
+
+    /// Produkt + erklärender Match-Grund.
+    struct MatchedProduct: Identifiable {
+        let product: Product
+        let reason: String
+        let confidence: Confidence
+        var id: UUID { product.id }
+        enum Confidence { case original, derivate, related }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // Search criteria header
+            // Suchkriterien-Header
             VStack(alignment: .leading, spacing: 8) {
                 Text("equipment.spare_parts_for".loc)
                     .font(.caption).foregroundStyle(.secondary)
@@ -1982,14 +2004,15 @@ struct EquipmentPartsSearchView: View {
             if isSearching {
                 ProgressView("general.loading".loc)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if exactParts.isEmpty && accessories.isEmpty && hasSearched {
+            } else if originals.isEmpty && derivates.isEmpty && related.isEmpty && hasSearched {
                 VStack(spacing: 16) {
                     Image(systemName: "cart.badge.questionmark")
-                        .font(.system(size: 48)).foregroundStyle(.purple.opacity(0.3))
+                        .font(.system(size: 48))
+                        .foregroundStyle(AppColors.info.opacity(0.4))
                     Text("equipment.no_shop_found".loc)
                         .font(.subheadline).foregroundStyle(.secondary)
 
-                    // Fallback: Google search
+                    // Fallback: Online-Suche
                     Button {
                         let query = [name, manufacturer, model, partNumber, "kaufen", "marine"]
                             .filter { !$0.isEmpty }.joined(separator: " ")
@@ -2000,37 +2023,38 @@ struct EquipmentPartsSearchView: View {
                     } label: {
                         Label("equipment.search_online".loc, systemImage: "safari")
                             .frame(maxWidth: .infinity).padding(.vertical, 12)
-                            .background(Color.purple).foregroundStyle(.white).cornerRadius(10)
+                            .background(AppColors.info).foregroundStyle(.white).cornerRadius(10)
                     }
                     .padding(.horizontal, 32)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
-                    // Section 1: Exact replacement parts
-                    if !exactParts.isEmpty {
-                        Section {
-                            ForEach(exactParts) { product in
-                                partsProductRow(product)
-                            }
-                        } header: {
-                            Label("equipment.matching_parts".loc, systemImage: "checkmark.seal.fill")
-                                .font(.subheadline).fontWeight(.semibold)
-                                .foregroundStyle(.purple)
-                        }
+                    // Sektion 1: Originalteile (Artikelnummer-Match) — grüner Rahmen
+                    if !originals.isEmpty {
+                        section(title: "Originalteile",
+                                icon: "checkmark.seal.fill",
+                                color: AppColors.success,
+                                items: originals,
+                                footer: "Eindeutige 1:1-Treffer über die Artikelnummer.")
                     }
 
-                    // Section 2: Matching accessories
-                    if !accessories.isEmpty {
-                        Section {
-                            ForEach(accessories) { product in
-                                partsProductRow(product)
-                            }
-                        } header: {
-                            Label("equipment.matching_accessories".loc, systemImage: "plus.circle.fill")
-                                .font(.subheadline).fontWeight(.semibold)
-                                .foregroundStyle(.blue)
-                        }
+                    // Sektion 2: 1:1 passende Derivate (Hersteller + Modell) — blauer Rahmen
+                    if !derivates.isEmpty {
+                        section(title: "1:1 passende Derivate",
+                                icon: "checkmark.circle.fill",
+                                color: AppColors.info,
+                                items: derivates,
+                                footer: "Gleicher Hersteller und passendes Modell — sollte direkt passen.")
+                    }
+
+                    // Sektion 3: Weitere passende Ausrüstung (orange Akzentfarbe)
+                    if !related.isEmpty {
+                        section(title: "Weitere passende Ausrüstung",
+                                icon: "plus.circle.fill",
+                                color: AppColors.primary,
+                                items: related,
+                                footer: "Mögliche Ergänzungen — z. B. Module derselben Produktfamilie oder ähnliche Artikel.")
                     }
                 }
             }
@@ -2039,7 +2063,40 @@ struct EquipmentPartsSearchView: View {
         .task { await searchProducts() }
     }
 
+    @ViewBuilder
+    private func section(title: String, icon: String, color: Color,
+                         items: [MatchedProduct], footer: String) -> some View {
+        Section {
+            ForEach(items) { match in
+                NavigationLink {
+                    ProductDetailView(product: match.product)
+                        .environmentObject(authService)
+                } label: {
+                    partsProductRow(match)
+                }
+                .buttonStyle(.plain)
+            }
+        } header: {
+            HStack(spacing: 6) {
+                Image(systemName: icon).foregroundStyle(color)
+                Text(title).fontWeight(.semibold).foregroundStyle(color)
+                Text("(\(items.count))").foregroundStyle(.secondary)
+                Spacer()
+            }
+            .font(.subheadline)
+            .textCase(nil)
+        } footer: {
+            Text(footer).font(.caption2)
+        }
+    }
+
     // MARK: - Search Logic
+    //
+    // Bucket-Klassifikation mit Begründung — drei Sektionen:
+    //   ORIGINAL  (Artikelnummer-Match)        → grün
+    //   DERIVATE  (Hersteller + Modell)        → blau
+    //   RELATED   (Wort-Match, Modul-Familie)  → neutral
+    //
     private func searchProducts() async {
         isSearching = true
         defer { isSearching = false; hasSearched = true }
@@ -2048,76 +2105,106 @@ struct EquipmentPartsSearchView: View {
             .filter { !$0.isEmpty }
         guard !searchTerms.isEmpty else { return }
 
-        // Split name into individual words for broader matching
-        let nameWords = name.lowercased().split(separator: " ").map(String.init).filter { $0.count >= 3 }
+        let nameWords = name.lowercased().split(separator: " ")
+            .map(String.init).filter { $0.count >= 3 }
+        let normPart  = partNumber.trimmingCharacters(in: .whitespaces).lowercased()
+        let normMfg   = manufacturer.trimmingCharacters(in: .whitespaces).lowercased()
+        let normModel = model.trimmingCharacters(in: .whitespaces).lowercased()
 
         do {
-            let allProducts: [MetashopProduct] = try await authService.supabase
-                .from("metashop_products").select()
-                .execute().value
+            // Breite Volltextsuche über den ProductService → liefert Product
+            // mit allen In-App-Feldern und ermöglicht NavigationLink zu ProductDetailView.
+            let query = [manufacturer, model, name].filter { !$0.isEmpty }.joined(separator: " ")
+            let allProducts: [Product] = try await productService.searchProductsBroad(query: query, limit: 80)
 
-            var exact: [MetashopProduct] = []
-            var accessory: [MetashopProduct] = []
-            let usedIds = Set<UUID>()
+            struct Scored { let product: Product; var score: Int; var reason: String }
+            var scored: [Scored] = []
 
             for product in allProducts {
                 let pName = product.name.lowercased()
-                let pMfg = product.manufacturer.lowercased()
-                let pPart = product.partNumber.lowercased()
-                let pDesc = product.description.lowercased()
-                let pCat = product.category.lowercased()
+                let pMfg  = (product.manufacturer ?? "").lowercased()
+                let pPart = (product.partNumber ?? "").lowercased()
+                let pDesc = (product.description ?? "").lowercased()
+                let pCat  = (product.category?.nameDe ?? "").lowercased()
+                let pTags = (product.tags ?? []).map { $0.lowercased() }
 
-                // Exact part match: part number, or (manufacturer + name/model match)
-                let partMatch = !partNumber.isEmpty && !pPart.isEmpty
-                    && pPart.localizedCaseInsensitiveContains(partNumber)
+                var score = 0
+                var reason = ""
 
-                let mfgMatch = !manufacturer.isEmpty && !pMfg.isEmpty
-                    && pMfg.localizedCaseInsensitiveContains(manufacturer)
-
-                let nameMatch = searchTerms.contains { term in
-                    pName.localizedCaseInsensitiveContains(term)
+                // ORIGINAL: Exakter Artikelnummer-Match
+                if !normPart.isEmpty && !pPart.isEmpty
+                    && (pPart == normPart || pPart.contains(normPart) || normPart.contains(pPart)) {
+                    score = 100
+                    reason = "Artikelnummer übereinstimmt"
                 }
 
-                let modelMatch = !model.isEmpty
-                    && pName.localizedCaseInsensitiveContains(model)
+                let mfgMatch   = !normMfg.isEmpty && pMfg.contains(normMfg)
+                let modelMatch = !normModel.isEmpty
+                                 && (pName.contains(normModel) || pDesc.contains(normModel))
+                let nameMatch  = nameWords.contains { pName.contains($0) }
 
-                // Strong matches → exact parts (replacement)
-                if partMatch || (mfgMatch && (nameMatch || modelMatch)) {
-                    exact.append(product)
-                    continue
+                // DERIVATE (80): Hersteller + Modell + Name passen alle
+                if mfgMatch && modelMatch && nameMatch && score < 80 {
+                    score = 80
+                    reason = "Hersteller, Modell und Bezeichnung passen"
+                }
+                // DERIVATE (60): Hersteller + Modell
+                if mfgMatch && modelMatch && score < 60 {
+                    score = 60
+                    reason = "Hersteller und Modell passen"
                 }
 
-                // Weaker matches → accessories (related products)
-                // Match if any name word appears in product name/description/category
+                // RELATED (40): Gleicher Hersteller, gleiche Kategorie (Modul-Familie)
+                if mfgMatch && nameWords.contains(where: { pCat.contains($0) }) && score < 40 {
+                    score = 40
+                    reason = "Weitere Ausrüstung dieser Produktfamilie"
+                }
+                // RELATED (30): Gleicher Hersteller, kein Modell-Match (anderes Produkt derselben Marke)
+                if mfgMatch && score == 0 {
+                    score = 30
+                    reason = "Vom selben Hersteller"
+                }
+
+                // RELATED (20): Wort-Match in Name/Beschreibung/Kategorie/Tags
                 let wordMatch = nameWords.contains { word in
-                    pName.contains(word) || pDesc.contains(word) || pCat.contains(word)
+                    pName.contains(word) || pDesc.contains(word)
+                        || pCat.contains(word) || pTags.contains(where: { $0.contains(word) })
+                }
+                if wordMatch && score == 0 {
+                    score = 20
+                    reason = "Mögliche Ergänzung"
                 }
 
-                // Dimension-based matching for ropes, sails, chains etc.
-                let dimMatch = !dimensions.isEmpty && !pDesc.isEmpty
-                    && pDesc.localizedCaseInsensitiveContains(dimensions)
+                // Maße-Match (Seile, Ketten, Segel): dezenter Bonus
+                if !dimensions.isEmpty && !pDesc.isEmpty
+                    && pDesc.localizedCaseInsensitiveContains(dimensions) {
+                    score += 10
+                    reason = reason.isEmpty ? "Maße passen" : reason + " · Maße passen"
+                }
 
-                if wordMatch || dimMatch || (mfgMatch && !nameMatch) {
-                    if !usedIds.contains(product.id) {
-                        accessory.append(product)
-                    }
+                if score > 0 {
+                    scored.append(.init(product: product, score: score, reason: reason))
                 }
             }
 
-            // Sort: in-stock first, then by price
-            let sortFn: (MetashopProduct, MetashopProduct) -> Bool = { a, b in
-                if a.inStock != b.inStock { return a.inStock }
-                let aP = a.price ?? Double.greatestFiniteMagnitude
-                let bP = b.price ?? Double.greatestFiniteMagnitude
+            // Sortierung: Score absteigend, dann auf Lager, dann Preis
+            scored.sort { a, b in
+                if a.score != b.score { return a.score > b.score }
+                let aStock = a.product.inStock ?? false
+                let bStock = b.product.inStock ?? false
+                if aStock != bStock { return aStock }
+                let aP = a.product.price ?? Double.greatestFiniteMagnitude
+                let bP = b.product.price ?? Double.greatestFiniteMagnitude
                 return aP < bP
             }
 
-            exactParts = exact.sorted(by: sortFn)
-            accessories = accessory.sorted(by: sortFn)
-
-            // Remove duplicates from accessories that appear in exactParts
-            let exactIds = Set(exactParts.map { $0.id })
-            accessories = accessories.filter { !exactIds.contains($0.id) }
+            // Drei Buckets
+            originals = scored.filter { $0.score >= 100 }
+                .map { MatchedProduct(product: $0.product, reason: $0.reason, confidence: .original) }
+            derivates = scored.filter { $0.score >= 60 && $0.score < 100 }
+                .map { MatchedProduct(product: $0.product, reason: $0.reason, confidence: .derivate) }
+            related   = scored.filter { $0.score < 60 }
+                .map { MatchedProduct(product: $0.product, reason: $0.reason, confidence: .related) }
 
         } catch {
             AppLog.error("Equipment Parts Search: \(error)")
@@ -2125,75 +2212,129 @@ struct EquipmentPartsSearchView: View {
     }
 
     @ViewBuilder
-    private func partsProductRow(_ product: MetashopProduct) -> some View {
+    private func partsProductRow(_ match: MatchedProduct) -> some View {
+        let product = match.product
+        let mc = matchColor(for: match.confidence)
+
         VStack(alignment: .leading, spacing: 8) {
+            // Match-Grund als kleine Überschrift
+            HStack(spacing: 6) {
+                Image(systemName: matchIcon(for: match.confidence))
+                    .font(.caption).fontWeight(.bold)
+                    .foregroundStyle(.white)
+                Text(match.reason.isEmpty ? "Treffer" : match.reason)
+                    .font(.caption).fontWeight(.bold)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 9).padding(.vertical, 4)
+            .background(mc)
+            .clipShape(Capsule())
+
             HStack(spacing: 12) {
-                if let imgUrl = product.imageUrl, let url = URL(string: imgUrl) {
+                // Produkt-Bild
+                let imgString = product.images?.first ?? product.imageUrl
+                if let imgString, let url = URL(string: imgString) {
                     AsyncImage(url: url) { phase in
                         if case .success(let img) = phase {
                             img.resizable().scaledToFill()
                         } else {
-                            Image(systemName: "shippingbox.fill").foregroundStyle(.purple)
+                            Image(systemName: "shippingbox.fill")
+                                .foregroundStyle(AppColors.info)
                         }
                     }
                     .frame(width: 56, height: 56)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                 } else {
                     Image(systemName: "shippingbox.fill")
-                        .font(.title3).foregroundStyle(.purple)
+                        .font(.title3).foregroundStyle(AppColors.info)
                         .frame(width: 56, height: 56)
-                        .background(Color.purple.opacity(0.1))
+                        .background(AppColors.info.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(product.name).font(.subheadline).fontWeight(.semibold).lineLimit(2)
-                    if !product.manufacturer.isEmpty {
-                        Text(product.manufacturer).font(.caption).foregroundStyle(.secondary)
+                    if let mfg = product.manufacturer, !mfg.isEmpty {
+                        Text(mfg).font(.caption).foregroundStyle(textColor(for: match.confidence))
                     }
-                    if !product.partNumber.isEmpty {
-                        Text("equipment.article_no".loc + " \(product.partNumber)").font(.caption2).foregroundStyle(.tertiary)
+                    if let part = product.partNumber, !part.isEmpty {
+                        Text("equipment.article_no".loc + " \(part)")
+                            .font(.caption2).foregroundStyle(textColor(for: match.confidence).opacity(0.75))
                     }
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    if let priceStr = product.formattedPrice {
-                        Text(priceStr).font(.headline).fontWeight(.bold)
-                    }
+                    Text(product.displayPrice).font(.headline).fontWeight(.bold)
+                    let stock = product.inStock ?? false
                     HStack(spacing: 3) {
-                        Circle().fill(product.inStock ? .green : .red).frame(width: 6, height: 6)
-                        Text(product.inStock ? "Auf Lager" : "Nicht verfuegbar")
-                            .font(.caption2).foregroundStyle(product.inStock ? .green : .red)
+                        Circle()
+                            .fill(stock ? AppColors.success : AppColors.error)
+                            .frame(width: 6, height: 6)
+                        Text(stock ? "Auf Lager" : "Nicht verfügbar")
+                            .font(.caption2)
+                            .foregroundStyle(stock ? AppColors.success : AppColors.error)
                     }
-                }
-            }
-
-            // Shop button
-            if !product.shopUrl.isEmpty {
-                Button {
-                    var urlStr = product.shopUrl
-                    if !urlStr.hasPrefix("http") { urlStr = "https://" + urlStr }
-                    if let url = URL(string: urlStr) {
-                        UIApplication.shared.open(url)
-                    }
-                } label: {
-                    Label("equipment.to_shop".loc, systemImage: "cart.fill")
-                        .font(.caption).fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
-                        .background(Color.purple).foregroundStyle(.white).cornerRadius(6)
                 }
             }
         }
         .padding(.vertical, 4)
+        // Rahmen je nach Klasse:
+        //   .original → grün, .derivate → blau, .related → kein Rahmen
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(frameColor(for: match.confidence) ?? .clear,
+                        lineWidth: frameColor(for: match.confidence) == nil ? 0 : 1.5)
+        )
     }
 
     private func searchTag(_ text: String) -> some View {
         Text(text)
             .font(.caption).fontWeight(.medium)
             .padding(.horizontal, 8).padding(.vertical, 4)
-            .background(Color.purple.opacity(0.1))
-            .foregroundStyle(.purple).cornerRadius(6)
+            .background(AppColors.info.opacity(0.10))
+            .foregroundStyle(AppColors.info).cornerRadius(6)
+    }
+
+    // MARK: - Match-Konfidenz: Icon, Pillenfarbe, Rahmenfarbe
+    private func matchIcon(for c: MatchedProduct.Confidence) -> String {
+        switch c {
+        case .original: return "checkmark.seal.fill"
+        case .derivate: return "checkmark.circle.fill"
+        case .related:  return "plus.circle.fill"
+        }
+    }
+    /// Pillenfarbe (Match-Reason-Chip + "Vom selben Hersteller"-Chip):
+    ///   Original → grün, Derivat → blau, Related → orange
+    /// (KEIN grau! Grau wirkt wie "nicht verfügbar".)
+    private func matchColor(for c: MatchedProduct.Confidence) -> Color {
+        switch c {
+        case .original: return AppColors.success
+        case .derivate: return AppColors.info
+        case .related:  return AppColors.primary
+        }
+    }
+
+    /// Rahmenfarbe um die Produkt-Karte:
+    ///   Original → grün, Derivat → blau, Related → orange
+    /// Alle drei Stufen bekommen jetzt einen sichtbaren Rahmen.
+    private func frameColor(for c: MatchedProduct.Confidence) -> Color? {
+        switch c {
+        case .original: return AppColors.success
+        case .derivate: return AppColors.info
+        case .related:  return AppColors.primary
+        }
+    }
+
+    /// Textfarbe für Hersteller / Artikelnummer im Karten-Body:
+    ///   Original → grün, Derivat → blau, Related → orange
+    private func textColor(for c: MatchedProduct.Confidence) -> Color {
+        switch c {
+        case .original: return AppColors.success
+        case .derivate: return AppColors.info
+        case .related:  return AppColors.primary
+        }
     }
 }
 

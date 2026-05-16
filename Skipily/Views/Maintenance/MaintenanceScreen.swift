@@ -9,7 +9,7 @@ import Supabase
 // MARK: - Navigation Target for Maintenance Actions
 enum MaintenanceNavTarget: Hashable {
     case service(equipmentName: String, category: String, manufacturer: String)
-    case spareParts(equipmentName: String)
+    case spareParts(equipmentName: String, manufacturer: String, model: String, partNumber: String, dimensions: String)
     case aiAssistant(question: String)
 }
 
@@ -62,6 +62,9 @@ struct EquipmentMaintenanceItem: Identifiable {
     let boatName: String
     let category: String
     let manufacturer: String
+    let model: String
+    let partNumber: String
+    let dimensions: String
     let nextMaintenanceDate: Date
     let cycleYears: Int?
 
@@ -232,6 +235,9 @@ struct MaintenanceScreen: View {
                         boatName: boat.name,
                         category: eq.category,
                         manufacturer: eq.manufacturer,
+                        model: eq.model,
+                        partNumber: eq.partNumber,
+                        dimensions: eq.dimensions,
                         nextMaintenanceDate: nextDate,
                         cycleYears: cycle
                     ))
@@ -451,7 +457,13 @@ struct EquipmentMaintenanceRow: View {
                     // Ersatzteile suchen
                     Button {
                         rowNavigation = MaintenanceRowNav(target:
-                            .spareParts(equipmentName: item.equipmentName))
+                            .spareParts(
+                                equipmentName: item.equipmentName,
+                                manufacturer:  item.manufacturer,
+                                model:         item.model,
+                                partNumber:    item.partNumber,
+                                dimensions:    item.dimensions
+                            ))
                     } label: {
                         MaintenanceActionButton(
                             title: "maintenance.action_parts".loc,
@@ -509,12 +521,15 @@ struct EquipmentMaintenanceRow: View {
             case .service(let name, let cat, let mfr):
                 ServiceSearchFromMaintenance(equipmentName: name, category: cat, manufacturer: mfr)
                     .environmentObject(authService)
-            case .spareParts(let name):
-                ProviderShopSearchView(
-                    providerId: UUID(),
-                    providerName: "Alle",
-                    searchTerm: name
+            case .spareParts(let name, let mfr, let mod, let pn, let dim):
+                EquipmentPartsSearchView(
+                    name:         name,
+                    manufacturer: mfr,
+                    model:        mod,
+                    partNumber:   pn,
+                    dimensions:   dim
                 )
+                .environmentObject(authService)
             case .aiAssistant(let question):
                 ChatScreen(initialQuestion: question)
             }
