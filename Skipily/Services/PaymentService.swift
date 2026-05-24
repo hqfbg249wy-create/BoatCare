@@ -134,6 +134,17 @@ final class PaymentService {
             throw fnError
         }
 
+        // Stripe-Mode-Sync: Der Server (Edge Function) gibt den passenden
+        // publishable_key zurück (sk_test_… → pk_test_…, sk_live_… → pk_live_…).
+        // Wir setzen den GLOBAL falls er sich vom hardcoded App-Key unterscheidet —
+        // sonst läuft die App im Live-Mode während die Edge Function Test-Intents
+        // erzeugt: "No such payment_intent: pi_…".
+        if !paymentResponse.publishableKey.isEmpty,
+           paymentResponse.publishableKey != StripeAPI.defaultPublishableKey {
+            AppLog.warning("Stripe-Mode-Sync: switching publishable key from \(String(StripeAPI.defaultPublishableKey.prefix(8)))… to \(String(paymentResponse.publishableKey.prefix(8)))…")
+            StripeAPI.defaultPublishableKey = paymentResponse.publishableKey
+        }
+
         var config = PaymentSheet.Configuration()
         config.merchantDisplayName = StripeConfig.merchantDisplayName
         config.allowsDelayedPaymentMethods = false
