@@ -16,6 +16,25 @@ const categoryLabels = {
 
 const emptyItem = { name: '', category: 'engine', manufacturer: '', model: '', serial_number: '', installation_date: '', warranty_expiry: '', maintenance_cycle_years: '', last_maintenance_date: '', notes: '', boat_id: '' }
 
+// Sail-Measurement: minimaler Pflicht-Datensatz pro Segeltyp.
+// Detaillierte Maße können in der iOS-App ergänzt werden.
+const SAIL_TYPES = [
+  { value: 'grosssegel', label: 'Großsegel',  fields: ['gs_p', 'gs_e'] },
+  { value: 'vorsegel',   label: 'Vorsegel',   fields: ['vs_i', 'vs_j', 'vs_vl'] },
+  { value: 'gennaker',   label: 'Gennaker',   fields: ['gk_luff_length', 'gk_foot_length'] },
+  { value: 'code0',      label: 'Code 0',     fields: ['gk_luff_length', 'gk_foot_length'] },
+]
+const SAIL_FIELD_LABELS = {
+  gs_p: 'P (Mastlänge, m)',
+  gs_e: 'E (Baumlänge, m)',
+  vs_i: 'I (Vorstaglänge, m)',
+  vs_j: 'J (Vorstagansatz, m)',
+  vs_vl: 'Vorliek (m)',
+  gk_luff_length: 'Vorliek (m)',
+  gk_foot_length: 'Unterliek (m)',
+}
+const emptySail = { sail_type: 'grosssegel', sail_number: '', notes: '', gs_p: '', gs_e: '', vs_i: '', vs_j: '', vs_vl: '', gk_luff_length: '', gk_foot_length: '' }
+
 export default function Equipment() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -27,6 +46,7 @@ export default function Equipment() {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyItem)
   const [saving, setSaving] = useState(false)
+  const [sailForm, setSailForm] = useState(emptySail)
 
   useEffect(() => { if (user) loadData() }, [user])
 
@@ -72,9 +92,10 @@ export default function Equipment() {
       boat_id: selectedBoat || (boats[0]?.id || ''),
       category: filterCat || emptyItem.category,
     })
+    setSailForm(emptySail)
     setEditing('new')
   }
-  function startEdit(item) {
+  async function startEdit(item) {
     setForm({
       name: item.name || '', category: item.category || 'other', manufacturer: item.manufacturer || '',
       model: item.model || '', serial_number: item.serial_number || '',
@@ -83,6 +104,13 @@ export default function Equipment() {
       last_maintenance_date: item.last_maintenance_date || '', notes: item.notes || '',
       boat_id: item.boat_id || ''
     })
+    // Bei Segel-Equipment: existierendes Maßblatt mitladen
+    if (item.category === 'sails') {
+      const { data: sail } = await supabase.from('sail_measurements').select('*').eq('equipment_id', item.id).maybeSingle()
+      setSailForm(sail ? { ...emptySail, ...sail } : emptySail)
+    } else {
+      setSailForm(emptySail)
+    }
     setEditing(item.id)
   }
 
@@ -118,13 +146,44 @@ export default function Equipment() {
     }
 
     try {
+      let savedEquipmentId = editing === 'new' ? null : editing
       if (editing === 'new') {
-        const { error } = await supabase.from('equipment').insert(payload)
+        const { data: saved, error } = await supabase.from('equipment').insert(payload).select('id').single()
         if (error) throw error
+        savedEquipmentId = saved.id
       } else {
         const { error } = await supabase.from('equipment').update(payload).eq('id', editing)
         if (error) throw error
       }
+
+      // Bei Segeln zusätzlich das Maßblatt speichern
+      if (form.category === 'sails' && savedEquipmentId) {
+        const num = v => (v === '' || v === undefined || v === null) ? null : parseFloat(v)
+        const sailPayload = {
+          equipment_id: savedEquipmentId,
+          sail_type:    sailForm.sail_type,
+          sail_number:  sailForm.sail_number || '',
+          notes:        sailForm.notes || '',
+          gs_p: num(sailForm.gs_p), gs_e: num(sailForm.gs_e),
+          vs_i: num(sailForm.vs_i), vs_j: num(sailForm.vs_j), vs_vl: num(sailForm.vs_vl),
+          gk_luff_length: num(sailForm.gk_luff_length),
+          gk_foot_length: num(sailForm.gk_foot_length),
+        }
+        // Existiert bereits? → UPDATE, sonst INSERT
+        const { data: existing } = await supabase
+          .from('sail_measurements')
+          .select('id')
+          .eq('equipment_id', savedEquipmentId)
+          .maybeSingle()
+        if (existing) {
+          const { error: sErr } = await supabase.from('sail_measurements').update(sailPayload).eq('id', existing.id)
+          if (sErr) throw sErr
+        } else {
+          const { error: sErr } = await supabase.from('sail_measurements').insert(sailPayload)
+          if (sErr) throw sErr
+        }
+      }
+
       setEditing(null)
       await loadData()
     } catch (err) {
@@ -213,6 +272,54 @@ export default function Equipment() {
                   </div>
                   <div className="form-group"><label>Notizen</label>
                     <textarea rows={3} value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} /></div>
+
+                  {/* ─── Segel-Maßblatt (nur wenn category=sails) ──────── */}
+                  {form.category === 'sails' && (
+                    <div style={{
+                      marginTop: 16, padding: 16,
+                      background: '#f0fdf4', border: '1px solid #bbf7d0',
+                      borderRadius: 12,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                        <span style={{ fontSize: 20 }}>⛵</span>
+                        <strong style={{ color: '#15803d' }}>Segel-Maßblatt</strong>
+                      </div>
+                      <p style={{ fontSize: 13, color: '#475569', marginTop: 0, marginBottom: 14 }}>
+                        Hauptmaße für die Auftragsvergabe an den Segelmacher. Weitere
+                        Details (Reff-Optionen, UV-Schutz, Farben usw.) lassen sich
+                        in der Skipily-App pflegen.
+                      </p>
+
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>Segeltyp</label>
+                          <select value={sailForm.sail_type} onChange={e => setSailForm({...sailForm, sail_type: e.target.value})}>
+                            {SAIL_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label>Segelnummer</label>
+                          <input value={sailForm.sail_number} onChange={e => setSailForm({...sailForm, sail_number: e.target.value})} placeholder="z.B. GER-12345" />
+                        </div>
+                      </div>
+
+                      {/* Dynamische Felder je Segeltyp */}
+                      <div className="form-row">
+                        {(SAIL_TYPES.find(t => t.value === sailForm.sail_type)?.fields || []).map(fieldKey => (
+                          <div className="form-group" key={fieldKey}>
+                            <label>{SAIL_FIELD_LABELS[fieldKey] || fieldKey}</label>
+                            <input
+                              type="number" step="0.01"
+                              value={sailForm[fieldKey] || ''}
+                              onChange={e => setSailForm({...sailForm, [fieldKey]: e.target.value})}
+                              placeholder="0.00"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="modal-footer">
                     <button type="button" className="btn-secondary" onClick={() => setEditing(null)}>Abbrechen</button>
                     <button type="submit" className="btn-primary" disabled={saving}><Save size={16} /> {saving ? 'Speichern...' : 'Speichern'}</button>

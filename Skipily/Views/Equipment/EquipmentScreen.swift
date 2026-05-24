@@ -276,7 +276,21 @@ struct EquipmentScreen: View {
                         Image(systemName: "sparkles")
                     }
                     .accessibilityLabel("equipment.suggestions_title".loc)
-                    Button { showingCategoryPicker = true } label: { Image(systemName: "plus") }
+                    Button {
+                        // Wenn die Liste schon nach einer Kategorie gefiltert ist,
+                        // den CategoryPicker überspringen und direkt das Formular
+                        // mit dieser Kategorie vorbelegt öffnen.
+                        if let preselected = selectedCategory {
+                            if preselected.lowercased() == "sails" {
+                                showingNewSailFlow = true
+                            } else {
+                                pickedCategory = preselected
+                                showingAdd = true
+                            }
+                        } else {
+                            showingCategoryPicker = true
+                        }
+                    } label: { Image(systemName: "plus") }
                 }
             }
         }
