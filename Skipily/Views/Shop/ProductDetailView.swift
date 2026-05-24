@@ -15,6 +15,8 @@ struct ProductDetailView: View {
 
     @State private var quantity = 1
     @State private var showAddedToast = false
+    @State private var showAfterCartSheet = false
+    @State private var navigateToCart = false
     @State private var selectedImageIndex = 0
     @State private var similarProducts: [Product] = []
     @State private var providerProducts: [Product] = []
@@ -142,6 +144,15 @@ struct ProductDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(for: Product.self) { prod in
             ProductDetailView(product: prod)
+        }
+        .navigationDestination(isPresented: $navigateToCart) {
+            CartView()
+                .environment(cartManager)
+        }
+        .sheet(isPresented: $showAfterCartSheet) {
+            afterCartSheet
+                .presentationDetents([.fraction(0.45), .medium])
+                .presentationDragIndicator(.visible)
         }
         .overlay(alignment: .top) {
             if showAddedToast {
@@ -464,12 +475,8 @@ struct ProductDetailView: View {
 
             Button {
                 cartManager.addToCart(product: product, quantity: quantity)
-                withAnimation(.spring(duration: 0.3)) {
-                    showAddedToast = true
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    withAnimation { showAddedToast = false }
-                }
+                // Statt nur Toast: Bottom-Sheet mit klaren nächsten Schritten
+                showAfterCartSheet = true
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "cart.badge.plus")
@@ -485,6 +492,74 @@ struct ProductDetailView: View {
             .disabled(!product.isAvailable)
         }
         .padding(.bottom, 20)
+    }
+
+    // MARK: - After-Cart Sheet (was tun nach In-den-Warenkorb)
+
+    private var afterCartSheet: some View {
+        VStack(spacing: 16) {
+            // Header
+            VStack(spacing: 6) {
+                Image(systemName: "cart.fill.badge.plus")
+                    .font(.system(size: 36))
+                    .foregroundStyle(AppColors.success)
+                Text("Im Warenkorb")
+                    .font(.title3).fontWeight(.bold)
+                Text("\(quantity) × \(product.name)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+            }
+            .padding(.top, 8)
+
+            // Aktionen
+            VStack(spacing: 10) {
+                // Primär: Jetzt zum Warenkorb / bezahlen
+                Button {
+                    showAfterCartSheet = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        navigateToCart = true
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "cart.fill")
+                        Text("Zum Warenkorb")
+                            .fontWeight(.semibold)
+                        Spacer()
+                        Text("\(cartManager.itemCount) Artikel")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.85))
+                        Image(systemName: "chevron.right")
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(height: 52)
+                    .background(AppColors.primary)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+
+                // Sekundär: Weiter einkaufen → Sheet schließt
+                Button {
+                    showAfterCartSheet = false
+                } label: {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                        Text("Weiter einkaufen")
+                            .fontWeight(.medium)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(Color(.systemGray6))
+                    .foregroundStyle(.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+            }
+            .padding(.horizontal, 16)
+
+            Spacer(minLength: 4)
+        }
+        .padding(.bottom, 16)
     }
 
     // MARK: - Similar Products

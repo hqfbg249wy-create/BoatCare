@@ -110,10 +110,29 @@ final class PaymentService {
             ]
         )
 
-        let paymentResponse: PaymentIntentResponse = try await client.functions.invoke(
-            "create-payment-intent",
-            options: .init(body: requestBody)
-        )
+        let paymentResponse: PaymentIntentResponse
+        do {
+            paymentResponse = try await client.functions.invoke(
+                "create-payment-intent",
+                options: .init(body: requestBody)
+            )
+        } catch let fnError as FunctionsError {
+            // Edge Function hat einen Response gegeben, aber non-2xx.
+            // Body enthält bei uns ein JSON { error: "Klartext", diag: {…} }.
+            // Wir parsen das und werfen einen aussagekräftigen Fehler.
+            if case let .httpError(_, data) = fnError {
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let msg  = json["error"] as? String {
+                    AppLog.error("create-payment-intent: \(msg). Diag: \(json["diag"] ?? "n/a")")
+                    throw NSError(
+                        domain: "Skipily.Checkout",
+                        code: 500,
+                        userInfo: [NSLocalizedDescriptionKey: msg]
+                    )
+                }
+            }
+            throw fnError
+        }
 
         var config = PaymentSheet.Configuration()
         config.merchantDisplayName = StripeConfig.merchantDisplayName
