@@ -58,22 +58,42 @@ serve(async (req: Request) => {
       .eq("id", user.id)
       .single();
 
-    if (profile?.stripe_customer_id) {
-      customerId = profile.stripe_customer_id;
-    } else {
-      // Create Stripe customer
+    // Helper: legt neuen Stripe-Customer an + speichert ID in der DB
+    const createAndStoreCustomer = async (): Promise<string> => {
       const customer = await stripe.customers.create({
         email: user.email || profile?.email,
-        name: profile?.full_name || undefined,
+        name:  profile?.full_name || undefined,
         metadata: { supabase_user_id: user.id },
       });
-      customerId = customer.id;
-
-      // Save customer ID to profile
       await supabase
         .from("profiles")
-        .update({ stripe_customer_id: customerId })
+        .update({ stripe_customer_id: customer.id })
         .eq("id", user.id);
+      return customer.id;
+    };
+
+    if (profile?.stripe_customer_id) {
+      // Existierende ID ist möglicherweise verwaist (Test/Live-Mix,
+      // Customer in Stripe gelöscht, Account-Wechsel etc.) — wir verifizieren
+      // sie aktiv und legen bei "No such customer" einen neuen an.
+      try {
+        const existing = await stripe.customers.retrieve(profile.stripe_customer_id);
+        if ((existing as { deleted?: boolean }).deleted) {
+          customerId = await createAndStoreCustomer();
+        } else {
+          customerId = profile.stripe_customer_id;
+        }
+      } catch (e) {
+        const code = (e as { code?: string })?.code;
+        if (code === "resource_missing") {
+          console.warn(`Stripe-Customer ${profile.stripe_customer_id} existiert nicht mehr — lege neuen an`);
+          customerId = await createAndStoreCustomer();
+        } else {
+          throw e;
+        }
+      }
+    } else {
+      customerId = await createAndStoreCustomer();
     }
 
     // Create ephemeral key for the customer
@@ -158,6 +178,8 @@ serve(async (req: Request) => {
       friendly = "Provider hat eine Stripe-Account-ID die in deinem Stripe-Account nicht existiert. Test- vs Live-Modus verwechselt?";
     } else if (diag.message?.includes("account") && diag.message?.includes("transfer")) {
       friendly = "Stripe-Connect-Konto des Providers ist nicht für Transfers freigeschaltet.";
+    } else if (diag.code === "resource_missing" && diag.message?.includes("customer")) {
+      friendly = "Stripe-Customer in der DB ist verwaist (vermutlich Test/Live-Mode-Wechsel). Der nächste Checkout-Versuch legt automatisch einen neuen an.";
     }
 
     return new Response(
