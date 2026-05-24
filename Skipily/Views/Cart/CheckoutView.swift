@@ -553,7 +553,27 @@ struct CheckoutView: View {
 
         case .failed(let error):
             try? await PaymentService.shared.failPayment(orderIds: orderIds)
-            errorMessage = "Zahlung fehlgeschlagen: \(error.localizedDescription)"
+            // Stripe-iOS verpackt den echten Fehler in NSError.userInfo. Wir
+            // extrahieren so viel wie möglich, damit der User (und wir) sehen
+            // was wirklich schief lief — sonst kommt nur "Unerwarteter Fehler".
+            let ns = error as NSError
+            let info = ns.userInfo
+            var parts: [String] = [error.localizedDescription]
+            if let stripeMsg = info["com.stripe.lib:ErrorMessageKey"] as? String, !stripeMsg.isEmpty {
+                parts.append(stripeMsg)
+            }
+            if let stripeCode = info["com.stripe.lib:ErrorCodeKey"] as? String, !stripeCode.isEmpty {
+                parts.append("(Code: \(stripeCode))")
+            }
+            if let httpStatus = info["com.stripe.lib:HTTPStatusCodeKey"] as? Int {
+                parts.append("HTTP \(httpStatus)")
+            }
+            if let declineCode = info["com.stripe.lib:DeclineCodeKey"] as? String, !declineCode.isEmpty {
+                parts.append("Ablehnung: \(declineCode)")
+            }
+            // Vollständige userInfo ins Log für Diagnose
+            AppLog.error("PaymentSheet failed — domain=\(ns.domain), code=\(ns.code), userInfo=\(info)")
+            errorMessage = "Zahlung fehlgeschlagen: " + parts.joined(separator: " · ")
         }
     }
 }

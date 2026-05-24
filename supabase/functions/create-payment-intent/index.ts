@@ -122,16 +122,37 @@ serve(async (req: Request) => {
       },
     };
 
-    // If there's a single provider with a connected account, use direct transfer
+    // If there's a single provider with a connected account, use direct transfer.
+    // Defensiv: wir prüfen ob der Connect-Account in Stripe tatsächlich existiert
+    // (Test/Live-Wechsel oder gelöschter Account würden sonst die Zahlung
+    // mit "destination account does not exist" abschießen).
     if (orders && orders.length === 1) {
       const order = orders[0];
       const stripeAccountId = (order as any).service_providers?.stripe_account_id;
       if (stripeAccountId) {
-        const transferAmount = Math.round((order.total - (order.commission_amount || 0)) * 100);
-        paymentIntentParams.transfer_data = {
-          destination: stripeAccountId,
-          amount: transferAmount,
-        };
+        let accountValid = false;
+        try {
+          const acct = await stripe.accounts.retrieve(stripeAccountId);
+          accountValid = (acct as { charges_enabled?: boolean }).charges_enabled === true;
+          if (!accountValid) {
+            console.warn(`Connect-Account ${stripeAccountId} existiert, aber charges_enabled=false → ohne Transfer fortsetzen`);
+          }
+        } catch (e) {
+          const code = (e as { code?: string })?.code;
+          if (code === "account_invalid" || code === "resource_missing") {
+            console.warn(`Connect-Account ${stripeAccountId} ungültig (${code}) → ohne Transfer fortsetzen`);
+          } else {
+            console.warn(`Connect-Account-Check failed: ${(e as Error).message} → ohne Transfer fortsetzen`);
+          }
+        }
+
+        if (accountValid) {
+          const transferAmount = Math.round((order.total - (order.commission_amount || 0)) * 100);
+          paymentIntentParams.transfer_data = {
+            destination: stripeAccountId,
+            amount: transferAmount,
+          };
+        }
       }
     }
 
