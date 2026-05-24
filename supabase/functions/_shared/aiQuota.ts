@@ -6,26 +6,21 @@
 // Quoten:
 //   plus            → Skipily Plus / Family / Fleet / Enterprise → unbegrenzt
 //   provider_quota  → Provider-Pool (für provider-initiierte Calls; aktuell noch ungenutzt)
-//   free            → 2 Calls/Monat für Bootseigner, NUR für chat-Feature
+//   free            → 10 Calls/Monat — gemeinsamer Topf für chat, suggest,
+//                     photo. Wenn aufgebraucht → Upgrade-Hint im Response.
 //
-// Plus-Only Features:
-//   photo_analysis      — Schadens-Fotos analysieren
-//   suggest_equipment   — Ausrüstungsvorschläge
-//   → diese verbrauchen IMMER aus Plus, niemals aus Free-Tier
-//
-// Features die Free dürfen:
-//   chat                → 2/M frei
-//   translate_*         → Skipily-intern, kein User-Quota
+// Features die KEIN User-Quota verbrauchen:
+//   translate_*         → Skipily-intern, läuft immer durch
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const FREE_TIER_LIMIT = 5;
+const FREE_TIER_LIMIT = 10;
 
 // Welche Features sind Plus-exklusiv (keine Free-Tier-Option)?
-const PLUS_ONLY_FEATURES = new Set([
-  "photo_analysis",
-  "suggest_equipment",
-]);
+// Bewusst LEER — Free-User dürfen jedes Feature im Limit ihres Pools nutzen.
+// Wenn Photo-Analyse oder Suggest später teurer wird (wegen Vision-Tokens),
+// kann hier wieder restriktiv werden.
+const PLUS_ONLY_FEATURES = new Set<string>();
 
 export interface QuotaCheckResult {
   allowed: boolean;

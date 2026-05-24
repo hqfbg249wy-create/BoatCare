@@ -5,10 +5,11 @@ import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Fil
 import { useNavigate } from 'react-router-dom'
 import { buildShopQuery, buildServiceQuery, buildAIQuestion } from '../lib/equipmentSearch'
 
-const categories = ['engine', 'electrical', 'navigation', 'safety', 'communication', 'rigging', 'hull', 'deck', 'anchor', 'other']
+const categories = ['engine', 'electrical', 'navigation', 'safety', 'communication', 'rigging', 'sails', 'hull', 'deck', 'anchor', 'other']
 const categoryLabels = {
   engine: 'Motor & Antrieb', electrical: 'Elektrik & Batterie', navigation: 'Navigation & Elektronik',
   safety: 'Sicherheit', communication: 'Kommunikation', rigging: 'Rigg & Takelage',
+  sails: 'Segel & Tuch',
   hull: 'Rumpf & Unterwasser', deck: 'Deck & Beschlaege', anchor: 'Anker & Kette', other: 'Sonstiges'
 }
 
@@ -63,7 +64,16 @@ export default function Equipment() {
 
   const boatName = (id) => boats.find(b => b.id === id)?.name || ''
 
-  function startNew() { setForm({ ...emptyItem, boat_id: selectedBoat || (boats[0]?.id || '') }); setEditing('new') }
+  function startNew() {
+    // Kategorie aus dem aktiven Filter übernehmen, damit man nicht
+    // doppelt klicken muss (Filter setzt → "+ Neu" → wieder dropdown).
+    setForm({
+      ...emptyItem,
+      boat_id: selectedBoat || (boats[0]?.id || ''),
+      category: filterCat || emptyItem.category,
+    })
+    setEditing('new')
+  }
   function startEdit(item) {
     setForm({
       name: item.name || '', category: item.category || 'other', manufacturer: item.manufacturer || '',
@@ -79,32 +89,55 @@ export default function Equipment() {
   async function saveItem(e) {
     e.preventDefault()
     setSaving(true)
-    const payload = { ...form }
-    if (payload.maintenance_cycle_years) payload.maintenance_cycle_years = parseInt(payload.maintenance_cycle_years) || null
-    if (!payload.boat_id) { alert('Bitte ein Boot waehlen'); setSaving(false); return }
 
-    // Compute next_maintenance_date
+    // Leere Strings → null für optionale Felder (DB akzeptiert kein '' bei date/int)
+    const nullify = v => (v === '' || v === undefined) ? null : v
+    const payload = {
+      name:                     form.name.trim(),
+      category:                 form.category,
+      boat_id:                  form.boat_id,
+      manufacturer:             nullify(form.manufacturer),
+      model:                    nullify(form.model),
+      serial_number:            nullify(form.serial_number),
+      installation_date:        nullify(form.installation_date),
+      warranty_expiry:          nullify(form.warranty_expiry),
+      maintenance_cycle_years:  form.maintenance_cycle_years ? parseInt(form.maintenance_cycle_years) || null : null,
+      last_maintenance_date:    nullify(form.last_maintenance_date),
+      notes:                    nullify(form.notes),
+    }
+
+    if (!payload.boat_id) { alert('Bitte ein Boot wählen'); setSaving(false); return }
+
+    // Nächsten Wartungstermin berechnen
     if (payload.last_maintenance_date && payload.maintenance_cycle_years) {
       const d = new Date(payload.last_maintenance_date)
-      d.setFullYear(d.getFullYear() + (payload.maintenance_cycle_years || 1))
+      d.setFullYear(d.getFullYear() + payload.maintenance_cycle_years)
       payload.next_maintenance_date = d.toISOString().slice(0, 10)
+    } else {
+      payload.next_maintenance_date = null
     }
 
     try {
       if (editing === 'new') {
-        await supabase.from('equipment').insert(payload)
+        const { error } = await supabase.from('equipment').insert(payload)
+        if (error) throw error
       } else {
-        await supabase.from('equipment').update(payload).eq('id', editing)
+        const { error } = await supabase.from('equipment').update(payload).eq('id', editing)
+        if (error) throw error
       }
       setEditing(null)
       await loadData()
-    } catch (err) { alert('Fehler: ' + err.message) }
+    } catch (err) {
+      console.error('Equipment speichern Fehler:', err)
+      alert('Fehler beim Speichern: ' + (err.message || JSON.stringify(err)))
+    }
     setSaving(false)
   }
 
   async function deleteItem(id) {
-    if (!confirm('Geraet wirklich loeschen?')) return
-    await supabase.from('equipment').delete().eq('id', id)
+    if (!confirm('Gerät wirklich löschen?')) return
+    const { error } = await supabase.from('equipment').delete().eq('id', id)
+    if (error) { alert('Fehler beim Löschen: ' + error.message); return }
     await loadData()
   }
 
