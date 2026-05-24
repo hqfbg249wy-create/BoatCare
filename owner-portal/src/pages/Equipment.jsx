@@ -25,13 +25,13 @@ const SAIL_TYPES = [
   { value: 'code0',      label: 'Code 0',     fields: ['gk_luff_length', 'gk_foot_length'] },
 ]
 const SAIL_FIELD_LABELS = {
-  gs_p: 'P (Mastlänge, m)',
-  gs_e: 'E (Baumlänge, m)',
-  vs_i: 'I (Vorstaglänge, m)',
-  vs_j: 'J (Vorstagansatz, m)',
-  vs_vl: 'Vorliek (m)',
-  gk_luff_length: 'Vorliek (m)',
-  gk_foot_length: 'Unterliek (m)',
+  gs_p: 'P (Mastlänge, mm)',
+  gs_e: 'E (Baumlänge, mm)',
+  vs_i: 'I (Vorstaglänge, mm)',
+  vs_j: 'J (Vorstagansatz, mm)',
+  vs_vl: 'Vorliek (mm)',
+  gk_luff_length: 'Vorliek (mm)',
+  gk_foot_length: 'Unterliek (mm)',
 }
 const emptySail = { sail_type: 'grosssegel', sail_number: '', notes: '', gs_p: '', gs_e: '', vs_i: '', vs_j: '', vs_vl: '', gk_luff_length: '', gk_foot_length: '' }
 
@@ -309,10 +309,10 @@ export default function Equipment() {
                           <div className="form-group" key={fieldKey}>
                             <label>{SAIL_FIELD_LABELS[fieldKey] || fieldKey}</label>
                             <input
-                              type="number" step="0.01"
+                              type="number" step="1" min="0"
                               value={sailForm[fieldKey] || ''}
                               onChange={e => setSailForm({...sailForm, [fieldKey]: e.target.value})}
-                              placeholder="0.00"
+                              placeholder="z.B. 16050"
                             />
                           </div>
                         ))}
