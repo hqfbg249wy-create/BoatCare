@@ -140,8 +140,10 @@ final class PaymentService {
         // sonst läuft die App im Live-Mode während die Edge Function Test-Intents
         // erzeugt: "No such payment_intent: pi_…".
         if !paymentResponse.publishableKey.isEmpty,
-           paymentResponse.publishableKey != StripeAPI.defaultPublishableKey {
-            AppLog.warning("Stripe-Mode-Sync: switching publishable key from \(String(StripeAPI.defaultPublishableKey.prefix(8)))… to \(String(paymentResponse.publishableKey.prefix(8)))…")
+           paymentResponse.publishableKey != (StripeAPI.defaultPublishableKey ?? "") {
+            let oldPrefix = String((StripeAPI.defaultPublishableKey ?? "(nil)").prefix(8))
+            let newPrefix = String(paymentResponse.publishableKey.prefix(8))
+            AppLog.warning("Stripe-Mode-Sync: switching publishable key from \(oldPrefix)… to \(newPrefix)…")
             StripeAPI.defaultPublishableKey = paymentResponse.publishableKey
         }
 
