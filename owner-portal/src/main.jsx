@@ -1,10 +1,7 @@
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+// StrictMode entfernt: in Capacitor/Android WebView führt der doppelte
+// Effect-Aufruf zu Race Conditions beim Datenladen (Provider mehrfach geladen).
+createRoot(document.getElementById('root')).render(<App />)

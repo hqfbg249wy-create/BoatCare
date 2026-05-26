@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Heart, MapPin, Phone, Mail, Globe, Star, Navigation, Trash2, Tag, RefreshCw } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Heart, MapPin, Phone, Mail, Globe, Star, Navigation, Tag, RefreshCw, ChevronRight } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 
 const categoryConfig = {
   werkstatt: { icon: '🔧', label: 'Werkstatt', color: '#f97316' },
@@ -25,6 +25,7 @@ function getCat(category) {
 
 export default function Favorites() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [providers, setProviders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -127,7 +128,8 @@ export default function Favorites() {
           {providers.map(p => {
             const cat = getCat(p.category)
             return (
-              <div key={p.id} className="provider-card">
+              <div key={p.id} className="provider-card provider-card-clickable"
+                onClick={() => navigate(`/provider/${p.id}`)}>
                 <div className="prov-header">
                   {p.logo_url ? (
                     <img src={p.logo_url} alt={p.name} className="prov-logo" />
@@ -149,7 +151,8 @@ export default function Favorites() {
                       </div>
                     )}
                   </div>
-                  <button className="btn-icon btn-danger" onClick={() => removeFavorite(p.id)} title="Favorit entfernen">
+                  <button className="btn-icon btn-danger" title="Favorit entfernen"
+                    onClick={e => { e.stopPropagation(); removeFavorite(p.id) }}>
                     <Heart size={20} fill="#ef4444" color="#ef4444" />
                   </button>
                 </div>
@@ -158,7 +161,7 @@ export default function Favorites() {
                   <div className="prov-address"><MapPin size={14} /> {p.street}{p.street && p.city ? ', ' : ''}{p.city}</div>
                 )}
 
-                <div className="prov-actions">
+                <div className="prov-actions" onClick={e => e.stopPropagation()}>
                   {p.phone && <a href={`tel:${p.phone}`} className="prov-action prov-action-phone"><Phone size={15} /> Anrufen</a>}
                   {p.email && <a href={`mailto:${p.email}`} className="prov-action prov-action-email"><Mail size={15} /> E-Mail</a>}
                   {p.website && (
@@ -176,6 +179,10 @@ export default function Favorites() {
                 {p.current_promotion && (
                   <div className="prov-promo"><Tag size={12} /> {p.current_promotion}</div>
                 )}
+
+                <div className="prov-detail-hint">
+                  Details anzeigen <ChevronRight size={14} />
+                </div>
               </div>
             )
           })}

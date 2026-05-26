@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { User, MapPin, Save, CheckCircle } from 'lucide-react'
+import { User, MapPin, Save, CheckCircle, Shield } from 'lucide-react'
+import MFASetup from '../components/MFASetup'
 
 export default function Profile() {
   const { user, profile, updateProfile } = useAuth()
@@ -36,7 +37,7 @@ export default function Profile() {
 
       <form onSubmit={handleSave}>
         <div className="card">
-          <h2><User size={18} /> Persoenliche Daten</h2>
+          <h2><User size={18} /> Persönliche Daten</h2>
           <div className="form-row">
             <div className="form-group">
               <label>Name</label>
@@ -87,6 +88,11 @@ export default function Profile() {
           </button>
         </div>
       </form>
+
+      <div className="card">
+        <h2><Shield size={18} /> Sicherheit</h2>
+        <MFASetup />
+      </div>
     </div>
   )
 }

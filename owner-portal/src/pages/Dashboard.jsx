@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Ship, Wrench, ShoppingBag, AlertTriangle, CheckCircle, Clock, ChevronRight } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Ship, Wrench, ShoppingBag, AlertTriangle, CheckCircle, MapPin, PlusCircle, Bot, ChevronRight } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 
 export default function Dashboard() {
   const { user, profile } = useAuth()
+  const navigate = useNavigate()
   const [stats, setStats] = useState({ boats: 0, equipment: 0, overdue: 0, dueSoon: 0, orders: 0 })
   const [recentOrders, setRecentOrders] = useState([])
   const [upcomingMaint, setUpcomingMaint] = useState([])
@@ -84,7 +85,26 @@ export default function Dashboard() {
   return (
     <div className="page">
       <h1>Dashboard</h1>
-      <p className="subtitle">{greeting()}, {profile?.full_name || 'Kapitaen'}!</p>
+      <p className="subtitle">{greeting()}, {profile?.full_name || 'Kapitän'}!</p>
+
+      {/* Quick-Action Buttons */}
+      <div className="dash-quick-actions">
+        <button className="dash-qa-btn dash-qa-map" onClick={() => navigate('/map')}>
+          <div className="dash-qa-icon"><MapPin size={28} /></div>
+          <span className="dash-qa-label">In der Nähe</span>
+          <span className="dash-qa-sub">Betriebe auf Karte</span>
+        </button>
+        <button className="dash-qa-btn dash-qa-add" onClick={() => navigate('/services')}>
+          <div className="dash-qa-icon"><PlusCircle size={28} /></div>
+          <span className="dash-qa-label">Betrieb anlegen</span>
+          <span className="dash-qa-sub">Neuen Betrieb eintragen</span>
+        </button>
+        <button className="dash-qa-btn dash-qa-ai" onClick={() => navigate('/chat')}>
+          <div className="dash-qa-icon"><Bot size={28} /></div>
+          <span className="dash-qa-label">KI-Assistent</span>
+          <span className="dash-qa-sub">Fragen & Empfehlungen</span>
+        </button>
+      </div>
 
       <div className="stats-grid">
         <Link to="/boats" className="stat-card stat-card-link">
@@ -93,7 +113,7 @@ export default function Dashboard() {
         </Link>
         <Link to="/equipment" className="stat-card stat-card-link">
           <div className="stat-icon" style={{ background: '#f0fdf4' }}><Wrench size={22} color="#10b981" /></div>
-          <div><span className="stat-value">{stats.equipment}</span><span className="stat-label">Geraete</span></div>
+          <div><span className="stat-value">{stats.equipment}</span><span className="stat-label">Geräte</span></div>
         </Link>
         <Link to="/maintenance" className="stat-card stat-card-link warning">
           <div className="stat-icon" style={{ background: stats.overdue ? '#fef2f2' : '#fffbeb' }}>
@@ -101,7 +121,7 @@ export default function Dashboard() {
           </div>
           <div>
             <span className="stat-value">{stats.overdue + stats.dueSoon}</span>
-            <span className="stat-label">Wartung faellig</span>
+            <span className="stat-label">Wartung fällig</span>
           </div>
         </Link>
         <Link to="/orders" className="stat-card stat-card-link">
@@ -114,7 +134,7 @@ export default function Dashboard() {
         {/* Upcoming Maintenance */}
         <div className="card">
           <div className="card-header">
-            <h2>Wartung faellig</h2>
+            <h2>Wartung fällig</h2>
             <Link to="/maintenance" className="card-link">Alle anzeigen <ChevronRight size={14} /></Link>
           </div>
           {upcomingMaint.length === 0 ? (
@@ -132,7 +152,7 @@ export default function Dashboard() {
                   </div>
                   <div className={`maint-badge ${item.status}`}>
                     {item.status === 'overdue'
-                      ? `${Math.abs(item.daysLeft)} Tage ueberfaellig`
+                      ? `${Math.abs(item.daysLeft)} Tage überfällig`
                       : `In ${item.daysLeft} Tagen`}
                   </div>
                 </div>
@@ -175,6 +195,6 @@ export default function Dashboard() {
 }
 
 function statusLabel(s) {
-  const map = { pending: 'Ausstehend', confirmed: 'Bestaetigt', shipped: 'Versendet', delivered: 'Geliefert', cancelled: 'Storniert', refunded: 'Erstattet' }
+  const map = { pending: 'Ausstehend', confirmed: 'Bestätigt', shipped: 'Versendet', delivered: 'Geliefert', cancelled: 'Storniert', refunded: 'Erstattet' }
   return map[s] || s
 }

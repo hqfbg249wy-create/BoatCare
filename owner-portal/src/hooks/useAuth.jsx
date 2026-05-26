@@ -7,30 +7,37 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [mfaRequired, setMfaRequired] = useState(false)
+  const [mfaFactors, setMfaFactors] = useState([])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser(session.user)
-        loadProfile(session.user.id)
-      } else {
-        setLoading(false)
-      }
-    })
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user)
         loadProfile(session.user.id)
+        refreshMFAStatus()
       } else {
         setUser(null)
         setProfile(null)
+        setMfaRequired(false)
+        setMfaFactors([])
         setLoading(false)
       }
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  async function refreshMFAStatus() {
+    try {
+      const { data } = await supabase.auth.mfa.listFactors()
+      const verified = (data?.totp ?? []).filter(f => f.status === 'verified')
+      setMfaFactors(verified)
+      return verified
+    } catch {
+      return []
+    }
+  }
 
   async function loadProfile(userId) {
     try {
@@ -52,7 +59,46 @@ export function AuthProvider({ children }) {
   async function signIn(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
+    // Check if MFA is required
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    if (aal?.nextLevel === 'aal2' && aal?.currentLevel !== 'aal2') {
+      const { data: factors } = await supabase.auth.mfa.listFactors()
+      setMfaFactors((factors?.totp ?? []).filter(f => f.status === 'verified'))
+      setMfaRequired(true)
+    }
     return data
+  }
+
+  async function verifyMFA(code) {
+    const factor = mfaFactors[0]
+    if (!factor) throw new Error('Kein 2FA-Faktor gefunden')
+    const { data: challenge, error: cErr } = await supabase.auth.mfa.challenge({ factorId: factor.id })
+    if (cErr) throw cErr
+    const { data, error } = await supabase.auth.mfa.verify({ factorId: factor.id, challengeId: challenge.id, code })
+    if (error) throw error
+    setMfaRequired(false)
+    return data
+  }
+
+  async function enrollMFA() {
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Skipily' })
+    if (error) throw error
+    return data
+  }
+
+  async function confirmMFAEnrollment(factorId, code) {
+    const { data: challenge, error: cErr } = await supabase.auth.mfa.challenge({ factorId })
+    if (cErr) throw cErr
+    const { data, error } = await supabase.auth.mfa.verify({ factorId, challengeId: challenge.id, code })
+    if (error) throw error
+    await refreshMFAStatus()
+    return data
+  }
+
+  async function unenrollMFA(factorId) {
+    const { error } = await supabase.auth.mfa.unenroll({ factorId })
+    if (error) throw error
+    await refreshMFAStatus()
   }
 
   async function signUp(email, password, fullName) {
@@ -84,7 +130,12 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, loadProfile, updateProfile }}>
+    <AuthContext.Provider value={{
+      user, profile, loading,
+      mfaRequired, mfaFactors,
+      signIn, signUp, signOut, loadProfile, updateProfile,
+      verifyMFA, enrollMFA, confirmMFAEnrollment, unenrollMFA, refreshMFAStatus
+    }}>
       {children}
     </AuthContext.Provider>
   )
