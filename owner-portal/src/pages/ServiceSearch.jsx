@@ -168,10 +168,34 @@ export default function ServiceSearch() {
 
   if (loading) return <div className="page"><div className="spinner" /></div>
 
+  // Inquiry-Modus: wenn ?inquiry=1 → Banner mit Hinweis
+  const inquiryMode = searchParams.get('inquiry') === '1'
+  const pendingInquiry = inquiryMode ? (() => {
+    try { return JSON.parse(sessionStorage.getItem('pending_inquiry') || 'null') } catch { return null }
+  })() : null
+
   return (
     <div className="page">
       <h1>Service-Suche</h1>
       <p className="subtitle">{filtered.length} Service-Partner{productResults.length > 0 ? ` · ${productResults.length} Produkte` : ''}</p>
+
+      {/* Inquiry-Modus Banner */}
+      {inquiryMode && pendingInquiry && (
+        <div className="inquiry-mode-banner">
+          <div className="inquiry-mode-icon"><Mail size={18} /></div>
+          <div className="inquiry-mode-text">
+            <strong>Anfrage senden</strong>
+            <span>Wähle einen Service-Partner für deine Anfrage – der Text ist bereits vorbereitet.</span>
+          </div>
+          <button className="btn-icon" onClick={() => {
+            sessionStorage.removeItem('pending_inquiry')
+            window.history.replaceState({}, '', '/services')
+            window.location.reload()
+          }}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       <div className="filter-bar">
         <div className="search-input" style={{ maxWidth: 400 }}>
@@ -243,7 +267,7 @@ export default function ServiceSearch() {
                 const services = Array.isArray(p.services) ? p.services.slice(0, 3) : []
 
                 return (
-                  <Link key={p.id} to={`/provider/${p.id}`} className="service-row">
+                  <Link key={p.id} to={`/provider/${p.id}${inquiryMode ? '?inquiry=1' : ''}`} className="service-row">
                     <div className="service-row-logo">
                       {p.logo_url ? (
                         <img src={p.logo_url} alt="" />

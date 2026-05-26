@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Heart, MapPin, Phone, Mail, Globe, Star, Navigation, Tag, Clock, ChevronLeft, ShoppingBag, Wrench, Package } from 'lucide-react'
+import { Heart, MapPin, Phone, Mail, Globe, Star, Navigation, Tag, Clock, ChevronLeft, ShoppingBag, Wrench, Package, Pencil, Trash2, Send, X, MessageSquarePlus } from 'lucide-react'
 
 const categoryConfig = {
   werkstatt: { icon: '🔧', label: 'Werkstatt', color: '#f97316' },
@@ -56,6 +56,7 @@ export default function ProviderDetail() {
   const { id } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [provider, setProvider] = useState(null)
   const [products, setProducts] = useState([])
   const [reviews, setReviews] = useState([])
@@ -64,15 +65,47 @@ export default function ProviderDetail() {
   const [userLocation, setUserLocation] = useState(null)
   const [distance, setDistance] = useState(null)
   const [servicePrompt, setServicePrompt] = useState(null) // { label, query }
+  // Reviews
+  const [myReview, setMyReview] = useState(null)      // eigene vorhandene Bewertung
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewHover, setReviewHover] = useState(0)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewSaving, setReviewSaving] = useState(false)
+  // Inquiry state
+  const [showInquiryForm, setShowInquiryForm] = useState(false)
+  const [inquirySubject, setInquirySubject] = useState('')
+  const [inquiryMessage, setInquiryMessage] = useState('')
+  const [inquiryBoatId, setInquiryBoatId] = useState('')
+  const [inquiryNotes, setInquiryNotes] = useState('')
+  const [inquirySaving, setInquirySaving] = useState(false)
+  const [boats, setBoats] = useState([])
 
   useEffect(() => {
-    if (user && id) loadProvider()
+    if (user && id) { loadProvider(); loadBoats() }
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(pos => {
         setUserLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude })
       }, () => {})
     }
   }, [user, id])
+
+  // ?inquiry=1 → Anfrage-Formular auto-öffnen mit Daten aus sessionStorage
+  useEffect(() => {
+    if (searchParams.get('inquiry') !== '1') return
+    try {
+      const pending = JSON.parse(sessionStorage.getItem('pending_inquiry') || 'null')
+      if (pending) {
+        setInquirySubject(pending.subject || '')
+        setInquiryMessage(pending.message || '')
+        setInquiryBoatId(pending.boat_id || '')
+        setShowInquiryForm(true)
+        // Nicht löschen — User könnte zurückspringen und anderen Provider wählen
+      }
+    } catch (e) {
+      console.warn('Could not parse pending_inquiry from sessionStorage')
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (userLocation && provider?.latitude && provider?.longitude) {
@@ -86,13 +119,77 @@ export default function ProviderDetail() {
       supabase.from('service_providers').select('*').eq('id', id).single(),
       supabase.from('user_favorites').select('id').eq('user_id', user.id).eq('provider_id', id),
       supabase.from('metashop_products').select('*, product_categories(*)').eq('provider_id', id).eq('is_active', true).limit(6),
-      supabase.from('reviews').select('id, rating, comment, created_at').eq('service_provider_id', id).order('created_at', { ascending: false }),
+      supabase.from('reviews').select('id, rating, comment, created_at, author_id, is_approved, is_reported')
+        .eq('service_provider_id', id).order('created_at', { ascending: false }),
     ])
     setProvider(prov)
     setIsFavorite((favs || []).length > 0)
     setProducts(prods || [])
-    setReviews(revs || [])
+    const allRevs = revs || []
+    setReviews(allRevs)
+    // Eigene Bewertung herausfiltern
+    const own = allRevs.find(r => r.author_id === user.id) || null
+    setMyReview(own)
+    if (own) { setReviewRating(own.rating); setReviewComment(own.comment || '') }
     setLoading(false)
+  }
+
+  async function submitReview() {
+    if (reviewRating === 0) { alert('Bitte wähle eine Sternebewertung.'); return }
+    setReviewSaving(true)
+    try {
+      let savedId = myReview?.id
+
+      if (myReview) {
+        const { error } = await supabase.from('reviews')
+          .update({ rating: reviewRating, comment: reviewComment || null, updated_at: new Date().toISOString() })
+          .eq('id', myReview.id)
+        if (error) throw error
+      } else {
+        const { data, error } = await supabase.from('reviews')
+          .insert({
+            service_provider_id: id,
+            author_id: user.id,
+            rating: reviewRating,
+            comment: reviewComment || null,
+          })
+          .select('id')
+          .single()
+        if (error) throw error
+        savedId = data.id
+      }
+
+      // KI-Moderation im Hintergrund (blockiert UI nicht)
+      if (reviewComment?.trim()) {
+        supabase.functions.invoke('moderate-review', {
+          body: { review_id: savedId, comment: reviewComment, rating: reviewRating }
+        }).then(({ data: mod }) => {
+          if (mod?.flagged) {
+            // Hinweis anzeigen wenn Bewertung zur Prüfung weitergeleitet wurde
+            setTimeout(() => alert(
+              'Deine Bewertung wurde zur Prüfung weitergeleitet und wird nach Freigabe durch unser Team sichtbar.'
+            ), 300)
+          }
+        }).catch(err => console.warn('Moderation fehlgeschlagen (ignoriert):', err))
+      }
+
+      setShowReviewForm(false)
+      await loadProvider()
+    } catch (err) {
+      alert('Fehler beim Speichern: ' + err.message)
+    }
+    setReviewSaving(false)
+  }
+
+  async function deleteReview() {
+    if (!confirm('Deine Bewertung wirklich löschen?')) return
+    const { error } = await supabase.from('reviews').delete().eq('id', myReview.id)
+    if (error) { alert('Fehler: ' + error.message); return }
+    setMyReview(null)
+    setReviewRating(0)
+    setReviewComment('')
+    setShowReviewForm(false)
+    await loadProvider()
   }
 
   async function handleServiceClick(service) {
@@ -119,6 +216,53 @@ export default function ProviderDetail() {
       await supabase.from('user_favorites').insert({ user_id: user.id, provider_id: id })
       setIsFavorite(true)
     }
+  }
+
+  async function loadBoats() {
+    const { data } = await supabase.from('boats').select('id, name').eq('owner_id', user.id)
+    setBoats(data || [])
+  }
+
+  function openInquiryForm() {
+    setInquirySubject('')
+    setInquiryMessage('')
+    setInquiryBoatId('')
+    setInquiryNotes('')
+    setShowInquiryForm(true)
+  }
+
+  async function saveOrSendInquiry(send) {
+    if (!inquirySubject.trim() || !inquiryMessage.trim()) {
+      alert('Bitte Betreff und Nachricht ausfüllen.')
+      return
+    }
+    setInquirySaving(true)
+    try {
+      const payload = {
+        owner_id: user.id,
+        provider_id: id,
+        boat_id: inquiryBoatId || null,
+        subject: inquirySubject.trim(),
+        message: inquiryMessage.trim(),
+        owner_notes: inquiryNotes.trim() || null,
+        status: send ? 'sent' : 'draft',
+      }
+      const { error } = await supabase.from('service_inquiries').insert(payload)
+      if (error) throw error
+      setShowInquiryForm(false)
+      // Pending-Inquiry-Kontext aufräumen (war von Equipment-Anfrage gesetzt)
+      sessionStorage.removeItem('pending_inquiry')
+      if (send) {
+        alert(`Anfrage wurde an ${provider.name} gesendet!`)
+        // Beim Senden direkt zur Anfragen-Übersicht navigieren
+        setTimeout(() => navigate('/inquiries'), 100)
+      } else {
+        alert('Anfrage als Entwurf gespeichert. Du kannst sie unter „Anfragen" jederzeit bearbeiten und senden.')
+      }
+    } catch (err) {
+      alert('Fehler: ' + err.message)
+    }
+    setInquirySaving(false)
   }
 
   if (loading) return <div className="page"><div className="spinner" /></div>
@@ -214,6 +358,10 @@ export default function ProviderDetail() {
             <span>E-Mail</span>
           </a>
         )}
+        <button className="pd-contact-btn pd-btn-inquiry" onClick={openInquiryForm}>
+          <MessageSquarePlus size={22} />
+          <span>Anfrage</span>
+        </button>
       </div>
 
       {/* Promotion */}
@@ -319,20 +467,101 @@ export default function ProviderDetail() {
 
       {/* Reviews */}
       <div className="pd-section">
-        <h3><Star size={16} /> Bewertungen{reviews.length > 0 ? ` · ∅ ${(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)}` : ''}</h3>
-        {reviews.length === 0 ? (
-          <p className="pd-empty-reviews">Noch keine Bewertungen.</p>
+        <div className="pd-section-header">
+          <h3>
+            <Star size={16} /> Bewertungen
+            {reviews.length > 0 && ` · ∅ ${(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)}`}
+          </h3>
+          {!myReview && !showReviewForm && (
+            <button className="pd-write-review-btn" onClick={() => setShowReviewForm(true)}>
+              <Pencil size={14} /> Bewertung schreiben
+            </button>
+          )}
+        </div>
+
+        {/* Review-Formular (neu oder bearbeiten) */}
+        {showReviewForm && (
+          <div className="pd-review-form">
+            <div className="pd-review-form-header">
+              <span>{myReview ? 'Bewertung bearbeiten' : 'Neue Bewertung'}</span>
+              <button className="btn-icon" onClick={() => setShowReviewForm(false)}><X size={16} /></button>
+            </div>
+
+            {/* Sterne-Auswahl */}
+            <div className="pd-star-picker">
+              {[1,2,3,4,5].map(i => (
+                <button key={i} className="pd-star-btn"
+                  onMouseEnter={() => setReviewHover(i)}
+                  onMouseLeave={() => setReviewHover(0)}
+                  onClick={() => setReviewRating(i)}>
+                  <Star size={32}
+                    fill={(reviewHover || reviewRating) >= i ? '#f59e0b' : 'none'}
+                    color={(reviewHover || reviewRating) >= i ? '#f59e0b' : '#cbd5e1'}
+                  />
+                </button>
+              ))}
+              <span className="pd-star-label">
+                {['', 'Mangelhaft', 'Ausreichend', 'Gut', 'Sehr gut', 'Ausgezeichnet'][reviewHover || reviewRating] || 'Bitte wählen'}
+              </span>
+            </div>
+
+            {/* Kommentar */}
+            <textarea
+              className="pd-review-textarea"
+              rows={4}
+              placeholder="Beschreibe deine Erfahrung (optional)..."
+              value={reviewComment}
+              onChange={e => setReviewComment(e.target.value)}
+            />
+
+            <div className="pd-review-form-actions">
+              {myReview && (
+                <button className="pd-review-delete-btn" onClick={deleteReview}>
+                  <Trash2 size={14} /> Löschen
+                </button>
+              )}
+              <button className="pd-review-submit-btn" onClick={submitReview} disabled={reviewSaving || reviewRating === 0}>
+                <Send size={14} /> {reviewSaving ? 'Speichern...' : myReview ? 'Aktualisieren' : 'Abschicken'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Eigene vorhandene Bewertung (wenn kein Formular offen) */}
+        {myReview && !showReviewForm && (
+          <div className="pd-review-card pd-review-mine">
+            <div className="pd-review-header">
+              <div className="pd-review-stars">
+                {[1,2,3,4,5].map(i => (
+                  <Star key={i} size={14} fill={i <= myReview.rating ? '#f59e0b' : 'none'} color={i <= myReview.rating ? '#f59e0b' : '#cbd5e1'} />
+                ))}
+              </div>
+              <span className="pd-review-mine-label">Deine Bewertung</span>
+              <span className="pd-review-date">{new Date(myReview.created_at).toLocaleDateString('de-DE')}</span>
+              <button className="btn-icon" style={{ marginLeft: 'auto' }} onClick={() => setShowReviewForm(true)} title="Bearbeiten">
+                <Pencil size={14} />
+              </button>
+            </div>
+            {myReview.comment && <p className="pd-review-comment">„{myReview.comment}"</p>}
+            {myReview.is_approved === false && (
+              <p style={{ fontSize: 12, color: '#b45309', background: '#fef3c7', borderRadius: 6, padding: '4px 10px', marginTop: 6 }}>
+                ⏳ Wird noch geprüft – nach Freigabe für alle sichtbar
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Alle anderen Bewertungen */}
+        {reviews.filter(r => r.author_id !== user?.id).length === 0 && !myReview ? (
+          <p className="pd-empty-reviews">Noch keine Bewertungen. Sei der Erste!</p>
         ) : (
           <div className="pd-reviews-list">
-            {reviews.map(r => (
+            {reviews.filter(r => r.author_id !== user?.id).map(r => (
               <div key={r.id} className="pd-review-card">
                 <div className="pd-review-header">
                   <div className="pd-review-stars">
                     {[1,2,3,4,5].map(i => (
-                      <Star key={i} size={14}
-                        fill={i <= r.rating ? '#f59e0b' : 'none'}
-                        color={i <= r.rating ? '#f59e0b' : '#cbd5e1'}
-                      />
+                      <Star key={i} size={14} fill={i <= r.rating ? '#f59e0b' : 'none'} color={i <= r.rating ? '#f59e0b' : '#cbd5e1'} />
                     ))}
                   </div>
                   <span className="pd-review-date">
@@ -340,12 +569,73 @@ export default function ProviderDetail() {
                   </span>
                 </div>
                 {r.comment && <p className="pd-review-comment">„{r.comment}"</p>}
-                <div className="pd-review-author">— Eigner</div>
+                <div className="pd-review-author">— Bootsbesitzer</div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* ── Inquiry compose modal ──────────────────────────────────────── */}
+      {showInquiryForm && (
+        <div className="inq-modal-overlay" onClick={() => setShowInquiryForm(false)}>
+          <div className="inq-modal" onClick={e => e.stopPropagation()}>
+            <div className="inq-modal-header">
+              <MessageSquarePlus size={18} color="#3b82f6" />
+              <span>Anfrage an {provider.name}</span>
+              <button className="btn-icon" onClick={() => setShowInquiryForm(false)}><X size={18} /></button>
+            </div>
+            <div className="inq-modal-body">
+              {boats.length > 0 && (
+                <div className="form-group">
+                  <label>Boot (optional)</label>
+                  <select value={inquiryBoatId} onChange={e => setInquiryBoatId(e.target.value)}>
+                    <option value="">— kein Boot angeben —</option>
+                    {boats.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                </div>
+              )}
+              <div className="form-group">
+                <label>Betreff *</label>
+                <input
+                  type="text"
+                  value={inquirySubject}
+                  onChange={e => setInquirySubject(e.target.value)}
+                  placeholder="z. B. Anfrage Winterlager 2025"
+                  maxLength={200}
+                />
+              </div>
+              <div className="form-group">
+                <label>Deine Nachricht *</label>
+                <textarea
+                  rows={6}
+                  value={inquiryMessage}
+                  onChange={e => setInquiryMessage(e.target.value)}
+                  placeholder="Beschreibe dein Anliegen so genau wie möglich…"
+                />
+              </div>
+              <div className="form-group">
+                <label>Private Notizen <span className="form-label-hint">(nur für dich sichtbar)</span></label>
+                <textarea
+                  rows={2}
+                  value={inquiryNotes}
+                  onChange={e => setInquiryNotes(e.target.value)}
+                  placeholder="Eigene Gedanken, Budgetrahmen, Zeitplan…"
+                />
+              </div>
+            </div>
+            <div className="inq-modal-actions">
+              <button className="btn-ghost" onClick={() => setShowInquiryForm(false)}>Abbrechen</button>
+              <button className="btn-secondary" onClick={() => saveOrSendInquiry(false)} disabled={inquirySaving}>
+                <Clock size={14} /> Als Entwurf
+              </button>
+              <button className="btn-primary" onClick={() => saveOrSendInquiry(true)} disabled={inquirySaving}>
+                <Send size={14} /> {inquirySaving ? 'Senden…' : 'Jetzt senden'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

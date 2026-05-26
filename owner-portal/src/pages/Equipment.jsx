@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Filter, ShoppingCart, MapPin, Bot } from 'lucide-react'
+import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Filter, ShoppingCart, MapPin, Bot, Mail } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { buildShopQuery, buildServiceQuery, buildAIQuestion } from '../lib/equipmentSearch'
+import { buildShopQuery, buildServiceQuery, buildAIQuestion, buildInquirySubject, buildInquiryMessage } from '../lib/equipmentSearch'
 import { buildSparePartsParams } from '../lib/sparePartsSearch'
 import SailMeasurementForm, { emptySailForm, sailFormToPayload } from '../components/SailMeasurementForm'
 
@@ -298,6 +298,19 @@ export default function Equipment() {
                       <button className="eq-action-btn eq-action-service" title="Passenden Service in der Nähe finden"
                         onClick={() => navigate(`/services?search=${encodeURIComponent(buildServiceQuery(item))}`)}>
                         <MapPin size={13} /> Service
+                      </button>
+                      <button className="eq-action-btn eq-action-inquiry" title="Anfrage an Service-Partner senden"
+                        onClick={() => {
+                          // Inquiry-Kontext in sessionStorage, damit ProviderDetail die Anfrage vorausfüllt.
+                          sessionStorage.setItem('pending_inquiry', JSON.stringify({
+                            subject: buildInquirySubject(item),
+                            message: buildInquiryMessage(item, boatName(item.boat_id)),
+                            boat_id: item.boat_id,
+                            equipment_id: item.id,
+                          }))
+                          navigate(`/services?inquiry=1&search=${encodeURIComponent(buildServiceQuery(item))}`)
+                        }}>
+                        <Mail size={13} /> Anfrage
                       </button>
                       <button className="eq-action-btn eq-action-ai" title="KI zu diesem Gerät fragen"
                         onClick={() => navigate(`/chat?question=${encodeURIComponent(buildAIQuestion(item, boatName(item.boat_id)))}`)}>
