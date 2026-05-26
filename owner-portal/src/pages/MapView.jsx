@@ -3,6 +3,8 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Heart, Phone, Mail, Globe, Star, Search, X, Navigation, MapPin, Wrench, ChevronRight, Tag, PlusCircle, Bot, Locate, MessageSquarePlus } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { getCurrentLocation } from '../lib/geo'
+import AddBusinessModal from '../components/AddBusinessModal'
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-markercluster'
 import L from 'leaflet'
@@ -218,6 +220,7 @@ export default function MapView() {
   const [selectedProvider, setSelectedProvider] = useState(null)
   const [recentLocations, setRecentLocations] = useState(getRecentLocations())
   const [showRecents, setShowRecents] = useState(false)
+  const [showAddBusiness, setShowAddBusiness] = useState(false)
   const isLoadingRef = useRef(false)
 
   const handleMapMoveEnd = useCallback((lat, lng, zoom) => {
@@ -423,18 +426,20 @@ export default function MapView() {
 
       {/* Quick-Action Buttons – VOR der Karte, kein Leaflet-Konflikt */}
       <div className="map-quick-actions">
-        <button className="map-qa-btn map-qa-locate" onClick={() => {
-          if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-              pos => { setCenter([pos.coords.latitude, pos.coords.longitude]); setMapZoom(13); setMapBounds(null) },
-              () => alert('Standort konnte nicht ermittelt werden.')
-            )
+        <button className="map-qa-btn map-qa-locate" onClick={async () => {
+          try {
+            const loc = await getCurrentLocation()
+            setCenter([loc.lat, loc.lon])
+            setMapZoom(13)
+            setMapBounds(null)
+          } catch (err) {
+            alert('Standort konnte nicht ermittelt werden.\n\n' + (err?.message || ''))
           }
         }}>
           <Locate size={15} />
           <span>Standort</span>
         </button>
-        <button className="map-qa-btn map-qa-add" onClick={() => navigate('/services')}>
+        <button className="map-qa-btn map-qa-add" onClick={() => setShowAddBusiness(true)}>
           <PlusCircle size={15} />
           <span>Betrieb anlegen</span>
         </button>
@@ -547,6 +552,13 @@ export default function MapView() {
           </div>
         )}
       </div>
+
+      {/* Add-Business Modal */}
+      <AddBusinessModal
+        open={showAddBusiness}
+        onClose={() => setShowAddBusiness(false)}
+        onSubmitted={() => { /* Eintrag ist pending – kein direktes Reload nötig */ }}
+      />
     </div>
   )
 }
