@@ -1,127 +1,117 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+/**
+ * Layout-Switch:
+ *   - Capacitor (Android-App) → LayoutMobile (iOS-Style, 5 Tabs, kein Sidebar)
+ *   - Web/Desktop             → klassisches Sidebar-Layout
+ */
+import { Capacitor } from '@capacitor/core'
+import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import {
-  Ship, Wrench, ShoppingCart, Heart, User, LogOut, Map, Mail,
-  LayoutDashboard, ShoppingBag, MessageSquare, ChevronDown,
+  LayoutDashboard, Ship, Wrench, ShoppingBag, ShoppingCart,
+  Heart, User, LogOut, Menu, X, Package, Map, Search, MessageSquare, Mail
 } from 'lucide-react'
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
+import LayoutMobile from './LayoutMobile'
 
-// ─── Bottom-Tab-Bar: matches iOS Skipily app exactly ────────────────────────
-const bottomTabs = [
-  { to: '/',            icon: Map,          label: 'Karte' },
-  { to: '/boats',       icon: Ship,         label: 'Boote' },
-  { to: '/maintenance', icon: Wrench,       label: 'Wartung' },
-  { to: '/shop',        icon: ShoppingCart, label: 'Shop' },
-  { to: '/favorites',   icon: Heart,        label: 'Favoriten' },
-]
-
-// ─── Profil-Dropdown: alles was nicht in den 5 Haupt-Tabs Platz hat ─────────
-const profileMenu = [
-  { to: '/profile',   icon: User,            label: 'Mein Profil' },
-  { to: '/orders',    icon: ShoppingBag,     label: 'Bestellungen' },
+const navItems = [
+  { to: '/', icon: Map, label: 'Karte' },
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/chat',      icon: MessageSquare,   label: 'KI-Assistent' },
+  { to: '/boats', icon: Ship, label: 'Meine Boote' },
+  { to: '/equipment', icon: Package, label: 'Ausrüstung' },
+  { to: '/maintenance', icon: Wrench, label: 'Wartung' },
+  { to: '/shop', icon: ShoppingCart, label: 'Shop' },
+  { to: '/services', icon: Search, label: 'Service-Suche' },
+  { to: '/orders', icon: ShoppingBag, label: 'Bestellungen' },
+  { to: '/favorites', icon: Heart, label: 'Favoriten' },
+  { to: '/inquiries', icon: Mail, label: 'Anfragen' },
+  { to: '/chat', icon: MessageSquare, label: 'KI-Assistent' },
+  { to: '/profile', icon: User, label: 'Mein Profil' },
 ]
 
-export default function Layout() {
+const bottomTabs = [
+  { to: '/', icon: Map, label: 'Karte' },
+  { to: '/boats', icon: Ship, label: 'Boote' },
+  { to: '/maintenance', icon: Wrench, label: 'Wartung' },
+  { to: '/inquiries', icon: Mail, label: 'Anfragen' },
+  { to: '/favorites', icon: Heart, label: 'Favoriten' },
+]
+
+function LayoutDesktop() {
   const { profile, signOut } = useAuth()
-  const navigate = useNavigate()
-  const [profileOpen, setProfileOpen] = useState(false)
-  const profileRef = useRef(null)
-
-  // Click-outside zum Schließen des Profil-Menüs
-  useEffect(() => {
-    function handleClick(e) {
-      if (profileRef.current && !profileRef.current.contains(e.target)) {
-        setProfileOpen(false)
-      }
-    }
-    if (profileOpen) document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [profileOpen])
-
-  const initials = (profile?.full_name || 'Bo')
-    .split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase()
-
-  function goTo(path) {
-    setProfileOpen(false)
-    navigate(path)
-  }
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="layout-ios">
-      {/* ── Topbar ── */}
-      <header className="topbar-ios">
-        <div className="topbar-brand">
-          <img src="/favicon-32.png" alt="" style={{ width: 26, height: 26, borderRadius: 6 }} />
+    <div className="layout">
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-header">
+          <img src="/favicon-32.png" alt="" style={{ width: 28, height: 28, borderRadius: 6 }} />
           <span>Skipily</span>
+          <button className="sidebar-close" onClick={() => setSidebarOpen(false)}>
+            <X size={20} />
+          </button>
         </div>
-        <div className="topbar-actions">
-          <NavLink to="/inquiries" className="topbar-icon-btn" aria-label="Anfragen">
-            <Mail size={20} />
-          </NavLink>
-          <div className="profile-wrap" ref={profileRef}>
-            <button
-              className="profile-trigger"
-              onClick={() => setProfileOpen(o => !o)}
-              aria-label="Profilmenü"
-            >
-              <span className="profile-avatar">{initials}</span>
-              <ChevronDown size={14} />
-            </button>
-            {profileOpen && (
-              <div className="profile-dropdown">
-                <div className="profile-dropdown-header">
-                  <div className="profile-avatar-lg">{initials}</div>
-                  <div>
-                    <div className="profile-name">{profile?.full_name || 'Bootseigner'}</div>
-                    <div className="profile-email">{profile?.email || ''}</div>
-                  </div>
-                </div>
-                <div className="profile-dropdown-divider" />
-                {profileMenu.map(item => (
-                  <button
-                    key={item.to}
-                    className="profile-dropdown-item"
-                    onClick={() => goTo(item.to)}
-                  >
-                    <item.icon size={18} />
-                    <span>{item.label}</span>
-                  </button>
-                ))}
-                <div className="profile-dropdown-divider" />
-                <button
-                  className="profile-dropdown-item danger"
-                  onClick={() => { setProfileOpen(false); signOut() }}
-                >
-                  <LogOut size={18} />
-                  <span>Abmelden</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
 
-      {/* ── Page Content ── */}
-      <main className="content-ios">
-        <Outlet />
+        <nav className="sidebar-nav">
+          {navItems.map(item => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === '/'}
+              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+              onClick={() => setSidebarOpen(false)}
+            >
+              <item.icon size={18} />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="user-name">{profile?.full_name || 'Bootseigner'}</div>
+          <button className="btn-logout" onClick={signOut}>
+            <LogOut size={16} />
+            <span>Abmelden</span>
+          </button>
+        </div>
+      </aside>
+
+      <main className="main-content">
+        <header className="topbar">
+          <button className="hamburger" onClick={() => setSidebarOpen(true)}>
+            <Menu size={24} />
+          </button>
+          <span className="topbar-title">Mein Skipily</span>
+        </header>
+        <div className="content">
+          <Outlet />
+        </div>
       </main>
 
-      {/* ── Bottom Tab Bar (always visible, like iOS) ── */}
-      <nav className="bottom-nav-ios">
+      {/* Bottom tab bar – mobile only (für Browser auf Smartphone) */}
+      <nav className="bottom-nav">
         {bottomTabs.map(tab => (
           <NavLink
             key={tab.to}
             to={tab.to}
             end={tab.to === '/'}
-            className={({ isActive }) => `bottom-nav-item-ios ${isActive ? 'active' : ''}`}
+            className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
           >
-            <tab.icon size={22} strokeWidth={2} />
+            <tab.icon size={22} />
             <span>{tab.label}</span>
           </NavLink>
         ))}
       </nav>
+
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
     </div>
   )
+}
+
+export default function Layout() {
+  // Native Plattform (Capacitor Android) → iOS-Style-Layout
+  // Web/Browser → klassisches Sidebar-Layout
+  if (Capacitor.isNativePlatform()) {
+    return <LayoutMobile />
+  }
+  return <LayoutDesktop />
 }

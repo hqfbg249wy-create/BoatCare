@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Search, X, MapPin, Star, Phone, Mail, Globe, Navigation, Wrench, Heart, ShoppingBag, Tag, ChevronRight } from 'lucide-react'
+import { getCurrentLocation, calcDistance as geoCalcDistance, formatDistance } from '../lib/geo'
 
 const serviceCategories = [
   { key: '', label: 'Alle', icon: '🔍' },
@@ -19,13 +20,7 @@ const serviceCategories = [
   { key: 'versorgung', label: 'Zubehör', icon: '🛒' },
 ]
 
-function calcDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLon = (lon2 - lon1) * Math.PI / 180
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-}
+// calcDistance/formatDistance kommen aus ../lib/geo
 
 export default function ServiceSearch() {
   const { user } = useAuth()
@@ -43,12 +38,11 @@ export default function ServiceSearch() {
 
   useEffect(() => {
     if (user) loadData()
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        pos => setUserLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-        () => {}
-      )
-    }
+    // Capacitor-aware: erfragt native Permissions auf Android,
+    // fällt im Browser auf navigator.geolocation zurück.
+    getCurrentLocation()
+      .then(loc => setUserLocation(loc))
+      .catch(err => console.warn('Geolocation:', err?.message || err))
   }, [user])
 
   async function loadData() {
@@ -156,7 +150,7 @@ export default function ServiceSearch() {
   filtered = filtered.map(p => ({
     ...p,
     _dist: userLocation && p.latitude && p.longitude
-      ? calcDistance(userLocation.lat, userLocation.lon, p.latitude, p.longitude)
+      ? geoCalcDistance(userLocation.lat, userLocation.lon, p.latitude, p.longitude)
       : null,
     _isFav: favorites.has(p.id),
     _productCount: providerProducts[p.id] || 0,
@@ -280,7 +274,7 @@ export default function ServiceSearch() {
                       <div className="service-row-meta">
                         {(p.street || p.city) && <span className="service-row-addr"><MapPin size={12} /> {p.city || p.street}</span>}
                         {p._dist !== null && (
-                          <span className="service-row-dist"><Navigation size={12} /> {p._dist < 1 ? `${Math.round(p._dist * 1000)} m` : `${p._dist.toFixed(1)} km`}</span>
+                          <span className="service-row-dist"><Navigation size={12} /> {formatDistance(p._dist)}</span>
                         )}
                       </div>
                       {services.length > 0 && (
