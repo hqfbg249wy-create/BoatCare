@@ -759,3 +759,19 @@ Ausrüstung unter Boote ergänzen.";
 
 "briefing.pick_provider" = "Service-Betrieb auswählen";
 "chat.photo_upload_failed" = "Upload fehlgeschlagen – Bild tippen zum Wiederholen.";
+
+// MARK: - Spare Parts Search (EquipmentPartsSearchView)
+"parts.section_originals" = "Originalteile";
+"parts.section_derivates" = "1:1 passende Derivate";
+"parts.section_related" = "Weitere passende Ausrüstung";
+"parts.footer_originals" = "Eindeutige 1:1-Treffer über die Artikelnummer.";
+"parts.footer_derivates" = "Gleicher Hersteller und passendes Modell — sollte direkt passen.";
+"parts.footer_related" = "Mögliche Ergänzungen — z. B. Module derselben Produktfamilie oder ähnliche Artikel.";
+"parts.reason_part_match" = "Artikelnummer übereinstimmt";
+"parts.reason_mfg_model_name" = "Hersteller, Modell und Bezeichnung passen";
+"parts.reason_mfg_model" = "Hersteller und Modell passen";
+"parts.reason_product_family" = "Weitere Ausrüstung dieser Produktfamilie";
+"parts.reason_same_mfg" = "Vom selben Hersteller";
+"parts.reason_possible_match" = "Mögliche Ergänzung";
+"parts.reason_dimensions" = "Maße passen";
+"parts.reason_fallback" = "Treffer";

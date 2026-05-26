@@ -756,3 +756,19 @@
 
 "briefing.pick_provider" = "Serviceprovider selecteren";
 "chat.photo_upload_failed" = "Upload mislukt – tik om opnieuw te proberen.";
+
+// MARK: - Spare Parts Search
+"parts.section_originals" = "Originele onderdelen";
+"parts.section_derivates" = "Compatibele onderdelen";
+"parts.section_related" = "Meer compatibele uitrusting";
+"parts.footer_originals" = "Exacte 1:1 overeenkomst op artikelnummer.";
+"parts.footer_derivates" = "Zelfde fabrikant en passend model — zou direct moeten passen.";
+"parts.footer_related" = "Mogelijke aanvullingen — bijv. modules van dezelfde productfamilie of vergelijkbare artikelen.";
+"parts.reason_part_match" = "Artikelnummer komt overeen";
+"parts.reason_mfg_model_name" = "Fabrikant, model en naam komen overeen";
+"parts.reason_mfg_model" = "Fabrikant en model komen overeen";
+"parts.reason_product_family" = "Meer uitrusting van deze productfamilie";
+"parts.reason_same_mfg" = "Van dezelfde fabrikant";
+"parts.reason_possible_match" = "Mogelijke aanvulling";
+"parts.reason_dimensions" = "Afmetingen komen overeen";
+"parts.reason_fallback" = "Overeenkomst";

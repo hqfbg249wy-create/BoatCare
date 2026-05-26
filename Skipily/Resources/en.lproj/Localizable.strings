@@ -756,3 +756,19 @@
 
 "briefing.pick_provider" = "Select service provider";
 "chat.photo_upload_failed" = "Upload failed – tap image to retry.";
+
+// MARK: - Spare Parts Search (EquipmentPartsSearchView)
+"parts.section_originals" = "Original Parts";
+"parts.section_derivates" = "Compatible Parts";
+"parts.section_related" = "More Matching Equipment";
+"parts.footer_originals" = "Exact 1:1 match by part number.";
+"parts.footer_derivates" = "Same manufacturer and matching model — should fit directly.";
+"parts.footer_related" = "Possible additions — e.g. modules from the same product family or similar items.";
+"parts.reason_part_match" = "Part number match";
+"parts.reason_mfg_model_name" = "Manufacturer, model and name match";
+"parts.reason_mfg_model" = "Manufacturer and model match";
+"parts.reason_product_family" = "More equipment from this product family";
+"parts.reason_same_mfg" = "From the same manufacturer";
+"parts.reason_possible_match" = "Possible match";
+"parts.reason_dimensions" = "Dimensions match";
+"parts.reason_fallback" = "Match";

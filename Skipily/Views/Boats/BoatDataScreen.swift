@@ -656,8 +656,7 @@ struct BoatDetailView: View {
             Section("boats.details".loc) {
                 if !boat.manufacturer.isEmpty { LabeledContent("boats.manufacturer".loc, value: boat.manufacturer) }
                 if !boat.model.isEmpty { LabeledContent("boats.model".loc, value: boat.model) }
-                if let y = boat.year { LabeledContent("boats.year".loc, value: String(y)) }
-                if let yb = boat.yearBuilt { LabeledContent("boats.year_built".loc, value: String(yb)) }
+                if let yb = boat.yearBuilt ?? boat.year { LabeledContent("boats.year_built".loc, value: String(yb)) }
                 if !boat.engine.isEmpty { LabeledContent("boats.engine".loc, value: boat.engine) }
             }
 
@@ -834,8 +833,6 @@ struct AddEditBoatView: View {
                 Section("boats.details".loc) {
                     TextField("boats.manufacturer".loc, text: $manufacturer)
                     TextField("boats.model".loc, text: $model)
-                    TextField("boats.year".loc, text: $yearText)
-                        .keyboardType(.numberPad)
                     TextField("boats.year_built".loc, text: $yearBuiltText)
                         .keyboardType(.numberPad)
                     TextField("boats.engine".loc, text: $engine)
@@ -945,7 +942,7 @@ struct AddEditBoatView: View {
             boatType:           boatType,
             manufacturer:       manufacturer,
             model:              model,
-            year:               parseIntField(yearText),
+            year:               parseIntField(yearBuiltText),
             yearBuilt:          parseIntField(yearBuiltText),
             lengthMeters:       parseDoubleField(lengthText),
             width:              parseDoubleField(widthText),

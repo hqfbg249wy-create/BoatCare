@@ -2046,29 +2046,29 @@ struct EquipmentPartsSearchView: View {
                 List {
                     // Sektion 1: Originalteile (Artikelnummer-Match) — grüner Rahmen
                     if !originals.isEmpty {
-                        section(title: "Originalteile",
+                        section(title: "parts.section_originals".loc,
                                 icon: "checkmark.seal.fill",
                                 color: AppColors.success,
                                 items: originals,
-                                footer: "Eindeutige 1:1-Treffer über die Artikelnummer.")
+                                footer: "parts.footer_originals".loc)
                     }
 
                     // Sektion 2: 1:1 passende Derivate (Hersteller + Modell) — blauer Rahmen
                     if !derivates.isEmpty {
-                        section(title: "1:1 passende Derivate",
+                        section(title: "parts.section_derivates".loc,
                                 icon: "checkmark.circle.fill",
                                 color: AppColors.info,
                                 items: derivates,
-                                footer: "Gleicher Hersteller und passendes Modell — sollte direkt passen.")
+                                footer: "parts.footer_derivates".loc)
                     }
 
                     // Sektion 3: Weitere passende Ausrüstung (orange Akzentfarbe)
                     if !related.isEmpty {
-                        section(title: "Weitere passende Ausrüstung",
+                        section(title: "parts.section_related".loc,
                                 icon: "plus.circle.fill",
                                 color: AppColors.primary,
                                 items: related,
-                                footer: "Mögliche Ergänzungen — z. B. Module derselben Produktfamilie oder ähnliche Artikel.")
+                                footer: "parts.footer_related".loc)
                     }
                 }
             }
@@ -2149,7 +2149,7 @@ struct EquipmentPartsSearchView: View {
                 if !normPart.isEmpty && !pPart.isEmpty
                     && (pPart == normPart || pPart.contains(normPart) || normPart.contains(pPart)) {
                     score = 100
-                    reason = "Artikelnummer übereinstimmt"
+                    reason = "parts.reason_part_match".loc
                 }
 
                 let mfgMatch   = !normMfg.isEmpty && pMfg.contains(normMfg)
@@ -2160,23 +2160,23 @@ struct EquipmentPartsSearchView: View {
                 // DERIVATE (80): Hersteller + Modell + Name passen alle
                 if mfgMatch && modelMatch && nameMatch && score < 80 {
                     score = 80
-                    reason = "Hersteller, Modell und Bezeichnung passen"
+                    reason = "parts.reason_mfg_model_name".loc
                 }
                 // DERIVATE (60): Hersteller + Modell
                 if mfgMatch && modelMatch && score < 60 {
                     score = 60
-                    reason = "Hersteller und Modell passen"
+                    reason = "parts.reason_mfg_model".loc
                 }
 
                 // RELATED (40): Gleicher Hersteller, gleiche Kategorie (Modul-Familie)
                 if mfgMatch && nameWords.contains(where: { pCat.contains($0) }) && score < 40 {
                     score = 40
-                    reason = "Weitere Ausrüstung dieser Produktfamilie"
+                    reason = "parts.reason_product_family".loc
                 }
                 // RELATED (30): Gleicher Hersteller, kein Modell-Match (anderes Produkt derselben Marke)
                 if mfgMatch && score == 0 {
                     score = 30
-                    reason = "Vom selben Hersteller"
+                    reason = "parts.reason_same_mfg".loc
                 }
 
                 // RELATED (20): Wort-Match in Name/Beschreibung/Kategorie/Tags
@@ -2186,14 +2186,15 @@ struct EquipmentPartsSearchView: View {
                 }
                 if wordMatch && score == 0 {
                     score = 20
-                    reason = "Mögliche Ergänzung"
+                    reason = "parts.reason_possible_match".loc
                 }
 
                 // Maße-Match (Seile, Ketten, Segel): dezenter Bonus
                 if !dimensions.isEmpty && !pDesc.isEmpty
                     && pDesc.localizedCaseInsensitiveContains(dimensions) {
                     score += 10
-                    reason = reason.isEmpty ? "Maße passen" : reason + " · Maße passen"
+                    let dimLabel = "parts.reason_dimensions".loc
+                    reason = reason.isEmpty ? dimLabel : reason + " · \(dimLabel)"
                 }
 
                 if score > 0 {
@@ -2236,7 +2237,7 @@ struct EquipmentPartsSearchView: View {
                 Image(systemName: matchIcon(for: match.confidence))
                     .font(.caption).fontWeight(.bold)
                     .foregroundStyle(.white)
-                Text(match.reason.isEmpty ? "Treffer" : match.reason)
+                Text(match.reason.isEmpty ? "parts.reason_fallback".loc : match.reason)
                     .font(.caption).fontWeight(.bold)
                     .foregroundStyle(.white)
                     .lineLimit(1)
@@ -2285,7 +2286,7 @@ struct EquipmentPartsSearchView: View {
                         Circle()
                             .fill(stock ? AppColors.success : AppColors.error)
                             .frame(width: 6, height: 6)
-                        Text(stock ? "Auf Lager" : "Nicht verfügbar")
+                        Text(stock ? "equipment.in_stock".loc : "equipment.out_of_stock".loc)
                             .font(.caption2)
                             .foregroundStyle(stock ? AppColors.success : AppColors.error)
                     }

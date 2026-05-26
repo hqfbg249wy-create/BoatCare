@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Filter, ShoppingCart, MapPin, Bot } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { buildShopQuery, buildServiceQuery, buildAIQuestion } from '../lib/equipmentSearch'
+import SailMeasurementForm, { emptySailForm, sailFormToPayload } from '../components/SailMeasurementForm'
 
 const categories = ['engine', 'electrical', 'navigation', 'safety', 'communication', 'rigging', 'sails', 'hull', 'deck', 'anchor', 'other']
 const categoryLabels = {
@@ -13,27 +14,7 @@ const categoryLabels = {
   hull: 'Rumpf & Unterwasser', deck: 'Deck & Beschlaege', anchor: 'Anker & Kette', other: 'Sonstiges'
 }
 
-
 const emptyItem = { name: '', category: 'engine', manufacturer: '', model: '', serial_number: '', installation_date: '', warranty_expiry: '', maintenance_cycle_years: '', last_maintenance_date: '', notes: '', boat_id: '' }
-
-// Sail-Measurement: minimaler Pflicht-Datensatz pro Segeltyp.
-// Detaillierte Maße können in der iOS-App ergänzt werden.
-const SAIL_TYPES = [
-  { value: 'grosssegel', label: 'Großsegel',  fields: ['gs_p', 'gs_e'] },
-  { value: 'vorsegel',   label: 'Vorsegel',   fields: ['vs_i', 'vs_j', 'vs_vl'] },
-  { value: 'gennaker',   label: 'Gennaker',   fields: ['gk_luff_length', 'gk_foot_length'] },
-  { value: 'code0',      label: 'Code 0',     fields: ['gk_luff_length', 'gk_foot_length'] },
-]
-const SAIL_FIELD_LABELS = {
-  gs_p: 'P (Mastlänge, mm)',
-  gs_e: 'E (Baumlänge, mm)',
-  vs_i: 'I (Vorstaglänge, mm)',
-  vs_j: 'J (Vorstagansatz, mm)',
-  vs_vl: 'Vorliek (mm)',
-  gk_luff_length: 'Vorliek (mm)',
-  gk_foot_length: 'Unterliek (mm)',
-}
-const emptySail = { sail_type: 'grosssegel', sail_number: '', notes: '', gs_p: '', gs_e: '', vs_i: '', vs_j: '', vs_vl: '', gk_luff_length: '', gk_foot_length: '' }
 
 export default function Equipment() {
   const { user } = useAuth()
@@ -46,7 +27,7 @@ export default function Equipment() {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyItem)
   const [saving, setSaving] = useState(false)
-  const [sailForm, setSailForm] = useState(emptySail)
+  const [sailForm, setSailForm] = useState(emptySailForm)
 
   useEffect(() => { if (user) loadData() }, [user])
 
@@ -92,7 +73,7 @@ export default function Equipment() {
       boat_id: selectedBoat || (boats[0]?.id || ''),
       category: filterCat || emptyItem.category,
     })
-    setSailForm(emptySail)
+    setSailForm(emptySailForm)
     setEditing('new')
   }
   async function startEdit(item) {
@@ -107,7 +88,7 @@ export default function Equipment() {
     // Bei Segel-Equipment: existierendes Maßblatt mitladen
     if (item.category === 'sails') {
       const { data: sail } = await supabase.from('sail_measurements').select('*').eq('equipment_id', item.id).maybeSingle()
-      setSailForm(sail ? { ...emptySail, ...sail } : emptySail)
+      setSailForm(sail ? { ...emptySailForm, ...sail } : emptySailForm)
     } else {
       setSailForm(emptySail)
     }
@@ -158,17 +139,7 @@ export default function Equipment() {
 
       // Bei Segeln zusätzlich das Maßblatt speichern
       if (form.category === 'sails' && savedEquipmentId) {
-        const num = v => (v === '' || v === undefined || v === null) ? null : parseFloat(v)
-        const sailPayload = {
-          equipment_id: savedEquipmentId,
-          sail_type:    sailForm.sail_type,
-          sail_number:  sailForm.sail_number || '',
-          notes:        sailForm.notes || '',
-          gs_p: num(sailForm.gs_p), gs_e: num(sailForm.gs_e),
-          vs_i: num(sailForm.vs_i), vs_j: num(sailForm.vs_j), vs_vl: num(sailForm.vs_vl),
-          gk_luff_length: num(sailForm.gk_luff_length),
-          gk_foot_length: num(sailForm.gk_foot_length),
-        }
+        const sailPayload = sailFormToPayload(sailForm, savedEquipmentId)
         // Existiert bereits? → UPDATE, sonst INSERT
         const { data: existing } = await supabase
           .from('sail_measurements')
@@ -275,49 +246,7 @@ export default function Equipment() {
 
                   {/* ─── Segel-Maßblatt (nur wenn category=sails) ──────── */}
                   {form.category === 'sails' && (
-                    <div style={{
-                      marginTop: 16, padding: 16,
-                      background: '#f0fdf4', border: '1px solid #bbf7d0',
-                      borderRadius: 12,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                        <span style={{ fontSize: 20 }}>⛵</span>
-                        <strong style={{ color: '#15803d' }}>Segel-Maßblatt</strong>
-                      </div>
-                      <p style={{ fontSize: 13, color: '#475569', marginTop: 0, marginBottom: 14 }}>
-                        Hauptmaße für die Auftragsvergabe an den Segelmacher. Weitere
-                        Details (Reff-Optionen, UV-Schutz, Farben usw.) lassen sich
-                        in der Skipily-App pflegen.
-                      </p>
-
-                      <div className="form-row">
-                        <div className="form-group">
-                          <label>Segeltyp</label>
-                          <select value={sailForm.sail_type} onChange={e => setSailForm({...sailForm, sail_type: e.target.value})}>
-                            {SAIL_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                          </select>
-                        </div>
-                        <div className="form-group">
-                          <label>Segelnummer</label>
-                          <input value={sailForm.sail_number} onChange={e => setSailForm({...sailForm, sail_number: e.target.value})} placeholder="z.B. GER-12345" />
-                        </div>
-                      </div>
-
-                      {/* Dynamische Felder je Segeltyp */}
-                      <div className="form-row">
-                        {(SAIL_TYPES.find(t => t.value === sailForm.sail_type)?.fields || []).map(fieldKey => (
-                          <div className="form-group" key={fieldKey}>
-                            <label>{SAIL_FIELD_LABELS[fieldKey] || fieldKey}</label>
-                            <input
-                              type="number" step="1" min="0"
-                              value={sailForm[fieldKey] || ''}
-                              onChange={e => setSailForm({...sailForm, [fieldKey]: e.target.value})}
-                              placeholder="z.B. 16050"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <SailMeasurementForm sailForm={sailForm} setSailForm={setSailForm} />
                   )}
 
                   <div className="modal-footer">

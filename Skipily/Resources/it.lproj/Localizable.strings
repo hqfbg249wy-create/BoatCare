@@ -756,3 +756,19 @@
 
 "briefing.pick_provider" = "Seleziona fornitore";
 "chat.photo_upload_failed" = "Caricamento fallito – tocca per riprovare.";
+
+// MARK: - Spare Parts Search
+"parts.section_originals" = "Ricambi originali";
+"parts.section_derivates" = "Ricambi compatibili";
+"parts.section_related" = "Altro equipaggiamento compatibile";
+"parts.footer_originals" = "Corrispondenza esatta 1:1 per numero articolo.";
+"parts.footer_derivates" = "Stesso produttore e modello compatibile — dovrebbe adattarsi direttamente.";
+"parts.footer_related" = "Possibili complementi — es. moduli della stessa famiglia di prodotti o articoli simili.";
+"parts.reason_part_match" = "Numero articolo corrisponde";
+"parts.reason_mfg_model_name" = "Produttore, modello e nome corrispondono";
+"parts.reason_mfg_model" = "Produttore e modello corrispondono";
+"parts.reason_product_family" = "Altro equipaggiamento di questa famiglia di prodotti";
+"parts.reason_same_mfg" = "Dello stesso produttore";
+"parts.reason_possible_match" = "Possibile complemento";
+"parts.reason_dimensions" = "Dimensioni corrispondono";
+"parts.reason_fallback" = "Corrispondenza";
