@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import Layout from './components/Layout'
+import MFAChallenge from './components/MFAChallenge'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Boats from './pages/Boats'
@@ -16,9 +17,10 @@ import ProductDetail from './pages/ProductDetail'
 import ServiceSearch from './pages/ServiceSearch'
 import AIChat from './pages/AIChat'
 import Checkout from './pages/Checkout'
+import Inquiries from './pages/Inquiries'
 
 function ProtectedRoutes() {
-  const { user, loading } = useAuth()
+  const { user, loading, mfaRequired } = useAuth()
 
   if (loading) {
     return (
@@ -30,11 +32,13 @@ function ProtectedRoutes() {
   }
 
   if (!user) return <Login />
+  if (mfaRequired) return <MFAChallenge />
 
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route index element={<Dashboard />} />
+        <Route index element={<Navigate to="/map" replace />} />
+        <Route path="dashboard" element={<Dashboard />} />
         <Route path="boats" element={<Boats />} />
         <Route path="equipment" element={<Equipment />} />
         <Route path="maintenance" element={<Maintenance />} />
@@ -48,6 +52,7 @@ function ProtectedRoutes() {
         <Route path="chat" element={<AIChat />} />
         <Route path="checkout" element={<Checkout />} />
         <Route path="checkout/success" element={<Checkout />} />
+        <Route path="inquiries" element={<Inquiries />} />
         <Route path="profile" element={<Profile />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

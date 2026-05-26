@@ -12,7 +12,7 @@ import {
 import { useState, useEffect, useRef } from 'react'
 
 const bottomTabs = [
-  { to: '/',            icon: Map,          label: 'Karte' },
+  { to: '/map',         icon: Map,          label: 'Karte' },
   { to: '/boats',       icon: Ship,         label: 'Boote' },
   { to: '/maintenance', icon: Wrench,       label: 'Wartung' },
   { to: '/shop',        icon: ShoppingCart, label: 'Shop' },
@@ -113,7 +113,6 @@ export default function LayoutMobile() {
           <NavLink
             key={tab.to}
             to={tab.to}
-            end={tab.to === '/'}
             className={({ isActive }) => `bottom-nav-item-ios ${isActive ? 'active' : ''}`}
           >
             <tab.icon size={22} strokeWidth={2} />

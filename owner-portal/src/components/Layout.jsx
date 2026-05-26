@@ -14,7 +14,7 @@ import { useState } from 'react'
 import LayoutMobile from './LayoutMobile'
 
 const navItems = [
-  { to: '/', icon: Map, label: 'Karte' },
+  { to: '/map', icon: Map, label: 'Karte' },
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/boats', icon: Ship, label: 'Meine Boote' },
   { to: '/equipment', icon: Package, label: 'Ausrüstung' },
@@ -29,7 +29,7 @@ const navItems = [
 ]
 
 const bottomTabs = [
-  { to: '/', icon: Map, label: 'Karte' },
+  { to: '/map', icon: Map, label: 'Karte' },
   { to: '/boats', icon: Ship, label: 'Boote' },
   { to: '/maintenance', icon: Wrench, label: 'Wartung' },
   { to: '/inquiries', icon: Mail, label: 'Anfragen' },
@@ -56,7 +56,6 @@ function LayoutDesktop() {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === '/'}
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
               onClick={() => setSidebarOpen(false)}
             >
@@ -93,7 +92,6 @@ function LayoutDesktop() {
           <NavLink
             key={tab.to}
             to={tab.to}
-            end={tab.to === '/'}
             className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
           >
             <tab.icon size={22} />
