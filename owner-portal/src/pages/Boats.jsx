@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Ship, Plus, Pencil, Trash2, X, Save, Ruler, Gauge, MapPin, Hash } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Ship, Plus, Pencil, Trash2, X, Save, Ruler, Gauge, MapPin, Hash, Package, Wrench, Bot } from 'lucide-react'
 
 const emptyBoat = { name: '', boat_type: '', manufacturer: '', model: '', year: '', length_meters: '', width: '', draft: '', engine: '', home_port: '', registration_number: '', hin: '' }
 
@@ -9,6 +10,7 @@ const boatTypes = ['Segelboot', 'Motorboot', 'Katamaran', 'Schlauchboot', 'Yacht
 
 export default function Boats() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [boats, setBoats] = useState([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(null)
@@ -159,6 +161,18 @@ export default function Boats() {
                 {boat.engine && <div className="boat-detail"><Gauge size={14} /><span>{boat.engine}</span></div>}
                 {boat.home_port && <div className="boat-detail"><MapPin size={14} /><span>{boat.home_port}</span></div>}
                 {boat.registration_number && <div className="boat-detail"><Hash size={14} /><span>{boat.registration_number}</span></div>}
+              </div>
+              {/* iOS-Style Quick Actions */}
+              <div className="boat-quick-actions">
+                <button className="boat-action-btn" onClick={() => navigate(`/equipment?boat=${boat.id}`)}>
+                  <Package size={16} /><span>Ausrüstung</span>
+                </button>
+                <button className="boat-action-btn" onClick={() => navigate(`/maintenance?boat=${boat.id}`)}>
+                  <Wrench size={16} /><span>Wartung</span>
+                </button>
+                <button className="boat-action-btn" onClick={() => navigate(`/chat?boat=${boat.id}`)}>
+                  <Bot size={16} /><span>KI fragen</span>
+                </button>
               </div>
             </div>
           ))}

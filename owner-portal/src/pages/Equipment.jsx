@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Filter, ShoppingCart, MapPin, Bot } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { buildShopQuery, buildServiceQuery, buildAIQuestion } from '../lib/equipmentSearch'
 import SailMeasurementForm, { emptySailForm, sailFormToPayload } from '../components/SailMeasurementForm'
 
@@ -19,9 +19,11 @@ const emptyItem = { name: '', category: 'engine', manufacturer: '', model: '', s
 export default function Equipment() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [items, setItems] = useState([])
   const [boats, setBoats] = useState([])
-  const [selectedBoat, setSelectedBoat] = useState('')
+  // Vorselektion via URL: /equipment?boat=<uuid>
+  const [selectedBoat, setSelectedBoat] = useState(searchParams.get('boat') || '')
   const [filterCat, setFilterCat] = useState('')
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(null)
