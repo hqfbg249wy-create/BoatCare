@@ -204,6 +204,7 @@ function addRecentLocation(name, lat, lng) {
 
 export default function MapView() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [providers, setProviders] = useState([])
   const [allProviders, setAllProviders] = useState([])
   const [favorites, setFavorites] = useState(new Set())
