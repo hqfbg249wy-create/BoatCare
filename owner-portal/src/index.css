@@ -864,6 +864,17 @@ a { color: var(--blue); text-decoration: none; }
 .pdc-btn-web:hover { background: #f3e8ff; }
 .pdc-btn-route { background: #eff6ff; color: #2563eb; }
 .pdc-btn-route:hover { background: #dbeafe; }
+.pdc-btn-inquiry {
+  background: #fff7ed; color: #c2410c;
+  border: none; cursor: pointer; font-family: inherit;
+}
+.pdc-btn-inquiry:hover { background: #ffedd5; }
+.prov-action-inquiry {
+  background: #fff7ed !important; color: #c2410c !important;
+  border: none; cursor: pointer; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.prov-action-inquiry:hover { background: #ffedd5 !important; }
 .pdc-hours { font-size: 0.85rem; color: var(--gray-600); line-height: 1.6; }
 .pdc-hours strong { color: var(--gray-700); }
 

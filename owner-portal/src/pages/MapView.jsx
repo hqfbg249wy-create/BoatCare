@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Heart, Phone, Mail, Globe, Star, Search, Filter, X, Navigation, MapPin, Wrench, ShoppingCart, Fuel, Wind, Anchor, Radio, Waves, Ship, ChevronRight, Tag } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Heart, Phone, Mail, Globe, Star, Search, X, Navigation, MapPin, Wrench, ChevronRight, Tag, PlusCircle, Bot, Locate, MessageSquarePlus } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-markercluster'
 import L from 'leaflet'
@@ -154,9 +154,11 @@ function MapController({ center, zoom, bounds, onMoveEnd }) {
     map.on('moveend', handler)
     return () => map.off('moveend', handler)
   }, [map, onMoveEnd])
-  // Ensure tiles render on mount
+  // Ensure tiles render on mount — multiple calls needed for Android WebView
   useEffect(() => {
     setTimeout(() => map.invalidateSize(), 100)
+    setTimeout(() => map.invalidateSize(), 400)
+    setTimeout(() => map.invalidateSize(), 900)
   }, [map])
   return null
 }
@@ -215,47 +217,74 @@ export default function MapView() {
   const [selectedProvider, setSelectedProvider] = useState(null)
   const [recentLocations, setRecentLocations] = useState(getRecentLocations())
   const [showRecents, setShowRecents] = useState(false)
+  const isLoadingRef = useRef(false)
 
   const handleMapMoveEnd = useCallback((lat, lng, zoom) => {
     saveMapPosition(lat, lng, zoom)
   }, [])
 
-  useEffect(() => { if (user) loadData() }, [user])
+  useEffect(() => {
+    if (!user) return
+    if (isLoadingRef.current) return
+    isLoadingRef.current = true
 
-  async function loadData() {
+    let cancelled = false
+    loadData(cancelled).finally(() => {
+      // Guard bleibt gesetzt — kein Neuladen bis Navigation weg/zurück
+    })
+    return () => { cancelled = true }
+  }, [user?.id])  // Nur auf echte User-ID-Änderung reagieren, nicht auf Token-Refresh
+
+  async function loadData(cancelled) {
     setLoading(true)
-    // Load all providers (Supabase default limit is 1000, so paginate)
-    let allProviders = []
-    let from = 0
-    const pageSize = 1000
-    while (true) {
-      const { data: batch, error } = await supabase.from('service_providers').select('*').range(from, from + pageSize - 1)
-      if (error) { console.error('Providers error:', error); break }
-      if (!batch || batch.length === 0) break
-      allProviders = allProviders.concat(batch)
-      if (batch.length < pageSize) break
-      from += pageSize
-    }
+    try {
+      // Providers paginiert laden
+      let fetched = []
+      let from = 0
+      const pageSize = 1000
+      while (true) {
+        const { data: batch, error } = await supabase
+          .from('service_providers').select('*').range(from, from + pageSize - 1)
+        if (error) { console.error('Providers error:', error); break }
+        if (!batch || batch.length === 0) break
+        fetched = fetched.concat(batch)
+        if (batch.length < pageSize) break
+        from += pageSize
+      }
+      if (cancelled) return
 
-    const { data: favs, error: favErr } = await supabase.from('user_favorites').select('provider_id').eq('user_id', user.id)
-    if (favErr) console.error('Favorites error:', favErr)
+      // Deduplizieren nach ID (Absicherung gegen Doppel-Fetch)
+      const seen = new Set()
+      const deduped = fetched.filter(p => {
+        if (seen.has(p.id)) return false
+        seen.add(p.id)
+        return true
+      })
 
-    // Keep all providers for favorites list, filter for map
-    setAllProviders(allProviders)
-    const validProvs = allProviders.filter(p => p.latitude && p.longitude && p.latitude !== 0 && p.longitude !== 0)
-    setProviders(validProvs)
-    const favSet = new Set((favs || []).map(f => f.provider_id))
-    setFavorites(favSet)
-    console.log('Loaded favorites:', favSet.size, 'from', (favs || []).length, 'entries')
+      const { data: favs } = await supabase
+        .from('user_favorites').select('provider_id').eq('user_id', user.id)
+      if (cancelled) return
 
-    // Only use geolocation if no saved map position
-    if (!getSavedMapPosition() && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        pos => setCenter([pos.coords.latitude, pos.coords.longitude]),
-        () => {}
+      const validProvs = deduped.filter(
+        p => p.latitude && p.longitude && p.latitude !== 0 && p.longitude !== 0
       )
+      // Alle State-Updates in einem Batch (React 18 batcht async-Updates automatisch)
+      setAllProviders(deduped)
+      setProviders(validProvs)
+      setFavorites(new Set((favs || []).map(f => f.provider_id)))
+      setLoading(false)
+
+      // Geolocation nur ohne gespeicherte Position
+      if (!getSavedMapPosition() && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => { if (!cancelled) setCenter([pos.coords.latitude, pos.coords.longitude]) },
+          () => {}
+        )
+      }
+    } catch (err) {
+      console.error('loadData Fehler:', err)
+      if (!cancelled) setLoading(false)
     }
-    setLoading(false)
   }
 
   async function toggleFavorite(providerId) {
@@ -334,72 +363,140 @@ export default function MapView() {
     }
   }, [filterCat, filtered.length])
 
+
   if (loading) return <div className="page"><div className="spinner" /></div>
 
   return (
     <div className="page map-page">
-      <h1>Karte</h1>
-      <p className="subtitle">{providers.length} Service-Partner · {favorites.size} Favoriten</p>
-
-      <div className="filter-bar">
-        <div className="search-input" style={{ position: 'relative' }}>
-          <Search size={16} />
-          <input
-            value={search}
-            onChange={e => { setSearch(e.target.value); setShowRecents(false) }}
-            onFocus={() => { if (!search && recentLocations.length > 0) setShowRecents(true) }}
-            onBlur={() => setTimeout(() => setShowRecents(false), 200)}
-            placeholder="Name, Ort oder Kategorie..."
-          />
-          {search && <button className="btn-icon" onClick={() => setSearch('')}><X size={14} /></button>}
-          {/* Recent locations dropdown */}
-          {showRecents && recentLocations.length > 0 && (
-            <div className="search-recents-dropdown">
-              <span className="search-recents-title">Letzte Orte</span>
-              {recentLocations.map((loc, i) => (
-                <button key={i} className="search-recent-item" onMouseDown={(e) => {
-                  e.preventDefault()
-                  setCenter([loc.lat, loc.lng])
-                  setMapZoom(12)
-                  setMapBounds(null)
-                  setSearch(loc.name)
-                  setShowRecents(false)
-                }}>
-                  <MapPin size={14} />
-                  <span>{loc.name}</span>
-                </button>
-              ))}
-            </div>
-          )}
+      {/* Desktop-only header */}
+      <div className="map-desktop-header">
+        <h1>Service-Partner finden</h1>
+        <p className="subtitle">{providers.length} Partner in deiner Nähe · {favorites.size} Favoriten</p>
+        <div className="filter-bar">
+          <div className="search-input" style={{ position: 'relative' }}>
+            <Search size={16} />
+            <input
+              value={search}
+              onChange={e => { setSearch(e.target.value); setShowRecents(false) }}
+              onFocus={() => { if (!search && recentLocations.length > 0) setShowRecents(true) }}
+              onBlur={() => setTimeout(() => setShowRecents(false), 200)}
+              placeholder="Name, Ort oder Kategorie..."
+            />
+            {search && <button className="btn-icon" onClick={() => setSearch('')}><X size={14} /></button>}
+            {showRecents && recentLocations.length > 0 && (
+              <div className="search-recents-dropdown">
+                <span className="search-recents-title">Letzte Orte</span>
+                {recentLocations.map((loc, i) => (
+                  <button key={i} className="search-recent-item" onMouseDown={(e) => {
+                    e.preventDefault()
+                    setCenter([loc.lat, loc.lng])
+                    setMapZoom(12)
+                    setMapBounds(null)
+                    setSearch(loc.name)
+                    setShowRecents(false)
+                  }}>
+                    <MapPin size={14} />
+                    <span>{loc.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <select value={filterCat} onChange={e => setFilterCat(e.target.value)}>
+            <option value="">Alle Kategorien</option>
+            {categories.map(c => {
+              const cfg = getCategoryConfig(c)
+              return <option key={c} value={c}>{cfg.icon} {cfg.label}</option>
+            })}
+          </select>
         </div>
-        <select value={filterCat} onChange={e => setFilterCat(e.target.value)}>
-          <option value="">Alle Kategorien</option>
-          {categories.map(c => {
-            const cfg = getCategoryConfig(c)
-            return <option key={c} value={c}>{cfg.icon} {cfg.label}</option>
-          })}
-        </select>
+        <div className="map-legend">
+          <span className="legend-title">Bewertung:</span>
+          <span className="legend-item"><span className="legend-dot" style={{background: '#10b981'}} /> Sehr gut (4+)</span>
+          <span className="legend-item"><span className="legend-dot" style={{background: '#f59e0b'}} /> Mittel (2-4)</span>
+          <span className="legend-item"><span className="legend-dot" style={{background: '#ef4444'}} /> Schlecht (&lt;2)</span>
+          <span className="legend-item"><span className="legend-dot" style={{background: '#3b82f6'}} /> Keine</span>
+          <span className="legend-item">❤️ = Favorit</span>
+        </div>
       </div>
 
-      {/* Map legend */}
-      <div className="map-legend">
-        <span className="legend-title">Bewertung:</span>
-        <span className="legend-item"><span className="legend-dot" style={{background: '#10b981'}} /> Sehr gut (4+)</span>
-        <span className="legend-item"><span className="legend-dot" style={{background: '#f59e0b'}} /> Mittel (2-4)</span>
-        <span className="legend-item"><span className="legend-dot" style={{background: '#ef4444'}} /> Schlecht (&lt;2)</span>
-        <span className="legend-item"><span className="legend-dot" style={{background: '#3b82f6'}} /> Keine</span>
-        <span className="legend-item">❤️ = Favorit</span>
+      {/* Quick-Action Buttons – VOR der Karte, kein Leaflet-Konflikt */}
+      <div className="map-quick-actions">
+        <button className="map-qa-btn map-qa-locate" onClick={() => {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              pos => { setCenter([pos.coords.latitude, pos.coords.longitude]); setMapZoom(13); setMapBounds(null) },
+              () => alert('Standort konnte nicht ermittelt werden.')
+            )
+          }
+        }}>
+          <Locate size={15} />
+          <span>Standort</span>
+        </button>
+        <button className="map-qa-btn map-qa-add" onClick={() => navigate('/services')}>
+          <PlusCircle size={15} />
+          <span>Betrieb anlegen</span>
+        </button>
+        <button className="map-qa-btn map-qa-ai" onClick={() => navigate('/chat')}>
+          <Bot size={15} />
+          <span>KI-Assistent</span>
+        </button>
       </div>
 
       <div className="map-container" style={{ position: 'relative' }}>
-        <MapContainer center={center} zoom={mapZoom} style={{ height: '550px', width: '100%', borderRadius: '12px' }}>
+        {/* Mobile floating search overlay */}
+        <div className="map-mobile-search">
+          <div className="map-mobile-searchbar" style={{ position: 'relative' }}>
+            <Search size={15} />
+            <input
+              value={search}
+              onChange={e => { setSearch(e.target.value); setShowRecents(false) }}
+              onFocus={() => { if (!search && recentLocations.length > 0) setShowRecents(true) }}
+              onBlur={() => setTimeout(() => setShowRecents(false), 200)}
+              placeholder="Ort oder Service suchen..."
+            />
+            {search && <button className="btn-icon" style={{padding:'2px'}} onClick={() => setSearch('')}><X size={13} /></button>}
+            {showRecents && recentLocations.length > 0 && (
+              <div className="search-recents-dropdown">
+                <span className="search-recents-title">Letzte Orte</span>
+                {recentLocations.map((loc, i) => (
+                  <button key={i} className="search-recent-item" onMouseDown={(e) => {
+                    e.preventDefault()
+                    setCenter([loc.lat, loc.lng])
+                    setMapZoom(12)
+                    setMapBounds(null)
+                    setSearch(loc.name)
+                    setShowRecents(false)
+                  }}>
+                    <MapPin size={14} />
+                    <span>{loc.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <select className="map-mobile-filter" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
+            <option value="">Alle</option>
+            {categories.map(c => {
+              const cfg = getCategoryConfig(c)
+              return <option key={c} value={c}>{cfg.icon} {cfg.label}</option>
+            })}
+          </select>
+        </div>
+
+        <MapContainer
+          center={center}
+          zoom={mapZoom}
+          preferCanvas={true}
+          style={{ height: 'clamp(320px, 55vh, 650px)', width: '100%', borderRadius: '12px' }}
+        >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <MapController center={center} zoom={mapZoom} bounds={mapBounds} onMoveEnd={handleMapMoveEnd} />
           <MarkerClusterGroup
-            chunkedLoading
+            key={providers.length}
             maxClusterRadius={50}
             spiderfyOnMaxZoom
             showCoverageOnHover={false}
@@ -432,7 +529,9 @@ export default function MapView() {
             onClose={() => setSelectedProvider(null)}
           />
         )}
+
       </div>
+
 
       {/* Favorited Providers List */}
       <div className="provider-list-below">
@@ -453,6 +552,7 @@ export default function MapView() {
 
 // ── Provider Detail Card (floating, like iOS map card) ──
 function ProviderDetailCard({ provider, isFavorite, onToggleFavorite, onClose }) {
+  const navigate = useNavigate()
   const cat = getCategoryConfig(provider.category)
   const services = Array.isArray(provider.services) ? provider.services : provider.services ? [provider.services] : []
   const brands = Array.isArray(provider.brands) ? provider.brands : []
@@ -524,6 +624,15 @@ function ProviderDetailCard({ provider, isFavorite, onToggleFavorite, onClose })
               <span>E-Mail</span>
             </a>
           )}
+          <button
+            type="button"
+            onClick={() => navigate(`/provider/${provider.id}?inquiry=1`)}
+            className="pdc-btn pdc-btn-inquiry"
+            title="Anfrage senden"
+          >
+            <MessageSquarePlus size={18} />
+            <span>Anfrage</span>
+          </button>
         </div>
 
         {/* Services */}
@@ -569,10 +678,12 @@ function ProviderDetailCard({ provider, isFavorite, onToggleFavorite, onClose })
 
 // ── Provider Card (grid item, like iOS FavoriteRow) ──
 function ProviderCard({ provider, isFavorite, onToggleFavorite }) {
+  const navigate = useNavigate()
   const cat = getCategoryConfig(provider.category)
 
   return (
-    <div className="provider-card">
+    <div className="provider-card provider-card-clickable"
+      onClick={() => navigate(`/provider/${provider.id}`)}>
       <div className="prov-header">
         {provider.logo_url ? (
           <img src={provider.logo_url} alt={provider.name} className="prov-logo" />
@@ -588,7 +699,9 @@ function ProviderCard({ provider, isFavorite, onToggleFavorite }) {
           </span>
           <StarRating rating={provider.rating} count={provider.review_count} />
         </div>
-        <button className={`prov-fav-btn ${isFavorite ? 'active' : ''}`} onClick={onToggleFavorite}>
+        <button className={`prov-fav-btn ${isFavorite ? 'active' : ''}`}
+          onClick={e => { e.stopPropagation(); onToggleFavorite() }}
+          title={isFavorite ? 'Favorit entfernen' : 'Als Favorit speichern'}>
           <Heart size={20} fill={isFavorite ? '#ef4444' : 'none'} color={isFavorite ? '#ef4444' : '#cbd5e1'} />
         </button>
       </div>
@@ -597,7 +710,7 @@ function ProviderCard({ provider, isFavorite, onToggleFavorite }) {
         <div className="prov-address"><MapPin size={14} /> {provider.street}{provider.street && provider.city ? ', ' : ''}{provider.city}</div>
       )}
 
-      <div className="prov-actions">
+      <div className="prov-actions" onClick={e => e.stopPropagation()}>
         {provider.phone && <a href={`tel:${provider.phone}`} className="prov-action prov-action-phone"><Phone size={15} /> Anrufen</a>}
         {provider.email && <a href={`mailto:${provider.email}`} className="prov-action prov-action-email"><Mail size={15} /> E-Mail</a>}
         {provider.website && (
@@ -606,11 +719,18 @@ function ProviderCard({ provider, isFavorite, onToggleFavorite }) {
         {provider.latitude && provider.longitude && provider.latitude !== 0 && (
           <a href={`https://maps.apple.com/?daddr=${provider.latitude},${provider.longitude}`} target="_blank" rel="noopener" className="prov-action prov-action-route"><Navigation size={15} /> Route</a>
         )}
+        <button type="button" onClick={() => navigate(`/provider/${provider.id}?inquiry=1`)} className="prov-action prov-action-inquiry">
+          <MessageSquarePlus size={15} /> Anfrage
+        </button>
       </div>
 
       {provider.current_promotion && (
         <div className="prov-promo"><Tag size={12} /> {provider.current_promotion}</div>
       )}
+
+      <div className="prov-detail-hint">
+        Details anzeigen <ChevronRight size={14} />
+      </div>
     </div>
   )
 }
