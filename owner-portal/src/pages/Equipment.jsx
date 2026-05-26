@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Filter, ShoppingCart, MapPin, Bot } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { buildShopQuery, buildServiceQuery, buildAIQuestion } from '../lib/equipmentSearch'
+import { buildSparePartsParams } from '../lib/sparePartsSearch'
 import SailMeasurementForm, { emptySailForm, sailFormToPayload } from '../components/SailMeasurementForm'
 
 const categories = ['engine', 'electrical', 'navigation', 'safety', 'communication', 'rigging', 'sails', 'hull', 'deck', 'anchor', 'other']
@@ -291,7 +292,7 @@ export default function Equipment() {
                     )}
                     <div className="eq-quick-actions">
                       <button className="eq-action-btn eq-action-shop" title="Passende Artikel im Shop suchen"
-                        onClick={() => navigate(`/shop?q=${encodeURIComponent(buildShopQuery(item))}`)}>
+                        onClick={() => navigate(`/shop?${buildSparePartsParams(item)}`)}>
                         <ShoppingCart size={13} /> Shop
                       </button>
                       <button className="eq-action-btn eq-action-service" title="Passenden Service in der Nähe finden"

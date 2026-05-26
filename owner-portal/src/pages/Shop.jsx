@@ -1,8 +1,11 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
-import { Search, X, ShoppingCart, Tag, Filter, ChevronRight, Plus, Minus, Check, Star, Package } from 'lucide-react'
+import { Search, X, ShoppingCart, Tag, Filter, ChevronRight, Plus, Minus, Check, Star, Package, ArrowLeft } from 'lucide-react'
+import {
+  classifyProducts, parseSparePartsParams, hasSparePartsContext, BUCKET_META,
+} from '../lib/sparePartsSearch'
 
 // Map SF Symbol names from DB to emojis
 const sfSymbolToEmoji = {
@@ -16,7 +19,13 @@ function mapIcon(icon) { return sfSymbolToEmoji[icon] || '' }
 
 export default function Shop() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+
+  // Ersatzteil-Modus: wenn Equipment-Daten via URL kommen, andere UI
+  const sparePartsEquipment = parseSparePartsParams(searchParams)
+  const isSparePartsMode = hasSparePartsContext(sparePartsEquipment)
+
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [promotions, setPromotions] = useState([])
@@ -32,12 +41,47 @@ export default function Shop() {
   const [cartToast, setCartToast] = useState(null)
   const PAGE_SIZE = 20
 
-  useEffect(() => { loadInitial() }, [user])
-  useEffect(() => { localStorage.setItem('boatcare_cart', JSON.stringify(cart)) }, [cart])
-  // Reload products when search, category, or provider filter changes
   useEffect(() => {
-    if (!loading) loadProducts(0)
+    if (isSparePartsMode) loadSpareParts()
+    else loadInitial()
+  }, [user])
+  useEffect(() => { localStorage.setItem('boatcare_cart', JSON.stringify(cart)) }, [cart])
+  // Reload products when search, category, or provider filter changes (Shop-Modus only)
+  useEffect(() => {
+    if (!loading && !isSparePartsMode) loadProducts(0)
   }, [search, selectedCat, providerFilter])
+
+  // Ersatzteil-Modus: breite Volltextsuche über mfg + model + name (bis zu 80 Treffer)
+  async function loadSpareParts() {
+    setLoading(true)
+    const eq = sparePartsEquipment
+    const terms = [eq.manufacturer, eq.model, eq.name]
+      .map(s => s.trim()).filter(s => s.length >= 2)
+    let query = supabase
+      .from('metashop_products')
+      .select('*, product_categories(*), service_providers(id, name, city)')
+      .eq('is_active', true)
+      .limit(80)
+    if (terms.length > 0) {
+      const conditions = terms.flatMap(w => [
+        `name.ilike.%${w}%`,
+        `manufacturer.ilike.%${w}%`,
+        `description.ilike.%${w}%`,
+        `part_number.ilike.%${w}%`,
+      ])
+      query = query.or(conditions.join(','))
+    }
+    const { data, error } = await query
+    if (error) console.error('Spare parts search error:', error)
+    setProducts(data || [])
+    setLoading(false)
+  }
+
+  // Klassifizierte Treffer im Ersatzteil-Modus (Original / Derivate / Related)
+  const classified = useMemo(() => {
+    if (!isSparePartsMode) return null
+    return classifyProducts(products, sparePartsEquipment)
+  }, [isSparePartsMode, products, sparePartsEquipment])
 
   async function loadInitial() {
     setLoading(true)
@@ -141,6 +185,21 @@ export default function Shop() {
   }
 
   if (loading) return <div className="page"><div className="spinner" /></div>
+
+  // ─── Ersatzteil-Modus: iOS-Style 3-Bucket-Layout ────────────────────────
+  if (isSparePartsMode && classified) {
+    return (
+      <SparePartsView
+        eq={sparePartsEquipment}
+        classified={classified}
+        bestPromo={bestPromo}
+        isInCart={isInCart}
+        addToCart={addToCart}
+        onBack={() => navigate(-1)}
+        onClearMode={() => navigate('/shop')}
+      />
+    )
+  }
 
   return (
     <div className="page shop-page">
@@ -325,6 +384,148 @@ export default function Shop() {
           <Check size={16} /> {cartToast} zum Warenkorb hinzugefügt
         </div>
       )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SparePartsView – iOS-Style 3-Bucket Layout
+// ─────────────────────────────────────────────────────────────────────────
+function SparePartsView({ eq, classified, bestPromo, isInCart, addToCart, onBack, onClearMode }) {
+  const { originals, derivates, related } = classified
+  const totalCount = originals.length + derivates.length + related.length
+  const contextChips = [eq.name, eq.manufacturer, eq.model, eq.partNumber].filter(Boolean)
+
+  return (
+    <div className="page shop-page spare-parts-page">
+      <div className="page-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button className="btn-icon" onClick={onBack} aria-label="Zurück">
+            <ArrowLeft size={18} />
+          </button>
+          <div>
+            <h1 style={{ marginBottom: 2 }}>Ersatzteile</h1>
+            <p className="subtitle">{totalCount} Treffer · 1:1-Suche</p>
+          </div>
+        </div>
+        <button className="btn-secondary" onClick={onClearMode} style={{ padding: '8px 12px' }}>
+          <X size={14} /> Modus beenden
+        </button>
+      </div>
+
+      {/* Context-Chips: zeigen wonach gesucht wurde */}
+      {contextChips.length > 0 && (
+        <div className="sp-context">
+          <span className="sp-context-label">Suche für:</span>
+          {contextChips.map((chip, i) => (
+            <span key={i} className="sp-context-chip">{chip}</span>
+          ))}
+        </div>
+      )}
+
+      {totalCount === 0 ? (
+        <div className="empty-state">
+          <Package size={64} color="#cbd5e1" />
+          <h2>Keine passenden Artikel gefunden</h2>
+          <p>Versuche es im normalen Shop mit anderen Suchbegriffen.</p>
+          <button className="btn-primary" onClick={onClearMode}>
+            <Search size={16} /> Zum Shop
+          </button>
+        </div>
+      ) : (
+        <>
+          <SparePartsBucket
+            bucket="original" items={originals}
+            bestPromo={bestPromo} isInCart={isInCart} addToCart={addToCart}
+          />
+          <SparePartsBucket
+            bucket="derivate" items={derivates}
+            bestPromo={bestPromo} isInCart={isInCart} addToCart={addToCart}
+          />
+          <SparePartsBucket
+            bucket="related" items={related}
+            bestPromo={bestPromo} isInCart={isInCart} addToCart={addToCart}
+          />
+        </>
+      )}
+    </div>
+  )
+}
+
+function SparePartsBucket({ bucket, items, bestPromo, isInCart, addToCart }) {
+  if (items.length === 0) return null
+  const meta = BUCKET_META[bucket]
+  return (
+    <section className="sp-section">
+      <div className="sp-section-header" style={{ color: meta.color }}>
+        <span className="sp-section-icon" style={{ background: meta.color }}>{meta.icon}</span>
+        <span className="sp-section-title">{meta.label}</span>
+        <span className="sp-section-count">({items.length})</span>
+      </div>
+      <p className="sp-section-sublabel">{meta.sublabel}</p>
+      <div className="sp-list">
+        {items.map(({ product, reason }) => (
+          <SparePartsRow
+            key={product.id}
+            product={product}
+            reason={reason}
+            bucket={bucket}
+            promo={bestPromo(product)}
+            inCart={isInCart(product.id)}
+            onAdd={() => addToCart(product)}
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function SparePartsRow({ product, reason, bucket, promo, inCart, onAdd }) {
+  const meta = BUCKET_META[bucket]
+  const inStock = product.in_stock ?? (product.stock_quantity > 0)
+  return (
+    <div
+      className="sp-row"
+      style={{ borderColor: meta.borderColor, background: meta.bgColor }}
+    >
+      {/* Reason-Badge */}
+      <div className="sp-reason-badge" style={{ background: meta.color }}>
+        {meta.icon} {reason || 'Treffer'}
+      </div>
+
+      <Link to={`/shop/product/${product.id}`} className="sp-row-content">
+        {product.images?.[0] ? (
+          <img src={product.images[0]} alt={product.name} className="sp-row-img" />
+        ) : (
+          <div className="sp-row-img sp-row-img-placeholder">
+            <Package size={24} color="#94a3b8" />
+          </div>
+        )}
+        <div className="sp-row-info">
+          <span className="sp-row-name">{product.name}</span>
+          {product.manufacturer && <span className="sp-row-mfg">{product.manufacturer}</span>}
+          {product.part_number && (
+            <span className="sp-row-part">Art.-Nr.: {product.part_number}</span>
+          )}
+        </div>
+        <div className="sp-row-meta">
+          <span className="sp-row-price">
+            {Number(product.price).toFixed(2).replace('.', ',')} €
+          </span>
+          <span className={`sp-row-stock ${inStock ? 'in' : 'out'}`}>
+            <span className="sp-stock-dot" />
+            {inStock ? 'Auf Lager' : 'Nicht verfügbar'}
+          </span>
+        </div>
+      </Link>
+
+      <button
+        className={`sp-row-cart-btn ${inCart ? 'in-cart' : ''}`}
+        onClick={onAdd}
+        aria-label="In den Warenkorb"
+      >
+        {inCart ? <Check size={16} /> : <ShoppingCart size={16} />}
+      </button>
     </div>
   )
 }
