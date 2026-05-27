@@ -2,6 +2,11 @@
 //  ReviewService.swift
 //  Skipily
 //
+//  Stabile Variante:
+//   - mappt auf die neue DB-Spalte `author_id` (Migration 055/067)
+//   - comment ist optional (DB-Spalte ist nullable)
+//   - silent-tolerant beim Decode (einzelne kaputte Zeilen kippen nicht die ganze Liste)
+//
 
 import Foundation
 import Supabase
@@ -11,40 +16,45 @@ import Combine
 struct Reviews: Identifiable, Codable {
     let id: UUID
     let service_provider_id: UUID
-    let user_id: UUID
+    /// DB-Spalte `author_id` (frueher `user_id` – Migration 055 hat umbenannt)
+    let authorId: UUID
     let rating: Int
+    /// Comment ist nullable in der DB → optional, Default ""
     let comment: String
     let createdAt: Date?
     let updatedAt: Date?
 
-    // Profil-Daten (via Join)
+    // Profil-Daten (via Join, optional)
     let userName: String?
 
     enum CodingKeys: String, CodingKey {
         case id
-        case service_provider_id = "service_provider_id"
-        case user_id = "user_id"
+        case service_provider_id  = "service_provider_id"
+        case authorId             = "author_id"
         case rating
         case comment
-        case createdAt = "created_at"
-        case updatedAt = "updated_at"
-        case userName = "user_name"
+        case createdAt            = "created_at"
+        case updatedAt            = "updated_at"
+        case userName             = "user_name"
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = try c.decode(UUID.self, forKey: .id)
+        id                  = try c.decode(UUID.self, forKey: .id)
         service_provider_id = try c.decode(UUID.self, forKey: .service_provider_id)
-        user_id = try c.decode(UUID.self, forKey: .user_id)
-        rating = try c.decode(Int.self, forKey: .rating)
-        comment = try c.decode(String.self, forKey: .comment)
-        createdAt = try? c.decode(Date.self, forKey: .createdAt)
-        updatedAt = try? c.decode(Date.self, forKey: .updatedAt)
-        userName = try? c.decode(String.self, forKey: .userName)
+        authorId            = try c.decode(UUID.self, forKey: .authorId)
+        rating              = try c.decode(Int.self,  forKey: .rating)
+        // Comment toleriert NULL oder fehlenden Key → leerer String
+        comment             = (try? c.decode(String?.self, forKey: .comment)) ?? ""
+        createdAt           = try? c.decode(Date.self, forKey: .createdAt)
+        updatedAt           = try? c.decode(Date.self, forKey: .updatedAt)
+        userName            = try? c.decode(String.self, forKey: .userName)
     }
 }
 
 /// Parameter fuer submit_review RPC
+/// Hinweis: RPC-Parameter heißt server-seitig weiterhin `p_user_id`
+/// (siehe Migration 067), wird intern auf author_id gemappt.
 struct SubmitReviewParams: @preconcurrency Encodable, Sendable {
     let p_provider_id: String
     let p_user_id: String
@@ -59,16 +69,16 @@ struct SubmitReviewResponse: Codable, Sendable {
     let reviewCount: Int?
 
     enum CodingKeys: String, CodingKey {
-        case reviewId = "review_id"
-        case avgRating = "avg_rating"
+        case reviewId    = "review_id"
+        case avgRating   = "avg_rating"
         case reviewCount = "review_count"
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        reviewId = try? c.decode(UUID.self, forKey: .reviewId)
-        avgRating = try? c.decode(Double.self, forKey: .avgRating)
-        reviewCount = try? c.decode(Int.self, forKey: .reviewCount)
+        reviewId    = try? c.decode(UUID.self,   forKey: .reviewId)
+        avgRating   = try? c.decode(Double.self, forKey: .avgRating)
+        reviewCount = try? c.decode(Int.self,    forKey: .reviewCount)
     }
 }
 
@@ -86,30 +96,34 @@ class ReviewService: ObservableObject {
 
     /// Eigene Review des aktuellen Users fuer einen Provider finden
     func myReview(for serviceProviderId: UUID, userId: UUID) -> Reviews? {
-        return reviews.first { $0.service_provider_id == serviceProviderId && $0.user_id == userId }
+        return reviews.first {
+            $0.service_provider_id == serviceProviderId && $0.authorId == userId
+        }
     }
 
     /// Reviews fuer einen Provider laden
     func loadReviews(for service_provider_id: UUID) async {
         isLoading = true
         errorMessage = nil
-        
+
         do {
-            // Reviews laden – einfache Abfrage ohne Join
+            // Reviews laden – Spalte heißt seit Migration 055 author_id
             let response: [Reviews] = try await supabase
                 .from("reviews")
-                .select("id, service_provider_id, user_id, rating, comment, created_at, updated_at")
+                .select("id, service_provider_id, author_id, rating, comment, created_at, updated_at")
                 .eq("service_provider_id", value: service_provider_id.uuidString)
                 .order("created_at", ascending: false)
                 .execute()
                 .value
-            
+
             reviews = response
 
             // Strategie B: Review-Kommentare ggf. übersetzen (translate-text)
             let lang = LanguageManager.shared.currentLanguage.code
             if lang != "de" {
-                let items = response.map { (id: $0.id.uuidString, text: $0.comment) }
+                let items = response
+                    .filter { !$0.comment.isEmpty }
+                    .map { (id: $0.id.uuidString, text: $0.comment) }
                 await TranslationService.shared.ensureTexts(items, lang: lang)
             }
         } catch {
@@ -120,25 +134,25 @@ class ReviewService: ObservableObject {
 
         isLoading = false
     }
-    
+
     /// Review abschicken (erstellt neu oder aktualisiert bestehende)
     func submitReview(service_provider_id: UUID, userId: UUID, rating: Int, comment: String) async -> Bool {
         isLoading = true
         errorMessage = nil
-        
+
         do {
             let params = SubmitReviewParams(
                 p_provider_id: service_provider_id.uuidString,
-                p_user_id: userId.uuidString,
-                p_rating: rating,
-                p_comment: comment
+                p_user_id:     userId.uuidString,
+                p_rating:      rating,
+                p_comment:     comment
             )
             let _: SubmitReviewResponse = try await supabase
                 .rpc("submit_review", params: params)
                 .execute()
                 .value
-            
-            // Reviews neu laden
+
+            // Reviews neu laden, damit eigene Bewertung sofort erscheint
             await loadReviews(for: service_provider_id)
             isLoading = false
             return true
@@ -150,4 +164,3 @@ class ReviewService: ObservableObject {
         }
     }
 }
-

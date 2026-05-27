@@ -15,7 +15,7 @@ struct ServiceProviderDetailView: View {
 
     @State private var showingWriteReview = false
     @State private var showingSuggestEdit = false
-    @State private var showingBriefing = false
+    @State private var showingInquiry = false
     @StateObject private var reviewService = ReviewService()
     @StateObject private var suggestionService = EditSuggestionService()
     @StateObject private var locationManager = LocationManager()
@@ -292,7 +292,7 @@ struct ServiceProviderDetailView: View {
                                 .foregroundStyle(.secondary)
                         } else {
                             ForEach(reviewService.reviews) { review in
-                                ReviewRowView(review: review, isOwn: review.user_id == authService.currentUser?.id)
+                                ReviewRowView(review: review, isOwn: review.authorId == authService.currentUser?.id)
                             }
                         }
                     }
@@ -482,19 +482,25 @@ struct ServiceProviderDetailView: View {
                 }
             }
 
-            // Briefing senden — Eigner wählt Equipment, generiert Markdown,
-            // teilt es per ShareLink (E-Mail, WhatsApp, …).
+            // Anfrage stellen — vereint Briefing + Anfrage in einem Flow.
+            // Eigner wählt Ausrüstung, ergänzt Betreff/Nachricht/Notizen,
+            // sendet als Anfrage oder speichert als Entwurf.
             contactIconButton(
                 icon: "paperplane.fill",
-                label: "provider.briefing_button".loc,
-                color: .green
-            ) { showingBriefing = true }
+                label: "Anfrage",
+                color: AppColors.info
+            ) { showingInquiry = true }
 
             Spacer()
         }
-        .sheet(isPresented: $showingBriefing) {
-            ProviderBriefingView(provider: provider)
-                .environmentObject(authService)
+        .sheet(isPresented: $showingInquiry) {
+            InquiryComposeView(
+                editing: nil,
+                providerId: provider.id,
+                providerName: provider.name,
+                providerEmail: provider.email
+            )
+            .environmentObject(authService)
         }
     }
 
@@ -641,7 +647,10 @@ struct WriteReviewView: View {
                     Button("review.submit".loc) {
                         Task { await submitReview() }
                     }
-                    .disabled(comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
+                    // Rating ist Pflicht (1-5), Comment optional. So lassen
+                    // sich auch reine Sterne-Bewertungen und nachträgliches
+                    // Bearbeiten leerer Reviews speichern.
+                    .disabled(rating < 1 || rating > 5 || isSaving)
                     .fontWeight(.semibold)
                 }
             }
@@ -726,10 +735,13 @@ struct ReviewRowView: View {
             }
 
             // Kommentar (ggf. via TranslationService lokalisiert)
-            Text(localizedComment)
-                .font(.subheadline)
-                .foregroundStyle(.primary)
-                .fixedSize(horizontal: false, vertical: true)
+            // Bei leerem Comment (reine Sternebewertung) keine leere Zeile rendern
+            if !localizedComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(localizedComment)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             if isOwn {
                 Text("review.own".loc)
