@@ -43,10 +43,16 @@ export default function Shop() {
   const [equipmentRecommendations, setEquipmentRecommendations] = useState([])
   const PAGE_SIZE = 20
 
+  // Initial-Load + Wechsel zwischen Shop-Modus / Ersatzteil-Modus.
+  // Wichtig: Wir hören auf searchParams.toString(), damit beim Wechsel von
+  // /shop → /shop?eq_name=... (Equipment-Klick) die Spare-Parts-Suche neu
+  // ausgelöst wird, auch wenn die Shop-Komponente bereits gemountet war.
   useEffect(() => {
+    if (!user) return
     if (isSparePartsMode) loadSpareParts()
     else loadInitial()
-  }, [user])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isSparePartsMode, searchParams.toString()])
   useEffect(() => { localStorage.setItem('boatcare_cart', JSON.stringify(cart)) }, [cart])
   // Reload products when search, category, or provider filter changes (Shop-Modus only)
   useEffect(() => {
