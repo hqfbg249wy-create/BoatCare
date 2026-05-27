@@ -6,7 +6,7 @@
   "installCommand": "npm install --include=dev",
   "rewrites": [
     {
-      "source": "/((?!\\.well-known/|api/|assets/).*)",
+      "source": "/((?!\\.well-known/|api/|assets/|.*\\..*).*)",
       "destination": "/index.html"
     }
   ],
