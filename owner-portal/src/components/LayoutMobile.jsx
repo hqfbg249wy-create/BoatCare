@@ -98,6 +98,17 @@ export default function LayoutMobile() {
                   <LogOut size={18} />
                   <span>Abmelden</span>
                 </button>
+                <div className="profile-dropdown-divider" />
+                <a
+                  href="/datenschutz.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="profile-dropdown-item"
+                  style={{ fontSize: '0.78rem', color: '#94a3b8' }}
+                  onClick={() => setProfileOpen(false)}
+                >
+                  Datenschutz
+                </a>
               </div>
             )}
           </div>

@@ -74,6 +74,13 @@ export default function Login() {
             <p>Noch kein Konto? <button onClick={() => setIsRegister(true)}>Registrieren</button></p>
           )}
         </div>
+
+        <p style={{ marginTop: 16, fontSize: '0.78rem', color: '#94a3b8', textAlign: 'center' }}>
+          <a href="/datenschutz.html" target="_blank" rel="noopener noreferrer"
+             style={{ color: '#94a3b8', textDecoration: 'underline' }}>
+            Datenschutzerklärung
+          </a>
+        </p>
       </div>
     </div>
   )

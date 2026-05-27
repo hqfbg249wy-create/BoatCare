@@ -71,6 +71,9 @@ function LayoutDesktop() {
             <LogOut size={16} />
             <span>Abmelden</span>
           </button>
+          <div className="sidebar-legal">
+            <a href="/datenschutz.html" target="_blank" rel="noopener noreferrer">Datenschutz</a>
+          </div>
         </div>
       </aside>
 

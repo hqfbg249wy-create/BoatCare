@@ -115,6 +115,11 @@ export default function Signup() {
           </button>
         </form>
 
+        <p className="login-hint" style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: 12 }}>
+          Mit dem Klick auf „Konto erstellen" akzeptierst du unsere{' '}
+          <a href="/datenschutz.html" target="_blank" rel="noopener noreferrer">Datenschutzerklärung</a>.
+        </p>
+
         <p className="login-hint">
           Schon registriert? <Link to="/">Anmelden</Link>
         </p>

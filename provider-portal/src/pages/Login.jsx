@@ -71,6 +71,10 @@ export default function Login() {
         <p className="login-hint">
           Noch kein Konto? <Link to="/signup">Jetzt als Provider registrieren</Link>
         </p>
+
+        <p className="login-hint" style={{ marginTop: 16, fontSize: '0.78rem', color: '#94a3b8' }}>
+          <a href="/datenschutz.html" target="_blank" rel="noopener noreferrer">Datenschutzerklärung</a>
+        </p>
       </div>
     </div>
   )
