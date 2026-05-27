@@ -772,3 +772,52 @@
 "parts.reason_possible_match" = "Posible complemento";
 "parts.reason_dimensions" = "Dimensiones coinciden";
 "parts.reason_fallback" = "Coincidencia";
+
+// MARK: - Briefing (campo adicional)
+"briefing.eq_warranty" = "Garantía hasta";
+
+// MARK: - Inquiry Compose
+"inquiry.title" = "Nueva consulta";
+"inquiry.title_edit" = "Editar consulta";
+"inquiry.preview_title" = "Vista previa";
+"inquiry.to" = "A";
+"inquiry.pick_provider_hint" = "Toca para buscar y elegir otro proveedor.";
+"inquiry.no_email" = "Sin dirección de correo";
+"inquiry.no_email_hint" = "Este proveedor no tiene correo. La consulta no se puede enviar — puedes guardarla como borrador.";
+"inquiry.boat_optional" = "Barco (opcional)";
+"inquiry.boat_label" = "Barco";
+"inquiry.boat_none" = "— sin barco —";
+"inquiry.subject" = "Asunto";
+"inquiry.subject_required" = "Asunto *";
+"inquiry.message" = "Mensaje";
+"inquiry.message_required" = "Mensaje *";
+"inquiry.message_placeholder" = "Describe tu consulta con el mayor detalle posible…";
+"inquiry.loading_equipment" = "Cargando barcos y equipamiento…";
+"inquiry.boat_and_equipment" = "Barco y equipamiento";
+"inquiry.category" = "Categoría";
+"inquiry.selected_count" = "%d seleccionados";
+"inquiry.no_equipment" = "Sin equipamiento. Se adjuntarán los datos del barco si está seleccionado arriba.";
+"inquiry.attach_measurement" = "Adjuntar medidas de vela (PDF)";
+"inquiry.attach_measurement_hint" = "Las medidas se adjuntan como PDF. Si faltan, complétalas en el detalle del equipamiento.";
+"inquiry.photo_library" = "Galería";
+"inquiry.camera" = "Cámara";
+"inquiry.photos_label" = "Fotos del problema";
+"inquiry.photos_hint" = "Opcional. Máximo 5 fotos. Se envían como adjunto.";
+"inquiry.notes_label" = "Notas privadas";
+"inquiry.notes_hint" = "Solo visibles para ti – no se envían al proveedor.";
+"inquiry.notes_placeholder" = "Tus ideas, presupuesto, plazos…";
+"inquiry.draft" = "Borrador";
+"inquiry.send" = "Enviar";
+"inquiry.send_hint" = "Revisa el mensaje. Con \"Enviar\" se envía al proveedor.";
+"inquiry.edit" = "Editar";
+"inquiry.photo_attached" = "%d foto adjunta";
+"inquiry.photos_attached" = "%d fotos adjuntas";
+"inquiry.measurement_pdf" = "%d medida de vela como PDF";
+"inquiry.measurement_pdfs" = "%d medidas de vela como PDF";
+"inquiry.measurement_pdf_hint" = "Las medidas se adjuntarán como PDF al enviar.";
+"inquiry.notes_private" = "Notas privadas (solo para ti)";
+"inquiry.sail_measurement_ok" = "Medidas disponibles";
+"inquiry.sail_measurement_missing" = "Sin medidas — complétalas primero";
+"inquiry.subject_empty" = "Introduce un asunto.";
+"inquiry.message_empty" = "Introduce un mensaje.";
+"inquiry.pick_provider_title" = "Elegir proveedor";

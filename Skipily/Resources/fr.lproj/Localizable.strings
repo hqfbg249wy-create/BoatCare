@@ -772,3 +772,52 @@
 "parts.reason_possible_match" = "Complément possible";
 "parts.reason_dimensions" = "Dimensions correspondent";
 "parts.reason_fallback" = "Correspondance";
+
+// MARK: - Briefing (champ supplémentaire)
+"briefing.eq_warranty" = "Garantie jusqu'au";
+
+// MARK: - Inquiry Compose
+"inquiry.title" = "Nouvelle demande";
+"inquiry.title_edit" = "Modifier la demande";
+"inquiry.preview_title" = "Aperçu";
+"inquiry.to" = "À";
+"inquiry.pick_provider_hint" = "Touchez pour chercher et choisir un autre prestataire.";
+"inquiry.no_email" = "Aucune adresse e-mail enregistrée";
+"inquiry.no_email_hint" = "Ce prestataire n'a pas d'e-mail. La demande ne peut pas être envoyée — vous pouvez l'enregistrer en brouillon.";
+"inquiry.boat_optional" = "Bateau (facultatif)";
+"inquiry.boat_label" = "Bateau";
+"inquiry.boat_none" = "— aucun bateau —";
+"inquiry.subject" = "Objet";
+"inquiry.subject_required" = "Objet *";
+"inquiry.message" = "Message";
+"inquiry.message_required" = "Message *";
+"inquiry.message_placeholder" = "Décrivez votre demande avec le plus de précision possible…";
+"inquiry.loading_equipment" = "Chargement des bateaux et équipements…";
+"inquiry.boat_and_equipment" = "Bateau et équipement";
+"inquiry.category" = "Catégorie";
+"inquiry.selected_count" = "%d sélectionnés";
+"inquiry.no_equipment" = "Aucun équipement enregistré. Les données du bateau seront jointes si un bateau est choisi ci-dessus.";
+"inquiry.attach_measurement" = "Joindre les mesures de voile (PDF)";
+"inquiry.attach_measurement_hint" = "Les mesures sont jointes en PDF. Si elles manquent, complétez-les dans le détail de l'équipement.";
+"inquiry.photo_library" = "Galerie";
+"inquiry.camera" = "Appareil photo";
+"inquiry.photos_label" = "Photos du problème";
+"inquiry.photos_hint" = "Facultatif. 5 photos maximum. Envoyées en pièce jointe.";
+"inquiry.notes_label" = "Notes privées";
+"inquiry.notes_hint" = "Visibles uniquement par vous – non envoyées au prestataire.";
+"inquiry.notes_placeholder" = "Vos propres réflexions, budget, planning…";
+"inquiry.draft" = "Brouillon";
+"inquiry.send" = "Envoyer";
+"inquiry.send_hint" = "Vérifiez le message. \"Envoyer\" le transmettra au prestataire.";
+"inquiry.edit" = "Modifier";
+"inquiry.photo_attached" = "%d photo jointe";
+"inquiry.photos_attached" = "%d photos jointes";
+"inquiry.measurement_pdf" = "%d mesure de voile en PDF";
+"inquiry.measurement_pdfs" = "%d mesures de voile en PDF";
+"inquiry.measurement_pdf_hint" = "Les mesures seront jointes en PDF lors de l'envoi.";
+"inquiry.notes_private" = "Notes privées (pour vous seul)";
+"inquiry.sail_measurement_ok" = "Mesures disponibles";
+"inquiry.sail_measurement_missing" = "Aucune mesure — veuillez d'abord la compléter";
+"inquiry.subject_empty" = "Veuillez saisir un objet.";
+"inquiry.message_empty" = "Veuillez saisir un message.";
+"inquiry.pick_provider_title" = "Choisir un prestataire";

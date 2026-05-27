@@ -757,6 +757,55 @@
 "briefing.pick_provider" = "Select service provider";
 "chat.photo_upload_failed" = "Upload failed – tap image to retry.";
 
+// MARK: - Briefing (additional field)
+"briefing.eq_warranty" = "Warranty until";
+
+// MARK: - Inquiry Compose
+"inquiry.title" = "New Inquiry";
+"inquiry.title_edit" = "Edit Inquiry";
+"inquiry.preview_title" = "Preview";
+"inquiry.to" = "To";
+"inquiry.pick_provider_hint" = "Tap to search and pick a different provider.";
+"inquiry.no_email" = "No email address on file";
+"inquiry.no_email_hint" = "This provider has no email address. The inquiry can't be delivered — you can save it as draft.";
+"inquiry.boat_optional" = "Boat (optional)";
+"inquiry.boat_label" = "Boat";
+"inquiry.boat_none" = "— no boat selected —";
+"inquiry.subject" = "Subject";
+"inquiry.subject_required" = "Subject *";
+"inquiry.message" = "Message";
+"inquiry.message_required" = "Message *";
+"inquiry.message_placeholder" = "Describe your request as precisely as possible…";
+"inquiry.loading_equipment" = "Loading boats & equipment…";
+"inquiry.boat_and_equipment" = "Boat & Equipment";
+"inquiry.category" = "Category";
+"inquiry.selected_count" = "%d selected";
+"inquiry.no_equipment" = "No equipment registered. Boat data will be attached if a boat is selected above.";
+"inquiry.attach_measurement" = "Attach sail measurement (PDF)";
+"inquiry.attach_measurement_hint" = "Sail dimensions will be attached as PDF. If missing, fill it out in the equipment detail.";
+"inquiry.photo_library" = "Photo Library";
+"inquiry.camera" = "Camera";
+"inquiry.photos_label" = "Photos of the issue";
+"inquiry.photos_hint" = "Optional. Max 5 photos. Sent as email attachment.";
+"inquiry.notes_label" = "Private notes";
+"inquiry.notes_hint" = "Only visible to you – not sent to the provider.";
+"inquiry.notes_placeholder" = "Your own thoughts, budget, timeline…";
+"inquiry.draft" = "Draft";
+"inquiry.send" = "Send";
+"inquiry.send_hint" = "Please review the message. \"Send\" will deliver it to the provider.";
+"inquiry.edit" = "Edit";
+"inquiry.photo_attached" = "%d photo attached";
+"inquiry.photos_attached" = "%d photos attached";
+"inquiry.measurement_pdf" = "%d sail measurement as PDF";
+"inquiry.measurement_pdfs" = "%d sail measurements as PDF";
+"inquiry.measurement_pdf_hint" = "Sail dimensions will be attached as PDF when sending.";
+"inquiry.notes_private" = "Private notes (only for you)";
+"inquiry.sail_measurement_ok" = "Measurement available";
+"inquiry.sail_measurement_missing" = "No measurement — please fill it out first";
+"inquiry.subject_empty" = "Please enter a subject.";
+"inquiry.message_empty" = "Please enter a message.";
+"inquiry.pick_provider_title" = "Pick a provider";
+
 // MARK: - Spare Parts Search (EquipmentPartsSearchView)
 "parts.section_originals" = "Original Parts";
 "parts.section_derivates" = "Compatible Parts";

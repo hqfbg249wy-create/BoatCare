@@ -310,6 +310,7 @@ enum EquipmentBriefingBuilder {
         let item_description: String?
         let notes: String?
         let installation_date: String?
+        let warranty_expiry: String?
         let last_maintenance_date: String?
         let next_maintenance_date: String?
         let maintenance_cycle_years: Int?
@@ -333,6 +334,7 @@ enum EquipmentBriefingBuilder {
         let item_description: String?
         let notes: String?
         let installation_date: String?
+        let warranty_expiry: String?
         let last_maintenance_date: String?
         let next_maintenance_date: String?
         let maintenance_cycle_years: Int?
@@ -364,7 +366,7 @@ enum EquipmentBriefingBuilder {
 
         let eqs: [EqWithBoat] = try await client
             .from("equipment")
-            .select("id, boat_id, name, category, manufacturer, model, serial_number, part_number, dimensions, location_on_boat, item_description, notes, installation_date, last_maintenance_date, next_maintenance_date, maintenance_cycle_years, photo_url")
+            .select("id, boat_id, name, category, manufacturer, model, serial_number, part_number, dimensions, location_on_boat, item_description, notes, installation_date, warranty_expiry, last_maintenance_date, next_maintenance_date, maintenance_cycle_years, photo_url")
             .in("id", values: equipmentIds.map { $0.uuidString })
             .execute()
             .value
@@ -421,7 +423,7 @@ enum EquipmentBriefingBuilder {
                 lines.append("- \("briefing.boat_length".loc): \(s) m")
             }
             if let p = boat?.home_port, !p.isEmpty { lines.append("- \("briefing.boat_home_port".loc): \(p)") }
-            if let e = boat?.engine, !e.isEmpty { lines.append("- Motor: \(e)") }
+            if let e = boat?.engine, !e.isEmpty { lines.append("- \("briefing.boat_engine".loc): \(e)") }
             lines.append("")
 
             // Equipment-Einträge dieses Bootes — vollständige Datenausgabe.
@@ -451,7 +453,10 @@ enum EquipmentBriefingBuilder {
                     lines.append("- \("briefing.eq_location".loc): \(l)")
                 }
                 if let inst = eq.installation_date, !inst.isEmpty {
-                    lines.append("- Installationsdatum: \(inst)")
+                    lines.append("- \("briefing.eq_installed".loc): \(inst)")
+                }
+                if let we = eq.warranty_expiry, !we.isEmpty {
+                    lines.append("- \("briefing.eq_warranty".loc): \(we)")
                 }
                 if let lmd = eq.last_maintenance_date, !lmd.isEmpty {
                     lines.append("- \("briefing.eq_last_maint".loc): \(lmd)")
@@ -465,7 +470,7 @@ enum EquipmentBriefingBuilder {
 
                 if let desc = eq.item_description, !desc.isEmpty {
                     lines.append("")
-                    lines.append("**Beschreibung:**")
+                    lines.append("**\("briefing.section_description".loc):**")
                     lines.append(desc)
                 }
                 if let notes = eq.notes, !notes.isEmpty {
@@ -486,8 +491,7 @@ enum EquipmentBriefingBuilder {
             }
         }
 
-        lines.append("---")
-        lines.append("briefing.closing".loc)
+        // Kein automatisches Closing mehr — User formuliert den Abschluss selbst
         return lines.joined(separator: "\n")
     }
 
@@ -511,7 +515,7 @@ enum EquipmentBriefingBuilder {
 
         async let eqTask: [EquipmentRow] = client
             .from("equipment")
-            .select("name, category, manufacturer, model, serial_number, part_number, dimensions, location_on_boat, item_description, notes, installation_date, last_maintenance_date, next_maintenance_date, maintenance_cycle_years, photo_url")
+            .select("name, category, manufacturer, model, serial_number, part_number, dimensions, location_on_boat, item_description, notes, installation_date, warranty_expiry, last_maintenance_date, next_maintenance_date, maintenance_cycle_years, photo_url")
             .eq("id", value: equipmentId.uuidString)
             .limit(1)
             .execute()
@@ -575,6 +579,7 @@ enum EquipmentBriefingBuilder {
         if let d = eq.dimensions, !d.isEmpty { lines.append("- \("briefing.eq_dimensions".loc): \(d)") }
         if let l = eq.location_on_boat, !l.isEmpty { lines.append("- \("briefing.eq_location".loc): \(l)") }
         if let i = eq.installation_date, !i.isEmpty { lines.append("- \("briefing.eq_installed".loc): \(i)") }
+        if let we = eq.warranty_expiry, !we.isEmpty { lines.append("- \("briefing.eq_warranty".loc): \(we)") }
         if let lmd = eq.last_maintenance_date, !lmd.isEmpty { lines.append("- \("briefing.eq_last_maint".loc): \(lmd)") }
         if let nmd = eq.next_maintenance_date, !nmd.isEmpty { lines.append("- \("briefing.eq_next_maint".loc): \(nmd)") }
         if let cy = eq.maintenance_cycle_years { lines.append("- \("briefing.eq_cycle".loc): \(cy) \("briefing.years".loc)") }
@@ -606,10 +611,7 @@ enum EquipmentBriefingBuilder {
             }
         }
 
-        // Closing
-        lines.append("---")
-        lines.append("\("briefing.closing".loc)")
-
+        // Kein automatisches Closing mehr — User formuliert den Abschluss selbst
         return lines.joined(separator: "\n")
     }
 }

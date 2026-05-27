@@ -772,3 +772,52 @@
 "parts.reason_possible_match" = "Mogelijke aanvulling";
 "parts.reason_dimensions" = "Afmetingen komen overeen";
 "parts.reason_fallback" = "Overeenkomst";
+
+// MARK: - Briefing (extra veld)
+"briefing.eq_warranty" = "Garantie tot";
+
+// MARK: - Inquiry Compose
+"inquiry.title" = "Nieuwe aanvraag";
+"inquiry.title_edit" = "Aanvraag bewerken";
+"inquiry.preview_title" = "Voorbeeld";
+"inquiry.to" = "Aan";
+"inquiry.pick_provider_hint" = "Tik om een andere serviceprovider te kiezen.";
+"inquiry.no_email" = "Geen e-mailadres bekend";
+"inquiry.no_email_hint" = "Deze aanbieder heeft geen e-mailadres. De aanvraag kan niet verzonden worden — je kunt hem wel als concept opslaan.";
+"inquiry.boat_optional" = "Boot (optioneel)";
+"inquiry.boat_label" = "Boot";
+"inquiry.boat_none" = "— geen boot —";
+"inquiry.subject" = "Onderwerp";
+"inquiry.subject_required" = "Onderwerp *";
+"inquiry.message" = "Bericht";
+"inquiry.message_required" = "Bericht *";
+"inquiry.message_placeholder" = "Beschrijf je vraag zo nauwkeurig mogelijk…";
+"inquiry.loading_equipment" = "Boten & uitrusting laden…";
+"inquiry.boat_and_equipment" = "Boot & uitrusting";
+"inquiry.category" = "Categorie";
+"inquiry.selected_count" = "%d geselecteerd";
+"inquiry.no_equipment" = "Geen uitrusting geregistreerd. Bootgegevens worden bijgevoegd als een boot is geselecteerd.";
+"inquiry.attach_measurement" = "Zeilmaatblad bijvoegen (PDF)";
+"inquiry.attach_measurement_hint" = "Maten worden als PDF bijgevoegd. Ontbreken ze, vul ze dan in bij het uitrustingsdetail.";
+"inquiry.photo_library" = "Fotobibliotheek";
+"inquiry.camera" = "Camera";
+"inquiry.photos_label" = "Foto's van het probleem";
+"inquiry.photos_hint" = "Optioneel. Maximaal 5 foto's. Worden meegestuurd als bijlage.";
+"inquiry.notes_label" = "Privé-notities";
+"inquiry.notes_hint" = "Alleen voor jou zichtbaar – niet naar de provider gestuurd.";
+"inquiry.notes_placeholder" = "Eigen gedachten, budget, planning…";
+"inquiry.draft" = "Concept";
+"inquiry.send" = "Versturen";
+"inquiry.send_hint" = "Controleer het bericht. Met \"Versturen\" wordt het naar de provider verzonden.";
+"inquiry.edit" = "Bewerken";
+"inquiry.photo_attached" = "%d foto bijgevoegd";
+"inquiry.photos_attached" = "%d foto's bijgevoegd";
+"inquiry.measurement_pdf" = "%d zeilmaatblad als PDF";
+"inquiry.measurement_pdfs" = "%d zeilmaatbladen als PDF";
+"inquiry.measurement_pdf_hint" = "De maten worden bij verzending als PDF bijgevoegd.";
+"inquiry.notes_private" = "Privé-notities (alleen voor jou)";
+"inquiry.sail_measurement_ok" = "Maatblad beschikbaar";
+"inquiry.sail_measurement_missing" = "Geen maatblad — vul het eerst in";
+"inquiry.subject_empty" = "Voer een onderwerp in.";
+"inquiry.message_empty" = "Voer een bericht in.";
+"inquiry.pick_provider_title" = "Provider kiezen";

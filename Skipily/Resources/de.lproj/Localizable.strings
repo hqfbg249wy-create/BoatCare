@@ -760,6 +760,55 @@ Ausrüstung unter Boote ergänzen.";
 "briefing.pick_provider" = "Service-Betrieb auswählen";
 "chat.photo_upload_failed" = "Upload fehlgeschlagen – Bild tippen zum Wiederholen.";
 
+// MARK: - Briefing (zusätzliches Feld)
+"briefing.eq_warranty" = "Garantie bis";
+
+// MARK: - Inquiry Compose (Anfrage erstellen)
+"inquiry.title" = "Neue Anfrage";
+"inquiry.title_edit" = "Anfrage bearbeiten";
+"inquiry.preview_title" = "Vorschau";
+"inquiry.to" = "An";
+"inquiry.pick_provider_hint" = "Tippen, um einen anderen Anbieter zu suchen und zu wählen.";
+"inquiry.no_email" = "Keine E-Mail-Adresse hinterlegt";
+"inquiry.no_email_hint" = "Dieser Anbieter hat keine E-Mail-Adresse. Die Anfrage kann nicht zugestellt werden — du kannst sie aber als Entwurf speichern.";
+"inquiry.boat_optional" = "Boot (optional)";
+"inquiry.boat_label" = "Boot";
+"inquiry.boat_none" = "— kein Boot angeben —";
+"inquiry.subject" = "Betreff";
+"inquiry.subject_required" = "Betreff *";
+"inquiry.message" = "Nachricht";
+"inquiry.message_required" = "Nachricht *";
+"inquiry.message_placeholder" = "Beschreibe dein Anliegen so genau wie möglich…";
+"inquiry.loading_equipment" = "Boote & Ausrüstung laden…";
+"inquiry.boat_and_equipment" = "Boot & Ausrüstung";
+"inquiry.category" = "Kategorie";
+"inquiry.selected_count" = "%d ausgewählt";
+"inquiry.no_equipment" = "Keine Ausrüstung hinterlegt. Es werden die Bootsdaten angehängt, falls oben ein Boot gewählt ist.";
+"inquiry.attach_measurement" = "Maßblatt anhängen (PDF)";
+"inquiry.attach_measurement_hint" = "Maßblatt-Daten werden als PDF an die Anfrage angehängt. Fehlt das Maßblatt, kannst du es im Equipment-Detail ausfüllen.";
+"inquiry.photo_library" = "Mediathek";
+"inquiry.camera" = "Kamera";
+"inquiry.photos_label" = "Fotos zum Problem";
+"inquiry.photos_hint" = "Optional. Maximal 5 Fotos. Werden beim Versand als Anhang mitgeschickt (E-Mail).";
+"inquiry.notes_label" = "Private Notizen";
+"inquiry.notes_hint" = "Nur für dich sichtbar – nicht an den Anbieter übermittelt.";
+"inquiry.notes_placeholder" = "Eigene Gedanken, Budget, Zeitplan…";
+"inquiry.draft" = "Entwurf";
+"inquiry.send" = "Senden";
+"inquiry.send_hint" = "Bitte prüfe die Nachricht. Mit \"Senden\" geht sie unwiderruflich an den Anbieter.";
+"inquiry.edit" = "Bearbeiten";
+"inquiry.photo_attached" = "%d Foto als Anhang";
+"inquiry.photos_attached" = "%d Fotos als Anhang";
+"inquiry.measurement_pdf" = "%d Segel-Maßblatt als PDF";
+"inquiry.measurement_pdfs" = "%d Segel-Maßblätter als PDF";
+"inquiry.measurement_pdf_hint" = "Die Maßdaten werden beim Senden als PDF angehängt.";
+"inquiry.notes_private" = "Private Notizen (nur für dich)";
+"inquiry.sail_measurement_ok" = "Maßblatt verfügbar";
+"inquiry.sail_measurement_missing" = "Kein Maßblatt — bitte zuerst ausfüllen";
+"inquiry.subject_empty" = "Bitte einen Betreff eingeben.";
+"inquiry.message_empty" = "Bitte eine Nachricht eingeben.";
+"inquiry.pick_provider_title" = "Anbieter wählen";
+
 // MARK: - Spare Parts Search (EquipmentPartsSearchView)
 "parts.section_originals" = "Originalteile";
 "parts.section_derivates" = "1:1 passende Derivate";
