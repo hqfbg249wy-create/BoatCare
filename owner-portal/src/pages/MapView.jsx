@@ -278,12 +278,12 @@ export default function MapView() {
       setFavorites(new Set((favs || []).map(f => f.provider_id)))
       setLoading(false)
 
-      // Geolocation nur ohne gespeicherte Position
-      if (!getSavedMapPosition() && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          pos => { if (!cancelled) setCenter([pos.coords.latitude, pos.coords.longitude]) },
-          () => {}
-        )
+      // Geolocation nur ohne gespeicherte Position — über lib/geo,
+      // damit auch Capacitor/Android funktioniert.
+      if (!getSavedMapPosition()) {
+        getCurrentLocation()
+          .then(loc => { if (!cancelled) setCenter([loc.lat, loc.lon]) })
+          .catch(() => { /* User hat Permission abgelehnt oder Browser unterstützt nicht — egal */ })
       }
     } catch (err) {
       console.error('loadData Fehler:', err)

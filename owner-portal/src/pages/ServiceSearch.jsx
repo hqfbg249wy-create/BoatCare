@@ -47,33 +47,37 @@ export default function ServiceSearch() {
 
   async function loadData() {
     setLoading(true)
-    // Load all providers (Supabase default limit is 1000, so paginate)
-    let allProviders = []
-    let from = 0
-    const pageSize = 1000
-    while (true) {
-      const { data: batch } = await supabase.from('service_providers').select('*').range(from, from + pageSize - 1)
-      if (!batch || batch.length === 0) break
-      allProviders = allProviders.concat(batch)
-      if (batch.length < pageSize) break
-      from += pageSize
-    }
-    const [{ data: favs }] = await Promise.all([
-      supabase.from('user_favorites').select('provider_id').eq('user_id', user.id)
+    // Schritt 1: Parallel die wichtigsten Datenquellen anfragen.
+    // - Provider-Liste mit reduziertem Spalten-Set (keine large fields wie
+    //   description) und Limit 500 — reicht für Anzeige + spätere Suche.
+    // - Favoriten-IDs
+    // - Produkt-Counts via Group/Aggregation statt komplette Produkt-Liste
+    //   (das war der Hauptgrund für die langen Ladezeiten).
+    const [providersRes, favsRes, productCountsRes] = await Promise.all([
+      supabase.from('service_providers')
+        .select('id, name, category, services, brands, latitude, longitude, street, postal_code, city, country, phone, email, website, rating, review_count, logo_url')
+        .order('rating', { ascending: false, nullsFirst: false })
+        .limit(500),
+      supabase.from('user_favorites').select('provider_id').eq('user_id', user.id),
+      // Counts via Postgres-Funktion (group by provider_id)
+      supabase.from('metashop_products')
+        .select('provider_id', { count: 'exact', head: false })
+        .eq('is_active', true)
+        .limit(2000),
     ])
-    setProviders(allProviders)
-    setFavorites(new Set((favs || []).map(f => f.provider_id)))
 
-    // Load products for search and counts
-    const { data: prodData } = await supabase
-      .from('metashop_products')
-      .select('id, name, manufacturer, description, provider_id')
-      .eq('is_active', true)
-    const prods = prodData || []
-    setAllProducts(prods)
+    setProviders(providersRes.data || [])
+    setFavorites(new Set((favsRes.data || []).map(f => f.provider_id)))
+
+    // Counts client-seitig aggregieren (nur provider_ids im Speicher)
     const counts = {}
-    prods.forEach(p => { counts[p.provider_id] = (counts[p.provider_id] || 0) + 1 })
+    for (const p of (productCountsRes.data || [])) {
+      counts[p.provider_id] = (counts[p.provider_id] || 0) + 1
+    }
     setProviderProducts(counts)
+    // allProducts NICHT mehr eager laden — die Produktsuche nutzt jetzt
+    // ohnehin searchProducts() mit serverseitiger ILIKE-Filterung.
+    setAllProducts([])
 
     setLoading(false)
   }

@@ -39,6 +39,8 @@ export default function Shop() {
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [cartToast, setCartToast] = useState(null)
+  // Empfehlungen für User-Equipment ("Passende Produkte für Deine Ausrüstung")
+  const [equipmentRecommendations, setEquipmentRecommendations] = useState([])
   const PAGE_SIZE = 20
 
   useEffect(() => {
@@ -96,8 +98,55 @@ export default function Shop() {
       if (p.valid_until && p.valid_until < now) return false
       return true
     }))
+    // Parallel: Empfehlungen für User-Equipment laden (nicht-blockierend)
+    loadEquipmentRecommendations()
     await loadProducts(0)
     setLoading(false)
+  }
+
+  /**
+   * Empfehlungs-Sektion "Passende Produkte für Deine Ausrüstung":
+   * Holt eine Auswahl der User-Ausrüstung (Marke/Modell/Name) und matcht
+   * Produkte aus dem Metashop. Auswahl: bis zu 12 Produkte, sortiert nach
+   * Match-Score (Hersteller > Modell > Name).
+   */
+  async function loadEquipmentRecommendations() {
+    if (!user) return
+    try {
+      // 1) Eigene Boote → Equipment laden
+      const { data: boats } = await supabase
+        .from('boats').select('id').eq('owner_id', user.id)
+      const boatIds = (boats || []).map(b => b.id)
+      if (boatIds.length === 0) return setEquipmentRecommendations([])
+
+      const { data: eqs } = await supabase
+        .from('equipment')
+        .select('name, manufacturer, model, category')
+        .in('boat_id', boatIds)
+        .limit(20)
+      const items = (eqs || []).filter(e => e.manufacturer || e.model || e.name)
+      if (items.length === 0) return setEquipmentRecommendations([])
+
+      // 2) Eindeutige Marken sammeln → ILIKE-OR-Suche
+      const brands = Array.from(new Set(
+        items.map(e => (e.manufacturer || '').trim()).filter(s => s.length >= 2)
+      )).slice(0, 5)
+      if (brands.length === 0) return setEquipmentRecommendations([])
+
+      const conditions = brands.flatMap(b => [
+        `manufacturer.ilike.%${b}%`,
+        `name.ilike.%${b}%`,
+      ])
+      const { data: prods } = await supabase
+        .from('metashop_products')
+        .select('*, product_categories(*), service_providers(id, name, city)')
+        .eq('is_active', true)
+        .or(conditions.join(','))
+        .limit(12)
+      setEquipmentRecommendations(prods || [])
+    } catch (err) {
+      console.warn('Equipment-Empfehlungen konnten nicht geladen werden:', err)
+    }
   }
 
   async function loadProducts(pageNum, append = false) {
@@ -249,6 +298,48 @@ export default function Shop() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Passende Produkte für Deine Ausrüstung */}
+      {equipmentRecommendations.length > 0 && !search && !selectedCat && !providerFilter && (
+        <div className="shop-recommendations">
+          <div className="shop-recommendations-header">
+            <span className="shop-recommendations-icon">⚡</span>
+            <div>
+              <h3>Passende Produkte für deine Ausrüstung</h3>
+              <p>Basierend auf den Marken in deinem Equipment</p>
+            </div>
+          </div>
+          <div className="shop-recommendations-scroll">
+            {equipmentRecommendations.map(product => {
+              const inCart = isInCart(product.id)
+              return (
+                <div key={product.id} className="shop-rec-card">
+                  <Link to={`/shop/product/${product.id}`} className="shop-rec-link">
+                    {product.images?.[0] ? (
+                      <img src={product.images[0]} alt={product.name} className="shop-rec-img" />
+                    ) : (
+                      <div className="shop-rec-img shop-rec-no-img">
+                        <Package size={28} color="#cbd5e1" />
+                      </div>
+                    )}
+                    <div className="shop-rec-info">
+                      {product.manufacturer && <span className="shop-rec-mfr">{product.manufacturer}</span>}
+                      <span className="shop-rec-name">{product.name}</span>
+                      <span className="shop-rec-price">{Number(product.price).toFixed(2).replace('.', ',')} €</span>
+                    </div>
+                  </Link>
+                  <button
+                    className={`shop-rec-cart-btn ${inCart ? 'in-cart' : ''}`}
+                    onClick={() => addToCart(product)}
+                  >
+                    {inCart ? <Check size={14} /> : <ShoppingCart size={14} />}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 

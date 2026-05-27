@@ -143,6 +143,15 @@ export default function Boats() {
         <div className="boat-grid">
           {boats.map(boat => (
             <div key={boat.id} className="boat-card">
+              {/* Boot-Foto, falls vorhanden */}
+              {boat.image_url && (
+                <img
+                  src={boat.image_url}
+                  alt={boat.name}
+                  className="boat-card-photo"
+                  onError={e => { e.currentTarget.style.display = 'none' }}
+                />
+              )}
               <div className="boat-card-header">
                 <div className="boat-icon-circle"><Ship size={24} /></div>
                 <div>

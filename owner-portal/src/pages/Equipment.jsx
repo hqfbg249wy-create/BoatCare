@@ -40,12 +40,28 @@ export default function Equipment() {
     const { data: b } = await supabase.from('boats').select('id, name').eq('owner_id', user.id).order('name')
     setBoats(b || [])
 
-    // Load equipment for all user's boats
+    // Load equipment for all user's boats — inkl. der Fotos aus
+    // equipment_photos (max 5 pro Item, iOS-Schema).
     const boatIds = (b || []).map(boat => boat.id)
     let eq = []
     if (boatIds.length > 0) {
-      const { data } = await supabase.from('equipment').select('*').in('boat_id', boatIds).order('category, name')
-      eq = data || []
+      const [{ data: equipData }, { data: photoData }] = await Promise.all([
+        supabase.from('equipment').select('*').in('boat_id', boatIds).order('category, name'),
+        supabase.from('equipment_photos').select('equipment_id, photo_url, sort_order')
+          .order('sort_order', { ascending: true }),
+      ])
+      const photosByEq = {}
+      for (const ph of (photoData || [])) {
+        if (!photosByEq[ph.equipment_id]) photosByEq[ph.equipment_id] = []
+        photosByEq[ph.equipment_id].push(ph.photo_url)
+      }
+      // Legacy: comma-separated photo_url-Spalte → als Fallback verwenden
+      eq = (equipData || []).map(item => {
+        const fromTable = photosByEq[item.id] || []
+        const legacy = (item.photo_url || '')
+          .split(',').map(s => s.trim()).filter(Boolean)
+        return { ...item, photos: fromTable.length > 0 ? fromTable : legacy }
+      })
     }
     setItems(eq)
     setLoading(false)
@@ -93,7 +109,7 @@ export default function Equipment() {
       const { data: sail } = await supabase.from('sail_measurements').select('*').eq('equipment_id', item.id).maybeSingle()
       setSailForm(sail ? { ...emptySailForm, ...sail } : emptySailForm)
     } else {
-      setSailForm(emptySail)
+      setSailForm(emptySailForm)
     }
     setEditing(item.id)
   }
@@ -280,6 +296,20 @@ export default function Equipment() {
                         <button className="btn-icon btn-danger" onClick={() => deleteItem(item.id)}><Trash2 size={14} /></button>
                       </div>
                     </div>
+                    {/* Foto-Thumbnails — bis zu 5 aus equipment_photos */}
+                    {item.photos && item.photos.length > 0 && (
+                      <div className="eq-photo-strip">
+                        {item.photos.slice(0, 5).map((url, i) => (
+                          <img
+                            key={i}
+                            src={url}
+                            alt=""
+                            className="eq-photo-thumb"
+                            onError={e => { e.currentTarget.style.display = 'none' }}
+                          />
+                        ))}
+                      </div>
+                    )}
                     <h3 className="eq-name">{item.name}</h3>
                     <p className="eq-detail">{item.manufacturer} {item.model}</p>
                     {item.serial_number && <p className="eq-serial">SN: {item.serial_number}</p>}
