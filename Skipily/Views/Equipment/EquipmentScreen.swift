@@ -180,6 +180,14 @@ private let equipmentCategories = [
     "hvac", "paint", "rope", "other"
 ]
 
+/// Identifiable-Wrapper für .sheet(item:) — die id basiert auf der Kategorie,
+/// so dass SwiftUI bei Wechsel der Kategorie das Sheet sauber neu mountet
+/// und AddEditEquipmentView den neuen initialCategory-Wert tatsächlich sieht.
+struct AddSheetTrigger: Identifiable {
+    let id: String      // == category, eindeutig pro gewählter Kategorie
+    let category: String
+}
+
 // MARK: - Equipment Navigation Target
 enum EquipmentNavTarget: Hashable {
     case service(name: String, category: String, manufacturer: String)
@@ -202,10 +210,12 @@ struct EquipmentScreen: View {
 
     @State private var items: [EquipmentItem] = []
     @State private var isLoading = false
-    @State private var showingAdd = false
     @State private var showingCategoryPicker = false
-    /// Beim + erst Kategorie wählen, dann Add-Form mit dieser Kategorie öffnen
-    @State private var pickedCategory: String? = nil
+    /// Sheet-Trigger für Add-Form mit konkreter Kategorie.
+    /// Wir nutzen .sheet(item:) statt isPresented, damit SwiftUI das Sheet
+    /// beim Setzen frisch instanziert und die initiale Kategorie zuverlässig
+    /// an AddEditEquipmentView weiterreicht (kein Race / Stale-State).
+    @State private var addTrigger: AddSheetTrigger? = nil
     /// Spezialweg für Kategorie "sails": eigener Sub-Picker mit Maßblatt-Routing
     @State private var showingNewSailFlow = false
     @State private var showingSuggestions = false
@@ -284,8 +294,7 @@ struct EquipmentScreen: View {
                             if preselected.lowercased() == "sails" {
                                 showingNewSailFlow = true
                             } else {
-                                pickedCategory = preselected
-                                showingAdd = true
+                                addTrigger = AddSheetTrigger(id: preselected, category: preselected)
                             }
                         } else {
                             showingCategoryPicker = true
@@ -303,16 +312,17 @@ struct EquipmentScreen: View {
                         showingNewSailFlow = true
                     }
                 } else {
-                    pickedCategory = chosen
+                    // .sheet(item:) triggert zuverlässig — Kategorie wird
+                    // 1:1 an AddEditEquipmentView weitergegeben.
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                        showingAdd = true
+                        addTrigger = AddSheetTrigger(id: chosen, category: chosen)
                     }
                 }
             }
             .presentationDetents([.medium, .large])
         }
-        .sheet(isPresented: $showingAdd) {
-            AddEditEquipmentView(boatId: boatId, item: nil, initialCategory: pickedCategory) { newItem in
+        .sheet(item: $addTrigger) { trigger in
+            AddEditEquipmentView(boatId: boatId, item: nil, initialCategory: trigger.category) { newItem in
                 Task { await addItem(newItem) }
             }
         }
@@ -322,9 +332,8 @@ struct EquipmentScreen: View {
                 boatName: boatName,
                 onPickOther: {
                     // Anderes Segel → generischer Equipment-Flow mit Kategorie sails
-                    pickedCategory = "sails"
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                        showingAdd = true
+                        addTrigger = AddSheetTrigger(id: "sails", category: "sails")
                     }
                 },
                 onCreated: {
