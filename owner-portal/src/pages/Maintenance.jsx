@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { Wrench, CheckCircle, AlertTriangle, Clock, Filter, Check, ShoppingCart, MapPin, Bot } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { buildShopQuery, buildServiceQuery, buildMaintenanceAIQuestion } from '../lib/equipmentSearch'
+import { buildSparePartsParams } from '../lib/sparePartsSearch'
 
 export default function Maintenance() {
   const { user } = useAuth()
@@ -127,7 +128,7 @@ export default function Maintenance() {
               </div>
               <div className="eq-quick-actions">
                 <button className="eq-action-btn eq-action-shop" title="Passende Artikel im Shop suchen"
-                  onClick={() => navigate(`/shop?q=${encodeURIComponent(buildShopQuery(item))}`)}>
+                  onClick={() => navigate(`/shop?${buildSparePartsParams(item)}`)}>
                   <ShoppingCart size={13} /> Shop
                 </button>
                 <button className="eq-action-btn eq-action-service" title="Passenden Service finden"
