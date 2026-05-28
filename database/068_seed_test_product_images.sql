@@ -69,7 +69,7 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 -- ─── Schritt 3: Kategorie ableiten + cap auf 20 pro Kategorie ──────────────
 WITH classified AS (
   SELECT
-    id, name, manufacturer, model, category,
+    id, name, manufacturer, part_number, category,
     CASE
       WHEN name ILIKE '%motor%' OR name ILIKE '%engine%' OR name ILIKE '%antrieb%'
            OR category ILIKE '%engine%' OR category ILIKE '%motor%'                THEN 'engine'
@@ -152,7 +152,6 @@ SET
     _sanitize_prompt(
       'professional studio product photography of ' ||
       COALESCE(NULLIF(p.manufacturer, '') || ' ', '') ||
-      COALESCE(NULLIF(p.model, '') || ' ', '') ||
       p.name ||
       CASE c.img_category
         WHEN 'engine'      THEN ' marine boat engine part'
