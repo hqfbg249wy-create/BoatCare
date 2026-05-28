@@ -8622,38 +8622,77 @@ function renderModalUserStatus() {
     const p = _editingProvider;
     const statusEl = document.getElementById('edit-user-status');
     const btn      = document.getElementById('edit-invite-btn');
+    const emailInp = document.getElementById('edit-invite-email');
     if (!p || !statusEl || !btn) return;
 
     const email = p.email || '';
     const hasEmail = !!email;
     const isLinked = !!p.user_id;
 
-    if (!hasEmail) {
-        statusEl.innerHTML = `<span style="color:#b45309;">⚠️ Keine E-Mail hinterlegt — bitte zuerst speichern.</span>`;
-        btn.disabled = true;
-        btn.style.opacity = '0.5';
-        btn.style.cursor = 'not-allowed';
-        return;
+    // Versand-Adresse mit der gespeicherten E-Mail als Vorschlag befüllen,
+    // aber nur wenn der User noch nichts manuell eingetippt hat (sonst
+    // würde sein Override beim Render-Refresh überschrieben).
+    if (emailInp && !emailInp.dataset.touched) {
+        emailInp.value = email;
     }
 
-    btn.disabled = false;
-    btn.style.opacity = '';
-    btn.style.cursor = 'pointer';
-
-    if (isLinked) {
+    if (!hasEmail) {
+        statusEl.innerHTML = `<span style="color:#b45309;">⚠️ Keine E-Mail im Profil hinterlegt — du kannst aber unten direkt eine Versand-Adresse eintragen.</span>`;
+        // Trotzdem nutzbar lassen, falls User direkt eine Adresse eingibt.
+    } else if (isLinked) {
         statusEl.innerHTML = `✅ Account verknüpft · <span style="font-family:monospace;">${escapeHtml(email)}</span>`;
         btn.textContent = '🔁 Login-Link erneut senden';
     } else {
         statusEl.innerHTML = `Noch kein Account · <span style="font-family:monospace;">${escapeHtml(email)}</span>`;
         btn.textContent = '✉️ Zugangsdaten senden';
     }
+
+    // Markierung „User hat Feld manuell editiert" einmalig pro Modal-Öffnung setzen,
+    // damit die Vorbelegung beim Re-Render nicht überschreibt.
+    if (emailInp && !emailInp.dataset.handlerBound) {
+        emailInp.addEventListener('input', () => { emailInp.dataset.touched = '1'; });
+        emailInp.dataset.handlerBound = '1';
+    }
+
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.style.cursor = 'pointer';
 }
 
 async function sendProviderInvite() {
     if (!_editingProvider) return;
     const btn       = document.getElementById('edit-invite-btn');
     const resultBox = document.getElementById('edit-invite-result');
+    const emailInp  = document.getElementById('edit-invite-email');
     const origLabel = btn.textContent;
+
+    // Versand-Adresse: aus dem Eingabefeld (vorbelegt mit gespeicherter Mail,
+    // aber editierbar). Fallback auf die Profil-Mail.
+    const overrideEmail = (emailInp?.value || '').trim();
+    const targetEmail   = overrideEmail || _editingProvider.email || '';
+
+    if (!targetEmail) {
+        if (resultBox) {
+            resultBox.style.display = '';
+            resultBox.style.background = '#fee2e2';
+            resultBox.style.color      = '#991b1b';
+            resultBox.style.border     = '1px solid #fecaca';
+            resultBox.innerHTML = '❌ Bitte eine Versand-Adresse eintragen.';
+        }
+        return;
+    }
+
+    // Sanity-Check: einfache E-Mail-Validierung
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) {
+        if (resultBox) {
+            resultBox.style.display = '';
+            resultBox.style.background = '#fee2e2';
+            resultBox.style.color      = '#991b1b';
+            resultBox.style.border     = '1px solid #fecaca';
+            resultBox.innerHTML = '❌ Diese E-Mail-Adresse sieht ungültig aus.';
+        }
+        return;
+    }
 
     btn.disabled = true;
     btn.textContent = '⏳ Wird gesendet…';
@@ -8663,6 +8702,14 @@ async function sendProviderInvite() {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session) throw new Error('Nicht eingeloggt');
 
+        // Body: provider_id + optionaler email-Override.
+        // Edge-Function 'invite-existing-provider' nutzt 'email' als Override,
+        // wenn vorhanden, sonst die gespeicherte service_providers.email.
+        const payload = { provider_id: _editingProvider.id };
+        if (overrideEmail && overrideEmail.toLowerCase() !== (_editingProvider.email || '').toLowerCase()) {
+            payload.email = overrideEmail;
+        }
+
         // Edge-Function aufrufen
         const supabaseUrl = supabaseClient.supabaseUrl;
         const res = await fetch(`${supabaseUrl}/functions/v1/invite-existing-provider`, {
@@ -8671,7 +8718,7 @@ async function sendProviderInvite() {
                 'Content-Type':  'application/json',
                 'Authorization': `Bearer ${session.access_token}`,
             },
-            body: JSON.stringify({ provider_id: _editingProvider.id }),
+            body: JSON.stringify(payload),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Einladung fehlgeschlagen');
@@ -8709,6 +8756,15 @@ function closeProviderModal() {
     document.getElementById('provider-edit-modal').style.display = 'none';
     document.body.style.overflow = '';
     _editingProvider = null;
+    // Versand-Adressen-Override beim Schließen vergessen, damit beim
+    // nächsten Öffnen wieder die gespeicherte E-Mail vorgeschlagen wird.
+    const emailInp = document.getElementById('edit-invite-email');
+    if (emailInp) {
+        emailInp.value = '';
+        delete emailInp.dataset.touched;
+    }
+    const resultBox = document.getElementById('edit-invite-result');
+    if (resultBox) resultBox.style.display = 'none';
 }
 window.closeProviderModal = closeProviderModal;
 

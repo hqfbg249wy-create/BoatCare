@@ -307,17 +307,29 @@
 
                     <!-- Zugangsdaten / Login-Einladung -->
                     <div style="padding:14px 22px; background:#eff6ff; border-bottom:1px solid #bfdbfe;">
-                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                        <div style="font-size:13px; font-weight:700; color:#1e3a8a; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.04em;">
+                            🔑 Zugangsdaten
+                        </div>
+                        <div id="edit-user-status" style="font-size:13px; color:#1e40af; margin-bottom:10px;">–</div>
+
+                        <!-- Editierbare Versand-Adresse mit der gespeicherten als Vorschlag -->
+                        <div style="display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap;">
                             <div style="flex:1; min-width:240px;">
-                                <div style="font-size:13px; font-weight:700; color:#1e3a8a; margin-bottom:2px; text-transform:uppercase; letter-spacing:0.04em;">
-                                    🔑 Zugangsdaten
+                                <label for="edit-invite-email" style="display:block; font-size:11px; font-weight:600; color:#1e40af; margin-bottom:4px;">
+                                    Versand an
+                                </label>
+                                <input type="email"
+                                       id="edit-invite-email"
+                                       placeholder="empfaenger@beispiel.com"
+                                       style="width:100%; padding:8px 12px; font-size:13px; border:1px solid #93c5fd; border-radius:6px; background:white;">
+                                <div style="font-size:11px; color:#64748b; margin-top:4px;">
+                                    Vorbelegt mit der gespeicherten E-Mail — bei Bedarf für diesen Versand anpassen.
                                 </div>
-                                <div id="edit-user-status" style="font-size:13px; color:#1e40af;">–</div>
                             </div>
                             <button class="btn-primary"
                                     id="edit-invite-btn"
                                     onclick="window.sendProviderInvite()"
-                                    style="font-size:13px; padding:8px 14px;">
+                                    style="font-size:13px; padding:9px 14px; white-space:nowrap;">
                                 ✉️ Zugangsdaten senden
                             </button>
                         </div>
