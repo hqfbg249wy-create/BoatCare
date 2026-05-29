@@ -192,6 +192,19 @@
   font-size: 0.9rem;
 }
 
+/* Eyebrow-Label — kurze Akzent-Zeile über/unter Headlines.
+   Base + Farb-Modifier, damit weitere Eyebrows (Premium, Beta, …)
+   ohne Class-Duplikation ergänzt werden können. */
+.sk-eyebrow {
+  margin: 0 0 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.sk-eyebrow--free { color: #10b981; letter-spacing: 0.01em; text-transform: none; }
+.sk-eyebrow--plus { color: #7e22ce; text-align: center; }
+
 
 /* ---------- USP List ---------- */
 
