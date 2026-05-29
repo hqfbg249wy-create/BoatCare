@@ -26,7 +26,11 @@
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "31000001",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "internalID" : "d7d8f766-dc71-45b6-a0db-0db9fdfcc945",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
           "localizations" : [
             { "description" : "Skipily Plus – erweiterte Features für Hobby-Skipper", "displayName" : "Plus (Monat)", "locale" : "de_DE" }
           ],
@@ -43,7 +47,11 @@
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "31000002",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "internalID" : "a399edef-c116-43f3-976b-4d9c08d6677f",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
           "localizations" : [
             { "description" : "Skipily Plus – 12 Monate (Jahresvorteil)", "displayName" : "Plus (Jahr)", "locale" : "de_DE" }
           ],
@@ -60,7 +68,11 @@
           "familyShareable" : false,
           "groupNumber" : 2,
           "internalID" : "31000003",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "internalID" : "844c2821-54b6-463f-a6f8-ff7e37c3d252",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
           "localizations" : [
             { "description" : "Skipily Pro – alle Features, für Vielsegler", "displayName" : "Pro (Monat)", "locale" : "de_DE" }
           ],
@@ -77,7 +89,11 @@
           "familyShareable" : false,
           "groupNumber" : 2,
           "internalID" : "31000004",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "internalID" : "425746f7-8c0d-4d15-acb4-096971a14930",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
           "localizations" : [
             { "description" : "Skipily Pro – 12 Monate (Jahresvorteil)", "displayName" : "Pro (Jahr)", "locale" : "de_DE" }
           ],
