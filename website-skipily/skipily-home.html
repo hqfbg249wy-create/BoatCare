@@ -155,9 +155,6 @@
     </div>
 
     <!-- Feature 5: KI-Assistent ---------------------------------------- -->
-    <!-- Hinweis: für KI-Section keinen dedizierten Screenshot in der Mediathek
-         gefunden — nutze hier die zweite Anfrage-Variante als Platzhalter.
-         Bitte später durch echten KI-Screenshot ersetzen. -->
     <div class="sk-feature-row">
       <div class="sk-feature-text">
         <h3 class="sk-h3">Frag den KI-Assistenten – er kennt dein Boot</h3>
@@ -171,7 +168,7 @@
         </ul>
       </div>
       <div class="sk-feature-img">
-        <img src="https://skipily.app/wp-content/uploads/2026/05/screenshot-anfrage-1-scaled.png"
+        <img src="https://skipily.app/wp-content/uploads/2026/04/screenshot-ki-scaled.png"
              alt="KI-Assistent mit Bootswissen">
       </div>
     </div>
@@ -310,26 +307,34 @@
       </div>
     </div>
 
-    <!-- Preiskarten (3 Tiers — responsive, inline-styled) -->
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:14px; max-width:1100px; margin:0 auto;">
-      <div style="background:linear-gradient(135deg,#f5f3ff 0%,#ede9fe 100%); border:1px solid #c4b5fd; border-radius:14px; padding:20px; text-align:center;">
-        <div style="font-size:13px; font-weight:700; color:#6b21a8; text-transform:uppercase; letter-spacing:.05em;">Plus</div>
-        <div style="font-size:32px; font-weight:800; color:#0f172a; margin:4px 0; white-space:nowrap;">4,99 €<span style="font-size:14px; font-weight:500; color:#64748b;"> / Monat</span></div>
-        <div style="display:inline-block; font-size:11px; font-weight:700; color:#166534; background:#dcfce7; border-radius:999px; padding:3px 10px; margin:4px 0 8px;">7 Tage gratis testen</div>
-        <div style="font-size:12px; color:#64748b;">Für einzelne Bootseigner — alle Plus-Features.</div>
+    <!-- Preiskarten: Plus hervorgehoben oben, Familie+Flotte unten zweispaltig -->
+    <div style="max-width:1100px; margin:0 auto; display:flex; flex-direction:column; gap:14px;">
+
+      <!-- Plus — volle Breite, Hauptangebot -->
+      <div style="background:linear-gradient(135deg,#f5f3ff 0%,#ede9fe 100%); border:2px solid #a78bfa; border-radius:14px; padding:24px; text-align:center; position:relative;">
+        <span style="position:absolute; top:-12px; left:50%; transform:translateX(-50%); background:#7e22ce; color:white; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:4px 12px; border-radius:999px; white-space:nowrap;">★ Beliebtester Plan</span>
+        <div style="font-size:14px; font-weight:700; color:#6b21a8; text-transform:uppercase; letter-spacing:.05em; margin-top:4px;">Plus</div>
+        <div style="font-size:38px; font-weight:800; color:#0f172a; margin:6px 0; white-space:nowrap;">4,99 €<span style="font-size:16px; font-weight:500; color:#64748b;"> / Monat</span></div>
+        <div style="display:inline-block; font-size:12px; font-weight:700; color:#166534; background:#dcfce7; border-radius:999px; padding:4px 12px; margin:4px 0 10px;">🎁 7 Tage gratis testen</div>
+        <div style="font-size:14px; color:#475569; max-width:520px; margin:0 auto;">Für einzelne Bootseigner — alle Plus-Features: unbegrenzte KI-Chats, Foto-Schadens-Analyse und Ausrüstungs-Empfehlungen.</div>
       </div>
-      <div style="background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%); border:1px solid #f59e0b; border-radius:14px; padding:20px; text-align:center;">
-        <div style="font-size:13px; font-weight:700; color:#92400e; text-transform:uppercase; letter-spacing:.05em;">Plus Familie</div>
-        <div style="font-size:32px; font-weight:800; color:#0f172a; margin:4px 0; white-space:nowrap;">9,99 €<span style="font-size:14px; font-weight:500; color:#64748b;"> / Monat</span></div>
-        <div style="display:inline-block; font-size:11px; font-weight:700; color:#166534; background:#dcfce7; border-radius:999px; padding:3px 10px; margin:4px 0 8px;">7 Tage gratis testen</div>
-        <div style="font-size:12px; color:#64748b;">Eignergemeinschaft — bis 5 Skipper, 1 Boot.</div>
+
+      <!-- Familie + Flotte: 2 Spalten desktop, 1 Spalte mobile -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:14px;">
+        <div style="background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%); border:1px solid #f59e0b; border-radius:14px; padding:20px; text-align:center;">
+          <div style="font-size:13px; font-weight:700; color:#92400e; text-transform:uppercase; letter-spacing:.05em;">Plus Familie</div>
+          <div style="font-size:32px; font-weight:800; color:#0f172a; margin:4px 0; white-space:nowrap;">9,99 €<span style="font-size:14px; font-weight:500; color:#64748b;"> / Monat</span></div>
+          <div style="display:inline-block; font-size:11px; font-weight:700; color:#166534; background:#dcfce7; border-radius:999px; padding:3px 10px; margin:4px 0 8px;">7 Tage gratis testen</div>
+          <div style="font-size:12px; color:#64748b;">Eignergemeinschaft — bis 5 Skipper, 1 Boot.</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#dbeafe 0%,#bfdbfe 100%); border:1px solid #3b82f6; border-radius:14px; padding:20px; text-align:center;">
+          <div style="font-size:13px; font-weight:700; color:#1e40af; text-transform:uppercase; letter-spacing:.05em;">Plus Flotte</div>
+          <div style="font-size:32px; font-weight:800; color:#0f172a; margin:4px 0; white-space:nowrap;">29,99 €<span style="font-size:14px; font-weight:500; color:#64748b;"> / Monat</span></div>
+          <div style="display:inline-block; font-size:11px; font-weight:700; color:#166534; background:#dcfce7; border-radius:999px; padding:3px 10px; margin:4px 0 8px;">7 Tage gratis testen</div>
+          <div style="font-size:12px; color:#64748b;">Charter &amp; Mehrbooteigner — bis 4 Boote inkl. CSV-Import.</div>
+        </div>
       </div>
-      <div style="background:linear-gradient(135deg,#dbeafe 0%,#bfdbfe 100%); border:1px solid #3b82f6; border-radius:14px; padding:20px; text-align:center;">
-        <div style="font-size:13px; font-weight:700; color:#1e40af; text-transform:uppercase; letter-spacing:.05em;">Plus Flotte</div>
-        <div style="font-size:32px; font-weight:800; color:#0f172a; margin:4px 0; white-space:nowrap;">29,99 €<span style="font-size:14px; font-weight:500; color:#64748b;"> / Monat</span></div>
-        <div style="display:inline-block; font-size:11px; font-weight:700; color:#166534; background:#dcfce7; border-radius:999px; padding:3px 10px; margin:4px 0 8px;">7 Tage gratis testen</div>
-        <div style="font-size:12px; color:#64748b;">Charter &amp; Mehrbooteigner — bis 4 Boote inkl. CSV-Import.</div>
-      </div>
+
     </div>
 
     <p style="text-align:center; font-size:13px; color:#94a3b8; margin-top:18px;">
