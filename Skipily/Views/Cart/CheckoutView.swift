@@ -246,17 +246,21 @@ struct CheckoutView: View {
                             payBadge("Apple Pay", icon: "apple.logo")
                         }
 
-                        HStack(spacing: 6) {
-                            Image(systemName: "testtube.2")
-                                .font(.caption2)
-                                .foregroundStyle(AppColors.warning)
-                            Text("checkout.test_mode".loc + " Testkarte: 4242 4242 4242 4242")
-                                .font(.caption2)
-                                .foregroundStyle(AppColors.gray400)
+                        // Test-Modus-Hinweis nur anzeigen wenn aktuell ein pk_test_
+                        // als Publishable Key aktiv ist. In Live-Mode komplett ausblenden.
+                        if (StripeAPI.defaultPublishableKey ?? "").hasPrefix("pk_test_") {
+                            HStack(spacing: 6) {
+                                Image(systemName: "testtube.2")
+                                    .font(.caption2)
+                                    .foregroundStyle(AppColors.warning)
+                                Text("checkout.test_mode".loc + " Testkarte: 4242 4242 4242 4242")
+                                    .font(.caption2)
+                                    .foregroundStyle(AppColors.gray400)
+                            }
+                            .padding(10)
+                            .background(AppColors.warning.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
-                        .padding(10)
-                        .background(AppColors.warning.opacity(0.08))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                     .padding(16)
                     .background(Color(.systemBackground))
