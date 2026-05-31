@@ -8982,6 +8982,232 @@ window.editProviderInline = window.editProviderInline || async function(provider
 };
 
 // ── Automatisch laden wenn Admin-Seite oder User-Seite geöffnet wird ─────────
+// ════════════════════════════════════════════════════════════════════════════
+// DATEV-EXPORT (Buchhaltung-Page)
+// ────────────────────────────────────────────────────────────────────────────
+// Generiert einen DATEV-konformen Buchungsstapel (EXTF-Format v8.10) aus
+// den Provisions-Einnahmen der Marktplatz-Bestellungen.
+//
+// Buchungslogik (pro bezahlte Bestellung):
+//   Soll  1200 (Bank)        — Eingang Stripe-Auszahlung anteilig
+//   Haben 8400 (Erlöse 19%)  — Provisionsumsatz
+//   Betrag: commission_amount
+//
+// Die 90% Provider-Anteile sind durchlaufender Posten (Connect-Direkttransfer)
+// und werden hier bewusst NICHT verbucht — gehen direkt vom Stripe-Konto an
+// den Provider, berühren das Skipily-Konto nicht.
+// ════════════════════════════════════════════════════════════════════════════
+
+const DATEV_LS_KEY = 'skipily_datev_settings';
+let _datevBuchungen = []; // letzte generierte Buchungen für Download
+
+function loadBookkeeping() {
+    // Defaults aus localStorage laden
+    try {
+        const saved = JSON.parse(localStorage.getItem(DATEV_LS_KEY) || '{}');
+        if (saved.berater)      document.getElementById('datev-berater').value      = saved.berater;
+        if (saved.mandant)      document.getElementById('datev-mandant').value      = saved.mandant;
+        if (saved.wjBeginn)     document.getElementById('datev-wj-beginn').value    = saved.wjBeginn;
+        if (saved.bankKonto)    document.getElementById('datev-bank-konto').value   = saved.bankKonto;
+        if (saved.erloesKonto)  document.getElementById('datev-erloes-konto').value = saved.erloesKonto;
+    } catch (e) { /* ignore */ }
+    // Default-Zeitraum: letzter Monat
+    if (!document.getElementById('datev-from').value) setDatevPresetMonth(-1);
+}
+
+function saveDatevSettings() {
+    const s = {
+        berater:     document.getElementById('datev-berater').value,
+        mandant:     document.getElementById('datev-mandant').value,
+        wjBeginn:    document.getElementById('datev-wj-beginn').value,
+        bankKonto:   document.getElementById('datev-bank-konto').value,
+        erloesKonto: document.getElementById('datev-erloes-konto').value,
+    };
+    localStorage.setItem(DATEV_LS_KEY, JSON.stringify(s));
+}
+
+function setDatevPresetMonth(offset) {
+    const now = new Date();
+    const first = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const last  = new Date(now.getFullYear(), now.getMonth() + offset + 1, 0);
+    document.getElementById('datev-from').value = first.toISOString().slice(0, 10);
+    document.getElementById('datev-to').value   = last.toISOString().slice(0, 10);
+}
+window.setDatevPresetMonth = setDatevPresetMonth;
+
+function setDatevPresetQuarter() {
+    const now = new Date();
+    // Letztes abgeschlossenes Quartal
+    const currentQ = Math.floor(now.getMonth() / 3);
+    const lastQStartMonth = currentQ * 3 - 3;
+    const first = new Date(now.getFullYear(), lastQStartMonth, 1);
+    const last  = new Date(now.getFullYear(), lastQStartMonth + 3, 0);
+    document.getElementById('datev-from').value = first.toISOString().slice(0, 10);
+    document.getElementById('datev-to').value   = last.toISOString().slice(0, 10);
+}
+window.setDatevPresetQuarter = setDatevPresetQuarter;
+
+async function generateDatevExport() {
+    saveDatevSettings();
+    const from = document.getElementById('datev-from').value;
+    const to   = document.getElementById('datev-to').value;
+    const preview = document.getElementById('datev-preview');
+    if (!from || !to) { alert('Bitte Zeitraum auswählen.'); return; }
+
+    preview.style.display = '';
+    preview.innerHTML = '<div class="card" style="padding:18px;">⏳ Lade Bestellungen…</div>';
+
+    // bezahlte Bestellungen im Zeitraum + Provider-Name für Buchungstext
+    const { data: orders, error } = await supabaseClient
+        .from('orders')
+        .select('id, created_at, subtotal, commission_amount, commission_rate, total, payment_intent_id, service_providers(name)')
+        .eq('payment_status', 'paid')
+        .gte('created_at', from + 'T00:00:00')
+        .lte('created_at', to   + 'T23:59:59')
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        preview.innerHTML = '<div class="card" style="padding:18px; color:#dc2626;">Fehler: ' + escapeHtml(error.message) + '</div>';
+        return;
+    }
+
+    _datevBuchungen = (orders || []).filter(o => Number(o.commission_amount) > 0);
+
+    if (_datevBuchungen.length === 0) {
+        preview.innerHTML = '<div class="card" style="padding:18px;">Keine bezahlten Bestellungen mit Provision im Zeitraum.</div>';
+        document.getElementById('datev-download-btn').style.display = 'none';
+        return;
+    }
+
+    const sum = _datevBuchungen.reduce((s, o) => s + Number(o.commission_amount), 0);
+    const rows = _datevBuchungen.slice(0, 25).map(o => {
+        const providerName = o.service_providers?.name || '—';
+        const datum = new Date(o.created_at).toLocaleDateString('de-DE');
+        return `<tr>
+            <td style="padding:6px 10px;">${datum}</td>
+            <td style="padding:6px 10px; font-family:monospace; font-size:12px;">SK-${o.id.slice(0,8)}</td>
+            <td style="padding:6px 10px;">${escapeHtml(providerName)}</td>
+            <td style="padding:6px 10px; text-align:right;">${Number(o.subtotal).toFixed(2).replace('.', ',')} €</td>
+            <td style="padding:6px 10px; text-align:right;">${Number(o.commission_rate).toFixed(2).replace('.', ',')} %</td>
+            <td style="padding:6px 10px; text-align:right; font-weight:600;">${Number(o.commission_amount).toFixed(2).replace('.', ',')} €</td>
+        </tr>`;
+    }).join('');
+
+    preview.innerHTML = `
+        <div class="card" style="padding:18px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin-bottom:14px;">
+                <div>
+                    <strong style="font-size:16px;">${_datevBuchungen.length}</strong>
+                    <span style="color:#64748b;">Buchungen · gesamt </span>
+                    <strong style="font-size:16px; color:#10b981;">${sum.toFixed(2).replace('.', ',')} €</strong>
+                </div>
+                <div style="font-size:13px; color:#64748b;">
+                    Zeitraum: ${new Date(from).toLocaleDateString('de-DE')} – ${new Date(to).toLocaleDateString('de-DE')}
+                </div>
+            </div>
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                    <thead>
+                        <tr style="background:#f1f5f9; text-align:left;">
+                            <th style="padding:8px 10px;">Datum</th>
+                            <th style="padding:8px 10px;">Beleg-Nr.</th>
+                            <th style="padding:8px 10px;">Provider</th>
+                            <th style="padding:8px 10px; text-align:right;">Umsatz</th>
+                            <th style="padding:8px 10px; text-align:right;">Rate</th>
+                            <th style="padding:8px 10px; text-align:right;">Provision</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+                ${_datevBuchungen.length > 25 ? `<p style="font-size:12px; color:#64748b; margin-top:10px;">… und ${_datevBuchungen.length - 25} weitere im Export.</p>` : ''}
+            </div>
+        </div>
+    `;
+    document.getElementById('datev-download-btn').style.display = '';
+}
+window.generateDatevExport = generateDatevExport;
+
+function downloadDatevCsv() {
+    if (_datevBuchungen.length === 0) {
+        alert('Erst Vorschau erstellen.');
+        return;
+    }
+    const csv = buildDatevCsv(_datevBuchungen);
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }); // BOM für Excel
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const from = document.getElementById('datev-from').value;
+    const to   = document.getElementById('datev-to').value;
+    a.download = `EXTF_Buchungsstapel_${from}_${to}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+window.downloadDatevCsv = downloadDatevCsv;
+
+// ─── DATEV-CSV-Builder (EXTF-Buchungsstapel v8.10) ─────────────────────────
+function buildDatevCsv(buchungen) {
+    const berater     = document.getElementById('datev-berater').value     || '0';
+    const mandant     = document.getElementById('datev-mandant').value     || '0';
+    const wjBeginn    = (document.getElementById('datev-wj-beginn').value  || '2026-01-01').replaceAll('-', '');
+    const bankKonto   = document.getElementById('datev-bank-konto').value   || '1200';
+    const erloesKonto = document.getElementById('datev-erloes-konto').value || '8400';
+    const from = document.getElementById('datev-from').value.replaceAll('-', '');
+    const to   = document.getElementById('datev-to').value.replaceAll('-', '');
+    const now  = new Date();
+    const timestamp = now.getFullYear()
+        + String(now.getMonth() + 1).padStart(2, '0')
+        + String(now.getDate()).padStart(2, '0')
+        + String(now.getHours()).padStart(2, '0')
+        + String(now.getMinutes()).padStart(2, '0')
+        + String(now.getSeconds()).padStart(2, '0')
+        + '000';
+
+    // DATEV-Header-Zeile (Buchungsstapel EXTF v8.10 — 27 Felder)
+    const header = [
+        '"EXTF"','510','21','"Buchungsstapel"','13',
+        timestamp,'','""','""','""',
+        berater, mandant, wjBeginn, '4', from, to,
+        '"Skipily Provisionserlöse"','""','1','0','0','"EUR"',
+        '""','""','""','""',''
+    ].join(';');
+
+    // Spalten-Kopfzeile (DATEV-Standard, 116 Spalten — wir nutzen nur die ersten 14
+    // aktiv, der Rest bleibt leer mit Semikolons gefüllt)
+    const COL_COUNT = 116;
+    const colNames = [
+        'Umsatz (ohne Soll-/Haben-Kz)','Soll-/Haben-Kennzeichen','WKZ Umsatz','Kurs','Basis-Umsatz','WKZ Basis-Umsatz',
+        'Konto','Gegenkonto (ohne BU-Schlüssel)','BU-Schlüssel','Belegdatum','Belegfeld 1','Belegfeld 2','Skonto','Buchungstext'
+    ];
+    while (colNames.length < COL_COUNT) colNames.push('');
+    const columnRow = colNames.map(c => c ? `"${c}"` : '').join(';');
+
+    // Datenzeilen
+    const dataRows = buchungen.map(o => {
+        const d = new Date(o.created_at);
+        const belegDatum = String(d.getDate()).padStart(2, '0') + String(d.getMonth() + 1).padStart(2, '0'); // DDMM
+        const beleg = 'SK-' + o.id.slice(0, 8).toUpperCase();
+        const text  = ('Provision ' + (o.service_providers?.name || 'Marktplatz')).slice(0, 60);
+        const umsatz = Number(o.commission_amount).toFixed(2).replace('.', ',');
+
+        const fields = new Array(COL_COUNT).fill('');
+        fields[0]  = umsatz;          // Umsatz
+        fields[1]  = 'H';             // Soll/Haben — Erlös ist Haben
+        fields[2]  = 'EUR';           // WKZ
+        fields[6]  = erloesKonto;     // Konto (Haben — Erlöse)
+        fields[7]  = bankKonto;       // Gegenkonto (Soll — Bank)
+        fields[8]  = '';              // BU-Schlüssel (leer = USt-Automatik aus 8400)
+        fields[9]  = belegDatum;      // Belegdatum DDMM
+        fields[10] = `"${beleg}"`;    // Belegfeld 1
+        fields[13] = `"${text}"`;     // Buchungstext
+
+        return fields.join(';');
+    });
+
+    return [header, columnRow, ...dataRows].join('\r\n') + '\r\n';
+}
+
+
 (function hookAdminPageNav() {
     const origNav = window.navigateToPage;
     if (!origNav) return;
@@ -8993,6 +9219,7 @@ window.editProviderInline = window.editProviderInline || async function(provider
         if (page === 'review-moderation') loadModerationQueue();
         if (page === 'subscriptions')     loadSubscriptions();
         if (page === 'customers')         loadCustomers();
+        if (page === 'bookkeeping')       loadBookkeeping();
         // Alte Pages auf die neue umleiten falls noch Direct-Links existieren
         if (page === 'providers' || page === 'shop-management') {
             setTimeout(() => origNav('customers'), 0);

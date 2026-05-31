@@ -102,6 +102,10 @@
                     <span class="icon">🔌</span>
                     API & Webhooks
                 </button>
+                <button class="nav-item" data-page="bookkeeping" onclick="window.navigateToPage('bookkeeping')">
+                    <span class="icon">📊</span>
+                    Buchhaltung
+                </button>
                 <button class="nav-item" data-page="market-analysis" onclick="window.navigateToPage('market-analysis')">
                     <span class="icon">📈</span>
                     Marktanalyse
@@ -1390,6 +1394,75 @@
                         </table>
                     </div>
                 </div>
+            </div>
+
+            <!-- Buchhaltung / DATEV-Export -->
+            <div id="bookkeeping-page" class="page">
+                <h1>📊 Buchhaltung — DATEV-Export</h1>
+                <p class="subtitle">Generiert einen DATEV-Buchungsstapel (CSV) der Provisionserlöse aus dem Marktplatz im gewählten Zeitraum. Datei kann direkt in DATEV Unternehmen Online importiert werden.</p>
+
+                <div class="card" style="padding:18px; margin-top:16px;">
+                    <h3 style="margin-top:0;">Berater-Stammdaten</h3>
+                    <p style="font-size:13px; color:#64748b; margin-bottom:14px;">Diese Werte einmalig vom Steuerberater erfragen. Bleiben dann gespeichert.</p>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+                        <div>
+                            <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:4px;">Berater-Nr.</label>
+                            <input id="datev-berater" type="text" placeholder="z.B. 1001"
+                                   style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:4px;">Mandant-Nr.</label>
+                            <input id="datev-mandant" type="text" placeholder="z.B. 1"
+                                   style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:4px;">WJ-Beginn</label>
+                            <input id="datev-wj-beginn" type="date" value="2026-01-01"
+                                   style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:4px;">Bank-Konto (Soll)</label>
+                            <input id="datev-bank-konto" type="text" value="1200"
+                                   style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:4px;">Erlöskonto 19% (Haben)</label>
+                            <input id="datev-erloes-konto" type="text" value="8400"
+                                   style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="padding:18px; margin-top:16px;">
+                    <h3 style="margin-top:0;">Zeitraum</h3>
+                    <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+                        <div>
+                            <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:4px;">Von</label>
+                            <input id="datev-from" type="date"
+                                   style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:4px;">Bis</label>
+                            <input id="datev-to" type="date"
+                                   style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                        </div>
+                        <button class="btn-secondary" onclick="window.setDatevPresetMonth(-1)" style="padding:8px 14px;">Letzter Monat</button>
+                        <button class="btn-secondary" onclick="window.setDatevPresetMonth(0)" style="padding:8px 14px;">Aktueller Monat</button>
+                        <button class="btn-secondary" onclick="window.setDatevPresetQuarter()" style="padding:8px 14px;">Letztes Quartal</button>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-top:18px; align-items:center;">
+                        <button class="btn-primary" onclick="window.generateDatevExport()" style="padding:10px 18px;">
+                            🔍 Vorschau erstellen
+                        </button>
+                        <button id="datev-download-btn" class="btn-primary" onclick="window.downloadDatevCsv()"
+                                style="padding:10px 18px; display:none; background:#10b981;">
+                            ⬇️ DATEV-CSV herunterladen
+                        </button>
+                    </div>
+                </div>
+
+                <div id="datev-preview" style="display:none; margin-top:16px;"></div>
             </div>
 
             <!-- Marktanalyse -->
