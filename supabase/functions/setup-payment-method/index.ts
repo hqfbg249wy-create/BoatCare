@@ -42,7 +42,10 @@ serve(async (req: Request) => {
       );
     }
 
-    // Get or create Stripe customer
+    // Get or create Stripe customer.
+    // Defensiv: gespeicherte Customer-IDs aus Test-Mode existieren im
+    // Live-Mode nicht (und umgekehrt). Wir verifizieren die ID via
+    // customers.retrieve() und legen bei "No such customer" einen neuen an.
     let customerId: string;
     const { data: profile } = await supabase
       .from("profiles")
@@ -50,10 +53,26 @@ serve(async (req: Request) => {
       .eq("id", user.id)
       .single();
 
+    let needsNewCustomer = !profile?.stripe_customer_id;
     if (profile?.stripe_customer_id) {
-      customerId = profile.stripe_customer_id;
-    } else {
-      // Create new Stripe customer
+      try {
+        await stripe.customers.retrieve(profile.stripe_customer_id);
+        customerId = profile.stripe_customer_id;
+      } catch (e) {
+        const code = (e as { code?: string })?.code;
+        if (code === "resource_missing") {
+          console.warn(
+            `Customer ${profile.stripe_customer_id} existiert im aktuellen ` +
+            `Stripe-Mode nicht — lege neuen an (Test→Live oder umgekehrt).`
+          );
+          needsNewCustomer = true;
+        } else {
+          throw e;
+        }
+      }
+    }
+
+    if (needsNewCustomer) {
       const customer = await stripe.customers.create({
         email: user.email || profile?.email,
         name: profile?.full_name || undefined,
@@ -61,7 +80,7 @@ serve(async (req: Request) => {
       });
       customerId = customer.id;
 
-      // Save customer ID to profile
+      // Customer-ID im Profil aktualisieren
       await supabase
         .from("profiles")
         .update({ stripe_customer_id: customerId })
