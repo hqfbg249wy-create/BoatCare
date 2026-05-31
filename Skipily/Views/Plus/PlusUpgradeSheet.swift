@@ -243,17 +243,19 @@ struct PlusUpgradeSheet: View {
     }
 
     @ViewBuilder
-    private func priceRow(tier: PlanTier, period: BillingPeriod, product: StoreKit.Product) -> some View {
+    private func priceRow(tier: PlanTier, period: BillingPeriod, product current: StoreKit.Product) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(product.displayPrice).font(.title2.bold())
+            Text(current.displayPrice).font(.title2.bold())
             Text(period == .yearly ? "/ Jahr" : "/ Monat")
                 .font(.subheadline).foregroundStyle(.secondary)
             Spacer()
+            // Bei Jahres-Auswahl: Sparbetrag im Vergleich zum Monats-Plan
+            // (12 × Monatspreis – Jahrespreis).
             if period == .yearly, let monthly = product(for: tier, period: .monthly) {
-                savingsBadge(yearly: product, monthly: monthly)
+                savingsBadge(yearly: current, monthly: monthly)
             }
         }
-        if let trialText = introductoryOfferText(product) {
+        if let trialText = introductoryOfferText(current) {
             Label(trialText, systemImage: "gift.fill")
                 .font(.caption.bold())
                 .foregroundStyle(.green)
@@ -261,9 +263,14 @@ struct PlusUpgradeSheet: View {
     }
 
     private func savingsBadge(yearly: StoreKit.Product, monthly: StoreKit.Product) -> some View {
-        let annual = monthly.price * 12
-        let saved  = annual - yearly.price
-        let pct    = saved > 0 ? Int((saved / annual * 100).rounded()) : 0
+        // product.price ist Decimal — für die einfache Prozent-Rechnung
+        // konvertieren wir früh auf Double und sparen uns NSDecimalNumber-
+        // Gymnastik.
+        let yearlyD  = NSDecimalNumber(decimal: yearly.price).doubleValue
+        let monthlyD = NSDecimalNumber(decimal: monthly.price).doubleValue
+        let annual   = monthlyD * 12.0
+        let saved    = annual - yearlyD
+        let pct      = saved > 0 ? Int((saved / annual * 100.0).rounded()) : 0
         return Text("Spare \(pct) %")
             .font(.caption2.bold())
             .padding(.horizontal, 8).padding(.vertical, 3)
