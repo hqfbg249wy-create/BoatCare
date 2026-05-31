@@ -195,6 +195,19 @@ final class PaymentService {
             options: .init(body: EmptyBody())
         )
 
+        // Stripe-Mode-Sync (identisch zu createPaymentSheet):
+        // Edge Function liefert den passenden publishable_key (test↔live).
+        // Wenn der vom in der App gesetzten Default abweicht, übernehmen wir
+        // den Server-Wert — sonst läuft das SetupIntent z.B. im Live-Mode,
+        // aber das Stripe-SDK versucht es mit Test-Key zu bestätigen.
+        if !paymentResponse.publishableKey.isEmpty,
+           paymentResponse.publishableKey != (StripeAPI.defaultPublishableKey ?? "") {
+            let oldPrefix = String((StripeAPI.defaultPublishableKey ?? "(nil)").prefix(8))
+            let newPrefix = String(paymentResponse.publishableKey.prefix(8))
+            AppLog.warning("Stripe-Mode-Sync (Setup): switching publishable key from \(oldPrefix)… to \(newPrefix)…")
+            StripeAPI.defaultPublishableKey = paymentResponse.publishableKey
+        }
+
         var config = PaymentSheet.Configuration()
         config.merchantDisplayName = StripeConfig.merchantDisplayName
         config.customer = .init(
