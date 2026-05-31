@@ -206,6 +206,56 @@
 .sk-eyebrow--plus { color: #7e22ce; text-align: center; }
 
 
+/* ---------- Skipily-Plus-Preiskarten (responsive) ---------- */
+/* auto-fit stackt automatisch:
+   Desktop >= 720px → 3 Spalten
+   Tablet  >= 480px → 2 Spalten
+   Mobile  < 480px  → 1 Spalte                              */
+.sk-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.sk-price-card {
+  border-radius: 14px;
+  padding: 20px;
+  text-align: center;
+  border: 1px solid;
+}
+.sk-price-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.sk-price-amount {
+  font-size: 32px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 4px 0;
+  white-space: nowrap;   /* verhindert Zeichen-für-Zeichen Umbruch */
+}
+.sk-price-period {
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+}
+.sk-price-desc {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Farb-Modifier pro Tier */
+.sk-price-plus   { background: linear-gradient(135deg,#f5f3ff 0%,#ede9fe 100%); border-color: #c4b5fd; }
+.sk-price-plus   .sk-price-label { color: #6b21a8; }
+.sk-price-family { background: linear-gradient(135deg,#fef3c7 0%,#fde68a 100%); border-color: #f59e0b; }
+.sk-price-family .sk-price-label { color: #92400e; }
+.sk-price-fleet  { background: linear-gradient(135deg,#dbeafe 0%,#bfdbfe 100%); border-color: #3b82f6; }
+.sk-price-fleet  .sk-price-label { color: #1e40af; }
+
+
 /* ---------- USP List ---------- */
 
 .sk-usp-list {
