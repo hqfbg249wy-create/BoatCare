@@ -16,10 +16,15 @@ const CATEGORIES = [
   { value: 'sonstige',     label: 'Sonstige' },
 ]
 
+// Aktuelle AGB-Version — bei Anpassung der AGB hochzählen, damit Audit-Trail
+// erkennt welcher Stand akzeptiert wurde.
+const PROVIDER_AGB_VERSION = '2026-05'
+
 export default function Signup() {
   const { signUp } = useAuth()
   const [form, setForm] = useState({
     email: '', password: '', companyName: '', category: 'repair', city: '',
+    agbAccepted: false,
   })
   const [error,   setError]   = useState('')
   const [success, setSuccess] = useState(false)
@@ -34,9 +39,13 @@ export default function Signup() {
       setError('Passwort muss mindestens 8 Zeichen lang sein.')
       return
     }
+    if (!form.agbAccepted) {
+      setError('Bitte die Provider-Nutzungsbedingungen lesen und bestätigen.')
+      return
+    }
     setLoading(true)
     try {
-      await signUp(form)
+      await signUp({ ...form, agbVersion: PROVIDER_AGB_VERSION })
       setSuccess(true)
     } catch (err) {
       setError(err.message || 'Registrierung fehlgeschlagen.')
@@ -110,13 +119,35 @@ export default function Signup() {
                    onChange={set('password')} placeholder="••••••••" />
           </div>
 
+          {/* Provider-AGB Pflicht-Annahme — wird in agb_accepted_at / agb_accepted_version gespeichert */}
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.85rem',
+                          color: '#475569', margin: '12px 0', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={form.agbAccepted}
+              onChange={e => setForm({ ...form, agbAccepted: e.target.checked })}
+              style={{ marginTop: 3, flexShrink: 0 }}
+            />
+            <span>
+              Ich habe die{' '}
+              <a href="/provider-agb.html" target="_blank" rel="noopener noreferrer"
+                 style={{ color: '#f97316', fontWeight: 600 }}>
+                Provider-Nutzungsbedingungen
+              </a>
+              {' '}gelesen und akzeptiere sie. Insbesondere bestätige ich, dass ich
+              für die Erfüllung der Verträge mit Endkunden, die Qualität meiner Produkte/
+              Dienstleistungen sowie deren rechtmäßige Bewerbung und Abrechnung selbst
+              verantwortlich bin.
+            </span>
+          </label>
+
           <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? 'Wird erstellt…' : 'Konto erstellen'}
           </button>
         </form>
 
         <p className="login-hint" style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: 12 }}>
-          Mit dem Klick auf „Konto erstellen" akzeptierst du unsere{' '}
+          Mit dem Klick auf „Konto erstellen" akzeptierst du außerdem unsere{' '}
           <a href="/datenschutz.html" target="_blank" rel="noopener noreferrer">Datenschutzerklärung</a>.
         </p>
 

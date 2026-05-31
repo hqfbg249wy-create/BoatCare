@@ -200,6 +200,18 @@ export default function Profile() {
     setStripeMessage(null)
 
     try {
+      // Skipily haftet Stripe-seitig für Disputes — bevor wir einen Connect-
+      // Account anlegen, muss der Provider die Nutzungsbedingungen akzeptiert
+      // haben. Sonst sitzt Skipily auf Provider-Verschulden-Schäden.
+      if (!provider?.agb_accepted_at) {
+        setStripeMessage({
+          type: 'error',
+          text: 'Bitte zuerst die Provider-Nutzungsbedingungen akzeptieren — siehe Hinweis oben im Profil.'
+        })
+        setStripeLoading(false)
+        return
+      }
+
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Nicht angemeldet')
 
@@ -729,6 +741,45 @@ export default function Profile() {
 
         {!provider.stripe_account_id ? (
           <div>
+            {/* AGB-Gate: Stripe-Onboarding nur nach Akzeptanz der Provider-Nutzungsbedingungen.
+                Bestandsprovider (vor Migration 070) sehen hier den Annahme-Button. */}
+            {!provider.agb_accepted_at && (
+              <div style={{
+                background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 8,
+                padding: '12px 14px', marginBottom: 16, fontSize: '0.9rem', color: '#9a3412'
+              }}>
+                <strong>Bitte zuerst die Provider-Nutzungsbedingungen akzeptieren.</strong>
+                <p style={{ margin: '6px 0 10px', fontSize: '0.85rem' }}>
+                  Skipily ist Vermittler — du verantwortest Lieferung, Qualität, Mängelhaftung
+                  und Verbraucherschutz für deine Endkunden selbst.
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <a href="/provider-agb.html" target="_blank" rel="noopener noreferrer"
+                     style={{ color: '#9a3412', fontWeight: 600, textDecoration: 'underline' }}>
+                    AGB lesen
+                  </a>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ padding: '6px 12px', fontSize: '0.85rem' }}
+                    onClick={async () => {
+                      try {
+                        const { error } = await supabase
+                          .rpc('accept_provider_agb', { p_version: '2026-05' })
+                        if (error) throw error
+                        // Reload provider data
+                        window.location.reload()
+                      } catch (err) {
+                        alert('AGB-Annahme fehlgeschlagen: ' + (err.message || err))
+                      }
+                    }}
+                  >
+                    ✓ Ich akzeptiere die AGB
+                  </button>
+                </div>
+              </div>
+            )}
+
             <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: 16, lineHeight: 1.6 }}>
               Um Zahlungen von Kunden zu empfangen, verbinden Sie Ihr Konto mit Stripe.
               Sie werden zur sicheren Einrichtung weitergeleitet, wo Sie Ihre Bankdaten hinterlegen.

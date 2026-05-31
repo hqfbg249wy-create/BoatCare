@@ -125,7 +125,7 @@ export function AuthProvider({ children }) {
     await refreshMfaStatus()
   }
 
-  async function signUp({ email, password, companyName, category, city }) {
+  async function signUp({ email, password, companyName, category, city, agbVersion }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -136,6 +136,10 @@ export function AuthProvider({ children }) {
           category: category || 'repair',
           city: city || null,
           country: 'Deutschland',
+          // AGB-Version: vom Signup-Formular durchgereicht.
+          // Der Provider-Signup-Trigger setzt damit
+          // service_providers.agb_accepted_at = NOW() + agb_accepted_version.
+          agb_version: agbVersion || null,
         },
         emailRedirectTo: `${window.location.origin}/`,
       },
