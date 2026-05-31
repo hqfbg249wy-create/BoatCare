@@ -9060,7 +9060,7 @@ async function generateDatevExport() {
     // bezahlte Bestellungen im Zeitraum + Provider-Name für Buchungstext
     const { data: orders, error } = await supabaseClient
         .from('orders')
-        .select('id, created_at, subtotal, commission_amount, commission_rate, total, payment_intent_id, service_providers(name)')
+        .select('id, created_at, subtotal, commission_amount, commission_rate, total, service_providers(name)')
         .eq('payment_status', 'paid')
         .gte('created_at', from + 'T00:00:00')
         .lte('created_at', to   + 'T23:59:59')
