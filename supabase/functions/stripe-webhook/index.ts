@@ -1,16 +1,30 @@
 // Edge Function: stripe-webhook
 // Handles Stripe webhook events for payment confirmations and transfers
 //
-// Set STRIPE_WEBHOOK_SECRET in Supabase Dashboard > Settings > Edge Functions > Secrets
+// Erwartet diese Secrets im Supabase Dashboard > Edge Functions > Secrets:
+//   STRIPE_WEBHOOK_SECRET          → Platform-Webhook ('Ihr Konto')
+//   STRIPE_WEBHOOK_SECRET_CONNECT  → Connected-Accounts-Webhook ('Verbundene Konten')
+// Beide Webhooks zeigen auf dieselbe URL, weil Stripe pro Event nur das passende
+// Signing Secret verwendet. Wir probieren beide Secrets durch, das jeweils
+// gültige verifiziert das Event.
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { stripe } from "../_shared/stripe.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
-const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+const supabaseUrl        = Deno.env.get("SUPABASE_URL") ?? "";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "";
+
+// Beide bekannten Webhook-Secrets sammeln (leere/nicht-gesetzte ignorieren).
+const webhookSecrets: string[] = [
+  Deno.env.get("STRIPE_WEBHOOK_SECRET")          ?? "",
+  Deno.env.get("STRIPE_WEBHOOK_SECRET_CONNECT")  ?? "",
+].filter((s) => s.length > 0);
+
+if (webhookSecrets.length === 0) {
+  console.error("Kein STRIPE_WEBHOOK_SECRET* in den Secrets gesetzt — Webhook wird jede Anfrage ablehnen.");
+}
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -25,13 +39,23 @@ serve(async (req: Request) => {
   try {
     const body = await req.text();
 
-    // Verify webhook signature
+    // Webhook-Signatur gegen ALLE konfigurierten Secrets prüfen.
+    // Sobald eines verifiziert, weiterarbeiten. Wenn keines greift,
+    // den letzten Fehler zurückgeben.
     let event;
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } catch (err) {
-      console.error("Webhook signature verification failed:", err.message);
-      return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+    let lastErr: unknown;
+    for (const secret of webhookSecrets) {
+      try {
+        event = stripe.webhooks.constructEvent(body, signature, secret);
+        break; // erfolgreich verifiziert
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    if (!event) {
+      const msg = (lastErr as Error)?.message ?? "no webhook secrets configured";
+      console.error("Webhook signature verification failed:", msg);
+      return new Response(`Webhook Error: ${msg}`, { status: 400 });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
