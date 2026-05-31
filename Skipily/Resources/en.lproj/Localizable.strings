@@ -821,3 +821,8 @@
 "parts.reason_possible_match" = "Possible match";
 "parts.reason_dimensions" = "Dimensions match";
 "parts.reason_fallback" = "Match";
+
+// Checkout — AGB-Pflicht-Annahme (Marketplace-Klarstellung)
+"checkout.agb_consent" = "I accept the Terms of Service. I understand: the purchase contract is concluded between me and the respective service provider. Skipily acts as intermediary for payment processing. I have read the cancellation policy.";
+"checkout.agb_link" = "Terms";
+"checkout.revocation_link" = "Cancellation policy";

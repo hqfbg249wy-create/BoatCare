@@ -47,11 +47,15 @@ final class OrderService {
     // MARK: - Create Order
 
     /// Creates one order per provider group from the cart
+    /// - Parameter agbVersion: AGB-Version die der Kunde im Checkout
+    ///   akzeptiert hat (siehe orders.agb_accepted_version / _at). Wird pro
+    ///   Order gespeichert für Audit-Trail.
     func createOrders(
         from cartGroups: [CartGroup],
         buyerId: UUID,
         shippingAddress: ShippingAddress,
-        buyerNote: String? = nil
+        buyerNote: String? = nil,
+        agbVersion: String? = nil
     ) async throws -> [Order] {
         var createdOrders: [Order] = []
 
@@ -86,6 +90,8 @@ final class OrderService {
                 let shippingCountry: String
                 let paymentStatus: String
                 let buyerNote: String?
+                let agbAcceptedVersion: String?
+                let agbAcceptedAt: String?
 
                 enum CodingKeys: String, CodingKey {
                     case buyerId = "buyer_id"
@@ -102,7 +108,14 @@ final class OrderService {
                     case shippingCountry = "shipping_country"
                     case paymentStatus = "payment_status"
                     case buyerNote = "buyer_note"
+                    case agbAcceptedVersion = "agb_accepted_version"
+                    case agbAcceptedAt      = "agb_accepted_at"
                 }
+            }
+
+            // AGB-Annahme als ISO-8601-Timestamp (oder nil falls keine Version)
+            let agbAcceptedAtIso: String? = agbVersion.map { _ in
+                ISO8601DateFormatter().string(from: Date())
             }
 
             let orderInsert = OrderInsert(
@@ -121,7 +134,9 @@ final class OrderService {
                 shippingPostalCode: shippingAddress.postalCode,
                 shippingCountry: shippingAddress.country,
                 paymentStatus: "pending",
-                buyerNote: buyerNote
+                buyerNote: buyerNote,
+                agbAcceptedVersion: agbVersion,
+                agbAcceptedAt:      agbAcceptedAtIso
             )
 
             let order: Order = try await client

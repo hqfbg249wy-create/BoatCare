@@ -821,3 +821,8 @@
 "inquiry.subject_empty" = "Voer een onderwerp in.";
 "inquiry.message_empty" = "Voer een bericht in.";
 "inquiry.pick_provider_title" = "Provider kiezen";
+
+// Checkout — AGB-Pflicht-Annahme (Marketplace-Klarstellung)
+"checkout.agb_consent" = "Ik accepteer de voorwaarden. Ik begrijp: het koopcontract wordt gesloten tussen mij en de betreffende dienstverlener. Skipily treedt op als tussenpersoon voor de betaling. Ik heb de herroepingsinstructie gelezen.";
+"checkout.agb_link" = "Voorwaarden";
+"checkout.revocation_link" = "Herroepingsinstructie";

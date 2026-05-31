@@ -21,6 +21,14 @@ struct CheckoutView: View {
     @State private var errorMessage: String?
     @State private var currentStep = 0 // 0: address, 1: review+pay, 2: confirmation
 
+    /// AGB-/Widerrufsbelehrung-Annahme — Pflicht vor Auslösung der Zahlung.
+    /// Wird bei Bestell-Anlage in orders.agb_accepted_at + _version gespeichert
+    /// (Audit-Trail für etwaige spätere Streitfälle).
+    @State private var agbAccepted = false
+    /// AGB-Version-String — bei Anpassung der AGB hochzählen (siehe
+    /// website-skipily/skipily-agb.html Meta-Zeile).
+    private let agbVersion = "2026-05"
+
     // Stripe
     @State private var paymentSheet: PaymentSheet?
     @State private var isPreparingPayment = false
@@ -273,6 +281,37 @@ struct CheckoutView: View {
             // Pay button
             VStack(spacing: 8) {
                 Divider()
+
+                // AGB-/Widerrufs-Pflicht-Annahme — Skipily ist Vermittler,
+                // Vertrag entsteht zwischen Kunde und Provider.
+                HStack(alignment: .top, spacing: 8) {
+                    Button {
+                        agbAccepted.toggle()
+                    } label: {
+                        Image(systemName: agbAccepted ? "checkmark.square.fill" : "square")
+                            .font(.title3)
+                            .foregroundStyle(agbAccepted ? AppColors.primary : .secondary)
+                    }
+                    .buttonStyle(.plain)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("checkout.agb_consent".loc)
+                            .font(.caption)
+                            .foregroundStyle(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        HStack(spacing: 14) {
+                            Link("checkout.agb_link".loc,
+                                 destination: URL(string: "https://skipily.app/agb.html")!)
+                                .font(.caption2).foregroundStyle(AppColors.info)
+                            Link("checkout.revocation_link".loc,
+                                 destination: URL(string: "https://skipily.app/agb.html#widerruf")!)
+                                .font(.caption2).foregroundStyle(AppColors.info)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+
                 Button {
                     Task { await placeOrderAndPay() }
                 } label: {
@@ -290,11 +329,11 @@ struct CheckoutView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
-                    .background(AppColors.primary)
+                    .background(agbAccepted ? AppColors.primary : AppColors.gray400)
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .disabled(isPlacingOrder || isPreparingPayment)
+                .disabled(isPlacingOrder || isPreparingPayment || !agbAccepted)
                 .padding(.horizontal, 16)
 
                 HStack(spacing: 4) {
@@ -477,12 +516,13 @@ struct CheckoutView: View {
                 AppLog.warning("Session refresh failed, trying with existing session: \(error)")
             }
 
-            // 1. Create orders in DB
+            // 1. Create orders in DB — inkl. AGB-Audit-Trail
             placedOrders = try await OrderService.shared.createOrders(
                 from: cartManager.groupedByProvider,
                 buyerId: buyerId,
                 shippingAddress: shippingAddress,
-                buyerNote: buyerNote.isEmpty ? nil : buyerNote
+                buyerNote: buyerNote.isEmpty ? nil : buyerNote,
+                agbVersion: agbVersion
             )
 
             isPlacingOrder = false

@@ -821,3 +821,8 @@
 "inquiry.subject_empty" = "Veuillez saisir un objet.";
 "inquiry.message_empty" = "Veuillez saisir un message.";
 "inquiry.pick_provider_title" = "Choisir un prestataire";
+
+// Checkout — AGB-Pflicht-Annahme (Marketplace-Klarstellung)
+"checkout.agb_consent" = "J'accepte les CGV. Je comprends : le contrat d'achat est conclu entre moi et le prestataire concerné. Skipily intervient en tant qu'intermédiaire pour le paiement. J'ai lu la notice de rétractation.";
+"checkout.agb_link" = "CGV";
+"checkout.revocation_link" = "Notice de rétractation";
