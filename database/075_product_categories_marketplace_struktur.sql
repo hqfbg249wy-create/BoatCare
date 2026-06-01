@@ -13,7 +13,18 @@
 -- 3. Sort-Order so dass legacy hinten landet (sort_order >= 9000)
 -- ============================================================================
 
--- ─── Schritt 1: alte Kategorien archivieren ─────────────────────────────────
+-- ─── Schritt 1: alte Kategorien archivieren (idempotent) ───────────────────
+-- 1a) Doppelte Einträge aus halben Migrations-Läufen aufräumen: wenn ein
+--     Nicht-Legacy-Eintrag existiert für den es bereits eine Legacy-Variante
+--     gibt, ist der Nicht-Legacy-Eintrag der jüngere Duplikat → löschen.
+DELETE FROM public.product_categories a
+ WHERE slug NOT LIKE '\_legacy\_%' ESCAPE '\'
+   AND EXISTS (
+     SELECT 1 FROM public.product_categories b
+      WHERE b.slug = '_legacy_' || a.slug
+   );
+
+-- 1b) Verbleibende Nicht-Legacy-Einträge auf '_legacy_' prefixen
 UPDATE public.product_categories
    SET slug       = '_legacy_' || slug,
        sort_order = 9000 + COALESCE(sort_order, 0)
