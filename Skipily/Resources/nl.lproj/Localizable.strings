@@ -826,3 +826,8 @@
 "checkout.agb_consent" = "Ik accepteer de voorwaarden. Ik begrijp: het koopcontract wordt gesloten tussen mij en de betreffende dienstverlener. Skipily treedt op als tussenpersoon voor de betaling. Ik heb de herroepingsinstructie gelezen.";
 "checkout.agb_link" = "Voorwaarden";
 "checkout.revocation_link" = "Herroepingsinstructie";
+
+// Service-Provider-Kategorien (neu Mai 2026)
+"category.surveyor" = "Scheepsexpert";
+"category.diver" = "Duiker";
+"category.other" = "Overig";

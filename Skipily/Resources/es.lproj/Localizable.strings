@@ -826,3 +826,8 @@
 "checkout.agb_consent" = "Acepto los términos. Entiendo: el contrato de compra se celebra entre yo y el proveedor de servicios correspondiente. Skipily actúa como intermediario para el pago. He leído la política de cancelación.";
 "checkout.agb_link" = "Términos";
 "checkout.revocation_link" = "Política de cancelación";
+
+// Service-Provider-Kategorien (neu Mai 2026)
+"category.surveyor" = "Perito";
+"category.diver" = "Buzo";
+"category.other" = "Otros";

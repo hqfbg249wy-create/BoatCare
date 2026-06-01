@@ -154,6 +154,11 @@ enum MainTab: String, CaseIterable {
 }
 
 // MARK: - Service Category Enum
+//
+// Single source of truth für Service-Provider-Kategorien — sowohl Map-Filter
+// als auch AddBusinessView nutzen diese Liste. Verhindert Drift zwischen den
+// Stellen.
+//
 enum ServiceCategory: String, CaseIterable {
     case all         = "category.all"
     case repair      = "category.motor_service"
@@ -165,9 +170,32 @@ enum ServiceCategory: String, CaseIterable {
     case heating     = "category.heating"
     case crane       = "category.crane"
     case painting    = "category.painting"
+    case surveyor    = "category.surveyor"
+    case diver       = "category.diver"
+    case other       = "category.other"
 
     var displayName: String {
         return LanguageManager.shared.localized(self.rawValue)
+    }
+
+    /// DB-Identifier für AddBusiness-Form (sprachunabhängig, lowercase).
+    /// Wird in service_providers.category geschrieben.
+    var dbKey: String {
+        switch self {
+        case .all:         return ""
+        case .repair:      return "repair"
+        case .boatbuilder: return "boatbuilder"
+        case .supplies:    return "supplies"
+        case .sailmaker:   return "sailmaker"
+        case .rigging:     return "rigging"
+        case .instruments: return "instruments"
+        case .heating:     return "heating"
+        case .crane:       return "crane"
+        case .painting:    return "painting"
+        case .surveyor:    return "surveyor"
+        case .diver:       return "diver"
+        case .other:       return "other"
+        }
     }
 
     /// Alle DB-Werte die zu dieser Kategorie passen (sprachunabhängig)
@@ -193,6 +221,12 @@ enum ServiceCategory: String, CaseIterable {
             return ["kran", "crane", "grue", "grúa", "gru", "kraan"]
         case .painting:
             return ["lackier", "painting", "antifouling", "peinture", "pintura", "verniciatura", "schilderwerk"]
+        case .surveyor:
+            return ["surveyor", "gutachter", "expert", "perito", "experto", "schiffsexpert", "expertise"]
+        case .diver:
+            return ["diver", "taucher", "plongeur", "sommozzatore", "subacqueo", "buzo", "submarinista", "duiker"]
+        case .other:
+            return ["other", "sonstige", "sonst", "autre", "altro", "otros", "overig"]
         }
     }
 
@@ -750,15 +784,13 @@ struct MapScreen: View {
     
     private var topOverlays: some View {
         VStack(spacing: 0) {
-            HStack(alignment: .top, spacing: 12) {
-                appIcon
+            HStack(alignment: .top, spacing: 10) {
                 compactSearchBar
-                Spacer()
                 loginIcon
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 14)
             .padding(.top, 10)
-            
+
             if !searchResults.isEmpty && selectedResult == nil {
                 searchResultsList
                     .padding(.top, 8)
@@ -816,6 +848,7 @@ struct MapScreen: View {
                             .clipShape(Circle())
                             .shadow(radius: 5)
                     }
+
                 }
                 .padding(.trailing, 16)
                 .padding(.bottom, 100)
@@ -847,12 +880,14 @@ struct MapScreen: View {
     
     private var compactSearchBar: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
+                    .font(.body)
                     .foregroundColor(.secondary)
 
                 TextField("map.search_placeholder".loc, text: $searchText)
                     .textFieldStyle(.plain)
+                    .font(.body)
                     .submitLabel(.search)
                     .onSubmit {
                         UIApplication.shared.sendAction(
@@ -903,10 +938,10 @@ struct MapScreen: View {
                     .cornerRadius(6)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
             .background(.ultraThinMaterial)
-            .cornerRadius(12)
+            .cornerRadius(14)
             .shadow(radius: 3)
 
         }
@@ -1632,7 +1667,7 @@ struct AddBusinessView: View {
     let onBusinessAdded: () -> Void
     
     @State private var name = ""
-    @State private var category = "repair"
+    @State private var category: String = ServiceCategory.repair.dbKey
     @State private var address = ""
     @State private var city = ""
     @State private var postalCode = ""
@@ -1654,14 +1689,14 @@ struct AddBusinessView: View {
     @State private var errorMessage = ""
     @State private var showSuccessAlert = false
     
-    let categories: [(String, String)] = [
-        ("Motor Service", "Motor Service"),
-        ("Segelmacher", "Segel & Persenning"),
-        ("instruments", "Yacht & Bootsinstrumente"),
-        ("boat supplies", "Yacht & Bootszubehör"),
-        ("surveyor", "Gutachter"),
-        ("krane", "Kran")
-    ]
+    /// Dieselbe Liste wie der Map-Filter (single source of truth via
+    /// ServiceCategory.allCases). `.all` ist nur ein Filter-Konzept, also
+    /// hier ausgefiltert. Liefert (dbKey, lokalisierter Anzeigename).
+    var categories: [(String, String)] {
+        ServiceCategory.allCases
+            .filter { $0 != .all }
+            .map { ($0.dbKey, $0.displayName) }
+    }
     
     var fullAddress: String {
         "\(address), \(postalCode) \(city), \(country)"

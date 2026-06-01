@@ -829,3 +829,8 @@ Ausrüstung unter Boote ergänzen.";
 "checkout.agb_consent" = "Ich akzeptiere die AGB. Mir ist bekannt: der Kaufvertrag entsteht zwischen mir und dem jeweiligen Service-Provider. Skipily wickelt die Zahlung als Vermittler ab. Die Widerrufsbelehrung habe ich gelesen.";
 "checkout.agb_link" = "AGB";
 "checkout.revocation_link" = "Widerrufsbelehrung";
+
+// Service-Provider-Kategorien (neu Mai 2026)
+"category.surveyor" = "Gutachter";
+"category.diver" = "Taucher";
+"category.other" = "Sonstige";
