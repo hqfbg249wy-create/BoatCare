@@ -1256,6 +1256,9 @@ struct MapScreen: View {
         case .heating:     return "thermometer.sun.fill"
         case .crane:       return "arrow.up.and.down.circle.fill"
         case .painting:    return "paintbrush.fill"
+        case .surveyor:    return "doc.text.magnifyingglass"
+        case .diver:       return "figure.pool.swim"
+        case .other:       return "ellipsis.circle.fill"
         }
     }
     
