@@ -51,9 +51,13 @@ PAGE_H = H + 2 * BLEED
 TRIM_OFFSET_X = BLEED
 TRIM_OFFSET_Y = BLEED
 
-# QR target URLs
-URL_APPLE  = "https://skipily.app/ios"      # smart link → App Store
-URL_GOOGLE = "https://skipily.app/android"  # smart link → Play Store
+# QR target URLs — Hauptdomain als sicherer Default.
+# Sobald App Store / Play Store Listings live sind: zwei Optionen
+#  a) Direktlinks: URL_APPLE = "https://apps.apple.com/app/idXXXXXXXXX"
+#     URL_GOOGLE = "https://play.google.com/store/apps/details?id=app.skipily"
+#  b) Smart-Redirect auf skipily.app/ios bzw. /android einrichten
+URL_APPLE  = "https://skipily.app"
+URL_GOOGLE = "https://skipily.app"
 URL_PROV   = "https://skipily.app/provider"
 
 OUT_END  = ROOT / "marketing/flyer-endkunden"
@@ -407,19 +411,27 @@ def build_sticker(out_path: Path):
     c.setFillColor(CREAM)
     c.circle(cx, cy, R_inner, stroke=0, fill=1)
 
-    # === Inner content: logo + SKIPILY oben als Block, 2x QR unten ===
+    # === Inner content ===
+    # Vertikale Aufteilung im Cream-Bereich:
+    #   Logo oben | SKIPILY GENAU MITTIG | 2x QR unten
 
-    # Logo top of cream area
+    # SKIPILY genau im vertikalen Zentrum.
+    # Helvetica Bold Caps: visueller Mittelpunkt liegt ca. 0.35 * size
+    # ueber der Baseline → Baseline = cy - 0.35*size, damit
+    # die Schrift OPTISCH dead-center sitzt.
+    skipily_size = 22  # pt
+    c.setFillColor(ORANGE)
+    c.setFont("Helvetica-Bold", skipily_size)
+    skipily_baseline_y = cy - skipily_size * 0.35
+    c.drawCentredString(cx, skipily_baseline_y, STICKER_TEXT["main_brand"])
+
+    # Logo oberhalb von SKIPILY (mit gleichmaessigem Abstand)
     logo_size = 13 * mm
+    logo_y = cy + 10 * mm
     if ICON_PATH.exists():
-        c.drawImage(str(ICON_PATH), cx - logo_size / 2, cy + 11 * mm,
+        c.drawImage(str(ICON_PATH), cx - logo_size / 2, logo_y,
                     logo_size, logo_size,
                     mask='auto', preserveAspectRatio=True)
-
-    # SKIPILY direkt unter dem Logo (kompakter Block)
-    c.setFillColor(ORANGE)
-    c.setFont("Helvetica-Bold", 22)
-    c.drawCentredString(cx, cy + 4 * mm, STICKER_TEXT["main_brand"])
 
     # Zwei QR-Codes nebeneinander unten: Apple + Google
     qr_size = 13 * mm
@@ -517,10 +529,18 @@ def build_sticker_rect(out_path: Path):
     bottom = ty
 
     # === Vertikale Aufteilung (92mm Innenhöhe) ===
-    # Logo + SKIPILY oben (zusammen als Block), 6 Phrasen mitte,
-    # zwei QR-Codes (Apple + Google) nebeneinander unten.
+    # SKIPILY GENAU MITTIG (cy). Drumherum:
+    #   Logo oben | 6 Phrasen direkt unter SKIPILY | 2x QR unten
 
-    # Logo top, klein
+    # SKIPILY genau im vertikalen Zentrum
+    # Helvetica Bold Caps: visueller Mittelpunkt ~ 0.35 * size ueber Baseline
+    skipily_size = 24
+    c.setFillColor(ORANGE)
+    c.setFont("Helvetica-Bold", skipily_size)
+    skipily_baseline_y = cy - skipily_size * 0.35
+    c.drawCentredString(cx, skipily_baseline_y, STICKER_TEXT["main_brand"])
+
+    # Logo oben, centered
     logo_size = 16 * mm
     logo_y = top - inset - logo_size - 2 * mm
     if ICON_PATH.exists():
@@ -528,27 +548,21 @@ def build_sticker_rect(out_path: Path):
                     logo_size, logo_size,
                     mask='auto', preserveAspectRatio=True)
 
-    # SKIPILY direkt unter dem Logo (kein grosser Gap mehr)
-    c.setFillColor(ORANGE)
-    c.setFont("Helvetica-Bold", 24)
-    skipily_y = logo_y - 8 * mm
-    c.drawCentredString(cx, skipily_y, STICKER_TEXT["main_brand"])
-
-    # 6 multilang phrases — zentriert, ohne Sprach-Codes
+    # 6 multilang phrases — direkt unter SKIPILY, zentriert, kompakter
     phrases = STICKER_TEXT["phrases"]
-    row_spacing = 3.8 * mm
-    phrases_y_start = skipily_y - 7 * mm
+    row_spacing = 3.0 * mm
+    phrases_y_start = skipily_baseline_y - 5 * mm
 
     c.setFillColor(GREY_TEXT)
-    c.setFont("Helvetica", 7)
+    c.setFont("Helvetica", 6)
     for i, (_lang_code, phrase) in enumerate(phrases):
         y = phrases_y_start - i * row_spacing
         c.drawCentredString(cx, y, phrase)
 
     # Zwei QR-Codes nebeneinander unten: Apple + Google
-    qr_size = 16 * mm
-    qr_gap = 4 * mm
-    qr_y = bottom + inset + 4 * mm
+    qr_size = 14 * mm
+    qr_gap = 3 * mm
+    qr_y = bottom + inset + 3 * mm
     qr_x_apple  = cx - qr_gap / 2 - qr_size
     qr_x_google = cx + qr_gap / 2
 
