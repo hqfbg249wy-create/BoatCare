@@ -242,13 +242,40 @@ struct PlusUpgradeSheet: View {
         .pickerStyle(.segmented)
     }
 
-    /// Formatiert den Preis explizit mit `priceFormatStyle` statt sich auf
-    /// `displayPrice` zu verlassen. Bei TestFlight-Builds kann `displayPrice`
-    /// gelegentlich die Base-Tier-Currency (z.B. "$3.99") liefern, während
-    /// die Storefront ein manuelles Override (z.B. "4,99 €") hat.
-    /// `priceFormatStyle` respektiert die Storefront verlaesslich.
+    /// Formatiert den Preis robust gegen StoreKit-Stolperfallen.
+    ///
+    /// Beobachtetes Problem in TestFlight: `displayPrice` UND `priceFormatStyle`
+    /// koennen die Base-Tier-Currency (USD) liefern obwohl der User auf einer
+    /// EUR-Storefront ist und Apples Subscribe-Sheet korrekt 4,99 € zeigt.
+    /// Ursache: bei manuellen Country-Price-Overrides in App Store Connect
+    /// liefert `Product.products(for:)` mitunter veraltete Cache-Werte.
+    ///
+    /// Strategie:
+    /// 1. Logge alles fuer Diagnose
+    /// 2. Wenn Storefront-Currency aus dem PriceFormatStyle nicht zur Device-
+    ///    Locale passt, ueberschreibe Locale mit `Locale.current` (das matcht
+    ///    bei einem deutschen Geraet auf de_DE und gibt das Komma + €-Symbol
+    ///    in deutscher Notation aus). Der Decimal-Wert bleibt unveraendert.
     private func formattedPrice(_ product: StoreKit.Product) -> String {
-        product.price.formatted(product.priceFormatStyle)
+        let style = product.priceFormatStyle
+        let primaryResult = product.price.formatted(style)
+
+        AppLog.info("""
+            PRICE DEBUG \(product.id):
+              price=\(product.price)
+              displayPrice=\(product.displayPrice)
+              currencyCode=\(style.currencyCode)
+              locale=\(style.locale.identifier)
+              primaryResult=\(primaryResult)
+              deviceLocale=\(Locale.current.identifier)
+              deviceCurrency=\(Locale.current.currency?.identifier ?? "nil")
+            """)
+
+        // Fallback: wenn currencyCode nicht zur Device-Storefront passt,
+        // re-formatieren mit Device-Locale (behaelt currencyCode aus Product)
+        var fallbackStyle = style
+        fallbackStyle.locale = .current
+        return product.price.formatted(fallbackStyle)
     }
 
     @ViewBuilder
