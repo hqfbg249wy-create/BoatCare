@@ -355,31 +355,43 @@ def build_sticker(out_path: Path):
 
     # Logo at top of circle
     if ICON_PATH.exists():
-        c.drawImage(str(ICON_PATH), cx - 9*mm, cy + 13*mm, 18*mm, 18*mm,
+        c.drawImage(str(ICON_PATH), cx - 8*mm, cy + 19*mm, 16*mm, 16*mm,
                     mask='auto', preserveAspectRatio=True)
 
-    # "Wir sind bei" (DE) on top
-    c.setFillColor(BLUE_DARK)
-    c.setFont("Helvetica-Bold", 9)
-    c.drawCentredString(cx, cy + 6*mm, STICKER_TEXT["main_top"])
-
-    # SKIPILY big
+    # SKIPILY big — brand mark (language-neutral)
     c.setFillColor(ORANGE)
-    c.setFont("Helvetica-Bold", 20)
-    c.drawCentredString(cx, cy - 2*mm, STICKER_TEXT["main_brand"])
+    c.setFont("Helvetica-Bold", 22)
+    c.drawCentredString(cx, cy + 9*mm, STICKER_TEXT["main_brand"])
 
-    # Subtitle multilang
+    # 6 multilang phrases in 2 columns × 3 rows
     c.setFillColor(GREY_TEXT)
-    c.setFont("Helvetica", 5)
-    c.drawCentredString(cx, cy - 7*mm, STICKER_TEXT["sub"])
+    phrases = STICKER_TEXT["phrases"]
+    col_x_left  = cx - 19 * mm
+    col_x_right = cx + 5  * mm
+    row_y_start = cy + 3 * mm
+    row_spacing = 4 * mm
 
-    # QR small at bottom inside circle
+    for i, (lang_code, phrase) in enumerate(phrases):
+        col = i % 2
+        row = i // 2
+        x = col_x_left if col == 0 else col_x_right
+        y = row_y_start - row * row_spacing
+        # Language code in blue, bold
+        c.setFillColor(BLUE_PRIMARY)
+        c.setFont("Helvetica-Bold", 6)
+        c.drawString(x, y, lang_code)
+        # Phrase in dark grey, regular
+        c.setFillColor(GREY_TEXT)
+        c.setFont("Helvetica", 6)
+        c.drawString(x + 5 * mm, y, phrase)
+
+    # QR centered, lower part
     qr = make_qr(URL_APPLE)
     qr_size = 16 * mm
-    c.drawImage(qr, cx - qr_size/2, cy - 28*mm, qr_size, qr_size)
+    c.drawImage(qr, cx - qr_size/2, cy - 30*mm, qr_size, qr_size)
     c.setFillColor(GREY_MUTE)
-    c.setFont("Helvetica", 5)
-    c.drawCentredString(cx, cy - 31*mm, STICKER_TEXT["scan"])
+    c.setFont("Helvetica-Bold", 5.5)
+    c.drawCentredString(cx, cy - 32.5*mm, STICKER_TEXT["scan"])
 
     # Die-cut indicator (dashed) — outside trim, helps printer
     c.setStrokeColor(HexColor("#FF00FF"))
@@ -446,34 +458,51 @@ def build_sticker_rect(out_path: Path):
         c.drawImage(str(ICON_PATH), logo_x, logo_y, logo_size, logo_size,
                     mask='auto', preserveAspectRatio=True)
 
-    # Right side: text block + QR
-    text_x = logo_x + logo_size + 6 * mm
+    # Middle: SKIPILY + 6 multilang phrases
+    text_x = logo_x + logo_size + 5 * mm
 
-    # "Wir sind bei"
-    c.setFillColor(BLUE_DARK)
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(text_x, cy + 14 * mm, STICKER_TEXT["main_top"])
-
-    # SKIPILY big
+    # SKIPILY brand mark (language-neutral)
     c.setFillColor(ORANGE)
-    c.setFont("Helvetica-Bold", 26)
-    c.drawString(text_x, cy + 3 * mm, STICKER_TEXT["main_brand"])
+    c.setFont("Helvetica-Bold", 24)
+    c.drawString(text_x, cy + 12 * mm, STICKER_TEXT["main_brand"])
 
-    # Subtitle multilang
-    c.setFillColor(GREY_TEXT)
-    c.setFont("Helvetica", 5.5)
-    c.drawString(text_x, cy - 3 * mm, STICKER_TEXT["sub"])
+    # Sub-tagline (English universal)
+    c.setFillColor(BLUE_DARK)
+    c.setFont("Helvetica-Oblique", 6.5)
+    c.drawString(text_x, cy + 7 * mm, STICKER_TEXT["main_brand_sub"])
 
-    # QR right edge
+    # QR right edge (placed first so we can avoid overlap with text)
     qr = make_qr(URL_APPLE)
     qr_size = 18 * mm
-    qr_x = tx + rect_w_mm * mm - inset - qr_size - 4 * mm
-    qr_y = ty + inset + 4 * mm
+    qr_x = tx + rect_w_mm * mm - inset - qr_size - 3 * mm
+    qr_y = cy - qr_size / 2 + 1 * mm
     c.drawImage(qr, qr_x, qr_y, qr_size, qr_size)
     c.setFillColor(GREY_MUTE)
-    c.setFont("Helvetica", 5)
+    c.setFont("Helvetica-Bold", 5.5)
     c.drawCentredString(qr_x + qr_size / 2, qr_y - 3 * mm,
                         STICKER_TEXT["scan"])
+
+    # 6 multilang phrases — 2 columns, fit inside (text_x .. qr_x - 2mm)
+    phrases = STICKER_TEXT["phrases"]
+    text_max_right = qr_x - 2 * mm
+    text_avail = text_max_right - text_x
+    col_w = text_avail / 2
+    col_x_left  = text_x
+    col_x_right = text_x + col_w
+    row_y_start = cy + 1 * mm
+    row_spacing = 3.5 * mm
+
+    for i, (lang_code, phrase) in enumerate(phrases):
+        col = i % 2
+        row = i // 2
+        x = col_x_left if col == 0 else col_x_right
+        y = row_y_start - row * row_spacing
+        c.setFillColor(BLUE_PRIMARY)
+        c.setFont("Helvetica-Bold", 5)
+        c.drawString(x, y, lang_code)
+        c.setFillColor(GREY_TEXT)
+        c.setFont("Helvetica", 5)
+        c.drawString(x + 4 * mm, y, phrase)
 
     # Die-cut indicator (rounded rect, magenta dashed) — for printer
     c.setStrokeColor(HexColor("#FF00FF"))

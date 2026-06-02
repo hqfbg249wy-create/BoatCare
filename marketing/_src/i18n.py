@@ -220,10 +220,20 @@ PROVIDER = {
 # -----------------------------------------------------------------------------
 # STICKER (universal multi-lang for shop windows)
 # -----------------------------------------------------------------------------
+# Equal-weight phrases for all 6 supported languages.
+# Each phrase: "{Country flag emoji as language marker} {short claim}"
+# Kept short so they fit on the round sticker.
 STICKER_TEXT = {
-    "main_top": "Wir sind bei",
-    "main_top_alts": ["We're on", "Disponible sur", "Siamo su", "Estamos en", "We staan op"],
     "main_brand": "SKIPILY",
-    "sub": "Hier akzeptiert · Accepted here · Disponible ici",
-    "scan": "Scan & finden",
+    "main_brand_sub": "Marketplace for skippers",
+    "phrases": [
+        ("DE", "Hier verfügbar"),
+        ("EN", "Available here"),
+        ("FR", "Disponible ici"),
+        ("IT", "Disponibile qui"),
+        ("ES", "Disponible aquí"),
+        ("NL", "Hier beschikbaar"),
+    ],
+    # Universal scan command (recognizable across languages)
+    "scan": "Scan",
 }
