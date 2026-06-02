@@ -341,6 +341,10 @@ def _curved_text(c, text: str, cx: float, cy: float, radius: float,
                  color, top: bool):
     """Draw text along a circular arc, centered at center_angle_deg.
 
+    `radius` is the radius at which the **visual center** of the text sits —
+    so the text is vertically centered on the ring (equal spacing between
+    inner and outer edges), not aligned to the baseline.
+
     top=True  → text on upper arc (reads L→R when viewed, chars face outward).
     top=False → text on lower arc (reads L→R when viewed, chars face inward,
                 effectively rotated 180° so it's not upside-down).
@@ -353,12 +357,15 @@ def _curved_text(c, text: str, cx: float, cy: float, radius: float,
     total_w = stringWidth(text, font, size)
     total_angle = total_w / radius   # radians
 
+    # Offset from baseline to visual center of caps: ~0.35 * font size
+    # Applied as a downward translation in local frame so drawCentredString
+    # at (0,0) puts the *visual center* at the placement point, not the baseline.
+    visual_offset = size * 0.35
+
     if top:
-        # Chars arranged clockwise (angles decreasing) from left to right
         start = math.radians(center_angle_deg) + total_angle / 2
         sign = -1
     else:
-        # Chars arranged counterclockwise (angles increasing) from left to right
         start = math.radians(center_angle_deg) - total_angle / 2
         sign = +1
 
@@ -375,6 +382,8 @@ def _curved_text(c, text: str, cx: float, cy: float, radius: float,
             c.rotate(math.degrees(mid) - 90)
         else:
             c.rotate(math.degrees(mid) + 90)
+        # Shift drawing origin so visual center (not baseline) lands at (0,0)
+        c.translate(0, -visual_offset)
         c.drawCentredString(0, 0, ch)
         c.restoreState()
         pos += sign * ch_a
@@ -398,27 +407,36 @@ def build_sticker(out_path: Path):
     c.setFillColor(CREAM)
     c.circle(cx, cy, R_inner, stroke=0, fill=1)
 
-    # === Inner content: logo top, SKIPILY center, QR bottom ===
+    # === Inner content: logo + SKIPILY oben als Block, 2x QR unten ===
 
     # Logo top of cream area
-    logo_size = 14 * mm
+    logo_size = 13 * mm
     if ICON_PATH.exists():
         c.drawImage(str(ICON_PATH), cx - logo_size / 2, cy + 11 * mm,
                     logo_size, logo_size,
                     mask='auto', preserveAspectRatio=True)
 
-    # SKIPILY DEAD CENTER (vertically centered)
+    # SKIPILY direkt unter dem Logo (kompakter Block)
     c.setFillColor(ORANGE)
-    c.setFont("Helvetica-Bold", 28)
-    c.drawCentredString(cx, cy - 3 * mm, STICKER_TEXT["main_brand"])
+    c.setFont("Helvetica-Bold", 22)
+    c.drawCentredString(cx, cy + 4 * mm, STICKER_TEXT["main_brand"])
 
-    # QR bottom of cream area
-    qr = make_qr(URL_APPLE)
-    qr_size = 17 * mm
-    c.drawImage(qr, cx - qr_size / 2, cy - 27 * mm, qr_size, qr_size)
+    # Zwei QR-Codes nebeneinander unten: Apple + Google
+    qr_size = 13 * mm
+    qr_gap = 3 * mm
+    qr_y = cy - 22 * mm
+    qr_x_apple  = cx - qr_gap / 2 - qr_size
+    qr_x_google = cx + qr_gap / 2
+
+    qr_apple  = make_qr(URL_APPLE)
+    qr_google = make_qr(URL_GOOGLE)
+    c.drawImage(qr_apple,  qr_x_apple,  qr_y, qr_size, qr_size)
+    c.drawImage(qr_google, qr_x_google, qr_y, qr_size, qr_size)
+
     c.setFillColor(GREY_MUTE)
-    c.setFont("Helvetica-Bold", 5.5)
-    c.drawCentredString(cx, cy - 29.5 * mm, STICKER_TEXT["scan"])
+    c.setFont("Helvetica-Bold", 5)
+    c.drawCentredString(qr_x_apple  + qr_size / 2, qr_y - 2.5 * mm, "App Store")
+    c.drawCentredString(qr_x_google + qr_size / 2, qr_y - 2.5 * mm, "Google Play")
 
     # === Multilang phrases curved on blue ring ===
     # 3 on top arc (centered at 150°, 90°, 30°)
