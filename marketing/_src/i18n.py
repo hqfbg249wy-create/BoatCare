@@ -223,7 +223,7 @@ PROVIDER = {
 STICKER_TEXT = {
     "main_top": "Wir sind bei",
     "main_top_alts": ["We're on", "Disponible sur", "Siamo su", "Estamos en", "We staan op"],
-    "main_brand": "Skipily",
+    "main_brand": "SKIPILY",
     "sub": "Hier akzeptiert · Accepted here · Disponible ici",
     "scan": "Scan & finden",
 }

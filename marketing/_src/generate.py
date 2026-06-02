@@ -404,6 +404,103 @@ def build_sticker(out_path: Path):
 
 
 # ---------------------------------------------------------------------------
+# Sticker — rounded rectangle 100×70 mm landscape
+# ---------------------------------------------------------------------------
+def build_sticker_rect(out_path: Path):
+    # Rectangle sticker geometry: 100mm wide, 70mm tall, 8mm corner radius
+    # plus 3mm bleed all sides → 106×76mm canvas
+    rect_w_mm = 100
+    rect_h_mm = 70
+    corner_r_mm = 8
+    page_w = (rect_w_mm + 6) * mm   # +3mm bleed each side
+    page_h = (rect_h_mm + 6) * mm
+    tx = 3 * mm                      # trim offset
+    ty = 3 * mm
+
+    c = canvas.Canvas(str(out_path), pagesize=(page_w, page_h))
+
+    # Transparent / white bleed area
+    c.setFillColor(white)
+    c.rect(0, 0, page_w, page_h, stroke=0, fill=1)
+
+    # Blue rounded-rect frame
+    c.setFillColor(BLUE_PRIMARY)
+    c.roundRect(tx, ty, rect_w_mm * mm, rect_h_mm * mm,
+                corner_r_mm * mm, stroke=0, fill=1)
+    # Inner cream area (4mm inset)
+    inset = 4 * mm
+    c.setFillColor(CREAM)
+    c.roundRect(tx + inset, ty + inset,
+                rect_w_mm * mm - 2 * inset,
+                rect_h_mm * mm - 2 * inset,
+                (corner_r_mm - 2) * mm, stroke=0, fill=1)
+
+    cx = tx + (rect_w_mm * mm) / 2
+    cy = ty + (rect_h_mm * mm) / 2
+
+    # Logo left side
+    logo_size = 24 * mm
+    logo_x = tx + 8 * mm
+    logo_y = cy - logo_size / 2
+    if ICON_PATH.exists():
+        c.drawImage(str(ICON_PATH), logo_x, logo_y, logo_size, logo_size,
+                    mask='auto', preserveAspectRatio=True)
+
+    # Right side: text block + QR
+    text_x = logo_x + logo_size + 6 * mm
+
+    # "Wir sind bei"
+    c.setFillColor(BLUE_DARK)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(text_x, cy + 14 * mm, STICKER_TEXT["main_top"])
+
+    # SKIPILY big
+    c.setFillColor(ORANGE)
+    c.setFont("Helvetica-Bold", 26)
+    c.drawString(text_x, cy + 3 * mm, STICKER_TEXT["main_brand"])
+
+    # Subtitle multilang
+    c.setFillColor(GREY_TEXT)
+    c.setFont("Helvetica", 5.5)
+    c.drawString(text_x, cy - 3 * mm, STICKER_TEXT["sub"])
+
+    # QR right edge
+    qr = make_qr(URL_APPLE)
+    qr_size = 18 * mm
+    qr_x = tx + rect_w_mm * mm - inset - qr_size - 4 * mm
+    qr_y = ty + inset + 4 * mm
+    c.drawImage(qr, qr_x, qr_y, qr_size, qr_size)
+    c.setFillColor(GREY_MUTE)
+    c.setFont("Helvetica", 5)
+    c.drawCentredString(qr_x + qr_size / 2, qr_y - 3 * mm,
+                        STICKER_TEXT["scan"])
+
+    # Die-cut indicator (rounded rect, magenta dashed) — for printer
+    c.setStrokeColor(HexColor("#FF00FF"))
+    c.setDash([2, 2])
+    c.setLineWidth(0.3)
+    c.roundRect(tx, ty, rect_w_mm * mm, rect_h_mm * mm,
+                corner_r_mm * mm, stroke=1, fill=0)
+    c.setDash([])
+
+    # Crop marks
+    c.setStrokeColor(black)
+    c.setLineWidth(0.3)
+    m = 3 * mm
+    trim_w = rect_w_mm * mm
+    trim_h = rect_h_mm * mm
+    for (x, y) in [(tx, ty),
+                   (tx + trim_w, ty),
+                   (tx, ty + trim_h),
+                   (tx + trim_w, ty + trim_h)]:
+        c.line(x - m, y, x - 0.5 * mm, y)
+        c.line(x, y - m, x, y - 0.5 * mm)
+
+    c.showPage()
+    c.save()
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main():
@@ -420,9 +517,13 @@ def main():
         build_provider_flyer(lang, PROVIDER[lang], prov_path)
         print(f"  ✓ {lang}: endkunden + provider")
 
-    sticker_path = OUT_STK / "sticker-multilang.pdf"
-    build_sticker(sticker_path)
-    print(f"  ✓ sticker")
+    sticker_round = OUT_STK / "sticker-round-80mm.pdf"
+    build_sticker(sticker_round)
+    print(f"  ✓ sticker (round Ø80mm)")
+
+    sticker_rect = OUT_STK / "sticker-rect-100x70mm.pdf"
+    build_sticker_rect(sticker_rect)
+    print(f"  ✓ sticker (rect 100×70mm, rounded corners)")
 
     print(f"\nDone. Files written to:\n  {OUT_END}\n  {OUT_PROV}\n  {OUT_STK}")
 
