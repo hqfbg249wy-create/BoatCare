@@ -419,10 +419,10 @@ def build_sticker(out_path: Path):
 # Sticker — rounded rectangle 100×70 mm landscape
 # ---------------------------------------------------------------------------
 def build_sticker_rect(out_path: Path):
-    # Rectangle sticker geometry: 100mm wide, 70mm tall, 8mm corner radius
-    # plus 3mm bleed all sides → 106×76mm canvas
-    rect_w_mm = 100
-    rect_h_mm = 70
+    # Portrait rectangle: 70mm wide × 100mm tall, 8mm corner radius
+    # plus 3mm bleed all sides → 76×106mm canvas
+    rect_w_mm = 70
+    rect_h_mm = 100
     corner_r_mm = 8
     page_w = (rect_w_mm + 6) * mm   # +3mm bleed each side
     page_h = (rect_h_mm + 6) * mm
@@ -431,7 +431,7 @@ def build_sticker_rect(out_path: Path):
 
     c = canvas.Canvas(str(out_path), pagesize=(page_w, page_h))
 
-    # Transparent / white bleed area
+    # White bleed area
     c.setFillColor(white)
     c.rect(0, 0, page_w, page_h, stroke=0, fill=1)
 
@@ -448,61 +448,54 @@ def build_sticker_rect(out_path: Path):
                 (corner_r_mm - 2) * mm, stroke=0, fill=1)
 
     cx = tx + (rect_w_mm * mm) / 2
-    cy = ty + (rect_h_mm * mm) / 2
+    top = ty + rect_h_mm * mm
+    bottom = ty
 
-    # Logo left side
-    logo_size = 24 * mm
-    logo_x = tx + 8 * mm
-    logo_y = cy - logo_size / 2
+    # Logo top, centered
+    logo_size = 20 * mm
+    logo_y = top - inset - logo_size - 2 * mm
     if ICON_PATH.exists():
-        c.drawImage(str(ICON_PATH), logo_x, logo_y, logo_size, logo_size,
+        c.drawImage(str(ICON_PATH), cx - logo_size / 2, logo_y,
+                    logo_size, logo_size,
                     mask='auto', preserveAspectRatio=True)
 
-    # Middle: SKIPILY + 6 multilang phrases
-    text_x = logo_x + logo_size + 5 * mm
-
-    # SKIPILY brand mark (language-neutral)
+    # SKIPILY brand mark (language-neutral) — centered below logo
     c.setFillColor(ORANGE)
-    c.setFont("Helvetica-Bold", 24)
-    c.drawString(text_x, cy + 12 * mm, STICKER_TEXT["main_brand"])
+    c.setFont("Helvetica-Bold", 22)
+    c.drawCentredString(cx, logo_y - 7 * mm, STICKER_TEXT["main_brand"])
 
-    # Sub-tagline (English universal)
+    # English universal sub-tagline
     c.setFillColor(BLUE_DARK)
     c.setFont("Helvetica-Oblique", 6.5)
-    c.drawString(text_x, cy + 7 * mm, STICKER_TEXT["main_brand_sub"])
+    c.drawCentredString(cx, logo_y - 11.5 * mm,
+                        STICKER_TEXT["main_brand_sub"])
 
-    # QR right edge (placed first so we can avoid overlap with text)
-    qr = make_qr(URL_APPLE)
-    qr_size = 18 * mm
-    qr_x = tx + rect_w_mm * mm - inset - qr_size - 3 * mm
-    qr_y = cy - qr_size / 2 + 1 * mm
-    c.drawImage(qr, qr_x, qr_y, qr_size, qr_size)
-    c.setFillColor(GREY_MUTE)
-    c.setFont("Helvetica-Bold", 5.5)
-    c.drawCentredString(qr_x + qr_size / 2, qr_y - 3 * mm,
-                        STICKER_TEXT["scan"])
-
-    # 6 multilang phrases — 2 columns, fit inside (text_x .. qr_x - 2mm)
+    # 6 multilang phrases — stacked vertically, each on full row
     phrases = STICKER_TEXT["phrases"]
-    text_max_right = qr_x - 2 * mm
-    text_avail = text_max_right - text_x
-    col_w = text_avail / 2
-    col_x_left  = text_x
-    col_x_right = text_x + col_w
-    row_y_start = cy + 1 * mm
-    row_spacing = 3.5 * mm
+    row_y_start = logo_y - 17 * mm
+    row_spacing = 4.5 * mm
+    text_left = tx + inset + 4 * mm
 
     for i, (lang_code, phrase) in enumerate(phrases):
-        col = i % 2
-        row = i // 2
-        x = col_x_left if col == 0 else col_x_right
-        y = row_y_start - row * row_spacing
+        y = row_y_start - i * row_spacing
+        # Language code in blue, bold, fixed-width column
         c.setFillColor(BLUE_PRIMARY)
-        c.setFont("Helvetica-Bold", 5)
-        c.drawString(x, y, lang_code)
+        c.setFont("Helvetica-Bold", 7)
+        c.drawString(text_left, y, lang_code)
+        # Phrase in dark grey, regular
         c.setFillColor(GREY_TEXT)
-        c.setFont("Helvetica", 5)
-        c.drawString(x + 4 * mm, y, phrase)
+        c.setFont("Helvetica", 7)
+        c.drawString(text_left + 8 * mm, y, phrase)
+
+    # QR centered at bottom
+    qr = make_qr(URL_APPLE)
+    qr_size = 22 * mm
+    qr_x = cx - qr_size / 2
+    qr_y = bottom + inset + 6 * mm
+    c.drawImage(qr, qr_x, qr_y, qr_size, qr_size)
+    c.setFillColor(GREY_MUTE)
+    c.setFont("Helvetica-Bold", 6)
+    c.drawCentredString(cx, qr_y - 3.5 * mm, STICKER_TEXT["scan"])
 
     # Die-cut indicator (rounded rect, magenta dashed) — for printer
     c.setStrokeColor(HexColor("#FF00FF"))
@@ -550,9 +543,9 @@ def main():
     build_sticker(sticker_round)
     print(f"  ✓ sticker (round Ø80mm)")
 
-    sticker_rect = OUT_STK / "sticker-rect-100x70mm.pdf"
+    sticker_rect = OUT_STK / "sticker-rect-70x100mm.pdf"
     build_sticker_rect(sticker_rect)
-    print(f"  ✓ sticker (rect 100×70mm, rounded corners)")
+    print(f"  ✓ sticker (rect 70×100mm portrait, rounded corners)")
 
     print(f"\nDone. Files written to:\n  {OUT_END}\n  {OUT_PROV}\n  {OUT_STK}")
 
