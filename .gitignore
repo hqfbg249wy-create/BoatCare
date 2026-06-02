@@ -16,3 +16,7 @@ supabase/.temp/
 
 # Claude Code local state
 .claude/
+
+# Marketing preview renders (regenerate via sips)
+marketing/_src/preview-*.png
+marketing/_src/__pycache__/
