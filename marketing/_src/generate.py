@@ -434,11 +434,10 @@ def build_sticker(out_path: Path):
         (270, False),  # ES — bottom-center
         (210, False),  # NL — bottom-left
     ]
-    for (lang_code, phrase), (ang, is_top) in zip(phrases, positions):
-        # Build "DE Hier verfügbar" with separator
-        text = f"{lang_code}  {phrase}"
-        _curved_text(c, text, cx, cy, R_text, ang,
-                     "Helvetica-Bold", 6.5, white, is_top)
+    for (_lang_code, phrase), (ang, is_top) in zip(phrases, positions):
+        # Sprach-Code weggelassen — nur die Phrase selbst, etwas groesser
+        _curved_text(c, phrase, cx, cy, R_text, ang,
+                     "Helvetica-Bold", 8, white, is_top)
 
     # Die-cut indicator (dashed) — outside trim, helps printer
     c.setStrokeColor(HexColor("#FF00FF"))
