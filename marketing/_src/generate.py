@@ -495,54 +495,47 @@ def build_sticker_rect(out_path: Path):
                 (corner_r_mm - 2) * mm, stroke=0, fill=1)
 
     cx = tx + (rect_w_mm * mm) / 2
+    cy = ty + (rect_h_mm * mm) / 2
     top = ty + rect_h_mm * mm
     bottom = ty
 
+    # === Vertikale Aufteilung (92mm Innenhöhe) ===
+    # Logo top (16mm), SKIPILY center, 6 Phrasen darunter, QR unten.
+
     # Logo top, centered
-    logo_size = 20 * mm
+    logo_size = 16 * mm
     logo_y = top - inset - logo_size - 2 * mm
     if ICON_PATH.exists():
         c.drawImage(str(ICON_PATH), cx - logo_size / 2, logo_y,
                     logo_size, logo_size,
                     mask='auto', preserveAspectRatio=True)
 
-    # SKIPILY brand mark (language-neutral) — centered below logo
+    # SKIPILY brand mark — horizontal mittig, vertikal etwas über center
     c.setFillColor(ORANGE)
-    c.setFont("Helvetica-Bold", 22)
-    c.drawCentredString(cx, logo_y - 7 * mm, STICKER_TEXT["main_brand"])
+    c.setFont("Helvetica-Bold", 24)
+    skipily_y = cy + 6 * mm
+    c.drawCentredString(cx, skipily_y, STICKER_TEXT["main_brand"])
 
-    # English universal sub-tagline
-    c.setFillColor(BLUE_DARK)
-    c.setFont("Helvetica-Oblique", 6.5)
-    c.drawCentredString(cx, logo_y - 11.5 * mm,
-                        STICKER_TEXT["main_brand_sub"])
-
-    # 6 multilang phrases — stacked vertically, each on full row
+    # 6 multilang phrases — zentriert, ohne Sprach-Codes
     phrases = STICKER_TEXT["phrases"]
-    row_y_start = logo_y - 17 * mm
-    row_spacing = 4.5 * mm
-    text_left = tx + inset + 4 * mm
+    row_spacing = 3.4 * mm
+    phrases_y_start = skipily_y - 7 * mm
 
-    for i, (lang_code, phrase) in enumerate(phrases):
-        y = row_y_start - i * row_spacing
-        # Language code in blue, bold, fixed-width column
-        c.setFillColor(BLUE_PRIMARY)
-        c.setFont("Helvetica-Bold", 7)
-        c.drawString(text_left, y, lang_code)
-        # Phrase in dark grey, regular
-        c.setFillColor(GREY_TEXT)
-        c.setFont("Helvetica", 7)
-        c.drawString(text_left + 8 * mm, y, phrase)
+    c.setFillColor(GREY_TEXT)
+    c.setFont("Helvetica", 6.5)
+    for i, (_lang_code, phrase) in enumerate(phrases):
+        y = phrases_y_start - i * row_spacing
+        c.drawCentredString(cx, y, phrase)
 
     # QR centered at bottom
     qr = make_qr(URL_APPLE)
-    qr_size = 22 * mm
+    qr_size = 17 * mm
     qr_x = cx - qr_size / 2
-    qr_y = bottom + inset + 6 * mm
+    qr_y = bottom + inset + 2.5 * mm
     c.drawImage(qr, qr_x, qr_y, qr_size, qr_size)
     c.setFillColor(GREY_MUTE)
     c.setFont("Helvetica-Bold", 6)
-    c.drawCentredString(cx, qr_y - 3.5 * mm, STICKER_TEXT["scan"])
+    c.drawCentredString(cx, qr_y - 3 * mm, STICKER_TEXT["scan"])
 
     # Die-cut indicator (rounded rect, magenta dashed) — for printer
     c.setStrokeColor(HexColor("#FF00FF"))
