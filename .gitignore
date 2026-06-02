@@ -20,3 +20,6 @@ supabase/.temp/
 # Marketing preview renders (regenerate via sips)
 marketing/_src/preview-*.png
 marketing/_src/__pycache__/
+
+# Affinity Publisher lock files
+*~lock~
