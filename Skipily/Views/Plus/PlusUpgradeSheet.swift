@@ -242,10 +242,19 @@ struct PlusUpgradeSheet: View {
         .pickerStyle(.segmented)
     }
 
+    /// Formatiert den Preis explizit mit `priceFormatStyle` statt sich auf
+    /// `displayPrice` zu verlassen. Bei TestFlight-Builds kann `displayPrice`
+    /// gelegentlich die Base-Tier-Currency (z.B. "$3.99") liefern, während
+    /// die Storefront ein manuelles Override (z.B. "4,99 €") hat.
+    /// `priceFormatStyle` respektiert die Storefront verlaesslich.
+    private func formattedPrice(_ product: StoreKit.Product) -> String {
+        product.price.formatted(product.priceFormatStyle)
+    }
+
     @ViewBuilder
     private func priceRow(tier: PlanTier, period: BillingPeriod, product current: StoreKit.Product) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(current.displayPrice).font(.title2.bold())
+            Text(formattedPrice(current)).font(.title2.bold())
             Text(period == .yearly ? "/ Jahr" : "/ Monat")
                 .font(.subheadline).foregroundStyle(.secondary)
             Spacer()
