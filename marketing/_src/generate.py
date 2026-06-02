@@ -499,9 +499,10 @@ def build_sticker_rect(out_path: Path):
     bottom = ty
 
     # === Vertikale Aufteilung (92mm Innenhöhe) ===
-    # Logo top (16mm), SKIPILY center, 6 Phrasen darunter, QR unten.
+    # Logo + SKIPILY oben (zusammen als Block), 6 Phrasen mitte,
+    # zwei QR-Codes (Apple + Google) nebeneinander unten.
 
-    # Logo top, centered
+    # Logo top, klein
     logo_size = 16 * mm
     logo_y = top - inset - logo_size - 2 * mm
     if ICON_PATH.exists():
@@ -509,32 +510,39 @@ def build_sticker_rect(out_path: Path):
                     logo_size, logo_size,
                     mask='auto', preserveAspectRatio=True)
 
-    # SKIPILY brand mark — horizontal mittig, vertikal etwas über center
+    # SKIPILY direkt unter dem Logo (kein grosser Gap mehr)
     c.setFillColor(ORANGE)
     c.setFont("Helvetica-Bold", 24)
-    skipily_y = cy + 6 * mm
+    skipily_y = logo_y - 8 * mm
     c.drawCentredString(cx, skipily_y, STICKER_TEXT["main_brand"])
 
     # 6 multilang phrases — zentriert, ohne Sprach-Codes
     phrases = STICKER_TEXT["phrases"]
-    row_spacing = 3.4 * mm
+    row_spacing = 3.8 * mm
     phrases_y_start = skipily_y - 7 * mm
 
     c.setFillColor(GREY_TEXT)
-    c.setFont("Helvetica", 6.5)
+    c.setFont("Helvetica", 7)
     for i, (_lang_code, phrase) in enumerate(phrases):
         y = phrases_y_start - i * row_spacing
         c.drawCentredString(cx, y, phrase)
 
-    # QR centered at bottom
-    qr = make_qr(URL_APPLE)
-    qr_size = 17 * mm
-    qr_x = cx - qr_size / 2
-    qr_y = bottom + inset + 2.5 * mm
-    c.drawImage(qr, qr_x, qr_y, qr_size, qr_size)
+    # Zwei QR-Codes nebeneinander unten: Apple + Google
+    qr_size = 16 * mm
+    qr_gap = 4 * mm
+    qr_y = bottom + inset + 4 * mm
+    qr_x_apple  = cx - qr_gap / 2 - qr_size
+    qr_x_google = cx + qr_gap / 2
+
+    qr_apple  = make_qr(URL_APPLE)
+    qr_google = make_qr(URL_GOOGLE)
+    c.drawImage(qr_apple,  qr_x_apple,  qr_y, qr_size, qr_size)
+    c.drawImage(qr_google, qr_x_google, qr_y, qr_size, qr_size)
+
     c.setFillColor(GREY_MUTE)
-    c.setFont("Helvetica-Bold", 6)
-    c.drawCentredString(cx, qr_y - 3 * mm, STICKER_TEXT["scan"])
+    c.setFont("Helvetica-Bold", 5.5)
+    c.drawCentredString(qr_x_apple  + qr_size / 2, qr_y - 3 * mm, "App Store")
+    c.drawCentredString(qr_x_google + qr_size / 2, qr_y - 3 * mm, "Google Play")
 
     # Die-cut indicator (rounded rect, magenta dashed) — for printer
     c.setStrokeColor(HexColor("#FF00FF"))
