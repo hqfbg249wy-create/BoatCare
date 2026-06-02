@@ -336,68 +336,115 @@ def build_provider_flyer(lang: str, content: dict, out_path: Path):
 # ---------------------------------------------------------------------------
 # Sticker — round-ish, A6 page, design 80mm circle centered for die-cut
 # ---------------------------------------------------------------------------
+def _curved_text(c, text: str, cx: float, cy: float, radius: float,
+                 center_angle_deg: float, font: str, size: float,
+                 color, top: bool):
+    """Draw text along a circular arc, centered at center_angle_deg.
+
+    top=True  → text on upper arc (reads L→R when viewed, chars face outward).
+    top=False → text on lower arc (reads L→R when viewed, chars face inward,
+                effectively rotated 180° so it's not upside-down).
+    """
+    import math
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    c.setFillColor(color)
+    c.setFont(font, size)
+    total_w = stringWidth(text, font, size)
+    total_angle = total_w / radius   # radians
+
+    if top:
+        # Chars arranged clockwise (angles decreasing) from left to right
+        start = math.radians(center_angle_deg) + total_angle / 2
+        sign = -1
+    else:
+        # Chars arranged counterclockwise (angles increasing) from left to right
+        start = math.radians(center_angle_deg) - total_angle / 2
+        sign = +1
+
+    pos = start
+    for ch in text:
+        ch_w = stringWidth(ch, font, size)
+        ch_a = ch_w / radius
+        mid = pos + sign * ch_a / 2
+        x = cx + radius * math.cos(mid)
+        y = cy + radius * math.sin(mid)
+        c.saveState()
+        c.translate(x, y)
+        if top:
+            c.rotate(math.degrees(mid) - 90)
+        else:
+            c.rotate(math.degrees(mid) + 90)
+        c.drawCentredString(0, 0, ch)
+        c.restoreState()
+        pos += sign * ch_a
+
+
 def build_sticker(out_path: Path):
     c = canvas.Canvas(str(out_path), pagesize=(PAGE_W, PAGE_H))
 
     # White background (will be cut around)
     draw_bleed_background(c, white)
 
-    # Outer circle — die-cut reference (80mm Ø)
     cx, cy = PAGE_W / 2, PAGE_H / 2
-    R = 40 * mm
+    R_outer = 40 * mm
+    RING_THICK = 7 * mm
+    R_inner = R_outer - RING_THICK
+    R_text = R_outer - RING_THICK / 2  # text centerline on the ring
 
-    # Blue ring
+    # Blue ring + inner cream
     c.setFillColor(BLUE_PRIMARY)
-    c.circle(cx, cy, R, stroke=0, fill=1)
-    # Inner cream area
+    c.circle(cx, cy, R_outer, stroke=0, fill=1)
     c.setFillColor(CREAM)
-    c.circle(cx, cy, R - 4 * mm, stroke=0, fill=1)
+    c.circle(cx, cy, R_inner, stroke=0, fill=1)
 
-    # Logo at top of circle
+    # === Inner content: logo top, SKIPILY center, QR bottom ===
+
+    # Logo top of cream area
+    logo_size = 14 * mm
     if ICON_PATH.exists():
-        c.drawImage(str(ICON_PATH), cx - 8*mm, cy + 19*mm, 16*mm, 16*mm,
+        c.drawImage(str(ICON_PATH), cx - logo_size / 2, cy + 11 * mm,
+                    logo_size, logo_size,
                     mask='auto', preserveAspectRatio=True)
 
-    # SKIPILY big — brand mark (language-neutral)
+    # SKIPILY DEAD CENTER (vertically centered)
     c.setFillColor(ORANGE)
-    c.setFont("Helvetica-Bold", 22)
-    c.drawCentredString(cx, cy + 9*mm, STICKER_TEXT["main_brand"])
+    c.setFont("Helvetica-Bold", 28)
+    c.drawCentredString(cx, cy - 3 * mm, STICKER_TEXT["main_brand"])
 
-    # 6 multilang phrases in 2 columns × 3 rows
-    c.setFillColor(GREY_TEXT)
-    phrases = STICKER_TEXT["phrases"]
-    col_x_left  = cx - 19 * mm
-    col_x_right = cx + 5  * mm
-    row_y_start = cy + 3 * mm
-    row_spacing = 4 * mm
-
-    for i, (lang_code, phrase) in enumerate(phrases):
-        col = i % 2
-        row = i // 2
-        x = col_x_left if col == 0 else col_x_right
-        y = row_y_start - row * row_spacing
-        # Language code in blue, bold
-        c.setFillColor(BLUE_PRIMARY)
-        c.setFont("Helvetica-Bold", 6)
-        c.drawString(x, y, lang_code)
-        # Phrase in dark grey, regular
-        c.setFillColor(GREY_TEXT)
-        c.setFont("Helvetica", 6)
-        c.drawString(x + 5 * mm, y, phrase)
-
-    # QR centered, lower part
+    # QR bottom of cream area
     qr = make_qr(URL_APPLE)
-    qr_size = 16 * mm
-    c.drawImage(qr, cx - qr_size/2, cy - 30*mm, qr_size, qr_size)
+    qr_size = 17 * mm
+    c.drawImage(qr, cx - qr_size / 2, cy - 27 * mm, qr_size, qr_size)
     c.setFillColor(GREY_MUTE)
     c.setFont("Helvetica-Bold", 5.5)
-    c.drawCentredString(cx, cy - 32.5*mm, STICKER_TEXT["scan"])
+    c.drawCentredString(cx, cy - 29.5 * mm, STICKER_TEXT["scan"])
+
+    # === Multilang phrases curved on blue ring ===
+    # 3 on top arc (centered at 150°, 90°, 30°)
+    # 3 on bottom arc (centered at 210°, 270°, 330°)
+    # Order: DE EN FR IT ES NL
+    phrases = STICKER_TEXT["phrases"]
+    positions = [
+        # (angle_deg, top_arc?)
+        (150, True),   # DE — top-left
+        (90,  True),   # EN — top-center
+        (30,  True),   # FR — top-right
+        (330, False),  # IT — bottom-right
+        (270, False),  # ES — bottom-center
+        (210, False),  # NL — bottom-left
+    ]
+    for (lang_code, phrase), (ang, is_top) in zip(phrases, positions):
+        # Build "DE Hier verfügbar" with separator
+        text = f"{lang_code}  {phrase}"
+        _curved_text(c, text, cx, cy, R_text, ang,
+                     "Helvetica-Bold", 6.5, white, is_top)
 
     # Die-cut indicator (dashed) — outside trim, helps printer
     c.setStrokeColor(HexColor("#FF00FF"))
     c.setDash([2, 2])
     c.setLineWidth(0.3)
-    c.circle(cx, cy, R, stroke=1, fill=0)
+    c.circle(cx, cy, R_outer, stroke=1, fill=0)
     c.setDash([])
 
     # Crop marks at corners
