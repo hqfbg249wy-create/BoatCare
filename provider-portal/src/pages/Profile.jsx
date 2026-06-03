@@ -42,9 +42,59 @@ export default function Profile() {
   const [brandInput, setBrandInput] = useState('')
   const [products, setProducts] = useState([])
 
+  // Lieferländer (EU-Verpackungsverordnung / EPR-Compliance)
+  // null = unkonfiguriert (Provider hat das noch nie gesetzt — Behandlung als
+  // "alle" bis er bewusst auswählt). [] = aktiv keine Länder. Sonst ISO-Codes.
+  const [shippingCountries, setShippingCountries] = useState(null)
+
   // Subscription / Professional-Upgrade
   const [subscriptionLoading, setSubscriptionLoading] = useState(false)
   const [subscriptionMessage, setSubscriptionMessage] = useState(null)
+
+  // ─── Lieferländer-Katalog ────────────────────────────────────────────────
+  // Gruppiert nach Region, damit Provider schnell DACH, EU-27 oder ganz
+  // Europa auswählen können. Codes sind ISO-3166-1 Alpha-2.
+  const EU_27 = useMemo(() => [
+    { code: 'AT', name: 'Österreich' }, { code: 'BE', name: 'Belgien' },
+    { code: 'BG', name: 'Bulgarien' }, { code: 'CY', name: 'Zypern' },
+    { code: 'CZ', name: 'Tschechien' }, { code: 'DE', name: 'Deutschland' },
+    { code: 'DK', name: 'Dänemark' }, { code: 'EE', name: 'Estland' },
+    { code: 'ES', name: 'Spanien' }, { code: 'FI', name: 'Finnland' },
+    { code: 'FR', name: 'Frankreich' }, { code: 'GR', name: 'Griechenland' },
+    { code: 'HR', name: 'Kroatien' }, { code: 'HU', name: 'Ungarn' },
+    { code: 'IE', name: 'Irland' }, { code: 'IT', name: 'Italien' },
+    { code: 'LT', name: 'Litauen' }, { code: 'LU', name: 'Luxemburg' },
+    { code: 'LV', name: 'Lettland' }, { code: 'MT', name: 'Malta' },
+    { code: 'NL', name: 'Niederlande' }, { code: 'PL', name: 'Polen' },
+    { code: 'PT', name: 'Portugal' }, { code: 'RO', name: 'Rumänien' },
+    { code: 'SE', name: 'Schweden' }, { code: 'SI', name: 'Slowenien' },
+    { code: 'SK', name: 'Slowakei' },
+  ], [])
+  const EEA_PLUS = useMemo(() => [
+    { code: 'NO', name: 'Norwegen' }, { code: 'IS', name: 'Island' },
+    { code: 'LI', name: 'Liechtenstein' }, { code: 'CH', name: 'Schweiz' },
+    { code: 'GB', name: 'Vereinigtes Königreich' },
+  ], [])
+  const ALL_COUNTRIES = useMemo(
+    () => [...EU_27, ...EEA_PLUS].sort((a, b) => a.name.localeCompare(b.name, 'de')),
+    [EU_27, EEA_PLUS]
+  )
+
+  const currentShipping = shippingCountries ?? []
+
+  function toggleShippingCountry(code) {
+    const base = shippingCountries ?? []
+    const next = base.includes(code)
+      ? base.filter(c => c !== code)
+      : [...base, code]
+    setShippingCountries(next)
+  }
+  function applyShippingPreset(codes) {
+    setShippingCountries([...codes])
+  }
+  function clearShipping() {
+    setShippingCountries([])
+  }
 
   // Team-Verwaltung (Enterprise-Feature)
   const [teamMembers, setTeamMembers] = useState([])
@@ -72,6 +122,10 @@ export default function Profile() {
       })
       setServices(Array.isArray(provider.services) ? provider.services : [])
       setBrands(Array.isArray(provider.brands) ? provider.brands : [])
+      // Lieferländer übernehmen, null bleibt null (unkonfiguriert)
+      setShippingCountries(
+        Array.isArray(provider.shipping_countries) ? provider.shipping_countries : null
+      )
 
       // Check Stripe URL params for return from onboarding / subscription
       const params = new URLSearchParams(window.location.search)
@@ -474,6 +528,9 @@ export default function Profile() {
           slogan: form.slogan,
           services,
           brands,
+          // null = unkonfiguriert (kein expliziter Save); [] und Arrays werden
+          // 1:1 übernommen.
+          shipping_countries: shippingCountries,
         })
         .eq('id', provider.id)
 
@@ -1252,6 +1309,118 @@ export default function Profile() {
               <label>Land</label>
               <input name="country" value={form.country} onChange={handleChange} />
             </div>
+          </div>
+        </div>
+
+        {/* ─── Lieferländer (EU-Verpackungsverordnung / EPR) ───────────────── */}
+        <div className="card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <Globe size={20} style={{ color: 'var(--primary)' }} />
+            <h2 style={{ margin: 0 }}>Lieferländer</h2>
+          </div>
+          <p className="hint" style={{ marginBottom: 12 }}>
+            Wähle die Länder, in die du versendest. Hintergrund: Die <strong>EU-Verpackungsverordnung (PPWR)</strong> und nationale Pflichten wie <em>LUCID</em> (Deutschland), <em>Triman</em> (Frankreich) oder <em>RAEE</em> (Italien) verlangen, dass Händler in jedem Empfängerland registriert sind und die Verpackungs-Recycling-Gebühren entrichten. Wer hier ein Land nicht freischaltet, bekommt aus diesem Land keine Bestellungen.
+          </p>
+          <p className="hint" style={{ marginBottom: 16, fontSize: '0.85rem', color: 'var(--gray-500)' }}>
+            <strong>Hinweis:</strong> Diese Einstellung ersetzt keine rechtliche Beratung — kläre für jedes ausgewählte Land deine Registrierungs- und Meldepflichten selbst ab.
+          </p>
+
+          {/* Presets */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+            <button type="button" className="btn-secondary"
+                    onClick={() => applyShippingPreset(['DE'])}
+                    style={{ fontSize: 13, padding: '6px 12px' }}>
+              Nur Deutschland
+            </button>
+            <button type="button" className="btn-secondary"
+                    onClick={() => applyShippingPreset(['DE', 'AT', 'CH'])}
+                    style={{ fontSize: 13, padding: '6px 12px' }}>
+              DACH
+            </button>
+            <button type="button" className="btn-secondary"
+                    onClick={() => applyShippingPreset(EU_27.map(c => c.code))}
+                    style={{ fontSize: 13, padding: '6px 12px' }}>
+              EU-27
+            </button>
+            <button type="button" className="btn-secondary"
+                    onClick={() => applyShippingPreset(ALL_COUNTRIES.map(c => c.code))}
+                    style={{ fontSize: 13, padding: '6px 12px' }}>
+              Ganz Europa (EU + EFTA + UK)
+            </button>
+            <button type="button" className="btn-secondary"
+                    onClick={clearShipping}
+                    style={{ fontSize: 13, padding: '6px 12px', color: '#b91c1c' }}>
+              Alle abwählen
+            </button>
+          </div>
+
+          {/* Status-Badge */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14,
+            padding: '8px 12px',
+            background: shippingCountries === null
+              ? '#fef3c7'
+              : currentShipping.length === 0 ? '#fee2e2' : '#f0fdf4',
+            border: '1px solid',
+            borderColor: shippingCountries === null
+              ? '#fde68a'
+              : currentShipping.length === 0 ? '#fecaca' : '#bbf7d0',
+            borderRadius: 6, fontSize: 13,
+          }}>
+            {shippingCountries === null ? (
+              <>
+                <AlertCircle size={16} style={{ color: '#854d0e' }} />
+                <span style={{ color: '#854d0e' }}>
+                  Noch nicht konfiguriert — bitte mindestens ein Land auswählen und speichern.
+                </span>
+              </>
+            ) : currentShipping.length === 0 ? (
+              <>
+                <AlertCircle size={16} style={{ color: '#991b1b' }} />
+                <span style={{ color: '#991b1b' }}>
+                  Aktuell wird in <strong>kein Land</strong> versendet — Bestellungen werden im Shop blockiert.
+                </span>
+              </>
+            ) : (
+              <>
+                <CheckCircle size={16} style={{ color: '#166534' }} />
+                <span style={{ color: '#166534' }}>
+                  Versand in <strong>{currentShipping.length}</strong> {currentShipping.length === 1 ? 'Land' : 'Länder'} aktiviert.
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Länder-Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+            gap: 6,
+          }}>
+            {ALL_COUNTRIES.map(c => {
+              const selected = currentShipping.includes(c.code)
+              return (
+                <label key={c.code}
+                       style={{
+                         display: 'flex', alignItems: 'center', gap: 8,
+                         padding: '6px 10px',
+                         border: '1px solid',
+                         borderColor: selected ? 'var(--primary)' : '#e2e8f0',
+                         background: selected ? '#eff6ff' : '#fff',
+                         borderRadius: 6, cursor: 'pointer',
+                         fontSize: 13,
+                       }}>
+                  <input type="checkbox"
+                         checked={selected}
+                         onChange={() => toggleShippingCountry(c.code)}
+                         style={{ margin: 0 }} />
+                  <span style={{ fontWeight: 600, fontFamily: 'monospace', color: '#475569' }}>
+                    {c.code}
+                  </span>
+                  <span style={{ color: '#1e293b' }}>{c.name}</span>
+                </label>
+              )
+            })}
           </div>
         </div>
 
