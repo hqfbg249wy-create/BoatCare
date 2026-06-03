@@ -16,7 +16,7 @@ struct LoginView: View {
     @State private var isLoading = false
     @State private var showResetPassword = false
     @State private var resetEmail = ""
-    @State private var resetSent = false
+    @State private var showOTPSheet = false
 
     var body: some View {
         NavigationStack {
@@ -136,16 +136,15 @@ struct LoginView: View {
                 Button("auth.send".loc) {
                     Task {
                         try? await authService.resetPassword(email: resetEmail)
-                        resetSent = true
+                        showOTPSheet = true
                     }
                 }
             } message: {
-                Text("auth.reset_link_hint".loc)
+                Text("Wir schicken dir einen 6-stelligen Code per E-Mail. Den gibst du gleich hier in der App ein und setzt dein neues Passwort.")
             }
-            .alert("auth.email_sent".loc, isPresented: $resetSent) {
-                Button("general.ok".loc, role: .cancel) {}
-            } message: {
-                Text("auth.email_sent_hint".loc)
+            .sheet(isPresented: $showOTPSheet) {
+                ResetPasswordOTPSheet(email: resetEmail)
+                    .environmentObject(authService)
             }
         }
     }

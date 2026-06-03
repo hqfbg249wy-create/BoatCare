@@ -94,6 +94,39 @@ class AuthService: ObservableObject {
         await loadProfile()
     }
 
+    // MARK: - Referral-Programm
+
+    /// Loest einen Empfehlungs-Code ein. Wirft mit Server-Message, wenn der
+    /// Code unbekannt ist, dem eigenen User gehoert oder schon mal eingeloest
+    /// wurde.
+    func applyReferralCode(_ code: String) async throws {
+        struct Params: Encodable { let p_code: String }
+        _ = try await supabase
+            .rpc("apply_referral_code", params: Params(p_code: code))
+            .execute()
+    }
+
+    /// Stats des eigenen Empfehlungs-Programms aus der View my_referral_stats.
+    struct ReferralStats: Decodable {
+        let user_id: UUID
+        let my_code: String?
+        let total_referrals: Int
+        let pending_count: Int
+        let granted_count: Int
+        let declined_count: Int
+        let granted_this_year: Int
+    }
+
+    func loadReferralStats() async throws -> ReferralStats? {
+        let rows: [ReferralStats] = try await supabase
+            .from("my_referral_stats")
+            .select()
+            .limit(1)
+            .execute()
+            .value
+        return rows.first
+    }
+
     func signOut() async {
         try? await supabase.auth.signOut()
         isAuthenticated = false
@@ -121,8 +154,33 @@ class AuthService: ObservableObject {
         }
     }
 
+    /// Schickt die Recovery-Mail. Wir bleiben bewusst rein nativ: der User
+    /// bekommt einen 6-stelligen OTP-Code per Mail (Supabase rendert
+    /// {{ .Token }} im Reset-Password-Template) und gibt ihn direkt in der
+    /// App ein — kein Browser, kein Web-Portal noetig.
     func resetPassword(email: String) async throws {
         try await supabase.auth.resetPasswordForEmail(email)
+    }
+
+    /// Verifiziert den OTP-Code aus der Reset-Mail und setzt direkt das neue
+    /// Passwort. Wirft, wenn der Code falsch ist oder das Passwort zu
+    /// schwach ist.
+    func verifyResetOTPAndSetPassword(
+        email: String,
+        code: String,
+        newPassword: String
+    ) async throws {
+        // 1) OTP-Code verifizieren — legt eine temporaere Session an, die
+        //    fuer updateUser ausreicht.
+        try await supabase.auth.verifyOTP(
+            email: email,
+            token: code,
+            type: .recovery
+        )
+        // 2) Neues Passwort setzen.
+        _ = try await supabase.auth.update(
+            user: UserAttributes(password: newPassword)
+        )
     }
 
     // MARK: - Sign in with Apple

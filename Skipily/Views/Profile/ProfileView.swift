@@ -75,6 +75,10 @@ struct ProfileView: View {
     @StateObject private var plusManager = PlusSubscriptionManager.shared
     @State private var showPlusSheet = false
 
+    // Empfehlungs-Programm
+    @State private var referralStats: AuthService.ReferralStats?
+    @State private var showShareSheet = false
+
     private var appVersionString: String {
         let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
@@ -108,6 +112,9 @@ struct ProfileView: View {
 
                 // MARK: - Skipily Plus
                 plusSection
+
+                // MARK: - Empfehlungs-Programm
+                referralSection
 
                 // MARK: - Save Button
                 saveButton
@@ -558,6 +565,116 @@ struct ProfileView: View {
     /// leiten wir das Display-Label ab.
     private var activePlusProductId: String? {
         plusManager.purchasedProductIDs.first
+    }
+
+    // MARK: - Empfehlungs-Programm
+
+    private var referralSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "gift.fill")
+                    .font(.title3)
+                    .foregroundStyle(.pink)
+                Text("Freunde einladen")
+                    .font(.headline)
+                Spacer()
+            }
+
+            Text("Lade Bootseigner zu Skipily ein. Sobald sie 7 Tage dabei sind, bekommt ihr beide einen Monat Skipily Plus geschenkt.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            // Eigener Code
+            if let code = referralStats?.my_code, !code.isEmpty {
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Dein Empfehlungs-Code")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text(code)
+                            .font(.title3.monospaced().bold())
+                            .foregroundStyle(.primary)
+                    }
+                    Spacer()
+                    Button {
+                        UIPasteboard.general.string = code
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                    }
+                    .buttonStyle(.bordered)
+                    Button {
+                        showShareSheet = true
+                    } label: {
+                        Label("Teilen", systemImage: "square.and.arrow.up")
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(.systemBackground))
+                )
+            } else {
+                HStack {
+                    ProgressView().controlSize(.small)
+                    Text("Code wird geladen …")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            // Stats
+            if let s = referralStats {
+                HStack(spacing: 12) {
+                    referralStat(value: s.granted_count, label: "Gutgeschrieben", color: .green)
+                    referralStat(value: s.pending_count, label: "Offen", color: .orange)
+                    referralStat(value: s.granted_this_year, label: "Dieses Jahr", color: .blue)
+                }
+                if s.granted_this_year >= 12 {
+                    Text("Jahres-Cap erreicht (12 Empfehlungen). Neue Empfehlungen werden ab Januar wieder gutgeschrieben.")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .padding(.horizontal, 16)
+        .task { await reloadReferralStats() }
+        .sheet(isPresented: $showShareSheet) {
+            if let code = referralStats?.my_code {
+                ReferralShareSheet(code: code)
+            }
+        }
+    }
+
+    private func referralStat(value: Int, label: String, color: Color) -> some View {
+        VStack(spacing: 2) {
+            Text("\(value)")
+                .font(.title3.bold())
+                .foregroundStyle(color)
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.systemBackground))
+        )
+    }
+
+    private func reloadReferralStats() async {
+        do {
+            referralStats = try await authService.loadReferralStats()
+        } catch {
+            AppLog.warning("loadReferralStats failed: \(error)")
+        }
     }
 
     private var plusSection: some View {

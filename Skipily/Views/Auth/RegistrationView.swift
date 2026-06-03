@@ -20,6 +20,8 @@ struct RegistrationView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var passwordConfirm = ""
+    @State private var referralCode = ""
+    @State private var referralInfo: String?
 
     // Step 2: Personal Data
     @State private var phoneNumber = ""
@@ -161,6 +163,30 @@ struct RegistrationView: View {
                     .font(.caption)
                     .foregroundStyle(AppColors.error)
             }
+
+            // Empfehlungs-Code (optional)
+            VStack(alignment: .leading, spacing: 6) {
+                fieldLabel("Empfehlungs-Code (optional)")
+                TextField("BOAT-XXXX", text: $referralCode)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                    .textFieldStyle(.roundedBorder)
+                    .onChange(of: referralCode) { _, newValue in
+                        // Auf Großbuchstaben + Bindestrich normalisieren
+                        let cleaned = newValue.uppercased()
+                            .filter { $0.isLetter || $0.isNumber || $0 == "-" }
+                        if cleaned != newValue { referralCode = cleaned }
+                    }
+                Text("Wurdest du eingeladen? Trage den Code ein — du UND der Werber bekommen je 1 Monat Skipily Plus geschenkt, sobald du 7 Tage dabei bist.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                if let info = referralInfo {
+                    Text(info)
+                        .font(.caption)
+                        .foregroundStyle(info.hasPrefix("✓") ? AppColors.primary : AppColors.error)
+                }
+            }
+            .padding(.top, 6)
 
             if let error = errorMessage {
                 Text(error)
@@ -350,6 +376,19 @@ struct RegistrationView: View {
             // Create account
             do {
                 try await authService.signUp(email: email, password: password, fullName: fullName)
+                // Wenn ein Empfehlungs-Code mitgegeben wurde: direkt einlösen.
+                // Fehlschlag wird nicht als kritisch behandelt — Sign-Up ist
+                // bereits durch, der User kann den Code später (theoretisch)
+                // noch im Profil eintragen, falls wir das nachrüsten.
+                let trimmedCode = referralCode.trimmingCharacters(in: .whitespaces)
+                if !trimmedCode.isEmpty {
+                    do {
+                        try await authService.applyReferralCode(trimmedCode)
+                        referralInfo = "✓ Empfehlung registriert — Bonus nach 7 Tagen."
+                    } catch {
+                        referralInfo = "Empfehlungs-Code konnte nicht eingelöst werden: \(error.localizedDescription)"
+                    }
+                }
                 withAnimation { currentStep = 2 }
             } catch {
                 errorMessage = "\("auth.registration_failed".loc): \(error.localizedDescription)"
