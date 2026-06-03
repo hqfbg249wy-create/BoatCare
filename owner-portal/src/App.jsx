@@ -18,6 +18,7 @@ import ServiceSearch from './pages/ServiceSearch'
 import AIChat from './pages/AIChat'
 import Checkout from './pages/Checkout'
 import Inquiries from './pages/Inquiries'
+import ResetPassword from './pages/ResetPassword'
 
 function ProtectedRoutes() {
   const { user, loading, mfaRequired } = useAuth()
@@ -64,7 +65,13 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <ProtectedRoutes />
+        <Routes>
+          {/* Public route — Recovery-Link aus Reset-Mail trifft hier auf,
+              BEVOR die Login-Sperre greift. ResetPassword nutzt die
+              temporaere Session aus dem URL-Hash. */}
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/*" element={<ProtectedRoutes />} />
+        </Routes>
       </AuthProvider>
     </BrowserRouter>
   )
