@@ -562,6 +562,8 @@
 "equipment.other_providers" = "Other providers";
 "equipment.article_no" = "Item no.:";
 "shop.title" = "Shop";
+"shop.equipment_hint" = "The more accurate the information about your equipment, the more accurate the search in the shop.";
+"shop.disclaimer" = "Skipily acts only as an intermediary between boat owners, service providers and retailers. We accept no liability for the content.";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";
 "product.stock_remaining" = "Only %d left";

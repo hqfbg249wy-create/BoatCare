@@ -100,9 +100,11 @@ class AuthService: ObservableObject {
     /// Code unbekannt ist, dem eigenen User gehoert oder schon mal eingeloest
     /// wurde.
     func applyReferralCode(_ code: String) async throws {
-        struct Params: Encodable { let p_code: String }
+        // Dictionary statt eigenes Struct — vermeidet die Sendable-Falle in
+        // Swift 6, wo synthetisierte Encodable-Conformance bei Custom-Types
+        // als Main-Actor-isoliert geltend gemacht wird.
         _ = try await supabase
-            .rpc("apply_referral_code", params: Params(p_code: code))
+            .rpc("apply_referral_code", params: ["p_code": code])
             .execute()
     }
 

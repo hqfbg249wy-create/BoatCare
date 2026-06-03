@@ -566,6 +566,8 @@ Ausrüstung unter Boote ergänzen.";
 "equipment.other_providers" = "Weitere Anbieter";
 "equipment.article_no" = "Art.-Nr.:";
 "shop.title" = "Shop";
+"shop.equipment_hint" = "Je genauer die Informationen zu Deiner Ausrüstung sind, desto genauer ist die Suche im Shop.";
+"shop.disclaimer" = "Skipily ist nur ein Vermittler zwischen Bootseignern, Service-Providern und Händlern. Wir übernehmen keine Haftung für die Inhalte.";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";
 "product.stock_remaining" = "Nur noch %d Stück";

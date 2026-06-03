@@ -558,6 +558,8 @@
 "equipment.other_providers" = "Overige aanbieders";
 "equipment.article_no" = "Art.nr.:";
 "shop.title" = "Winkel";
+"shop.equipment_hint" = "Hoe nauwkeuriger de informatie over je uitrusting, hoe nauwkeuriger het zoeken in de winkel.";
+"shop.disclaimer" = "Skipily fungeert uitsluitend als bemiddelaar tussen booteigenaren, serviceproviders en handelaren. Wij aanvaarden geen aansprakelijkheid voor de inhoud.";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";
 "product.stock_remaining" = "Nog %d stuks";

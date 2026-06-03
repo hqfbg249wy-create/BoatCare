@@ -558,6 +558,8 @@
 "equipment.other_providers" = "Autres prestataires";
 "equipment.article_no" = "Réf.:";
 "shop.title" = "Boutique";
+"shop.equipment_hint" = "Plus les informations sur votre équipement sont précises, plus la recherche dans la boutique est précise.";
+"shop.disclaimer" = "Skipily n'agit qu'en tant qu'intermédiaire entre les propriétaires de bateaux, les prestataires de services et les revendeurs. Nous déclinons toute responsabilité quant aux contenus.";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";
 "product.stock_remaining" = "Plus que %d";
