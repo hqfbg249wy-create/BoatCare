@@ -24,6 +24,31 @@ struct EquipmentCategoryPickerSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
+                // Hinweis zur Eingabe-Qualitaet — Eigner sieht das hier zum
+                // ersten Mal, bevor er ein neues Equipment anlegt.
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "lightbulb.fill")
+                        .foregroundStyle(.orange)
+                        .padding(.top, 2)
+                    Text("data_quality.hint".loc)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.orange.opacity(0.08))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.orange.opacity(0.25), lineWidth: 1)
+                        )
+                )
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+
                 LazyVGrid(
                     columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
                     spacing: 12

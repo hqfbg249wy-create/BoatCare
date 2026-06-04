@@ -627,7 +627,7 @@ struct ProfileView: View {
             // Stats
             if let s = referralStats {
                 HStack(spacing: 12) {
-                    referralStat(value: s.granted_count, label: "Gutgeschrieben", color: .green)
+                    referralStat(value: s.granted_count, label: "Gutschrift", color: .green)
                     referralStat(value: s.pending_count, label: "Offen", color: .orange)
                     referralStat(value: s.granted_this_year, label: "Dieses Jahr", color: .blue)
                 }

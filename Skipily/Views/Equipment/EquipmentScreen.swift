@@ -366,27 +366,6 @@ struct EquipmentScreen: View {
             Image(systemName: "shippingbox.fill")
                 .font(.system(size: 60)).foregroundStyle(.purple.opacity(0.3))
             Text("equipment.no_items".loc).font(.headline).foregroundStyle(.secondary)
-
-            // Hinweis erscheint nur bei der allerersten Anlage (leeres Inventar).
-            HStack(alignment: .top, spacing: 8) {
-                Image(systemName: "lightbulb.fill")
-                    .foregroundStyle(.orange)
-                Text("data_quality.hint".loc)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.orange.opacity(0.08))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.orange.opacity(0.25), lineWidth: 1)
-                    )
-            )
-            .padding(.horizontal, 24)
-
             Button { showingCategoryPicker = true } label: {
                 Label("equipment.add".loc, systemImage: "plus.circle.fill")
             }.buttonStyle(.borderedProminent)
