@@ -200,6 +200,27 @@ struct MaintenanceScreen: View {
                     .font(.caption).foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center).padding(.horizontal, 32)
             }
+
+            // Hinweis erscheint nur bei der allerersten Anlage (keine Aufgaben).
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundStyle(.orange)
+                Text("data_quality.hint".loc)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.orange.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.orange.opacity(0.25), lineWidth: 1)
+                    )
+            )
+            .padding(.horizontal, 24)
+
             Button { showingAdd = true } label: {
                 Label("maintenance.add_task".loc, systemImage: "plus.circle.fill")
             }.buttonStyle(.borderedProminent)

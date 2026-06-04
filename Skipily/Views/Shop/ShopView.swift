@@ -47,12 +47,6 @@ struct ShopView: View {
 
             ScrollView {
                 LazyVStack(spacing: 16) {
-                    // Equipment-Genauigkeits-Hinweis — nur auf der Haupt-Shop-
-                    // Seite (keine Suche, keine Kategorie), sonst stoert er.
-                    if searchText.isEmpty && selectedCategory == nil {
-                        equipmentAccuracyHint
-                    }
-
                     // Search history chips (when search is empty and focused)
                     if searchText.isEmpty && !searchHistory.isEmpty {
                         searchHistoryChips
@@ -192,44 +186,6 @@ struct ShopView: View {
             return cat.displayName
         }
         return "shop.all_products".loc
-    }
-
-    // MARK: - Equipment-Genauigkeits-Hinweis
-
-    /// Dezenter Banner, der den User darauf hinweist, dass Empfehlungen umso
-    /// passender werden, je vollstaendiger das Equipment gepflegt ist.
-    /// Darunter steht der rechtliche Vermittler-Disclaimer.
-    private var equipmentAccuracyHint: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: "lightbulb.fill")
-                    .foregroundStyle(.orange)
-                    .padding(.top, 2)
-                Text("shop.equipment_hint".loc)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-            }
-
-            Divider()
-                .opacity(0.4)
-
-            Text("shop.disclaimer".loc)
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color.orange.opacity(0.08))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.orange.opacity(0.25), lineWidth: 1)
-                )
-        )
     }
 
     // MARK: - Promotions Banner

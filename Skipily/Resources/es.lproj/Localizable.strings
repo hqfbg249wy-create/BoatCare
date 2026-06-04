@@ -558,8 +558,7 @@
 "equipment.other_providers" = "Otros proveedores";
 "equipment.article_no" = "Nº de art.:";
 "shop.title" = "Tienda";
-"shop.equipment_hint" = "Cuanto más precisa sea la información sobre tu equipo, más precisa será la búsqueda en la tienda.";
-"shop.disclaimer" = "Skipily actúa únicamente como intermediario entre propietarios de embarcaciones, proveedores de servicios y comerciantes. No asumimos responsabilidad por los contenidos.";
+"data_quality.hint" = "Cuanto más precisas sean tus entradas, más fácil será para la IA ayudarte y para la tienda encontrar la pieza adecuada.";
 "shop.filter_min" = "Mín";
 "shop.filter_max" = "Máx";
 "product.stock_remaining" = "Solo quedan %d";
@@ -825,7 +824,7 @@
 "inquiry.pick_provider_title" = "Elegir proveedor";
 
 // Checkout — AGB-Pflicht-Annahme (Marketplace-Klarstellung)
-"checkout.agb_consent" = "Acepto los términos. Entiendo: el contrato de compra se celebra entre yo y el proveedor de servicios correspondiente. Skipily actúa como intermediario para el pago. He leído la política de cancelación.";
+"checkout.agb_consent" = "Acepto los términos. Entiendo: Skipily actúa únicamente como intermediario entre propietarios de embarcaciones, proveedores de servicios y comerciantes y no asume responsabilidad por los contenidos. El contrato de compra se celebra entre yo y el proveedor de servicios correspondiente; Skipily actúa como intermediario para el pago. He leído la política de cancelación.";
 "checkout.agb_link" = "Términos";
 "checkout.revocation_link" = "Política de cancelación";
 

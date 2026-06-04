@@ -562,8 +562,7 @@
 "equipment.other_providers" = "Other providers";
 "equipment.article_no" = "Item no.:";
 "shop.title" = "Shop";
-"shop.equipment_hint" = "The more accurate the information about your equipment, the more accurate the search in the shop.";
-"shop.disclaimer" = "Skipily acts only as an intermediary between boat owners, service providers and retailers. We accept no liability for the content.";
+"data_quality.hint" = "The more accurate your entries, the easier it is for the AI to help you and the shop to find the right part.";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";
 "product.stock_remaining" = "Only %d left";
@@ -825,7 +824,7 @@
 "parts.reason_fallback" = "Match";
 
 // Checkout — AGB-Pflicht-Annahme (Marketplace-Klarstellung)
-"checkout.agb_consent" = "I accept the Terms of Service. I understand: the purchase contract is concluded between me and the respective service provider. Skipily acts as intermediary for payment processing. I have read the cancellation policy.";
+"checkout.agb_consent" = "I accept the Terms of Service. I understand: Skipily acts only as an intermediary between boat owners, service providers and retailers and accepts no liability for the content. The purchase contract is concluded between me and the respective service provider; Skipily acts as intermediary for payment processing. I have read the cancellation policy.";
 "checkout.agb_link" = "Terms";
 "checkout.revocation_link" = "Cancellation policy";
 

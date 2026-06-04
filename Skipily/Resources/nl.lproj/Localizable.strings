@@ -558,8 +558,7 @@
 "equipment.other_providers" = "Overige aanbieders";
 "equipment.article_no" = "Art.nr.:";
 "shop.title" = "Winkel";
-"shop.equipment_hint" = "Hoe nauwkeuriger de informatie over je uitrusting, hoe nauwkeuriger het zoeken in de winkel.";
-"shop.disclaimer" = "Skipily fungeert uitsluitend als bemiddelaar tussen booteigenaren, serviceproviders en handelaren. Wij aanvaarden geen aansprakelijkheid voor de inhoud.";
+"data_quality.hint" = "Hoe nauwkeuriger je invoer, hoe gemakkelijker de AI je kan helpen en de winkel het juiste onderdeel kan vinden.";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";
 "product.stock_remaining" = "Nog %d stuks";
@@ -825,7 +824,7 @@
 "inquiry.pick_provider_title" = "Provider kiezen";
 
 // Checkout — AGB-Pflicht-Annahme (Marketplace-Klarstellung)
-"checkout.agb_consent" = "Ik accepteer de voorwaarden. Ik begrijp: het koopcontract wordt gesloten tussen mij en de betreffende dienstverlener. Skipily treedt op als tussenpersoon voor de betaling. Ik heb de herroepingsinstructie gelezen.";
+"checkout.agb_consent" = "Ik accepteer de voorwaarden. Ik begrijp: Skipily fungeert uitsluitend als bemiddelaar tussen booteigenaren, serviceproviders en handelaren en aanvaardt geen aansprakelijkheid voor de inhoud. Het koopcontract wordt gesloten tussen mij en de betreffende dienstverlener; Skipily treedt op als tussenpersoon voor de betaling. Ik heb de herroepingsinstructie gelezen.";
 "checkout.agb_link" = "Voorwaarden";
 "checkout.revocation_link" = "Herroepingsinstructie";
 

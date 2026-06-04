@@ -208,6 +208,12 @@ struct EquipmentScreen: View {
     let onNavigate: ((EquipmentNavTarget) -> Void)?
     @EnvironmentObject var authService: AuthService
 
+    /// Top-Picker: Equipment-Liste vs. Schaltpläne. Beide Bereiche teilen sich
+    /// das gleiche Boot — der Eigner sucht in der Praxis im Equipment-Kontext
+    /// auch nach den dazugehörigen Plänen.
+    enum TopSection: String, CaseIterable { case equipment, schematics }
+    @State private var topSection: TopSection = .equipment
+
     @State private var items: [EquipmentItem] = []
     @State private var isLoading = false
     @State private var showingCategoryPicker = false
@@ -242,6 +248,9 @@ struct EquipmentScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Schaltpläne-Reiter ist temporär ausgeblendet — kommt in einem
+            // späteren Release zurück, sobald die KI-Generierung stabil läuft.
+            // Code (SchematicsScreen + Services) bleibt erhalten.
             // Category filter
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -357,6 +366,27 @@ struct EquipmentScreen: View {
             Image(systemName: "shippingbox.fill")
                 .font(.system(size: 60)).foregroundStyle(.purple.opacity(0.3))
             Text("equipment.no_items".loc).font(.headline).foregroundStyle(.secondary)
+
+            // Hinweis erscheint nur bei der allerersten Anlage (leeres Inventar).
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundStyle(.orange)
+                Text("data_quality.hint".loc)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.orange.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.orange.opacity(0.25), lineWidth: 1)
+                    )
+            )
+            .padding(.horizontal, 24)
+
             Button { showingCategoryPicker = true } label: {
                 Label("equipment.add".loc, systemImage: "plus.circle.fill")
             }.buttonStyle(.borderedProminent)

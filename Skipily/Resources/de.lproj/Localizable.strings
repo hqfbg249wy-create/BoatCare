@@ -566,8 +566,7 @@ Ausrüstung unter Boote ergänzen.";
 "equipment.other_providers" = "Weitere Anbieter";
 "equipment.article_no" = "Art.-Nr.:";
 "shop.title" = "Shop";
-"shop.equipment_hint" = "Je genauer die Informationen zu Deiner Ausrüstung sind, desto genauer ist die Suche im Shop.";
-"shop.disclaimer" = "Skipily ist nur ein Vermittler zwischen Bootseignern, Service-Providern und Händlern. Wir übernehmen keine Haftung für die Inhalte.";
+"data_quality.hint" = "Je genauer Deine Eingaben sind, desto leichter kann Dir die KI helfen und der Shop das passende Teil finden.";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";
 "product.stock_remaining" = "Nur noch %d Stück";
@@ -828,7 +827,7 @@ Ausrüstung unter Boote ergänzen.";
 "parts.reason_fallback" = "Treffer";
 
 // Checkout — AGB-Pflicht-Annahme (Marketplace-Klarstellung)
-"checkout.agb_consent" = "Ich akzeptiere die AGB. Mir ist bekannt: der Kaufvertrag entsteht zwischen mir und dem jeweiligen Service-Provider. Skipily wickelt die Zahlung als Vermittler ab. Die Widerrufsbelehrung habe ich gelesen.";
+"checkout.agb_consent" = "Ich akzeptiere die AGB. Mir ist bekannt: Skipily ist nur ein Vermittler zwischen Bootseignern, Service-Providern und Händlern und übernimmt keine Haftung für die Inhalte. Der Kaufvertrag entsteht zwischen mir und dem jeweiligen Service-Provider; Skipily wickelt die Zahlung als Vermittler ab. Die Widerrufsbelehrung habe ich gelesen.";
 "checkout.agb_link" = "AGB";
 "checkout.revocation_link" = "Widerrufsbelehrung";
 
