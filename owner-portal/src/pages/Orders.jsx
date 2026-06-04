@@ -1,7 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { ShoppingBag, Package, Truck, CheckCircle, XCircle, ChevronDown, ChevronUp, ExternalLink, Trash2, RotateCcw, CheckSquare, Square, AlertTriangle } from 'lucide-react'
+import { ShoppingBag, Package, Truck, CheckCircle, XCircle, ChevronDown, ChevronUp, ExternalLink, Trash2, RotateCcw, CheckSquare, Square, AlertTriangle, CreditCard, Lock } from 'lucide-react'
+
+const SUPABASE_URL = 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
+// anon key reused identisch wie in Checkout.jsx
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjandseXFrZmtzenVtZHJmdnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMDQ4NTksImV4cCI6MjA4NDY4MDg1OX0.VOlhRdvShU325xG18SSSTWdFfGEdyeX-7CAovE2vesQ'
 
 const statusConfig = {
   pending: { label: 'Ausstehend', color: '#f59e0b', icon: ShoppingBag },
@@ -20,6 +24,14 @@ export default function Orders() {
   const [filterStatus, setFilterStatus] = useState('all')
   const [selected, setSelected] = useState(new Set())
   const [deleting, setDeleting] = useState(false)
+
+  // Retry-Payment State
+  const [payOrder, setPayOrder] = useState(null)
+  const [payLoading, setPayLoading] = useState(false)
+  const [payError, setPayError] = useState(null)
+  const [paySuccess, setPaySuccess] = useState(false)
+  const stripeRef = useRef(null)
+  const elementsRef = useRef(null)
 
   useEffect(() => { if (user) loadOrders() }, [user])
 
@@ -85,6 +97,105 @@ export default function Orders() {
     if (success < deletable.length) {
       alert(`${success} von ${deletable.length} Bestellungen gelöscht. Einige konnten nicht gelöscht werden.`)
     }
+  }
+
+  // ─── Retry-Payment fuer pending Orders ────────────────────────────────
+
+  /** Order braucht noch eine Zahlung? */
+  const needsPayment = (order) =>
+    order.status === 'pending' &&
+    (order.payment_status || 'pending').toLowerCase() !== 'paid'
+
+  /** Oeffnet das Retry-Modal: holt clientSecret und mountet Stripe Elements. */
+  async function startRetryPayment(order) {
+    setPayOrder(order)
+    setPayError(null)
+    setPaySuccess(false)
+    setPayLoading(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/create-payment-intent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': SUPABASE_ANON,
+        },
+        body: JSON.stringify({
+          amount: Math.round(Number(order.total) * 100),
+          currency: 'eur',
+          order_ids: [order.id],
+        }),
+      })
+      if (!resp.ok) {
+        const j = await resp.json().catch(() => ({}))
+        throw new Error(j.error || `Zahlung konnte nicht vorbereitet werden (${resp.status})`)
+      }
+      const data = await resp.json()
+      // Stripe.js erwarten — wird in index.html als Script eingebunden
+      if (!window.Stripe) {
+        throw new Error('Stripe.js konnte nicht geladen werden. Bitte Seite neu laden.')
+      }
+      const stripe = window.Stripe(data.publishable_key)
+      const elements = stripe.elements({
+        clientSecret: data.client_secret,
+        appearance: { theme: 'stripe' },
+      })
+      stripeRef.current = stripe
+      elementsRef.current = elements
+      // Mount in das Modal-DOM-Element. setTimeout, damit React das Element
+      // erst rendert.
+      setTimeout(() => {
+        const container = document.getElementById('retry-payment-element')
+        if (container) {
+          const paymentElement = elements.create('payment')
+          paymentElement.mount(container)
+        }
+      }, 50)
+    } catch (err) {
+      setPayError(err.message)
+    }
+    setPayLoading(false)
+  }
+
+  async function confirmRetryPayment() {
+    if (!stripeRef.current || !elementsRef.current || !payOrder) return
+    setPayLoading(true)
+    setPayError(null)
+    try {
+      const { error: stripeError } = await stripeRef.current.confirmPayment({
+        elements: elementsRef.current,
+        confirmParams: {
+          return_url: `${window.location.origin}/orders?paid=${payOrder.id}`,
+        },
+        redirect: 'if_required',
+      })
+      if (stripeError) {
+        setPayError(stripeError.message || 'Zahlung fehlgeschlagen.')
+        setPayLoading(false)
+        return
+      }
+      // Erfolg ohne Redirect — Order auf paid setzen und neu laden
+      await supabase
+        .from('orders')
+        .update({ payment_status: 'paid' })
+        .eq('id', payOrder.id)
+      setPaySuccess(true)
+      setPayLoading(false)
+      await loadOrders()
+      setTimeout(() => { closeRetryModal() }, 1500)
+    } catch (err) {
+      setPayError(err.message)
+      setPayLoading(false)
+    }
+  }
+
+  function closeRetryModal() {
+    setPayOrder(null)
+    setPayError(null)
+    setPaySuccess(false)
+    stripeRef.current = null
+    elementsRef.current = null
   }
 
   // Toggle selection
@@ -204,10 +315,27 @@ export default function Orders() {
                         Zahlung fehlgeschlagen. Sie können diese Bestellung löschen oder erneut versuchen.
                       </div>
                     )}
-                    {order.status === 'pending' && order.payment_status === 'pending' && (
-                      <div className="alert alert-warning">
-                        <AlertTriangle size={16} />
-                        Zahlung nicht abgeschlossen. Sie können diese Bestellung stornieren oder löschen.
+                    {needsPayment(order) && (
+                      <div style={{
+                        padding: 14, marginBottom: 12,
+                        background: '#fff7ed', border: '1px solid #fed7aa',
+                        borderRadius: 10,
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                          <AlertTriangle size={18} color="#ea580c" />
+                          <strong style={{ color: '#9a3412' }}>Zahlung ausstehend</strong>
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: '#7c2d12', marginBottom: 10 }}>
+                          Deine Bestellung ist angelegt, aber noch nicht bezahlt. Schliess die
+                          Zahlung jetzt ab — sonst wird sie vom Verkaeufer nicht bearbeitet.
+                        </div>
+                        <button
+                          className="btn-primary"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                          onClick={() => startRetryPayment(order)}
+                        >
+                          <Lock size={14} /> Jetzt bezahlen – {Number(order.total).toFixed(2).replace('.', ',')} €
+                        </button>
                       </div>
                     )}
 
@@ -274,6 +402,61 @@ export default function Orders() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Retry-Payment-Modal — fuer pending Orders ohne abgeschlossene Zahlung */}
+      {payOrder && (
+        <div className="modal-overlay" onClick={() => !payLoading && closeRetryModal()}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <CreditCard size={20} /> Zahlung abschliessen
+              </h2>
+              <button className="btn-icon" onClick={closeRetryModal} disabled={payLoading}>
+                <XCircle size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginTop: 0, marginBottom: 16, color: '#64748b' }}>
+                Bestellung {payOrder.order_number || ''} —
+                <strong style={{ color: '#0f172a' }}> {Number(payOrder.total).toFixed(2).replace('.', ',')} €</strong>
+              </p>
+
+              {paySuccess ? (
+                <div style={{
+                  padding: 16, background: '#f0fdf4', border: '1px solid #bbf7d0',
+                  borderRadius: 8, color: '#166534', display: 'flex',
+                  alignItems: 'center', gap: 8,
+                }}>
+                  <CheckCircle size={20} /> Zahlung erfolgreich. Vielen Dank!
+                </div>
+              ) : (
+                <>
+                  <div id="retry-payment-element" style={{ marginBottom: 16 }} />
+
+                  {payError && (
+                    <div className="alert alert-error" style={{ marginBottom: 12 }}>
+                      <AlertTriangle size={16} /> {payError}
+                    </div>
+                  )}
+
+                  <button
+                    className="btn-primary btn-full"
+                    onClick={confirmRetryPayment}
+                    disabled={payLoading}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                  >
+                    {payLoading ? (
+                      <>Wird verarbeitet …</>
+                    ) : (
+                      <><Lock size={14} /> Jetzt bezahlen – {Number(payOrder.total).toFixed(2).replace('.', ',')} €</>
+                    )}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
