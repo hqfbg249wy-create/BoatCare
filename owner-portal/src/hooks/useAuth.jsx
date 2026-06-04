@@ -111,6 +111,27 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  // ─── Empfehlungs-Programm ──────────────────────────────────────────────
+
+  /** Loest einen Empfehlungs-Code ein (typisch direkt nach signUp). */
+  async function applyReferralCode(code) {
+    const { error } = await supabase.rpc('apply_referral_code', {
+      p_code: code,
+    })
+    if (error) throw error
+  }
+
+  /** Liest die eigenen Empfehlungs-Stats aus der View my_referral_stats. */
+  async function loadReferralStats() {
+    const { data, error } = await supabase
+      .from('my_referral_stats')
+      .select('*')
+      .limit(1)
+      .maybeSingle()
+    if (error) throw error
+    return data
+  }
+
   async function signOut() {
     await supabase.auth.signOut()
     setUser(null)
@@ -134,7 +155,8 @@ export function AuthProvider({ children }) {
       user, profile, loading,
       mfaRequired, mfaFactors,
       signIn, signUp, signOut, loadProfile, updateProfile,
-      verifyMFA, enrollMFA, confirmMFAEnrollment, unenrollMFA, refreshMFAStatus
+      verifyMFA, enrollMFA, confirmMFAEnrollment, unenrollMFA, refreshMFAStatus,
+      applyReferralCode, loadReferralStats
     }}>
       {children}
     </AuthContext.Provider>

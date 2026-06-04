@@ -227,6 +227,20 @@ export default function Equipment() {
                   <button className="btn-icon" onClick={() => setEditing(null)}><X size={20} /></button>
                 </div>
                 <form onSubmit={saveItem} className="modal-body">
+                  {editing === 'new' && (
+                    <div style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 10,
+                      padding: '10px 12px', marginBottom: 14,
+                      background: 'rgba(251, 146, 60, 0.08)',
+                      border: '1px solid rgba(251, 146, 60, 0.25)',
+                      borderRadius: 10,
+                    }}>
+                      <span style={{ fontSize: 16, lineHeight: 1.2 }}>💡</span>
+                      <span style={{ fontSize: 13, color: 'var(--text-secondary, #64748b)', lineHeight: 1.4 }}>
+                        Je genauer Deine Eingaben sind, desto leichter kann Dir die KI helfen und der Shop das passende Teil finden.
+                      </span>
+                    </div>
+                  )}
                   <div className="form-row">
                     <div className="form-group"><label>Bezeichnung *</label>
                       <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="z.B. Yanmar 3YM30" /></div>

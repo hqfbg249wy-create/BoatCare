@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { Anchor, Mail, Lock, User } from 'lucide-react'
+import { Anchor, Mail, Lock, User, Gift } from 'lucide-react'
 
 export default function Login() {
-  const { signIn, signUp } = useAuth()
+  const { signIn, signUp, applyReferralCode } = useAuth()
   const [isRegister, setIsRegister] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
+  const [referralCode, setReferralCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState('')
@@ -20,7 +21,20 @@ export default function Login() {
     try {
       if (isRegister) {
         await signUp(email, password, fullName)
-        setSuccess('Registrierung erfolgreich! Bitte pruefen Sie Ihre E-Mail.')
+        // Empfehlungs-Code einloesen (falls eingegeben). Fehler werden NICHT
+        // hochgereicht — Sign-Up war erfolgreich, Code-Fehler darf das nicht
+        // ueberschreiben.
+        const trimmed = referralCode.trim()
+        if (trimmed) {
+          try {
+            await applyReferralCode(trimmed)
+            setSuccess('Registrierung erfolgreich! Empfehlungs-Code eingeloest — Bonus nach 7 Tagen.')
+          } catch (codeErr) {
+            setSuccess(`Registrierung erfolgreich! Empfehlungs-Code wurde abgelehnt: ${codeErr.message}`)
+          }
+        } else {
+          setSuccess('Registrierung erfolgreich! Bitte pruefen Sie Ihre E-Mail.')
+        }
       } else {
         await signIn(email, password)
       }
@@ -58,6 +72,23 @@ export default function Login() {
             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
               placeholder="Passwort" required minLength={6} />
           </div>
+          {isRegister && (
+            <div className="form-group">
+              <label><Gift size={14} /> Empfehlungs-Code (optional)</label>
+              <input
+                type="text"
+                value={referralCode}
+                onChange={e => setReferralCode(e.target.value.toUpperCase()
+                  .replace(/[^A-Z0-9-]/g, ''))}
+                placeholder="BOAT-XXXX"
+                autoComplete="off"
+              />
+              <small style={{ color: '#94a3b8', fontSize: '0.8rem' }}>
+                Wurdest Du eingeladen? Trag den Code ein — Du und der Werber bekommen
+                je 1 Monat Skipily Plus, sobald Du 7 Tage dabei bist.
+              </small>
+            </div>
+          )}
 
           {error && <div className="alert alert-error">{error}</div>}
           {success && <div className="alert alert-success">{success}</div>}
