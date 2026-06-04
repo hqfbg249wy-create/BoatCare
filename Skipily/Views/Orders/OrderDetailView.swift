@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import StripePaymentSheet
+
 struct OrderDetailView: View {
     let orderId: UUID
 
@@ -16,6 +18,11 @@ struct OrderDetailView: View {
     @State private var errorMessage: String?
     @State private var showChat = false
     @State private var chatConversation: Conversation?
+
+    // Retry-Payment-State fuer pending Orders ohne Zahlung
+    @State private var isPreparingPayment = false
+    @State private var paymentSheet: PaymentSheet?
+    @State private var paymentMessage: String?
 
     var body: some View {
         Group {
@@ -38,6 +45,11 @@ struct OrderDetailView: View {
     private func orderContent(_ order: Order) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                // Zahlung offen? Banner zum Nachholen.
+                if needsPayment(order) {
+                    pendingPaymentBanner(order)
+                }
+
                 // Status timeline
                 statusTimeline(order)
 
@@ -324,5 +336,124 @@ struct OrderDetailView: View {
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+
+    // MARK: - Payment-Retry
+
+    /// True wenn die Bestellung noch eine Zahlung braucht (Status pending +
+    /// Payment-Status nicht "paid"). Storniert/erfolgreich-Bezahlt → false.
+    private func needsPayment(_ order: Order) -> Bool {
+        let isPending = order.status == "pending"
+        let isUnpaid  = (order.paymentStatus ?? "pending").lowercased() != "paid"
+        return isPending && isUnpaid
+    }
+
+    private func pendingPaymentBanner(_ order: Order) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .foregroundStyle(AppColors.warning)
+                Text("Zahlung ausstehend")
+                    .font(.headline)
+            }
+            Text("Deine Bestellung ist angelegt, aber noch nicht bezahlt. Schließe die Zahlung jetzt ab — sonst wird sie vom Verkäufer nicht bearbeitet.")
+                .font(.subheadline)
+                .foregroundStyle(AppColors.gray700)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let msg = paymentMessage {
+                Text(msg)
+                    .font(.caption)
+                    .foregroundStyle(AppColors.error)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Button {
+                Task { await startPaymentRetry(for: order) }
+            } label: {
+                HStack(spacing: 8) {
+                    if isPreparingPayment {
+                        ProgressView().tint(.white)
+                        Text("Zahlung wird vorbereitet …")
+                    } else {
+                        Image(systemName: "lock.fill")
+                            .font(.caption)
+                        Text("Jetzt bezahlen – \(order.displayTotal)")
+                            .fontWeight(.semibold)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(AppColors.primary)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .disabled(isPreparingPayment)
+        }
+        .padding(16)
+        .background(AppColors.warning.opacity(0.10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(AppColors.warning.opacity(0.40), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    /// Baut erneut ein PaymentSheet fuer DIESE Bestellung und praesentiert es.
+    /// Re-Use der existierenden create-payment-intent-Edge-Function — die
+    /// erzeugt entweder ein neues PaymentIntent oder reuses ein vorhandenes,
+    /// je nach Backend-Logik.
+    @MainActor
+    private func startPaymentRetry(for order: Order) async {
+        paymentMessage = nil
+        isPreparingPayment = true
+        defer { isPreparingPayment = false }
+        do {
+            let sheet = try await PaymentService.shared.createPaymentSheet(
+                for: [order],
+                totalAmount: order.total
+            )
+            paymentSheet = sheet
+            presentRetryPaymentSheet()
+        } catch {
+            AppLog.error("Payment retry failed: \(error)")
+            paymentMessage = "Zahlung konnte nicht vorbereitet werden: \(error.localizedDescription)"
+        }
+    }
+
+    private func presentRetryPaymentSheet() {
+        guard let sheet = paymentSheet else { return }
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = windowScene.windows.first?.rootViewController else {
+            paymentMessage = "Zahlung konnte nicht angezeigt werden."
+            return
+        }
+        var topVC = rootVC
+        while let presented = topVC.presentedViewController { topVC = presented }
+
+        sheet.present(from: topVC) { result in
+            Task { @MainActor in
+                await handleRetryResult(result)
+            }
+        }
+    }
+
+    @MainActor
+    private func handleRetryResult(_ result: PaymentSheetResult) async {
+        switch result {
+        case .completed:
+            do {
+                try await PaymentService.shared.confirmPayment(orderIds: [orderId])
+                paymentMessage = nil
+                await loadOrder()    // Status neu aus DB ziehen
+            } catch {
+                paymentMessage = "Zahlung lief durch, aber Status-Update fehlgeschlagen. Bitte App neu starten."
+            }
+        case .canceled:
+            paymentMessage = "Zahlung abgebrochen. Du kannst es jederzeit erneut versuchen."
+        case .failed(let error):
+            try? await PaymentService.shared.failPayment(orderIds: [orderId])
+            paymentMessage = "Zahlung fehlgeschlagen: \(error.localizedDescription)"
+        }
     }
 }

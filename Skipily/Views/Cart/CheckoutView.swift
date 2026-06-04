@@ -593,7 +593,11 @@ struct CheckoutView: View {
             }
 
         case .canceled:
-            errorMessage = nil // User cancelled, can retry
+            // Order ist bereits in der DB angelegt (Status pending). Wir
+            // werfen sie NICHT weg — der User kann die Zahlung jederzeit
+            // ueber Bestellungen → Detail → "Jetzt bezahlen" nachholen.
+            // Klare Botschaft, damit er den Weg findet.
+            errorMessage = "Zahlung abgebrochen. Deine Bestellung wurde angelegt (Status „Ausstehend"). Du kannst die Zahlung jederzeit unter „Bestellungen" abschließen — bis dahin wird sie vom Verkäufer nicht bearbeitet."
 
         case .failed(let error):
             try? await PaymentService.shared.failPayment(orderIds: orderIds)
