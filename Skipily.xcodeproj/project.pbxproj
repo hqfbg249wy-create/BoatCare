@@ -9,9 +9,31 @@
 /* Begin PBXBuildFile section */
 		C34BE84B2F634155002AFD4C /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = C3FE65802EF2F7A3001A07D2 /* Supabase */; };
 		C34BE84C2F634155002AFD4C /* StripePaymentSheet in Frameworks */ = {isa = PBXBuildFile; productRef = C3FE65822EF2F7A3001A07D2 /* StripePaymentSheet */; };
+		C39FE42E2FD32C53003CFC41 /* Skipily Clip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = C39FE40C2FD32C52003CFC41 /* Skipily Clip.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		C39FE41B2FD32C53003CFC41 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C3FE653E2EF2F7A1001A07D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C39FE40B2FD32C52003CFC41;
+			remoteInfo = "Skipily Clip";
+		};
+		C39FE4252FD32C53003CFC41 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C3FE653E2EF2F7A1001A07D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C39FE40B2FD32C52003CFC41;
+			remoteInfo = "Skipily Clip";
+		};
+		C39FE42C2FD32C53003CFC41 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C3FE653E2EF2F7A1001A07D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C39FE40B2FD32C52003CFC41;
+			remoteInfo = "Skipily Clip";
+		};
 		C3FE65582EF2F7A2001A07D2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = C3FE653E2EF2F7A1001A07D2 /* Project object */;
@@ -28,13 +50,37 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		C39FE42F2FD32C53003CFC41 /* Embed App Clips */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/AppClips";
+			dstSubfolderSpec = 16;
+			files = (
+				C39FE42E2FD32C53003CFC41 /* Skipily Clip.app in Embed App Clips */,
+			);
+			name = "Embed App Clips";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		C39FE40C2FD32C52003CFC41 /* Skipily Clip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Skipily Clip.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C39FE41A2FD32C53003CFC41 /* Skipily ClipTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Skipily ClipTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C39FE4242FD32C53003CFC41 /* Skipily ClipUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Skipily ClipUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3FE65462EF2F7A1001A07D2 /* Skipily.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Skipily.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3FE65572EF2F7A2001A07D2 /* SkipilyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SkipilyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3FE65612EF2F7A2001A07D2 /* SkipilyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SkipilyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C39FE4372FD32C53003CFC41 /* Exceptions for "Skipily Clip" folder in "Skipily Clip" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = C39FE40B2FD32C52003CFC41 /* Skipily Clip */;
+		};
 		C3FE65692EF2F7A2001A07D2 /* Exceptions for "Skipily" folder in "Skipily" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -45,6 +91,24 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		C39FE40D2FD32C52003CFC41 /* Skipily Clip */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C39FE4372FD32C53003CFC41 /* Exceptions for "Skipily Clip" folder in "Skipily Clip" target */,
+			);
+			path = "Skipily Clip";
+			sourceTree = "<group>";
+		};
+		C39FE41D2FD32C53003CFC41 /* Skipily ClipTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Skipily ClipTests";
+			sourceTree = "<group>";
+		};
+		C39FE4272FD32C53003CFC41 /* Skipily ClipUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Skipily ClipUITests";
+			sourceTree = "<group>";
+		};
 		C3FE65482EF2F7A1001A07D2 /* Skipily */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -66,6 +130,27 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		C39FE4092FD32C52003CFC41 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C39FE4172FD32C53003CFC41 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C39FE4212FD32C53003CFC41 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C3FE65432EF2F7A1001A07D2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -98,6 +183,9 @@
 				C3FE65482EF2F7A1001A07D2 /* Skipily */,
 				C3FE655A2EF2F7A2001A07D2 /* SkipilyTests */,
 				C3FE65642EF2F7A2001A07D2 /* SkipilyUITests */,
+				C39FE40D2FD32C52003CFC41 /* Skipily Clip */,
+				C39FE41D2FD32C53003CFC41 /* Skipily ClipTests */,
+				C39FE4272FD32C53003CFC41 /* Skipily ClipUITests */,
 				C3FE65472EF2F7A1001A07D2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -108,6 +196,9 @@
 				C3FE65462EF2F7A1001A07D2 /* Skipily.app */,
 				C3FE65572EF2F7A2001A07D2 /* SkipilyTests.xctest */,
 				C3FE65612EF2F7A2001A07D2 /* SkipilyUITests.xctest */,
+				C39FE40C2FD32C52003CFC41 /* Skipily Clip.app */,
+				C39FE41A2FD32C53003CFC41 /* Skipily ClipTests.xctest */,
+				C39FE4242FD32C53003CFC41 /* Skipily ClipUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -115,6 +206,74 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		C39FE40B2FD32C52003CFC41 /* Skipily Clip */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C39FE4362FD32C53003CFC41 /* Build configuration list for PBXNativeTarget "Skipily Clip" */;
+			buildPhases = (
+				C39FE4082FD32C52003CFC41 /* Sources */,
+				C39FE4092FD32C52003CFC41 /* Frameworks */,
+				C39FE40A2FD32C52003CFC41 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C39FE40D2FD32C52003CFC41 /* Skipily Clip */,
+			);
+			name = "Skipily Clip";
+			packageProductDependencies = (
+			);
+			productName = "Skipily Clip";
+			productReference = C39FE40C2FD32C52003CFC41 /* Skipily Clip.app */;
+			productType = "com.apple.product-type.application.on-demand-install-capable";
+		};
+		C39FE4192FD32C53003CFC41 /* Skipily ClipTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C39FE4382FD32C53003CFC41 /* Build configuration list for PBXNativeTarget "Skipily ClipTests" */;
+			buildPhases = (
+				C39FE4162FD32C53003CFC41 /* Sources */,
+				C39FE4172FD32C53003CFC41 /* Frameworks */,
+				C39FE4182FD32C53003CFC41 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C39FE41C2FD32C53003CFC41 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				C39FE41D2FD32C53003CFC41 /* Skipily ClipTests */,
+			);
+			name = "Skipily ClipTests";
+			packageProductDependencies = (
+			);
+			productName = "Skipily ClipTests";
+			productReference = C39FE41A2FD32C53003CFC41 /* Skipily ClipTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		C39FE4232FD32C53003CFC41 /* Skipily ClipUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C39FE4392FD32C53003CFC41 /* Build configuration list for PBXNativeTarget "Skipily ClipUITests" */;
+			buildPhases = (
+				C39FE4202FD32C53003CFC41 /* Sources */,
+				C39FE4212FD32C53003CFC41 /* Frameworks */,
+				C39FE4222FD32C53003CFC41 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C39FE4262FD32C53003CFC41 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				C39FE4272FD32C53003CFC41 /* Skipily ClipUITests */,
+			);
+			name = "Skipily ClipUITests";
+			packageProductDependencies = (
+			);
+			productName = "Skipily ClipUITests";
+			productReference = C39FE4242FD32C53003CFC41 /* Skipily ClipUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		C3FE65452EF2F7A1001A07D2 /* Skipily */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = C3FE656A2EF2F7A2001A07D2 /* Build configuration list for PBXNativeTarget "Skipily" */;
@@ -122,10 +281,12 @@
 				C3FE65422EF2F7A1001A07D2 /* Sources */,
 				C3FE65432EF2F7A1001A07D2 /* Frameworks */,
 				C3FE65442EF2F7A1001A07D2 /* Resources */,
+				C39FE42F2FD32C53003CFC41 /* Embed App Clips */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				C39FE42D2FD32C53003CFC41 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				C3FE65482EF2F7A1001A07D2 /* Skipily */,
@@ -192,9 +353,20 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2620;
+				LastSwiftUpdateCheck = 2650;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
+					C39FE40B2FD32C52003CFC41 = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					C39FE4192FD32C53003CFC41 = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = C39FE40B2FD32C52003CFC41;
+					};
+					C39FE4232FD32C53003CFC41 = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = C39FE40B2FD32C52003CFC41;
+					};
 					C3FE65452EF2F7A1001A07D2 = {
 						CreatedOnToolsVersion = 26.2;
 					};
@@ -234,11 +406,35 @@
 				C3FE65452EF2F7A1001A07D2 /* Skipily */,
 				C3FE65562EF2F7A2001A07D2 /* SkipilyTests */,
 				C3FE65602EF2F7A2001A07D2 /* SkipilyUITests */,
+				C39FE40B2FD32C52003CFC41 /* Skipily Clip */,
+				C39FE4192FD32C53003CFC41 /* Skipily ClipTests */,
+				C39FE4232FD32C53003CFC41 /* Skipily ClipUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		C39FE40A2FD32C52003CFC41 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C39FE4182FD32C53003CFC41 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C39FE4222FD32C53003CFC41 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C3FE65442EF2F7A1001A07D2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -263,6 +459,27 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		C39FE4082FD32C52003CFC41 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C39FE4162FD32C53003CFC41 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C39FE4202FD32C53003CFC41 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C3FE65422EF2F7A1001A07D2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -287,6 +504,21 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		C39FE41C2FD32C53003CFC41 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C39FE40B2FD32C52003CFC41 /* Skipily Clip */;
+			targetProxy = C39FE41B2FD32C53003CFC41 /* PBXContainerItemProxy */;
+		};
+		C39FE4262FD32C53003CFC41 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C39FE40B2FD32C52003CFC41 /* Skipily Clip */;
+			targetProxy = C39FE4252FD32C53003CFC41 /* PBXContainerItemProxy */;
+		};
+		C39FE42D2FD32C53003CFC41 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C39FE40B2FD32C52003CFC41 /* Skipily Clip */;
+			targetProxy = C39FE42C2FD32C53003CFC41 /* PBXContainerItemProxy */;
+		};
 		C3FE65592EF2F7A2001A07D2 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = C3FE65452EF2F7A1001A07D2 /* Skipily */;
@@ -300,6 +532,173 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		C39FE4302FD32C53003CFC41 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Skipily Clip/SkipilyClip.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JL75HH3WHW;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Skipily Clip/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Skipily;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Boating.Skipily.Clip;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C39FE4312FD32C53003CFC41 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Skipily Clip/SkipilyClip.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JL75HH3WHW;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Skipily Clip/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Skipily;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Boating.Skipily.Clip;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		C39FE4322FD32C53003CFC41 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JL75HH3WHW;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Boating.Skipily.Skipily-ClipTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Skipily Clip.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Skipily Clip";
+			};
+			name = Debug;
+		};
+		C39FE4332FD32C53003CFC41 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JL75HH3WHW;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Boating.Skipily.Skipily-ClipTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Skipily Clip.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Skipily Clip";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		C39FE4342FD32C53003CFC41 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JL75HH3WHW;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Boating.Skipily.Skipily-ClipUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Skipily Clip";
+			};
+			name = Debug;
+		};
+		C39FE4352FD32C53003CFC41 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JL75HH3WHW;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Boating.Skipily.Skipily-ClipUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Skipily Clip";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		C3FE656B2EF2F7A2001A07D2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -307,7 +706,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Skipily/Skipily.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 66;
 				DEVELOPMENT_TEAM = JL75HH3WHW;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -329,7 +728,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = Boating.Skipily;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -353,7 +752,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Skipily/Skipily.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 66;
 				DEVELOPMENT_TEAM = JL75HH3WHW;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -375,7 +774,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = Boating.Skipily;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -617,6 +1016,33 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		C39FE4362FD32C53003CFC41 /* Build configuration list for PBXNativeTarget "Skipily Clip" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C39FE4302FD32C53003CFC41 /* Debug */,
+				C39FE4312FD32C53003CFC41 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C39FE4382FD32C53003CFC41 /* Build configuration list for PBXNativeTarget "Skipily ClipTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C39FE4322FD32C53003CFC41 /* Debug */,
+				C39FE4332FD32C53003CFC41 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C39FE4392FD32C53003CFC41 /* Build configuration list for PBXNativeTarget "Skipily ClipUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C39FE4342FD32C53003CFC41 /* Debug */,
+				C39FE4352FD32C53003CFC41 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		C3FE65412EF2F7A1001A07D2 /* Build configuration list for PBXProject "Skipily" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

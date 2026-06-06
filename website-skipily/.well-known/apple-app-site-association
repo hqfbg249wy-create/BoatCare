@@ -1,0 +1,24 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["JL75HH3WHW.Boating.Skipily.Clip"],
+        "components": [
+          { "/": "/clip", "comment": "Standard-Clip-Einstieg: Karte mit Providern in der Naehe" },
+          { "/": "/clip/*", "comment": "Subroutes wie /clip/marina/<slug> oder /clip/provider/<uuid>" }
+        ]
+      },
+      {
+        "appIDs": ["JL75HH3WHW.Boating.Skipily"],
+        "components": [
+          { "/": "/order/*", "comment": "Deep-Link in die Haupt-App: Bestelldetail" },
+          { "/": "/r/*",     "comment": "Empfehlungs-Codes (Phase 2 Universal Link)" }
+        ]
+      }
+    ]
+  },
+  "appclips": {
+    "apps": ["JL75HH3WHW.Boating.Skipily.Clip"]
+  }
+}
