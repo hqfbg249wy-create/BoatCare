@@ -3,7 +3,22 @@ import { useAuth } from '../hooks/useAuth'
 import { Anchor, Mail, Lock, User, Gift } from 'lucide-react'
 
 export default function Login() {
-  const { signIn, signUp, applyReferralCode } = useAuth()
+  const { signIn, signUp, signInWithApple, applyReferralCode } = useAuth()
+  const [appleLoading, setAppleLoading] = useState(false)
+
+  async function handleAppleSignIn() {
+    setError('')
+    setAppleLoading(true)
+    try {
+      // Bei Erfolg leitet Supabase per Redirect zu Apple um → nach Apple-Login
+      // zurueck auf /auth/callback. Wir setzen setAppleLoading also nicht
+      // mehr auf false — die Page wird neu geladen.
+      await signInWithApple()
+    } catch (err) {
+      setError(err.message || 'Apple-Anmeldung fehlgeschlagen.')
+      setAppleLoading(false)
+    }
+  }
   const [isRegister, setIsRegister] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -97,6 +112,53 @@ export default function Login() {
             {loading ? 'Laden...' : isRegister ? 'Registrieren' : 'Anmelden'}
           </button>
         </form>
+
+        {/* Apple Sign-In — alternative Login-Methode mit Face/Touch ID auf
+            Apple-Geraeten (Passkey-aequivalente UX, ohne Passwort). */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          margin: '16px 0', fontSize: '0.82rem', color: '#94a3b8',
+        }}>
+          <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+          <span>oder</span>
+          <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleAppleSignIn}
+          disabled={appleLoading || loading}
+          style={{
+            width: '100%',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            padding: '11px 16px',
+            background: '#000',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 8,
+            fontSize: '0.95rem',
+            fontWeight: 500,
+            cursor: appleLoading ? 'wait' : 'pointer',
+            opacity: appleLoading ? 0.7 : 1,
+          }}
+        >
+          <svg width="16" height="18" viewBox="0 0 16 18" fill="currentColor"
+               aria-hidden="true">
+            <path d="M13.36 9.55c-.02-2.07 1.69-3.07 1.77-3.12-.97-1.4-2.47-1.59-3-1.62-1.28-.13-2.5.75-3.14.75-.66 0-1.66-.74-2.73-.72-1.4.02-2.7.81-3.42 2.06-1.46 2.53-.37 6.27 1.05 8.32.69 1.01 1.51 2.13 2.59 2.09 1.05-.04 1.44-.67 2.7-.67 1.26 0 1.61.67 2.71.65 1.12-.02 1.83-1.02 2.52-2.03.79-1.17 1.12-2.31 1.14-2.37-.02-.01-2.18-.84-2.2-3.34zM11.31 3.45c.58-.7.97-1.67.87-2.65-.83.04-1.84.55-2.44 1.25-.53.61-1 1.6-.88 2.55.93.07 1.87-.47 2.45-1.15z"/>
+          </svg>
+          {appleLoading ? 'Weiterleitung zu Apple…' : 'Mit Apple anmelden'}
+        </button>
+
+        <p style={{
+          marginTop: 10, fontSize: '0.78rem', color: '#94a3b8',
+          textAlign: 'center', lineHeight: 1.4,
+        }}>
+          Auf iPhone/Mac wirst Du per Face ID oder Touch ID angemeldet —
+          ohne Passwort.
+        </p>
 
         <div className="login-toggle">
           {isRegister ? (

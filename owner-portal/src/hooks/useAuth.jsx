@@ -11,11 +11,19 @@ export function AuthProvider({ children }) {
   const [mfaFactors, setMfaFactors] = useState([])
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         setUser(session.user)
         loadProfile(session.user.id)
         refreshMFAStatus()
+
+        // Auch nach OAuth-Callback (Apple Sign-In) MFA-Status pruefen.
+        // Bewusste Designentscheidung: doppelte Sicherheit — selbst wenn
+        // Apple bereits biometrisch authentifiziert hat, verlangen wir
+        // zusaetzlich TOTP, falls eingerichtet.
+        if (event === 'SIGNED_IN') {
+          checkMFARequirement()
+        }
       } else {
         setUser(null)
         setProfile(null)
@@ -27,6 +35,20 @@ export function AuthProvider({ children }) {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  /** Liest die aktuelle AAL und setzt mfaRequired, falls Upgrade noetig. */
+  async function checkMFARequirement() {
+    try {
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+      if (aal?.nextLevel === 'aal2' && aal?.currentLevel !== 'aal2') {
+        const { data: factors } = await supabase.auth.mfa.listFactors()
+        setMfaFactors((factors?.totp ?? []).filter(f => f.status === 'verified'))
+        setMfaRequired(true)
+      }
+    } catch {
+      // Stumm — wenn AAL-Check fehlschlaegt, bleibt mfaRequired wie es ist.
+    }
+  }
 
   async function refreshMFAStatus() {
     try {
@@ -59,13 +81,7 @@ export function AuthProvider({ children }) {
   async function signIn(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
-    // Check if MFA is required
-    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-    if (aal?.nextLevel === 'aal2' && aal?.currentLevel !== 'aal2') {
-      const { data: factors } = await supabase.auth.mfa.listFactors()
-      setMfaFactors((factors?.totp ?? []).filter(f => f.status === 'verified'))
-      setMfaRequired(true)
-    }
+    await checkMFARequirement()
     return data
   }
 
@@ -106,6 +122,28 @@ export function AuthProvider({ children }) {
       email,
       password,
       options: { data: { full_name: fullName } }
+    })
+    if (error) throw error
+    return data
+  }
+
+  /**
+   * Sign in with Apple via Supabase OAuth.
+   * Apple zeigt auf seiner Login-Seite automatisch Face ID / Touch ID
+   * (Passkey-aequivalentes UX), wenn der User es eingerichtet hat —
+   * d.h. der User authentifiziert sich biometrisch ohne Passwort.
+   *
+   * Voraussetzungen (einmalig konfiguriert, siehe README):
+   * - Apple Developer Console: Services ID + Sign-in-with-Apple-Key
+   * - Supabase Dashboard: Auth → Providers → Apple aktiv
+   * - Redirect URL: https://app.skipily.app/auth/callback
+   */
+  async function signInWithApple() {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
     })
     if (error) throw error
     return data
@@ -154,7 +192,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user, profile, loading,
       mfaRequired, mfaFactors,
-      signIn, signUp, signOut, loadProfile, updateProfile,
+      signIn, signUp, signInWithApple, signOut, loadProfile, updateProfile,
       verifyMFA, enrollMFA, confirmMFAEnrollment, unenrollMFA, refreshMFAStatus,
       applyReferralCode, loadReferralStats
     }}>

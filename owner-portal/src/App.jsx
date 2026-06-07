@@ -19,6 +19,7 @@ import AIChat from './pages/AIChat'
 import Checkout from './pages/Checkout'
 import Inquiries from './pages/Inquiries'
 import ResetPassword from './pages/ResetPassword'
+import AuthCallback from './pages/AuthCallback'
 
 function ProtectedRoutes() {
   const { user, loading, mfaRequired } = useAuth()
@@ -70,6 +71,7 @@ export default function App() {
               BEVOR die Login-Sperre greift. ResetPassword nutzt die
               temporaere Session aus dem URL-Hash. */}
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/*" element={<ProtectedRoutes />} />
         </Routes>
       </AuthProvider>
