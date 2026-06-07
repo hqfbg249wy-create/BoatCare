@@ -35,7 +35,7 @@ enum ClipSupabase {
             resolvingAgainstBaseURL: false
         )!
         components.queryItems = [
-            .init(name: "select", value: "id,name,city,street,latitude,longitude,logo_url"),
+            .init(name: "select", value: "id,name,city,street,latitude,longitude,logo_url,rating,category,categories"),
             .init(name: "latitude", value: "gte.\(minLat)"),
             .init(name: "latitude", value: "lte.\(maxLat)"),
             .init(name: "longitude", value: "gte.\(minLon)"),

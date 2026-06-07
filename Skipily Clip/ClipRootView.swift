@@ -31,9 +31,13 @@ struct ClipRootView: View {
                     set: { id in selectedProvider = providers.first { $0.id == id } }
                 )) {
                     ForEach(providers) { provider in
-                        Marker(provider.name, coordinate: provider.coordinate)
-                            .tint(.orange)
-                            .tag(provider.id)
+                        Annotation(
+                            provider.name,
+                            coordinate: provider.coordinate
+                        ) {
+                            ratedPin(for: provider)
+                        }
+                        .tag(provider.id)
                     }
                     UserAnnotation()
                 }
@@ -156,6 +160,70 @@ struct ClipRootView: View {
         .background(.regularMaterial)
     }
 
+    // MARK: - Rating-basierter Pin (identische Logik zur Haupt-App)
+
+    /// Farb-Logik exakt wie in ServiceProviderPin der Haupt-App:
+    /// blau = keine Bewertung, gruen >=4, rot <=2, gelb mittendrin.
+    private func pinColor(for provider: ClipProvider) -> Color {
+        guard let rating = provider.rating, rating > 0 else { return .blue }
+        if rating >= 4.0 { return .green }
+        if rating <= 2.0 { return .red }
+        return .yellow
+    }
+
+    /// Icon-Logik 1:1 wie ServiceProviderPin.iconName in der Haupt-App.
+    private func pinIcon(for provider: ClipProvider) -> String {
+        let cat = provider.primaryCategory.lowercased()
+        if cat.contains("werkstatt") || cat.contains("repair") || cat.contains("werft") {
+            return "wrench.and.screwdriver.fill"
+        } else if cat.contains("versorgung") || cat.contains("supplies") || cat.contains("shop") || cat.contains("tauwerk") {
+            return "cart.fill"
+        } else if cat.contains("tankstelle") || cat.contains("fuel") {
+            return "fuelpump.fill"
+        } else if cat.contains("segelmacher") || cat.contains("sailmaker") || cat.contains("segel") {
+            return "wind"
+        } else if cat.contains("rigg") || cat.contains("rigging") {
+            return "arrow.up.and.down"
+        } else if cat.contains("elektronik") || cat.contains("instruments") {
+            return "antenna.radiowaves.left.and.right"
+        } else if cat.contains("marina") {
+            return "water.waves"
+        } else {
+            return "sailboat.fill"
+        }
+    }
+
+    private func ratedPin(for provider: ClipProvider) -> some View {
+        let color = pinColor(for: provider)
+        let icon = pinIcon(for: provider)
+        let isSelected = selectedProvider?.id == provider.id
+        return ZStack {
+            // Klassische Map-Pin-Form: Kreis + Spitze nach unten
+            VStack(spacing: -4) {
+                Circle()
+                    .fill(color)
+                    .frame(width: isSelected ? 36 : 26, height: isSelected ? 36 : 26)
+                    .overlay(
+                        Circle()
+                            .stroke(.white, lineWidth: isSelected ? 3 : 2)
+                    )
+                    .overlay(
+                        Image(systemName: icon)
+                            .font(.system(size: isSelected ? 16 : 12, weight: .bold))
+                            .foregroundStyle(.white)
+                    )
+                Triangle()
+                    .fill(color)
+                    .frame(width: isSelected ? 14 : 11, height: isSelected ? 10 : 8)
+                    .overlay(
+                        Triangle()
+                            .stroke(.white, lineWidth: isSelected ? 2 : 1.5)
+                    )
+            }
+            .shadow(color: .black.opacity(0.25), radius: 3, x: 0, y: 2)
+        }
+    }
+
     // MARK: - Data
 
     private func loadProviders(near location: CLLocation) async {
@@ -261,5 +329,17 @@ private struct ProviderDetailRow: View {
         item.openInMaps(launchOptions: [
             MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
         ])
+    }
+}
+
+/// Spitze nach unten — die kleine „Tropfen"-Form unterhalb des Pin-Kreises.
+private struct Triangle: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: rect.midX, y: rect.maxY))
+        p.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        p.closeSubpath()
+        return p
     }
 }
