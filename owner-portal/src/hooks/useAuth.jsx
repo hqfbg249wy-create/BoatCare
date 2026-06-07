@@ -17,11 +17,11 @@ export function AuthProvider({ children }) {
         loadProfile(session.user.id)
         refreshMFAStatus()
 
-        // Auch nach OAuth-Callback (Apple Sign-In) MFA-Status pruefen.
-        // Bewusste Designentscheidung: doppelte Sicherheit — selbst wenn
-        // Apple bereits biometrisch authentifiziert hat, verlangen wir
-        // zusaetzlich TOTP, falls eingerichtet.
-        if (event === 'SIGNED_IN') {
+        // MFA-Status auch bei wiederhergestellter Session pruefen — NICHT nur
+        // beim aktiven Sign-In. Sonst koennte der User die TOTP-Challenge mit
+        // einem simplen Browser-Refresh umgehen (Session aal1, aber UI laesst
+        // ihn rein).
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
           checkMFARequirement()
         }
       } else {
