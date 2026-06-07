@@ -248,74 +248,14 @@ export default function Profile() {
         )}
       </div>
 
-      <div className="card">
-        <h2><Fingerprint size={18} /> Passkeys <span style={{
-          fontSize: '0.7rem', background: '#fef3c7', color: '#854d0e',
-          padding: '2px 8px', borderRadius: 8, marginLeft: 6, verticalAlign: 'middle',
-        }}>BETA</span></h2>
-        <p style={{ color: '#64748b', fontSize: '0.92rem', marginTop: 4 }}>
-          Melde Dich künftig per Face ID, Touch ID oder Windows Hello an — ohne Passwort,
-          ohne Authenticator-Code. Funktioniert auf iPhone, Mac, Android und Windows.
-        </p>
-
-        {passkeys.length === 0 ? (
-          <p style={{ marginTop: 10, fontSize: '0.88rem', color: '#94a3b8' }}>
-            Du hast noch keine Passkeys hinterlegt.
-          </p>
-        ) : (
-          <ul style={{ marginTop: 12, padding: 0, listStyle: 'none' }}>
-            {passkeys.map(pk => (
-              <li key={pk.id} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '10px 12px', background: '#f8fafc',
-                border: '1px solid #e2e8f0', borderRadius: 8, marginBottom: 8,
-              }}>
-                <Fingerprint size={16} color="#16a34a" />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 500 }}>{pk.friendly_name || 'Unbenannt'}</div>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                    Hinzugefügt {pk.created_at ? new Date(pk.created_at).toLocaleDateString('de-DE') : '–'}
-                  </div>
-                </div>
-                <button onClick={() => handleRemovePasskey(pk.id)}
-                        className="btn-icon" title="Entfernen">
-                  <Trash2 size={14} color="#dc2626" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <input
-            type="text"
-            value={passkeyName}
-            onChange={e => setPasskeyName(e.target.value)}
-            placeholder="Name, z.B. MacBook Ekkehart"
-            style={{
-              flex: '1 1 240px', padding: '8px 10px',
-              border: '1px solid #cbd5e1', borderRadius: 6,
-            }}
-            disabled={passkeyBusy}
-          />
-          <button
-            type="button"
-            onClick={handleAddPasskey}
-            disabled={passkeyBusy}
-            className="btn-primary"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <Fingerprint size={14} />
-            {passkeyBusy ? 'Wird hinzugefügt…' : 'Passkey hinzufügen'}
-          </button>
-        </div>
-
-        {passkeyError && (
-          <p style={{ marginTop: 10, fontSize: '0.85rem', color: '#dc2626' }}>
-            {passkeyError}
-          </p>
-        )}
-      </div>
+      {/*
+        Passkey-Card vorerst ausgeblendet — Supabase WebAuthn ist als
+        eigener Login-Provider gedacht (nicht als MFA-Faktor), die
+        Client-Library hat noch keine stabile Enrollment-API.
+        useAuth.listPasskeys / enrollPasskey / removePasskey bleiben drin,
+        damit wir die UI in einem 30-Min-Re-enable wieder anschalten
+        koennen, sobald Supabase die API freigibt (~Q3/Q4 2026).
+      */}
 
       <div className="card">
         <h2><Shield size={18} /> Sicherheit</h2>
