@@ -7,6 +7,7 @@ export default function MFAChallenge() {
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [rememberDevice, setRememberDevice] = useState(true)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -14,7 +15,7 @@ export default function MFAChallenge() {
     setLoading(true)
     setError('')
     try {
-      await verifyMFA(code)
+      await verifyMFA(code, rememberDevice)
     } catch {
       setError('Code ungültig oder abgelaufen. Bitte erneut versuchen.')
       setCode('')
@@ -44,6 +45,21 @@ export default function MFAChallenge() {
             className="mfa-code-input"
           />
           {error && <div className="mfa-error">{error}</div>}
+
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            margin: '12px 0 16px', fontSize: '0.88rem',
+            color: '#475569', cursor: 'pointer', userSelect: 'none',
+          }}>
+            <input
+              type="checkbox"
+              checked={rememberDevice}
+              onChange={e => setRememberDevice(e.target.checked)}
+              style={{ width: 16, height: 16, cursor: 'pointer' }}
+            />
+            <span>Diesen Browser 7 Tage merken</span>
+          </label>
+
           <button
             type="submit"
             className="btn-primary btn-full"

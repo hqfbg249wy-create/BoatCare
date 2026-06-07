@@ -36,11 +36,50 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  /**
+   * Trust-Cookie pro Browser: wenn der User auf dem TOTP-Screen
+   * "Diesen Browser merken" angehakt hat, speichern wir lokal einen
+   * Hinweis, dass er fuer ~7 Tage die MFA-Challenge ueberspringen darf.
+   */
+  const MFA_TRUST_KEY = 'skipily.mfaTrust.v1'
+  const MFA_TRUST_DAYS = 7
+
+  function getMFATrust(userId) {
+    try {
+      const raw = localStorage.getItem(MFA_TRUST_KEY)
+      if (!raw) return null
+      const parsed = JSON.parse(raw)
+      if (parsed.userId !== userId) return null
+      if (Date.now() > parsed.expiresAt) return null
+      return parsed
+    } catch {
+      return null
+    }
+  }
+
+  function setMFATrust(userId) {
+    const expiresAt = Date.now() + MFA_TRUST_DAYS * 24 * 60 * 60 * 1000
+    localStorage.setItem(MFA_TRUST_KEY, JSON.stringify({ userId, expiresAt }))
+  }
+
+  function clearMFATrust() {
+    localStorage.removeItem(MFA_TRUST_KEY)
+  }
+
   /** Liest die aktuelle AAL und setzt mfaRequired, falls Upgrade noetig. */
   async function checkMFARequirement() {
     try {
       const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
       if (aal?.nextLevel === 'aal2' && aal?.currentLevel !== 'aal2') {
+        // Trust-Cookie des Browsers fuer diesen User noch gueltig?
+        const { data: sess } = await supabase.auth.getSession()
+        const uid = sess?.session?.user?.id
+        if (uid && getMFATrust(uid)) {
+          // User hat diesen Browser bewusst als vertrauenswuerdig markiert.
+          // Wir ueberspringen die TOTP-Challenge fuer die Restlaufzeit.
+          setMfaRequired(false)
+          return
+        }
         const { data: factors } = await supabase.auth.mfa.listFactors()
         setMfaFactors((factors?.totp ?? []).filter(f => f.status === 'verified'))
         setMfaRequired(true)
@@ -85,13 +124,18 @@ export function AuthProvider({ children }) {
     return data
   }
 
-  async function verifyMFA(code) {
+  async function verifyMFA(code, rememberDevice = false) {
     const factor = mfaFactors[0]
     if (!factor) throw new Error('Kein 2FA-Faktor gefunden')
     const { data: challenge, error: cErr } = await supabase.auth.mfa.challenge({ factorId: factor.id })
     if (cErr) throw cErr
     const { data, error } = await supabase.auth.mfa.verify({ factorId: factor.id, challengeId: challenge.id, code })
     if (error) throw error
+    // Wenn User "Browser merken" angehakt hat, Trust-Eintrag fuer 7 Tage
+    // anlegen — nutzt der naechste Refresh den Skip-Pfad in checkMFARequirement.
+    if (rememberDevice && data?.user?.id) {
+      setMFATrust(data.user.id)
+    }
     setMfaRequired(false)
     return data
   }
@@ -227,6 +271,9 @@ export function AuthProvider({ children }) {
 
   async function signOut() {
     await supabase.auth.signOut()
+    // Trust-Cookie loeschen — wer sich ausloggt, soll beim naechsten Login
+    // wieder voll authentifizieren.
+    clearMFATrust()
     setUser(null)
     setProfile(null)
   }
