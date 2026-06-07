@@ -1,14 +1,56 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { User, MapPin, Save, CheckCircle, Shield, Gift, Copy, Share2 } from 'lucide-react'
+import { User, MapPin, Save, CheckCircle, Shield, Gift, Copy, Share2, Fingerprint, Trash2 } from 'lucide-react'
 import MFASetup from '../components/MFASetup'
 
 export default function Profile() {
-  const { user, profile, updateProfile, loadReferralStats } = useAuth()
+  const { user, profile, updateProfile, loadReferralStats,
+          listPasskeys, enrollPasskey, removePasskey } = useAuth()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [referralStats, setReferralStats] = useState(null)
   const [codeCopied, setCodeCopied] = useState(false)
+
+  // Passkey-Verwaltung
+  const [passkeys, setPasskeys] = useState([])
+  const [passkeyName, setPasskeyName] = useState('')
+  const [passkeyBusy, setPasskeyBusy] = useState(false)
+  const [passkeyError, setPasskeyError] = useState(null)
+
+  async function reloadPasskeys() {
+    try {
+      const list = await listPasskeys()
+      setPasskeys(list)
+    } catch (err) {
+      console.warn('listPasskeys failed:', err)
+    }
+  }
+
+  useEffect(() => { reloadPasskeys() }, [])
+
+  async function handleAddPasskey() {
+    setPasskeyError(null)
+    setPasskeyBusy(true)
+    try {
+      await enrollPasskey(passkeyName || 'Mein Gerät')
+      setPasskeyName('')
+      await reloadPasskeys()
+    } catch (err) {
+      setPasskeyError(err.message || 'Passkey konnte nicht hinzugefügt werden.')
+    } finally {
+      setPasskeyBusy(false)
+    }
+  }
+
+  async function handleRemovePasskey(id) {
+    if (!confirm('Diesen Passkey wirklich entfernen?')) return
+    try {
+      await removePasskey(id)
+      await reloadPasskeys()
+    } catch (err) {
+      alert('Konnte nicht entfernt werden: ' + err.message)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -202,6 +244,75 @@ export default function Profile() {
         ) : (
           <p style={{ marginTop: 10, fontSize: '0.85rem', color: '#94a3b8' }}>
             Empfehlungs-Code wird geladen …
+          </p>
+        )}
+      </div>
+
+      <div className="card">
+        <h2><Fingerprint size={18} /> Passkeys <span style={{
+          fontSize: '0.7rem', background: '#fef3c7', color: '#854d0e',
+          padding: '2px 8px', borderRadius: 8, marginLeft: 6, verticalAlign: 'middle',
+        }}>BETA</span></h2>
+        <p style={{ color: '#64748b', fontSize: '0.92rem', marginTop: 4 }}>
+          Melde Dich künftig per Face ID, Touch ID oder Windows Hello an — ohne Passwort,
+          ohne Authenticator-Code. Funktioniert auf iPhone, Mac, Android und Windows.
+        </p>
+
+        {passkeys.length === 0 ? (
+          <p style={{ marginTop: 10, fontSize: '0.88rem', color: '#94a3b8' }}>
+            Du hast noch keine Passkeys hinterlegt.
+          </p>
+        ) : (
+          <ul style={{ marginTop: 12, padding: 0, listStyle: 'none' }}>
+            {passkeys.map(pk => (
+              <li key={pk.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 12px', background: '#f8fafc',
+                border: '1px solid #e2e8f0', borderRadius: 8, marginBottom: 8,
+              }}>
+                <Fingerprint size={16} color="#16a34a" />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 500 }}>{pk.friendly_name || 'Unbenannt'}</div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                    Hinzugefügt {pk.created_at ? new Date(pk.created_at).toLocaleDateString('de-DE') : '–'}
+                  </div>
+                </div>
+                <button onClick={() => handleRemovePasskey(pk.id)}
+                        className="btn-icon" title="Entfernen">
+                  <Trash2 size={14} color="#dc2626" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            value={passkeyName}
+            onChange={e => setPasskeyName(e.target.value)}
+            placeholder="Name, z.B. MacBook Ekkehart"
+            style={{
+              flex: '1 1 240px', padding: '8px 10px',
+              border: '1px solid #cbd5e1', borderRadius: 6,
+            }}
+            disabled={passkeyBusy}
+          />
+          <button
+            type="button"
+            onClick={handleAddPasskey}
+            disabled={passkeyBusy}
+            className="btn-primary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <Fingerprint size={14} />
+            {passkeyBusy ? 'Wird hinzugefügt…' : 'Passkey hinzufügen'}
+          </button>
+        </div>
+
+        {passkeyError && (
+          <p style={{ marginTop: 10, fontSize: '0.85rem', color: '#dc2626' }}>
+            {passkeyError}
           </p>
         )}
       </div>

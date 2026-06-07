@@ -149,6 +149,61 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  // ─── Passkey-Authentifizierung (Supabase WebAuthn BETA) ────────────────
+
+  /**
+   * Listet alle Passkeys (WebAuthn-Faktoren) des aktuellen Users auf.
+   */
+  async function listPasskeys() {
+    const { data, error } = await supabase.auth.mfa.listFactors()
+    if (error) throw error
+    return (data?.all ?? []).filter(f => f.factor_type === 'webauthn')
+  }
+
+  /**
+   * Registriert einen neuen Passkey fuer den aktuell eingeloggten User.
+   * Triggert den Browser-WebAuthn-Dialog (Face ID / Touch ID / etc.).
+   */
+  async function enrollPasskey(friendlyName = 'Mein Gerät') {
+    if (!window.PublicKeyCredential) {
+      throw new Error('Dieser Browser unterstützt keine Passkeys.')
+    }
+
+    // 1) Supabase liefert die Challenge-Daten fuer den WebAuthn-Browser-Aufruf.
+    const { data: enroll, error: enrollErr } = await supabase.auth.mfa.enroll({
+      factorType: 'webauthn',
+      friendlyName,
+    })
+    if (enrollErr) throw enrollErr
+
+    // 2) Browser-Dialog: User authentifiziert sich biometrisch und der Browser
+    //    erzeugt das Schluesselpaar. Supabase liefert die Optionen im
+    //    `data.webauthn` oder `data.public_key`-Feld zurueck — wir
+    //    versuchen beides, da die BETA-API hier noch wackelt.
+    const opts = enroll?.webauthn ?? enroll?.public_key ?? enroll
+    const credential = await navigator.credentials.create({ publicKey: opts })
+
+    // 3) Verifizieren bei Supabase — schliesst den Enrollment-Flow ab.
+    const { data: verify, error: verifyErr } = await supabase.auth.mfa.verify({
+      factorId: enroll.id,
+      challengeId: enroll.challenge_id ?? enroll.challengeId,
+      code: credential, // Bei TOTP waere das der String-Code; bei WebAuthn das Credential-Objekt
+    })
+    if (verifyErr) throw verifyErr
+
+    await refreshMFAStatus()
+    return verify
+  }
+
+  /**
+   * Loescht einen Passkey.
+   */
+  async function removePasskey(factorId) {
+    const { error } = await supabase.auth.mfa.unenroll({ factorId })
+    if (error) throw error
+    await refreshMFAStatus()
+  }
+
   // ─── Empfehlungs-Programm ──────────────────────────────────────────────
 
   /** Loest einen Empfehlungs-Code ein (typisch direkt nach signUp). */
@@ -194,6 +249,7 @@ export function AuthProvider({ children }) {
       mfaRequired, mfaFactors,
       signIn, signUp, signInWithApple, signOut, loadProfile, updateProfile,
       verifyMFA, enrollMFA, confirmMFAEnrollment, unenrollMFA, refreshMFAStatus,
+      listPasskeys, enrollPasskey, removePasskey,
       applyReferralCode, loadReferralStats
     }}>
       {children}
