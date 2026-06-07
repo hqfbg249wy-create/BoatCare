@@ -18,8 +18,32 @@ export default function AuthCallback() {
 
     async function finish() {
       try {
-        // detectSessionInUrl haengt den Token automatisch ab — wir geben dem
-        // Supabase-Client kurz Zeit, das zu verarbeiten.
+        // Supabase nutzt fuer Web haeufig den PKCE-Flow — der Code kommt
+        // dann als ?code=... im Query-String, nicht als #access_token=...
+        // im Hash. Wir muessen ihn explizit gegen eine Session tauschen.
+        const params = new URLSearchParams(window.location.search)
+        const code = params.get('code')
+        const errorParam = params.get('error') || params.get('error_description')
+
+        if (errorParam) {
+          if (!cancelled) {
+            setError(`Apple-Anmeldung abgelehnt: ${errorParam}`)
+          }
+          return
+        }
+
+        if (code) {
+          const { error: exErr } = await supabase.auth.exchangeCodeForSession(code)
+          if (exErr) {
+            if (!cancelled) setError(`Code-Exchange fehlgeschlagen: ${exErr.message}`)
+            return
+          }
+          if (!cancelled) navigate('/', { replace: true })
+          return
+        }
+
+        // Fallback: Implicit-Flow mit Hash — Supabase-Client erkennt das via
+        // detectSessionInUrl automatisch, wir warten kurz darauf.
         for (let i = 0; i < 20; i++) {
           const { data } = await supabase.auth.getSession()
           if (data?.session) {
@@ -28,7 +52,6 @@ export default function AuthCallback() {
           }
           await new Promise(r => setTimeout(r, 150))
         }
-        // Nach 3 Sekunden immer noch keine Session — Fehler anzeigen.
         if (!cancelled) {
           setError('Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.')
         }
