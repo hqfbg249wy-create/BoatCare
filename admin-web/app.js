@@ -9627,6 +9627,9 @@ function renderVerifyResults(results) {
         return `<span style="background:${m.bg}; color:${m.col}; padding:3px 9px; border-radius:10px; font-size:12px; font-weight:600; white-space:nowrap;">${m.icon} ${m.label}</span>`;
     };
 
+    // Cache fuer Aktionen (Refresh nach Re-Scan / Loeschen)
+    window._verifyResultsCache = results;
+
     listEl.innerHTML = `
         <table style="width:100%; border-collapse:collapse; font-size:13px;">
             <thead>
@@ -9635,24 +9638,173 @@ function renderVerifyResults(results) {
                     <th style="padding:8px; text-align:left;">E-Mail</th>
                     <th style="padding:8px; text-align:left;">Status</th>
                     <th style="padding:8px; text-align:left;">Begründung</th>
+                    <th style="padding:8px; text-align:left; width:160px;">Aktionen</th>
                 </tr>
             </thead>
-            <tbody>
-                ${results.map(r => `
-                    <tr style="border-top:1px solid #e2e8f0;">
+            <tbody id="verify-results-tbody">
+                ${results.map((r, idx) => `
+                    <tr data-row="${idx}" data-id="${escapeHtml_v(r.id || '')}" style="border-top:1px solid #e2e8f0;">
                         <td style="padding:8px; vertical-align:top;">
                             <div style="font-weight:600;">${escapeHtml_v(r.name || '?')}</div>
                             ${r.website ? `<div style="font-size:11px; color:#64748b;"><a href="${escapeHtml_v(r.website)}" target="_blank" style="color:#64748b;">${escapeHtml_v(r.website)}</a></div>` : ''}
                         </td>
-                        <td style="padding:8px; vertical-align:top; font-family:monospace; font-size:12px;">${escapeHtml_v(r.email || '–')}</td>
-                        <td style="padding:8px; vertical-align:top;">${statusBadge(r.status)}</td>
-                        <td style="padding:8px; vertical-align:top; color:#475569; font-size:12px;">${escapeHtml_v(r.note || '')}</td>
+                        <td style="padding:8px; vertical-align:top; font-family:monospace; font-size:12px;" data-cell="email">${escapeHtml_v(r.email || '–')}</td>
+                        <td style="padding:8px; vertical-align:top;" data-cell="status">${statusBadge(r.status)}</td>
+                        <td style="padding:8px; vertical-align:top; color:#475569; font-size:12px;" data-cell="note">${escapeHtml_v(r.note || '')}</td>
+                        <td style="padding:8px; vertical-align:top; white-space:nowrap;">
+                            <button class="btn-secondary"
+                                    onclick="window.rescanProviderEmail(${idx})"
+                                    style="font-size:11px; padding:4px 9px; margin-right:4px;"
+                                    title="Frische E-Mail-Suche fuer diesen Provider starten (gleiche Logik wie Update-Suche)">
+                                🔄 Neu suchen
+                            </button>
+                            <button class="btn-danger"
+                                    onclick="window.deleteProvider(${idx})"
+                                    style="font-size:11px; padding:4px 9px; background:#ef4444; color:white; border:none; border-radius:6px; cursor:pointer;"
+                                    title="Provider unwiderruflich aus der DB loeschen">
+                                🗑 Löschen
+                            </button>
+                        </td>
                     </tr>
                 `).join('')}
             </tbody>
         </table>
     `;
 }
+
+/**
+ * Provider unwiderruflich loeschen. Sicherheitsabfrage davor.
+ */
+async function deleteProvider(rowIdx) {
+    const r = (window._verifyResultsCache || [])[rowIdx];
+    if (!r || !r.id) {
+        alert('Provider-ID fehlt — Aktion abgebrochen.');
+        return;
+    }
+    const ok = confirm(
+        `Provider unwiderruflich loeschen?\n\n` +
+        `Name: ${r.name}\n` +
+        `E-Mail: ${r.email || '–'}\n` +
+        `Website: ${r.website || '–'}\n\n` +
+        `Diese Aktion kann nicht rueckgaengig gemacht werden.`
+    );
+    if (!ok) return;
+
+    const tr = document.querySelector(`#verify-results-tbody tr[data-row="${rowIdx}"]`);
+    if (tr) tr.style.opacity = '0.5';
+
+    try {
+        const { error } = await supabaseClient
+            .from('service_providers')
+            .delete()
+            .eq('id', r.id);
+        if (error) throw error;
+
+        // Zeile entfernen (statt Reload)
+        if (tr) tr.remove();
+        if (window._verifyResultsCache) {
+            window._verifyResultsCache[rowIdx] = null;
+        }
+        verifyLog(`🗑 Provider "${r.name}" geloescht.`, 'warn');
+        loadVerifyStats();
+    } catch (err) {
+        if (tr) tr.style.opacity = '1';
+        alert('Loeschen fehlgeschlagen: ' + err.message);
+        verifyLog(`❌ Loeschen "${r.name}" fehlgeschlagen: ${err.message}`, 'error');
+    }
+}
+
+/**
+ * Frische E-Mail-Suche fuer EINEN Provider — nutzt die vollstaendige
+ * Multi-Quellen-Logik aus der Update-Suche (Homepage + Sitemap +
+ * Subpages + JSON-LD + mailto-Hrefs + RDAP-Fallback) und schreibt
+ * gefundene Adressen direkt zurueck wenn der Admin bestaetigt.
+ */
+async function rescanProviderEmail(rowIdx) {
+    const r = (window._verifyResultsCache || [])[rowIdx];
+    if (!r) return;
+
+    if (!r.website) {
+        alert('Keine Website hinterlegt — Re-Scan nicht moeglich.');
+        return;
+    }
+
+    const tr = document.querySelector(`#verify-results-tbody tr[data-row="${rowIdx}"]`);
+    const noteCell = tr?.querySelector('[data-cell="note"]');
+    const emailCell = tr?.querySelector('[data-cell="email"]');
+    const statusCell = tr?.querySelector('[data-cell="status"]');
+
+    if (noteCell) noteCell.innerHTML = '<span style="color:#3b82f6;">🔍 Suche laeuft…</span>';
+    verifyLog(`🔍 Re-Scan: ${r.name} (${r.website})`, 'info');
+
+    try {
+        // Volles findEmailsForProvider mit "scraper-backend" als Quelle,
+        // damit auch die robusten serverseitigen Extractor mitgehen
+        const result = await findEmailsForProvider(
+            { id: r.id, name: r.name, website: r.website, email: r.email },
+            'scraper-backend'
+        );
+        const emails = (result.emails || []).filter(e => e && e.includes('@'));
+
+        if (emails.length === 0) {
+            if (noteCell) noteCell.textContent = 'Keine E-Mail gefunden.';
+            verifyLog(`  ❌ Keine E-Mail fuer ${r.name} gefunden`, 'warn');
+            return;
+        }
+
+        // User-Abfrage: welche der gefundenen Mails uebernehmen?
+        let pick;
+        if (emails.length === 1) {
+            const sameAsOld = emails[0].toLowerCase() === (r.email || '').toLowerCase();
+            const msg = sameAsOld
+                ? `Gleiche E-Mail wie bisher gefunden:\n\n${emails[0]}\n\nStatus auf "valid" setzen?`
+                : `Gefundene E-Mail:\n\n${emails[0]}\n\nIn die DB uebernehmen (alte: ${r.email || '–'})?`;
+            if (!confirm(msg)) return;
+            pick = emails[0];
+        } else {
+            const list = emails.map((e, i) => `${i + 1}. ${e}`).join('\n');
+            const input = prompt(
+                `Mehrere E-Mails gefunden — Nummer waehlen (1-${emails.length}), 0 = nicht uebernehmen:\n\n${list}`,
+                '1'
+            );
+            const n = parseInt(input, 10);
+            if (!n || n < 1 || n > emails.length) return;
+            pick = emails[n - 1];
+        }
+
+        // In DB schreiben
+        const newStatus = 'valid';
+        const newNote = `Manuell via Re-Scan am ${new Date().toLocaleDateString('de-DE')} bestaetigt`;
+        const { error } = await supabaseClient
+            .from('service_providers')
+            .update({
+                email: pick,
+                last_email_check_at: new Date().toISOString(),
+                email_check_status: newStatus,
+                email_check_note: newNote,
+            })
+            .eq('id', r.id);
+        if (error) throw error;
+
+        // UI aktualisieren
+        if (emailCell) emailCell.textContent = pick;
+        if (statusCell) statusCell.innerHTML = `<span style="background:#dcfce7; color:#166534; padding:3px 9px; border-radius:10px; font-size:12px; font-weight:600;">✅ Gültig</span>`;
+        if (noteCell) noteCell.textContent = newNote;
+        if (window._verifyResultsCache) {
+            window._verifyResultsCache[rowIdx].email = pick;
+            window._verifyResultsCache[rowIdx].status = newStatus;
+            window._verifyResultsCache[rowIdx].note = newNote;
+        }
+        verifyLog(`  ✅ ${r.name} → ${pick} uebernommen`, 'success');
+        loadVerifyStats();
+    } catch (err) {
+        if (noteCell) noteCell.textContent = 'Fehler: ' + err.message;
+        verifyLog(`  ❌ Re-Scan ${r.name} fehlgeschlagen: ${err.message}`, 'error');
+    }
+}
+
+window.deleteProvider = deleteProvider;
+window.rescanProviderEmail = rescanProviderEmail;
 
 function escapeHtml_v(s) {
     return String(s).replace(/[&<>"']/g, ch => ({
