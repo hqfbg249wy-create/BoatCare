@@ -62,14 +62,18 @@ function getCategoryIcon(category) {
 
 // Google Search Scraping Konfiguration
 const USE_GOOGLE_SEARCH_FALLBACK = true; // Feature-Flag
-// Scraper-Backend: lokal auf 3001, produktiv auf Railway.
-// Override per window.SCRAPER_BACKEND_URL in config.js möglich.
+// Scraper-Backend:
+//   - lokal: localhost:3001  (npm start im scraper-backend Ordner)
+//   - produktiv: Fly.io in Frankfurt (auto_stop_machines: schlaeft bei
+//     Inaktivitaet, weckt bei naechstem Request ~3s Cold-Start auf)
+// Override per window.SCRAPER_BACKEND_URL in config.js moeglich
+// (z.B. fuer Staging-Umgebung oder Reverse-Proxy auf admin.skipily.app).
 const GOOGLE_SCRAPER_BACKEND_URL =
     (typeof window !== 'undefined' && window.SCRAPER_BACKEND_URL)
         ? window.SCRAPER_BACKEND_URL
         : (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
             ? 'http://localhost:3001'
-            : 'https://boatcare-production.up.railway.app';
+            : 'https://skipily-scraper.fly.dev';
 
 // App-Kategorien (entspricht Localizable.strings — ohne Marina)
 // Der Scraper sucht automatisch alle Kategorien pro Ort
