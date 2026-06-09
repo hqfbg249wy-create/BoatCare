@@ -86,6 +86,10 @@
                     <span class="icon">🔄</span>
                     Update-Suche
                 </button>
+                <button class="nav-item" data-page="email-verify" onclick="window.navigateToPage('email-verify')">
+                    <span class="icon">✉️</span>
+                    E-Mail-Check
+                </button>
                 <button class="nav-item" data-page="payments" onclick="window.navigateToPage('payments')">
                     <span class="icon">💳</span>
                     Zahlungen
@@ -841,6 +845,82 @@
                         </div>
                     </div>
                     <div id="enrich-results-list" style="max-height:600px; overflow-y:auto;"></div>
+                </div>
+            </div>
+
+            <!-- E-Mail-Verifizierung Page -->
+            <div id="email-verify-page" class="page">
+                <h1>✉️ E-Mail-Check</h1>
+                <p class="subtitle">Prüft regelmäßig ob die hinterlegten Provider-E-Mail-Adressen noch real sind (MX-Record + Website-Recheck).</p>
+
+                <!-- Statistik-Übersicht -->
+                <div id="verify-stats" style="display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:24px;">
+                    <div style="background:#dcfce7; border-radius:8px; padding:14px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:#166534;" id="verify-count-valid">–</div>
+                        <div style="font-size:11px; color:#166534; margin-top:4px;">✅ Gültig</div>
+                    </div>
+                    <div style="background:#fef9c3; border-radius:8px; padding:14px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:#854d0e;" id="verify-count-mxonly">–</div>
+                        <div style="font-size:11px; color:#854d0e; margin-top:4px;">⚠️ Nur MX-OK</div>
+                    </div>
+                    <div style="background:#ffedd5; border-radius:8px; padding:14px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:#9a3412;" id="verify-count-notonsite">–</div>
+                        <div style="font-size:11px; color:#9a3412; margin-top:4px;">🔍 Nicht auf Site</div>
+                    </div>
+                    <div style="background:#fee2e2; border-radius:8px; padding:14px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:#991b1b;" id="verify-count-dead">–</div>
+                        <div style="font-size:11px; color:#991b1b; margin-top:4px;">❌ Domain tot</div>
+                    </div>
+                    <div style="background:#e2e8f0; border-radius:8px; padding:14px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:#475569;" id="verify-count-unchecked">–</div>
+                        <div style="font-size:11px; color:#475569; margin-top:4px;">⏱ Ungeprüft</div>
+                    </div>
+                </div>
+
+                <!-- Filter + Start -->
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:18px; margin-bottom:20px;">
+                    <div class="form-row" style="margin-bottom:12px;">
+                        <div class="form-group" style="flex:2;">
+                            <label>Welche Provider prüfen?</label>
+                            <select id="verify-filter">
+                                <option value="never_checked">Nur ungeprüfte</option>
+                                <option value="older_than_30d">Älter als 30 Tage</option>
+                                <option value="older_than_90d">Älter als 90 Tage</option>
+                                <option value="invalid_only">Nur Problem-Status (erneut prüfen)</option>
+                                <option value="all">Alle mit E-Mail</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Maximal pro Lauf</label>
+                            <input type="number" id="verify-limit" value="25" min="1" max="500">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button onclick="window.startEmailVerify()" class="btn-primary" id="verify-btn">
+                            ▶ Verifizierung starten
+                        </button>
+                        <button onclick="window.loadVerifyStats()" class="btn-secondary">
+                            🔄 Statistik aktualisieren
+                        </button>
+                    </div>
+                    <p style="font-size:12px; color:#64748b; margin-top:10px;">
+                        Pro Provider werden zwei Checks gemacht: 1) DNS-MX-Lookup (hat die Domain einen Mailserver?), 2) Website-Recheck (steht die E-Mail noch auf der Startseite oder im Impressum?). Dauer pro Provider ca. 2–5 Sekunden.
+                    </p>
+                </div>
+
+                <!-- Progress + Log -->
+                <div id="verify-progress" style="display:none; margin-bottom:20px;">
+                    <div style="background:#1e293b; color:#e2e8f0; border-radius:8px; padding:15px; font-family:monospace; font-size:12px; max-height:300px; overflow-y:auto;" id="verify-log"></div>
+                    <div style="background:#e2e8f0; border-radius:6px; height:8px; margin-top:10px; overflow:hidden;">
+                        <div id="verify-progress-fill" style="background:#3b82f6; height:100%; width:0%; transition:width 0.3s;"></div>
+                    </div>
+                    <div style="font-size:12px; color:#64748b; margin-top:6px;" id="verify-progress-text"></div>
+                </div>
+
+                <!-- Ergebnis-Tabelle -->
+                <div id="verify-results" style="display:none;">
+                    <h3 style="margin-bottom:12px;">📋 Letzte Prüfungs-Ergebnisse</h3>
+                    <div id="verify-results-list"></div>
                 </div>
             </div>
 

@@ -9452,6 +9452,7 @@ function buildDatevCsv(buchungen) {
         if (page === 'subscriptions')     loadSubscriptions();
         if (page === 'customers')         loadCustomers();
         if (page === 'bookkeeping')       loadBookkeeping();
+        if (page === 'email-verify')      loadVerifyStats();
         // Alte Pages auf die neue umleiten falls noch Direct-Links existieren
         if (page === 'providers' || page === 'shop-management') {
             setTimeout(() => origNav('customers'), 0);
@@ -9460,3 +9461,180 @@ function buildDatevCsv(buchungen) {
     // Badge direkt beim Laden befüllen
     refreshModerationBadge();
 })();
+
+// ============================================
+// EMAIL-VERIFY (Mail-Adressen prüfen)
+// ============================================
+
+let verifyAbort = false;
+
+function verifyLog(message, type = 'info') {
+    const log = document.getElementById('verify-log');
+    if (!log) return;
+    const colors = { info: '#94a3b8', success: '#10b981', error: '#ef4444', warn: '#f59e0b' };
+    log.innerHTML += `<div style="color:${colors[type] || colors.info};">[${new Date().toLocaleTimeString('de-DE')}] ${message}</div>`;
+    log.scrollTop = log.scrollHeight;
+}
+
+/**
+ * Zaehlt pro Status wie viele Provider in welchem Bucket sind und
+ * fuellt die fuenf Stat-Boxen oben in der Page.
+ */
+async function loadVerifyStats() {
+    const setCount = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = (val ?? 0).toLocaleString('de-DE');
+    };
+    try {
+        const probe = async (status) => {
+            let q = supabaseClient
+                .from('service_providers')
+                .select('id', { count: 'exact', head: true })
+                .not('email', 'is', null)
+                .neq('email', '');
+            if (status === null) {
+                q = q.is('email_check_status', null);
+            } else {
+                q = q.eq('email_check_status', status);
+            }
+            const { count, error } = await q;
+            if (error) throw error;
+            return count;
+        };
+        const [valid, mxOnly, notOnSite, dead, unchecked] = await Promise.all([
+            probe('valid'),
+            probe('mx_only'),
+            probe('not_on_site'),
+            probe('domain_dead'),
+            probe(null),
+        ]);
+        setCount('verify-count-valid', valid);
+        setCount('verify-count-mxonly', mxOnly);
+        setCount('verify-count-notonsite', notOnSite);
+        setCount('verify-count-dead', dead);
+        setCount('verify-count-unchecked', unchecked);
+    } catch (err) {
+        console.warn('loadVerifyStats failed:', err);
+        ['valid', 'mxonly', 'notonsite', 'dead', 'unchecked'].forEach(k =>
+            setCount(`verify-count-${k}`, '?')
+        );
+    }
+}
+
+async function startEmailVerify() {
+    verifyAbort = false;
+    const filter = document.getElementById('verify-filter')?.value || 'never_checked';
+    const limit = parseInt(document.getElementById('verify-limit')?.value || '25');
+
+    const btn = document.getElementById('verify-btn');
+    if (btn) btn.disabled = true;
+
+    const progressEl = document.getElementById('verify-progress');
+    const resultsEl  = document.getElementById('verify-results');
+    if (progressEl) progressEl.style.display = 'block';
+    if (resultsEl)  resultsEl.style.display  = 'none';
+
+    const logEl = document.getElementById('verify-log');
+    if (logEl) logEl.innerHTML = '';
+    const fillEl = document.getElementById('verify-progress-fill');
+    const textEl = document.getElementById('verify-progress-text');
+    if (fillEl) fillEl.style.width = '5%';
+    if (textEl) textEl.textContent = 'Lade Provider-Liste …';
+
+    verifyLog(`Starte Verifizierung: Filter="${filter}", Limit=${limit}`, 'info');
+
+    try {
+        const resp = await fetch(`${SCRAPER_URL}/api/verify-emails-batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filter, limit })
+        });
+        if (!resp.ok) {
+            const errBody = await resp.text();
+            throw new Error(`HTTP ${resp.status}: ${errBody.substring(0, 200)}`);
+        }
+        const data = await resp.json();
+
+        if (fillEl) fillEl.style.width = '100%';
+        if (textEl) textEl.textContent = `Fertig. ${data.totalChecked} Provider geprüft.`;
+
+        const c = data.counts || {};
+        verifyLog(`\n📊 Ergebnis:`, 'info');
+        verifyLog(`  ✅ gültig (Mail auf Site, Domain hat MX): ${c.valid || 0}`, 'success');
+        verifyLog(`  ⚠️  nur MX-OK (keine Website hinterlegt): ${c.mx_only || 0}`, 'warn');
+        verifyLog(`  🔍 nicht auf Site (verdächtig): ${c.not_on_site || 0}`, 'warn');
+        verifyLog(`  ❌ Domain tot (kein MX): ${c.domain_dead || 0}`, 'error');
+        verifyLog(`  ⏱ Website unerreichbar: ${c.website_dead || 0}`, 'warn');
+
+        renderVerifyResults(data.results || []);
+
+        // Stats refreshen
+        loadVerifyStats();
+    } catch (err) {
+        verifyLog(`❌ Fehler: ${err.message}`, 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+function renderVerifyResults(results) {
+    const resultsEl = document.getElementById('verify-results');
+    const listEl = document.getElementById('verify-results-list');
+    if (!resultsEl || !listEl) return;
+
+    if (results.length === 0) {
+        resultsEl.style.display = 'block';
+        listEl.innerHTML = '<p style="color:#6b7280; padding:20px;">Keine Provider zum Prüfen gefunden.</p>';
+        return;
+    }
+    resultsEl.style.display = 'block';
+
+    const statusBadge = (status) => {
+        const map = {
+            valid:        { bg:'#dcfce7', col:'#166534', icon:'✅', label:'Gültig' },
+            mx_only:      { bg:'#fef9c3', col:'#854d0e', icon:'⚠️', label:'Nur MX-OK' },
+            not_on_site:  { bg:'#ffedd5', col:'#9a3412', icon:'🔍', label:'Nicht auf Site' },
+            domain_dead:  { bg:'#fee2e2', col:'#991b1b', icon:'❌', label:'Domain tot' },
+            website_dead: { bg:'#fef3c7', col:'#92400e', icon:'⏱', label:'Site unerreichbar' },
+            unverified:   { bg:'#e2e8f0', col:'#475569', icon:'❓', label:'Ungeprüft' },
+        };
+        const m = map[status] || map.unverified;
+        return `<span style="background:${m.bg}; color:${m.col}; padding:3px 9px; border-radius:10px; font-size:12px; font-weight:600; white-space:nowrap;">${m.icon} ${m.label}</span>`;
+    };
+
+    listEl.innerHTML = `
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead>
+                <tr style="background:#f1f5f9;">
+                    <th style="padding:8px; text-align:left;">Provider</th>
+                    <th style="padding:8px; text-align:left;">E-Mail</th>
+                    <th style="padding:8px; text-align:left;">Status</th>
+                    <th style="padding:8px; text-align:left;">Begründung</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${results.map(r => `
+                    <tr style="border-top:1px solid #e2e8f0;">
+                        <td style="padding:8px; vertical-align:top;">
+                            <div style="font-weight:600;">${escapeHtml_v(r.name || '?')}</div>
+                            ${r.website ? `<div style="font-size:11px; color:#64748b;"><a href="${escapeHtml_v(r.website)}" target="_blank" style="color:#64748b;">${escapeHtml_v(r.website)}</a></div>` : ''}
+                        </td>
+                        <td style="padding:8px; vertical-align:top; font-family:monospace; font-size:12px;">${escapeHtml_v(r.email || '–')}</td>
+                        <td style="padding:8px; vertical-align:top;">${statusBadge(r.status)}</td>
+                        <td style="padding:8px; vertical-align:top; color:#475569; font-size:12px;">${escapeHtml_v(r.note || '')}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function escapeHtml_v(s) {
+    return String(s).replace(/[&<>"']/g, ch => ({
+        '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[ch]));
+}
+
+window.startEmailVerify = startEmailVerify;
+window.loadVerifyStats = loadVerifyStats;
+

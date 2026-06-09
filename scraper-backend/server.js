@@ -2844,6 +2844,331 @@ app.post('/api/google-search', async (req, res) => {
     res.status(410).json({ error: 'Veraltet. Verwende POST /api/scrape' });
 });
 
+// ============================================================
+// EMAIL-VERIFIZIERUNG
+// ============================================================
+//
+// Prueft regelmaessig ob hinterlegte Provider-E-Mails noch real sind.
+// Statt eines SMTP-Probes (port 25 outbound ist auf Fly/Render eh
+// gesperrt) machen wir zwei kostenlose, zuverlaessige Checks:
+//
+//  1. MX-Lookup via Cloudflare DNS-over-HTTPS:
+//     Hat die Domain ueberhaupt einen Mail-Server?
+//     → Nein: Domain ist tot, Adresse mit Sicherheit invalid
+//
+//  2. Website-Recheck:
+//     Erscheint die E-Mail noch auf der aktuellen Website (Homepage
+//     + Impressum + Kontakt + Sitemap)?
+//     → Ja: Adresse ist mit hoher Wahrscheinlichkeit aktuell
+//     → Nein: Adresse ist verdaechtig (vielleicht entfernt/geaendert)
+//
+// Kombiniert ergibt das einen sinnvollen Status:
+//   - valid       — MX OK + auf Website gefunden  → grueneste Ampel
+//   - mx_only     — MX OK, nicht auf Website      → gelb
+//   - not_on_site — MX OK, aber Site existiert    → gelb-orange
+//                   und Mail nicht mehr drin
+//   - domain_dead — kein MX-Record                → rot
+//   - website_dead— Website unerreichbar           → unklar
+
+/**
+ * MX-Record-Check via Cloudflare DoH (kostenlos, kein API-Key).
+ */
+const _verifyMxCache = new Map();
+async function checkDomainMx(domain) {
+    if (!domain) return false;
+    if (_verifyMxCache.has(domain)) return _verifyMxCache.get(domain);
+    try {
+        const result = await new Promise((resolve, reject) => {
+            const req = https.get(
+                `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=MX`,
+                { headers: { Accept: 'application/dns-json' } },
+                (res) => {
+                    let data = '';
+                    res.on('data', c => data += c);
+                    res.on('end', () => {
+                        try { resolve(JSON.parse(data)); }
+                        catch { reject(new Error('DoH parse error')); }
+                    });
+                }
+            );
+            req.on('error', reject);
+            req.setTimeout(5000, () => { req.destroy(); reject(new Error('DoH timeout')); });
+        });
+        const hasMx = Array.isArray(result?.Answer) && result.Answer.length > 0;
+        _verifyMxCache.set(domain, hasMx);
+        return hasMx;
+    } catch {
+        // Im Zweifel "true" liefern, damit kein false-positive entsteht
+        _verifyMxCache.set(domain, true);
+        return true;
+    }
+}
+
+/**
+ * Verifiziert eine einzelne E-Mail-Adresse.
+ *
+ * @param {string} email
+ * @param {string|null} website Optional die Website des Providers,
+ *        um zu pruefen ob die Mail dort noch erscheint.
+ * @returns {Promise<{status, mxOk, foundOnSite, note}>}
+ */
+async function verifyEmail(email, website = null) {
+    const result = {
+        status: 'unverified',
+        mxOk: null,
+        foundOnSite: null,
+        note: '',
+    };
+
+    if (!email || !email.includes('@')) {
+        result.status = 'unverified';
+        result.note = 'Keine E-Mail-Adresse angegeben';
+        return result;
+    }
+
+    const domain = email.split('@')[1].toLowerCase().trim();
+
+    // 1. MX-Check
+    try {
+        result.mxOk = await checkDomainMx(domain);
+    } catch (e) {
+        result.mxOk = null;
+    }
+
+    if (result.mxOk === false) {
+        result.status = 'domain_dead';
+        result.note = `Domain ${domain} hat keinen MX-Record — kann keine Mails empfangen`;
+        return result;
+    }
+
+    // 2. Website-Recheck (nur wenn Website bekannt)
+    if (website) {
+        try {
+            const html = await fetchWebpage(website);
+            const emailsOnSite = extractEmailFromHtml(html).map(e => e.toLowerCase());
+            result.foundOnSite = emailsOnSite.includes(email.toLowerCase());
+
+            if (result.foundOnSite) {
+                result.status = 'valid';
+                result.note = `Auf ${website} gefunden, Domain hat MX`;
+                return result;
+            }
+
+            // Mail nicht direkt auf Homepage — vielleicht im Impressum?
+            // Wir versuchen ein paar Subpages, aber ohne grossen Aufwand.
+            const subpages = ['/impressum', '/kontakt', '/contact', '/imprint', '/legal'];
+            const baseUrl = website.replace(/\/+$/, '');
+            for (const sub of subpages) {
+                try {
+                    const subHtml = await fetchWebpage(baseUrl + sub);
+                    const subEmails = extractEmailFromHtml(subHtml).map(e => e.toLowerCase());
+                    if (subEmails.includes(email.toLowerCase())) {
+                        result.foundOnSite = true;
+                        result.status = 'valid';
+                        result.note = `Auf ${baseUrl}${sub} gefunden, Domain hat MX`;
+                        return result;
+                    }
+                } catch { /* sub-page nicht erreichbar */ }
+            }
+
+            // Weder Homepage noch Sub-Pages haben die Mail
+            result.status = 'not_on_site';
+            result.note = `Domain hat MX, aber E-Mail nicht (mehr) auf der Website gefunden`;
+            return result;
+        } catch (err) {
+            // Website nicht erreichbar
+            result.status = 'website_dead';
+            result.note = `Website ${website} nicht erreichbar: ${err.message}. Domain hat MX.`;
+            return result;
+        }
+    }
+
+    // Nur MX-Check moeglich (keine Website hinterlegt)
+    result.status = 'mx_only';
+    result.note = `Domain ${domain} hat MX-Record. Website-Check nicht moeglich (keine Website hinterlegt).`;
+    return result;
+}
+
+/**
+ * POST /api/verify-email
+ * Body: { email, website?, providerId? }
+ *
+ * Wenn providerId angegeben, wird das Ergebnis in der DB persistiert.
+ */
+app.post('/api/verify-email', async (req, res) => {
+    const { email, website, providerId } = req.body || {};
+    if (!email) {
+        return res.status(400).json({ error: 'email required' });
+    }
+
+    const result = await verifyEmail(email, website);
+
+    if (providerId && CONFIG.SUPABASE_SERVICE_KEY) {
+        try {
+            await persistVerificationResult(providerId, result);
+        } catch (e) {
+            console.warn('Persist fehlgeschlagen:', e.message);
+        }
+    }
+
+    res.json({ success: true, email, ...result });
+});
+
+/**
+ * POST /api/verify-emails-batch
+ * Body: { filter, limit, providerIds? }
+ *
+ * filter:
+ *   - 'never_checked'  — Provider die noch nie geprueft wurden (default)
+ *   - 'older_than_30d' — Provider mit Check aelter als 30 Tage
+ *   - 'older_than_90d' — Provider mit Check aelter als 90 Tage
+ *   - 'invalid_only'   — nur Provider mit Problem-Status
+ *   - 'all'            — alle die eine E-Mail haben
+ */
+app.post('/api/verify-emails-batch', async (req, res) => {
+    const { filter = 'never_checked', limit = 25, providerIds = null } = req.body || {};
+
+    if (!CONFIG.SUPABASE_SERVICE_KEY) {
+        return res.status(500).json({
+            error: 'SUPABASE_SERVICE_KEY ist nicht konfiguriert'
+        });
+    }
+
+    try {
+        const providers = await loadProvidersForCheck(filter, limit, providerIds);
+
+        console.log(`\n📧 Email-Verify: ${providers.length} Provider, filter=${filter}`);
+
+        const results = [];
+        let counts = { valid: 0, mx_only: 0, not_on_site: 0, domain_dead: 0, website_dead: 0 };
+
+        for (const p of providers) {
+            const r = await verifyEmail(p.email, p.website);
+            counts[r.status] = (counts[r.status] || 0) + 1;
+            try {
+                await persistVerificationResult(p.id, r);
+            } catch (e) {
+                console.warn(`Persist fuer ${p.id} fehlgeschlagen:`, e.message);
+            }
+            results.push({
+                id: p.id,
+                name: p.name,
+                email: p.email,
+                website: p.website,
+                ...r,
+            });
+            console.log(`  ${r.status === 'valid' ? '✅' : r.status === 'domain_dead' ? '❌' : '⚠️'} ${p.name} → ${r.status}`);
+        }
+
+        res.json({ success: true, totalChecked: providers.length, counts, results });
+    } catch (err) {
+        console.error('Batch-Verify-Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * Laedt Provider die geprueft werden sollen.
+ */
+async function loadProvidersForCheck(filter, limit, providerIds) {
+    const base = `${CONFIG.SUPABASE_URL}/rest/v1/service_providers`;
+    const select = 'id,name,email,website,last_email_check_at,email_check_status';
+
+    let url;
+    if (providerIds && Array.isArray(providerIds) && providerIds.length > 0) {
+        const ids = providerIds.map(i => `"${i}"`).join(',');
+        url = `${base}?select=${select}&id=in.(${ids})&limit=${limit}`;
+    } else {
+        let filterClause = '&email=not.is.null&email=neq.';
+        const now = new Date();
+        switch (filter) {
+            case 'never_checked':
+                filterClause += `&last_email_check_at=is.null`;
+                break;
+            case 'older_than_30d':
+                {
+                    const d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+                    filterClause += `&or=(last_email_check_at.is.null,last_email_check_at.lt.${d})`;
+                }
+                break;
+            case 'older_than_90d':
+                {
+                    const d = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();
+                    filterClause += `&or=(last_email_check_at.is.null,last_email_check_at.lt.${d})`;
+                }
+                break;
+            case 'invalid_only':
+                filterClause += `&email_check_status=in.(domain_dead,not_on_site,website_dead)`;
+                break;
+            case 'all':
+            default:
+                break;
+        }
+        url = `${base}?select=${select}${filterClause}&order=last_email_check_at.asc.nullsfirst&limit=${limit}`;
+    }
+
+    const r = await new Promise((resolve, reject) => {
+        const req = https.get(url, {
+            headers: {
+                apikey: CONFIG.SUPABASE_SERVICE_KEY,
+                Authorization: `Bearer ${CONFIG.SUPABASE_SERVICE_KEY}`,
+                Prefer: 'count=exact',
+            }
+        }, (res) => {
+            let data = '';
+            res.on('data', c => data += c);
+            res.on('end', () => {
+                try { resolve(JSON.parse(data)); }
+                catch (e) { reject(new Error('Supabase parse: ' + e.message)); }
+            });
+        });
+        req.on('error', reject);
+        req.setTimeout(10000, () => { req.destroy(); reject(new Error('Supabase timeout')); });
+    });
+    if (!Array.isArray(r)) {
+        throw new Error('Supabase Response: ' + JSON.stringify(r).substring(0, 200));
+    }
+    return r.filter(p => p.email && p.email.includes('@'));
+}
+
+/**
+ * Persistiert das Ergebnis einer Verifizierung in der DB.
+ */
+async function persistVerificationResult(providerId, result) {
+    const url = `${CONFIG.SUPABASE_URL}/rest/v1/service_providers?id=eq.${encodeURIComponent(providerId)}`;
+    const payload = JSON.stringify({
+        last_email_check_at: new Date().toISOString(),
+        email_check_status: result.status,
+        email_check_note: result.note ? result.note.substring(0, 500) : null,
+    });
+
+    await new Promise((resolve, reject) => {
+        const urlObj = new URL(url);
+        const req = https.request({
+            hostname: urlObj.hostname,
+            path: urlObj.pathname + urlObj.search,
+            method: 'PATCH',
+            headers: {
+                apikey: CONFIG.SUPABASE_SERVICE_KEY,
+                Authorization: `Bearer ${CONFIG.SUPABASE_SERVICE_KEY}`,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(payload),
+                Prefer: 'return=minimal',
+            }
+        }, (res) => {
+            if (res.statusCode >= 200 && res.statusCode < 300) resolve();
+            else {
+                let data = '';
+                res.on('data', c => data += c);
+                res.on('end', () => reject(new Error(`HTTP ${res.statusCode}: ${data}`)));
+            }
+        });
+        req.on('error', reject);
+        req.write(payload);
+        req.end();
+    });
+}
+
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🚀 Skipily Places Scraper v4.0 läuft auf Port ${PORT}`);
     console.log(`\n📡 Endpoints:`);
@@ -2851,6 +3176,8 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`   POST /api/scrape-multiple     - Mehrere Orte nacheinander`);
     console.log(`   POST /api/import              - Manuelle Liste importieren`);
     console.log(`   GET  /api/categories          - Verfügbare Kategorien`);
+    console.log(`   POST /api/verify-email        - E-Mail-Adresse pruefen`);
+    console.log(`   POST /api/verify-emails-batch - Mehrere E-Mails pruefen`);
     console.log(`   GET  /health                  - Status`);
     console.log(`\n🗝️  Google Places API: ${CONFIG.GOOGLE_PLACES_API_KEY ? '✅ Konfiguriert' : '❌ Fehlt!'}`);
     console.log(`🗄️  Supabase URL: ${CONFIG.SUPABASE_URL}`);
