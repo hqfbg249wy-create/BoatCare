@@ -1,0 +1,73 @@
+# Woechentliche E-Mail-Verifizierung aller Provider
+#
+# Triggert den Endpoint /api/verify-emails-batch auf dem Fly.io-Scraper
+# einmal pro Woche. Pro Lauf werden bis zu 200 Provider geprueft (~10 Min).
+# Bei 2000 Providern dauert es so ~10 Wochen bis alle einmal durch sind,
+# danach lauft die "older_than_30d"-Logik im 5-Wochen-Refresh-Zyklus.
+#
+# Manueller Trigger: Actions Tab → Run workflow → ggf. Limit anpassen.
+
+name: Weekly Email Verification
+
+on:
+  schedule:
+    # Jeden Sonntag 03:00 UTC (= 04:00 MEZ / 05:00 MESZ)
+    # Sonntag morgens damit keine Fly.io-VM mitten in der Woche
+    # aufwachen muss waehrend wir arbeiten
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      filter:
+        description: 'Welche Provider pruefen?'
+        required: true
+        default: 'older_than_30d'
+        type: choice
+        options:
+          - never_checked
+          - older_than_30d
+          - older_than_90d
+          - invalid_only
+      limit:
+        description: 'Max. Provider pro Lauf'
+        required: true
+        default: '200'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Pruefen via Fly-Scraper
+        run: |
+          # Defaults fuer den geplanten Lauf
+          FILTER="${{ github.event.inputs.filter || 'older_than_30d' }}"
+          LIMIT="${{ github.event.inputs.limit || '200' }}"
+
+          echo "📧 E-Mail-Verifizierung: filter=$FILTER, limit=$LIMIT"
+          echo "────────────────────────────────────────────────"
+
+          # Erst pingen damit die Fly-VM aus dem Idle aufwacht
+          curl -sf -m 30 https://skipily-scraper.fly.dev/health > /dev/null
+
+          # Verifizierung starten — Timeout grosszuegig, da Provider sequentiell
+          # geprueft werden (2-5s pro Stueck, also bis zu 17 Min bei 200)
+          RESPONSE=$(curl -sf -m 1500 -X POST \
+            https://skipily-scraper.fly.dev/api/verify-emails-batch \
+            -H "Content-Type: application/json" \
+            -d "{\"filter\":\"$FILTER\",\"limit\":$LIMIT}")
+
+          echo "$RESPONSE" | jq -r '
+            "✅ Total geprueft: \(.totalChecked // 0)",
+            "",
+            "Status-Verteilung:",
+            "  valid       : \(.counts.valid // 0)",
+            "  mx_only     : \(.counts.mx_only // 0)",
+            "  not_on_site : \(.counts.not_on_site // 0)",
+            "  domain_dead : \(.counts.domain_dead // 0)",
+            "  website_dead: \(.counts.website_dead // 0)"
+          '
+
+      - name: Schlafzeit (Fly-VM auto-stop)
+        run: |
+          echo "Fly auto_stop_machines uebernimmt — VM schlaeft nach 5 Min Idle ein"

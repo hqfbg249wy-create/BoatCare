@@ -4710,6 +4710,11 @@ const EMAIL_AGENCY_DOMAINS = new Set([
     'dreamhost.com', 'godaddy.com', 'namecheap.com',
     'ovh.com', 'ovh.de', 'ovh.fr', 'gandi.net',
     'register.com', 'enom.com', 'name.com',
+    'web.com', 'networksolutions.com', 'tucows.com', 'opensrs.com',
+    'publicdomainregistry.com', 'registrar.eu', 'registrar-servers.com',
+    'markmonitor.com', 'csc-domains.com', 'safenames.net',
+    'easyspace.com', 'easydns.com', 'dynadot.com',
+    'porkbun.com', 'hover.com', 'fastdomain.com',
     // Mail-Provider (Privat-Mails — nicht Firmen-Mails)
     // Bewusst RAUS: gmail.com, gmx.de, web.de, yahoo.de, t-online.de,
     // outlook.com, hotmail.com, freenet.de, posteo.de, mail.de
@@ -5115,9 +5120,29 @@ async function lookupRdapEmail(domain) {
         const data = await resp.json();
         const found = new Set();
         for (const entity of (data.entities || [])) _collectRdapEmails(entity, found);
-        // GDPR-Schutz-Mails rausfiltern
-        const privacy = /privacy|protect|redacted|registrar|abuse|noreply|whoisguard|domains|proxy/i;
-        return [...found].filter(e => e.includes('@') && !privacy.test(e));
+
+        // GDPR-Schutz-, Privacy-Service- und Registrar-Mails rauswerfen.
+        // Patterns die wir IMMER ausschliessen — diese sind in 99% der
+        // Faelle keine echten Geschaeftskontakte:
+        const privacy = /privacy|protect|redacted|registrar|abuse|noreply|whoisguard|proxy|wide ?web|web-?hosting|hosting-?ops|domain[ ._-]?operations|domain[ ._-]?admin|domain[ ._-]?tech|domain[ ._-]?contact|domain[ ._-]?support|nic-?hdl|tech-?contact|admin-?contact/i;
+
+        // Domain-Sameness-Check: Wenn die RDAP-Mail NICHT auf einer Domain
+        // liegt, die mit der gesuchten Provider-Domain verwandt ist, dann
+        // gehoert sie mit hoher Wahrscheinlichkeit dem Registrar/Hoster
+        // (z.B. domain.operations@web.com beim Lookup von morrison-marine.com).
+        //
+        // Wir akzeptieren nur Mails wo die TLD-Basis matcht: morrison-marine.com
+        // matcht foo@morrison-marine.com aber NICHT foo@web.com.
+        const providerBase = domain.replace(/^www\./, '').split('.').slice(-2).join('.');
+
+        return [...found].filter(e => {
+            if (!e.includes('@')) return false;
+            if (privacy.test(e)) return false;
+            // Sameness: gleiche TLD-Basis erforderlich
+            const mailDomain = e.split('@')[1].toLowerCase();
+            const mailBase = mailDomain.split('.').slice(-2).join('.');
+            return mailBase === providerBase;
+        });
     } catch {
         return [];
     }
