@@ -4694,7 +4694,12 @@ let emailFinderAbort = false;
  *    Webdesign Mueller" im Footer). Wenn Provider-Domain bekannt ist,
  *    bevorzugen wir Mails @sameDomain.
  */
-const EMAIL_BAD_PREFIXES = /^(webmaster|web|admin|administrator|hostmaster|postmaster|abuse|noc|nameserver|dns|sysadmin|root|it|edv|noreply|no-reply|donotreply|do-not-reply|mailer-daemon|bounce|listserv|newsletter|test|spam|wp-?admin)@/i;
+// Streng nur das ausschliessen was IMMER System-/Tracking-Mailboxen sind.
+// Bewusst NICHT (mehr) ausgeschlossen, weil in Kleinbetrieben legitim:
+//   admin@, web@, it@, edv@, administrator@
+// Diese kommen mitunter als "Administration" / "Web-Abteilung" /
+// "IT-Abteilung" daher und sind dann der echte Geschaeftskontakt.
+const EMAIL_BAD_PREFIXES = /^(webmaster|hostmaster|postmaster|abuse|noc|nameserver|dns|sysadmin|root|noreply|no-reply|donotreply|do-not-reply|mailer-daemon|bounce|listserv|newsletter|test|spam|wp-?admin)@/i;
 
 const EMAIL_AGENCY_DOMAINS = new Set([
     // Website-Builder
@@ -5275,7 +5280,7 @@ async function findEmailsForProvider(provider, source) {
     // ── Phase 5: Filterung + Ranking ─────────────────────────────────────────
     //
     // Hier rauswerfen:
-    //  - System-Mailboxen (webmaster@, admin@, postmaster@, ...)
+    //  - System-Mailboxen (webmaster@, postmaster@, noreply@, ...)
     //  - Webagentur-/Hoster-Domains (jimdo, wix, ionos, strato, ...)
     //  - Webdesigner-Domains (enthalten "webdesign", "webagentur" etc.)
     //
@@ -5287,8 +5292,14 @@ async function findEmailsForProvider(provider, source) {
     const beforeCount = allEmails.size;
     const filtered = filterAndRankEmails([...allEmails], domain);
     const removed = beforeCount - filtered.length;
-    if (removed > 0) {
-        emailFinderLog(`    🧹 ${removed} Mail(s) ausgefiltert (Webmaster/Agentur/Hoster)`, 'info');
+
+    // IMMER loggen, auch wenn nichts gefunden — sonst Debug nicht moeglich
+    if (beforeCount === 0) {
+        emailFinderLog(`    ℹ️ Keine E-Mails in Quellen extrahiert (Homepage/Sitemap/Subpages/RDAP)`, 'info');
+    } else if (removed > 0) {
+        emailFinderLog(`    🧹 ${beforeCount} extrahiert, ${removed} ausgefiltert (Webmaster/Agentur/Hoster) → ${filtered.length} bleiben`, 'info');
+    } else {
+        emailFinderLog(`    ✓ ${beforeCount} extrahiert, alle behalten`, 'info');
     }
 
     return { emails: filtered, foundOnPage };
