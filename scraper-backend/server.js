@@ -65,11 +65,20 @@ const CATEGORY_KEYWORDS = {
         it: ['officina motori marini', 'riparazione motore fuoribordo', 'meccanico nautico motori']
     },
     'marine supplies': {
-        en: ['ship chandler', 'marine chandlery', 'yacht chandler', 'nautical supplies store', 'marine equipment dealer'],
-        fr: ['shipchandler nautique', 'accastillage nautique', 'ship chandler marine'],
-        de: ['Schiffszubehör Händler', 'Bootszubehör Fachhandel', 'Ship Chandler Nautik'],
-        es: ['shipchandler náutico', 'accesorios náuticos tienda', 'tienda accastillage'],
-        it: ['shipchandler nautico', 'accessori nautici negozio', 'forniture nautiche']
+        // "Ship Chandler" und "Accastillage" sind hier die magischen
+        // Begriffe — sie sind so spezifisch, dass kein Baumarkt sie
+        // im Namen oder Editorial fuehrt. Bewusst NICHT "Bootsbedarf
+        // Laden" — das matcht oft Angelgeschaefte und Decathlon.
+        en: ['ship chandler boat supplies', 'yacht chandlery shop',
+             'marine chandlery store', 'boat parts dealer marine'],
+        fr: ['shipchandler accastillage', 'magasin accastillage nautique',
+             'shipchandler nautique', 'accastillage bateau'],
+        de: ['Ship Chandler Yachtzubehör', 'Yachtausrüster Fachhandel',
+             'Bootsbedarf Fachgeschäft Marine', 'Yachtbedarf Nautik'],
+        es: ['shipchandler náutico tienda', 'accesorios náuticos marina',
+             'tienda accastillage barcos'],
+        it: ['shipchandler nautico negozio', 'accessori nautici barche',
+             'forniture nautiche marina']
     },
     sailmaker: {
         en: ['sailmaker workshop', 'sail repair service', 'sails manufacturer', 'sail loft'],
@@ -107,11 +116,20 @@ const CATEGORY_KEYWORDS = {
         it: ['perito navale marittimo', 'ispettore nautico', 'perizia imbarcazioni']
     },
     crane: {
-        en: ['travel lift boat', 'boat crane service', 'boat hoist yard', 'boat launching service'],
-        fr: ['travel lift bateau', 'grue mise à l\'eau', 'portique nautique mise à l\'eau'],
-        de: ['Travelift Bootswerft', 'Bootkran Service', 'Kranservice Boots'],
-        es: ['travel lift barcos', 'grúa botadura barcos', 'varado barcos grúa'],
-        it: ['travel lift cantiere', 'gru varo barche', 'alaggio barche cantiere']
+        // Bewusst sehr boots-spezifisch — generisches "crane service"
+        // wuerde sonst Bau-/Auto-/Industriekraene mitziehen. Travel-Lift
+        // ist ein Markenname fuer Boots-Portalkraene und ein sicherer
+        // Treffer.
+        en: ['travel lift boat yard', 'boat hoist marina', 'boat launching crane',
+             'yacht crane marina', 'travelift boat'],
+        fr: ['travel lift chantier nautique', 'grue mise à l\'eau bateau',
+             'portique nautique', 'grue cale de halage'],
+        de: ['Travelift Bootswerft', 'Bootskran Marina', 'Krananlage Yachthafen',
+             'Bootslift Marina', 'Portalkran Bootswerft'],
+        es: ['travel lift puerto deportivo', 'grúa botadura barcos',
+             'pórtico náutico', 'varadero grúa'],
+        it: ['travel lift porto turistico', 'gru varo barche cantiere',
+             'alaggio barche', 'gru nautica marina']
     },
     heating_climate: {
         en: ['marine heating system', 'boat air conditioning', 'marine HVAC service', 'boat heater installation'],
@@ -153,23 +171,33 @@ const CATEGORY_TO_GERMAN = {
 };
 
 // Kategorien-Mapping: Google Places types → App-Kategorien
+//
+// WICHTIG: Hier NUR sehr eindeutig marine-spezifische Types eintragen.
+// Generische Types wie 'hardware_store' (Bauhaus, OBI), 'general_contractor'
+// (Bauunternehmer) oder 'sporting_goods_store' (Decathlon) wurden bewusst
+// entfernt, weil Google die in der Naehe von Haefen gerne mit auswirft —
+// das hat zu vielen Falsch-Positiven gefuehrt (Supermarkt, Baumarkt etc.).
+//
+// Bevor ein generischer Type wieder rein kommt: erst Name-Pruefung in
+// placeToProvider() um sicherzustellen, dass es wirklich um Boote geht.
 const CATEGORY_MAPPING = {
-    // Werkstatt / Reparatur
+    // Werkstatt / Reparatur — nur Auto-Werkstaetten als Fallback,
+    // weil die manchmal Boots-Motoren mitmachen. Name muss aber
+    // weiterhin Boots-Bezug zeigen (siehe placeToProvider).
     'car_repair': 'repair',
-    'general_contractor': 'repair',
 
-    // Händler / Zubehör
-    'sporting_goods_store': 'marine supplies',
-    'hardware_store': 'marine supplies',
+    // Boots-Haendler — der eine wirklich eindeutige Type
     'boat_dealer': 'marine supplies',
 
-    // Marinas (werden gefiltert)
+    // Marinas (werden ohnehin gefiltert, kein Service)
     'marina': 'marina',
     'boat_rental': 'marina',
     'harbor': 'marina',
 
-    // Default
-    'establishment': 'repair'
+    // KEIN Default mehr — 'establishment' ist die generischste Google-
+    // Kategorie ueberhaupt und matcht alles vom Briefkasten bis zum
+    // Wahlbuero. Wenn primaryType nichts liefert, bleibt categoryHint
+    // aus dem Such-Query (der ist explizit marine).
 };
 
 // Spracherkennung aus Ortsnamen/Länderbezeichnung
@@ -1198,6 +1226,34 @@ const EXCLUSION_KEYWORDS = [
     'shipbuilding', 'schiffbau', 'construction navale industrielle',
     'offshore', 'oil rig', 'platform supply', 'dredging', 'baggerschiff',
     'pilot boat', 'lotsenboot', 'bateau pilote',
+    // Werften fuer Marineindustrie / militaer / Stahlbau-Schiffe
+    'shipyard industrial', 'werft industriell', 'marine industrielle',
+    'cantieri industriali', 'schiffsbauindustrie', 'naval industrial',
+
+    // Bau-/Industriekraene (NICHT Bootskraene!)
+    'baukran', 'tower crane', 'mobile crane', 'autokran', 'lkw-kran',
+    'kranverleih', 'kranservice bau', 'crane rental', 'construction crane',
+    'grue de chantier', 'location de grue', 'gru edile', 'noleggio gru',
+    'grúa de construcción', 'alquiler grúa',
+    'turmkran', 'crawler crane', 'raupenkran', 'fahrzeugkran',
+    'hochbau', 'tiefbau', 'erdbau', 'baufirma', 'bauunternehmen',
+    'general construction', 'civil engineering', 'entreprise de construction',
+    'impresa edile', 'empresa constructora',
+
+    // Baumärkte / Hardware-Stores
+    'baumarkt', 'hardware store', 'home improvement', 'diy store',
+    'magasin de bricolage', 'brico', 'leroy merlin', 'bauhaus',
+    'obi markt', 'hornbach', 'toom baumarkt', 'castorama',
+    'bricomarché', 'bricoman', 'magasin de bricolage',
+    'ferramenta', 'utensilería', 'ferretería', 'tienda bricolaje',
+
+    // Garten / Landschaftsbau
+    'gartencenter', 'garden center', 'jardinerie', 'gartenbau',
+    'landscaping', 'landschaftsbau', 'paysagiste', 'giardinaggio',
+
+    // Auto / KFZ (allgemein, ohne Marine-Bezug)
+    'kfz werkstatt allgemein', 'autohaus', 'car dealership',
+    'concessionnaire automobile', 'concessionario auto',
 ];
 
 /**
@@ -1233,16 +1289,35 @@ function isExcluded(place) {
         .map(r => r.text?.text || r.originalText?.text || '').join(' ').toLowerCase();
     const combinedText = `${name} ${editorial} ${reviewText}`;
 
-    // 1. Google Places Typ-Check: Marinas, Hafenbetriebe, Boot-Vermietung, Angel-/Fischereibetriebe direkt ausschließen
-    const excludedTypes = ['marina', 'harbor', 'boat_rental', 'tourist_attraction',
-                           'travel_agency', 'amusement_park', 'fishing_store',
-                           'fishing_charter', 'scuba_diving',
-                           'hotel', 'motel', 'resort_hotel', 'lodging',
-                           'restaurant', 'meal_delivery', 'meal_takeaway',
-                           'apartment_building', 'apartment_complex',
-                           'gas_station', 'fuel_station', 'supermarket', 'grocery_store',
-                           'furniture_store', 'home_goods_store', 'home_improvement_store',
-                           'moving_company', 'trucking_company', 'freight_depot'];
+    // 1. Google Places Typ-Check: alles ausschliessen was kein
+    //    Bootsservice ist — selbst wenn der Name "marine" enthaelt.
+    const excludedTypes = [
+        // Marinas / Hafenbetriebe (sind keine Service-Anbieter)
+        'marina', 'harbor', 'boat_rental', 'fishing_charter',
+        // Tourismus / Freizeit
+        'tourist_attraction', 'travel_agency', 'amusement_park',
+        'fishing_store', 'scuba_diving',
+        // Beherbergung / Gastronomie
+        'hotel', 'motel', 'resort_hotel', 'lodging', 'campground',
+        'restaurant', 'meal_delivery', 'meal_takeaway', 'bar', 'cafe',
+        'apartment_building', 'apartment_complex',
+        // Einzelhandel ohne Marine-Bezug
+        'gas_station', 'fuel_station', 'supermarket', 'grocery_store',
+        'convenience_store', 'shopping_mall', 'department_store',
+        'furniture_store', 'home_goods_store', 'home_improvement_store',
+        'hardware_store', 'sporting_goods_store',
+        // Transport / Logistik (Berufsschifffahrt)
+        'moving_company', 'trucking_company', 'freight_depot',
+        'storage', 'self_storage',
+        // Bauindustrie (NICHT Bootsbau)
+        'construction_company', 'roofing_contractor', 'electrical_contractor',
+        // Gesundheit / Bildung
+        'hospital', 'doctor', 'dentist', 'pharmacy',
+        'school', 'university', 'primary_school', 'secondary_school',
+        // Finanzen / Aemter
+        'bank', 'atm', 'insurance_agency', 'real_estate_agency',
+        'local_government_office', 'post_office',
+    ];
     if (excludedTypes.includes(primaryType)) return true;
     if (types.some(t => excludedTypes.includes(t))) return true;
 
@@ -1255,6 +1330,33 @@ function isExcluded(place) {
     // 2b. Name enthält Berufsschifffahrt / kommerzielle Schifffahrt
     if (/\b(spedition|logistik|logistics|freight|fracht|cargo|container|shipping company|reederei|scheepvaart|transport maritim|binnenschif)/i.test(name)) {
         console.log(`   🚫 Ausgeschlossen: "${place.displayName?.text}" (Berufsschifffahrt)`);
+        return true;
+    }
+
+    // 2c. Bau-/Industriekraene ausschliessen, wenn kein Boots-Bezug im Namen
+    //     (Kran-Suche ist die haeufigste Quelle fuer Falsch-Positive)
+    if (/\b(kran|crane|grue|gru|grúa)\b/i.test(name) &&
+        !/\b(boot|yacht|marine|nautic|naval|chantier|werft|cantiere|astillero|marina|travel.?lift|portique nautique|port[oa] turistico|cale de halage|hafen)\b/i.test(name)) {
+        // Generisches "Kran"/"Crane" ohne Marine-Begriff → Bau-/Industriekran
+        console.log(`   🚫 Ausgeschlossen: "${place.displayName?.text}" (vermutlich Bau-/Industriekran, kein Boots-Bezug im Namen)`);
+        return true;
+    }
+
+    // 2d. Baumarkt-/Baufirma-Namen erkennen
+    if (/\b(bauhaus|obi|hornbach|toom|leroy merlin|castorama|brico|home depot|baumarkt|hardware store)\b/i.test(name)) {
+        console.log(`   🚫 Ausgeschlossen: "${place.displayName?.text}" (Baumarkt)`);
+        return true;
+    }
+    if (/\b(bau ?gmbh|bauunternehmen|baufirma|construction company|entreprise de construction|impresa edile)\b/i.test(name) &&
+        !/\b(boot|yacht|marine|chantier naval|cantiere nautico|werft)\b/i.test(name)) {
+        console.log(`   🚫 Ausgeschlossen: "${place.displayName?.text}" (Bauunternehmen ohne Boots-Bezug)`);
+        return true;
+    }
+
+    // 2e. Werft-Namen mit Industrie-Verdacht (Stahlbau, Schiffbau)
+    if (/\b(werft|shipyard|chantier naval|cantiere navale|astillero)\b/i.test(name) &&
+        /\b(industri|industrial|stahlbau|steel construction|naval construction industrielle|cantiere navale industriale)\b/i.test(name)) {
+        console.log(`   🚫 Ausgeschlossen: "${place.displayName?.text}" (Industriewerft / Berufsschifffahrt)`);
         return true;
     }
 
@@ -2320,49 +2422,181 @@ app.post('/api/enrich-brands', async (req, res) => {
 // ============================================================
 
 /** Lädt eine Webseite per HTTPS GET (max 500KB, 8s Timeout) */
-function fetchWebpage(url) {
+/**
+ * Laedt eine Webseite und gibt das rohe HTML zurueck.
+ *
+ * Wichtig fuer Email-Scraping:
+ *  - User-Agent muss echt aussehen — viele Werften haben einen
+ *    schlanken Cloudflare-Bot-Block, der "BoatCareBot" ablehnt
+ *  - Accept-Header dazugeben, sonst senden manche Server 406
+ *  - Accept-Encoding: identity — wir wollen kein gzipped HTML
+ *  - Folge bis zu 5 Redirects (war 3, manche WP-Sites brauchen mehr)
+ *  - Relative Location-Header korrekt aufloesen
+ */
+function fetchWebpage(url, redirectsLeft = 5) {
     return new Promise((resolve, reject) => {
         const lib = url.startsWith('https') ? https : http;
-        const timeout = setTimeout(() => reject(new Error('Timeout nach 8s')), 8000);
+        const timeout = setTimeout(() => reject(new Error('Timeout nach 10s')), 10000);
 
         const req = lib.get(url, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BoatCareBot/1.0)' }
+            headers: {
+                // Realistischer Browser-User-Agent — fast alle Sites lassen
+                // diesen durch. Bot-Detection-Plugins (Cloudflare, Sucuri)
+                // sehen das aber natuerlich. Fuer schwere Faelle muesste
+                // crawl4ai-Backend ran (Playwright mit echtem Browser).
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8',
+                'Accept-Encoding': 'identity',
+                'Cache-Control': 'no-cache',
+            }
         }, (res) => {
-            // Redirect folgen (max 3x)
+            // Redirect folgen — Location-Header kann relativ sein
             if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
                 clearTimeout(timeout);
-                return fetchWebpage(res.headers.location).then(resolve).catch(reject);
+                if (redirectsLeft <= 0) {
+                    return reject(new Error('Zu viele Redirects'));
+                }
+                let nextUrl = res.headers.location;
+                if (!nextUrl.startsWith('http')) {
+                    try {
+                        nextUrl = new URL(nextUrl, url).toString();
+                    } catch {
+                        return reject(new Error('Ungueltige Redirect-URL'));
+                    }
+                }
+                return fetchWebpage(nextUrl, redirectsLeft - 1).then(resolve).catch(reject);
+            }
+            // HTTP-Fehler (z.B. 404, 403, 500) explizit melden
+            if (res.statusCode >= 400) {
+                clearTimeout(timeout);
+                return reject(new Error(`HTTP ${res.statusCode}`));
             }
             let data = '';
             let bytes = 0;
             res.on('data', chunk => {
                 bytes += chunk.length;
-                if (bytes > 1200000) { res.destroy(); clearTimeout(timeout); reject(new Error('Seite zu groß')); return; }
+                if (bytes > 1500000) {
+                    res.destroy();
+                    clearTimeout(timeout);
+                    reject(new Error('Seite zu groß'));
+                    return;
+                }
                 data += chunk;
             });
             res.on('end', () => { clearTimeout(timeout); resolve(data); });
+            res.on('error', (e) => { clearTimeout(timeout); reject(e); });
         });
         req.on('error', (e) => { clearTimeout(timeout); reject(e); });
+        req.setTimeout(10000, () => { req.destroy(); clearTimeout(timeout); reject(new Error('Socket-Timeout')); });
     });
 }
 
-/** Extrahiert E-Mail-Adressen aus HTML */
+/**
+ * Extrahiert E-Mail-Adressen aus HTML — auch verschleierte Varianten.
+ *
+ * Erkennt:
+ *  - Standard-Mails: info@firma.de
+ *  - mailto:-Hrefs (auch wenn der sichtbare Text anders ist)
+ *  - HTML-Entities: &#64; → @, &#46; → .
+ *  - Obfuskation: info[at]firma.de, info (at) firma.de, info AT firma DOT de
+ *  - JavaScript-Konkatenation: "info" + "@" + "firma.de"
+ *  - JSON-LD <script type="application/ld+json"> mit "email"-Feld
+ *  - data-email / data-mail Attribute
+ */
 function extractEmailFromHtml(html) {
-    const cleaned = html
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-        .replace(/<!--[\s\S]*?-->/g, '');
+    if (!html) return [];
+    const found = new Set();
     const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
-    const matches = cleaned.match(emailRegex) || [];
-    const filtered = matches.filter(e =>
-        !e.includes('example.com') && !e.includes('wixpress') &&
-        !e.includes('sentry.io') && !e.includes('schema.org') &&
-        !e.includes('wordpress') && !e.includes('gravatar') &&
-        !e.includes('cloudflare') && !e.includes('@2x') &&
-        !e.endsWith('.png') && !e.endsWith('.jpg')
-    );
-    // Deduplizieren
-    return [...new Set(filtered)].slice(0, 3);
+
+    // 1. mailto:-Hrefs (zuverlaessigste Quelle, ueberlebt auch JS-Render)
+    const mailtoHrefRegex = /href\s*=\s*["']\s*mailto\s*:\s*([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/gi;
+    for (const m of html.matchAll(mailtoHrefRegex)) {
+        found.add(m[1].toLowerCase());
+    }
+
+    // 2. data-email / data-mail / data-contact-email
+    const dataAttrRegex = /data-(?:email|mail|contact-email)\s*=\s*["']([^"']+)["']/gi;
+    for (const m of html.matchAll(dataAttrRegex)) {
+        for (const e of m[1].matchAll(emailRegex)) found.add(e[0].toLowerCase());
+    }
+
+    // 3. JSON-LD strukturierte Daten
+    const jsonLdRegex = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+    for (const m of html.matchAll(jsonLdRegex)) {
+        try {
+            const data = JSON.parse(m[1].trim());
+            const items = Array.isArray(data) ? data : [data];
+            const collect = (node) => {
+                if (!node || typeof node !== 'object') return;
+                for (const k of ['email', 'contactEmail', 'customerServiceEmail']) {
+                    if (typeof node[k] === 'string' && node[k].includes('@')) {
+                        found.add(node[k].toLowerCase().trim());
+                    }
+                }
+                for (const v of Object.values(node)) {
+                    if (Array.isArray(v)) v.forEach(collect);
+                    else if (v && typeof v === 'object') collect(v);
+                }
+            };
+            items.forEach(collect);
+        } catch { /* invalid JSON */ }
+    }
+
+    // 4. Rest: Skripte/Styles/Kommentare raus, dann auf gesamtem Text suchen
+    let cleaned = html
+        .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<!--[\s\S]*?-->/g, ' ');
+
+    // HTML-Entities dekodieren: &#64; → @, &#46; → .
+    cleaned = cleaned
+        .replace(/&#64;|&#x40;/gi, '@')
+        .replace(/&#46;|&#x2e;/gi, '.')
+        .replace(/&amp;/gi, '&')
+        .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+        .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)));
+
+    // Obfuskation normalisieren
+    const normalized = cleaned
+        .replace(/\s*[\[(\{<«]\s*at\s*[\])}>»]\s*/gi, '@')
+        .replace(/(?<=\S)\s+at\s+(?=\S)/gi, '@')
+        .replace(/\s*[\[(\{<«]\s*dot\s*[\])}>»]\s*/gi, '.')
+        .replace(/(?<=\S)\s+dot\s+(?=\S)/gi, '.')
+        .replace(/\s*[\[(\{<«]\s*punkt\s*[\])}>»]\s*/gi, '.')
+        .replace(/(?<=\S)\s+punkt\s+(?=\S)/gi, '.')
+        .replace(/_at_/gi, '@').replace(/-at-/gi, '@');
+
+    for (const m of normalized.matchAll(emailRegex)) {
+        found.add(m[0].toLowerCase());
+    }
+
+    // 5. JavaScript-Konkatenation: "info" + "@" + "domain.de"
+    const jsConcat = /['"]([a-zA-Z0-9._%+\-]+)['"]\s*\+\s*['"]@['"]\s*\+\s*['"]([a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})['"]/g;
+    for (const m of html.matchAll(jsConcat)) {
+        found.add((m[1] + '@' + m[2]).toLowerCase());
+    }
+
+    // Filter: System-Mails, Tracker, Image-Endungen, Webagenturen, Hoster
+    const excluded = /\.(png|jpg|jpeg|gif|svg|css|js|woff|ttf|eot|ico|webp)$/i;
+    const sysMailbox = /^(noreply|no-reply|mailer-daemon|postmaster|donotreply|do-not-reply|webmaster|hostmaster|abuse|root|admin|administrator|sysadmin|nameserver|dns|noc|wp-?admin|bounce|listserv|newsletter|test|spam)@/i;
+    const blacklist = /example\.com|wixpress|sentry\.io|schema\.org|wordpress\.com|gravatar|cloudflare|@2x|googletagmanager|facebook\.com|twitter\.com|youtube\.com/i;
+
+    // Webagentur-/Hoster-Domains (Mail dort ist nicht vom Betrieb)
+    const agencyDomain = /@(jimdo\.com|jimdo\.de|wix\.com|wixsite\.com|wordpress\.com|squarespace\.com|webflow\.io|webnode\.|weebly\.com|site123\.com|strikingly\.com|ionos\.de|ionos\.com|one\.com|1und1\.de|strato\.de|hosteurope\.de|all-inkl\.com|hostinger\.com|hostgator\.com|godaddy\.com|namecheap\.com|ovh\.(com|de|fr)|gandi\.net)$/i;
+
+    // Webdesigner-Domains (Hinweis-Strings im Domain-Teil)
+    const webdesigner = /@[^@]*(webdesign|webagentur|webagency|werbeagentur|werbeagentur|softwareentwicklung|webentwicklung|agence-?web|agenzia-?web|agencia-?web|seo-?agentur)[^@]*$/i;
+
+    return [...found]
+        .filter(e =>
+            !excluded.test(e) &&
+            !sysMailbox.test(e) &&
+            !blacklist.test(e) &&
+            !agencyDomain.test(e) &&
+            !webdesigner.test(e)
+        )
+        .slice(0, 5);
 }
 
 /** Extrahiert Ansprechpartner aus HTML */
@@ -2393,7 +2627,39 @@ app.post('/api/scrape-website', async (req, res) => {
         const html = await fetchWebpage(url);
         const emails = extractEmailFromHtml(html);
         const contact = extractContactFromHtml(html);
-        res.json({ success: true, emails, contact, email: emails[0] || null });
+
+        // Auch das rohe HTML zurueckliefern — der Client (admin-web)
+        // hat deutlich schlauere Extractor (JSON-LD, mailto-Hrefs, Meta,
+        // hCard-Microformats, obfuscierte Mails mit [at]/[dot], JS-
+        // Konkatenation, HTML-Entities). Ohne HTML fallen die alle
+        // flach und wir verlieren ~60% der echten Treffer.
+        //
+        // Cap auf 600 KB, damit grosse Single-Page-Apps keine zu grossen
+        // Responses erzeugen. Die kompletten 1.2 MB aus fetchWebpage
+        // brauchen wir nicht — Mail-Adressen kommen praktisch immer in
+        // den ersten paar 100 KB.
+        const htmlClipped = html.length > 600_000
+            ? html.substring(0, 600_000)
+            : html;
+
+        // Extrahiere Markdown-aehnlichen Roh-Text fuer den Fallback-
+        // Regex auf dem Client (extractEmailsFromText scannt darin
+        // auch obfuscierte Mails). Style+Script vorher rauswerfen.
+        const rawText = html
+            .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+            .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .substring(0, 400_000);
+
+        res.json({
+            success: true,
+            emails,
+            contact,
+            email: emails[0] || null,
+            html: htmlClipped,
+            raw_text: rawText,
+        });
     } catch (err) {
         res.json({ success: false, emails: [], contact: null, email: null, error: err.message });
     }

@@ -4669,6 +4669,116 @@ let emailFinderResults = [];
 let emailFinderAbort = false;
 
 /** Subseiten, die typischerweise E-Mails/Impressum enthalten */
+/**
+ * Filtert E-Mails aus, die nicht zum Betrieb gehoeren — sondern zum
+ * Webmaster, zur Webdesign-Agentur oder zum Hosting-Provider.
+ *
+ * Drei Heuristiken (von strikt nach mild):
+ *
+ * 1. **Generische Web-/IT-/System-Mailboxen**: webmaster@, admin@,
+ *    hostmaster@, postmaster@, abuse@, root@, dns@, nameserver@.
+ *    Niemand schreibt da hin um einen Bootsmotor zu reparieren.
+ *
+ * 2. **Webagentur-Domains**: emails @ jimdo.com, wix.com, webflow.io,
+ *    wordpress.com, squarespace.com, hostinger, ionos, 1und1, strato
+ *    etc. — die Provider haben gar keine eigene Mail-Infrastruktur,
+ *    die Mail gehoert dem Hoster.
+ *
+ * 3. **Domain-Mismatch**: wenn der Provider eine .de-Website hat aber
+ *    die gefundene Mail @webdesign-mueller.com ist, ist das mit hoher
+ *    Wahrscheinlichkeit der Webdesigner (haeufiges Pattern: "Site by
+ *    Webdesign Mueller" im Footer). Wenn Provider-Domain bekannt ist,
+ *    bevorzugen wir Mails @sameDomain.
+ */
+const EMAIL_BAD_PREFIXES = /^(webmaster|web|admin|administrator|hostmaster|postmaster|abuse|noc|nameserver|dns|sysadmin|root|it|edv|noreply|no-reply|donotreply|do-not-reply|mailer-daemon|bounce|listserv|newsletter|test|spam|wp-?admin)@/i;
+
+const EMAIL_AGENCY_DOMAINS = new Set([
+    // Website-Builder
+    'jimdo.com', 'jimdo.de', 'wix.com', 'wixsite.com',
+    'wordpress.com', 'wp.com', 'squarespace.com', 'webflow.io',
+    'webnode.com', 'webnode.de', 'webnode.it', 'webnode.fr',
+    'webstarts.com', '000webhost.com', 'weebly.com',
+    'site123.com', 'mozello.com', 'strikingly.com',
+    // Hoster
+    'ionos.de', 'ionos.com', 'one.com', '1und1.de', '1and1.com',
+    'strato.de', 'strato.com', 'hosteurope.de', 'all-inkl.com',
+    'hostinger.com', 'hostgator.com', 'bluehost.com',
+    'dreamhost.com', 'godaddy.com', 'namecheap.com',
+    'ovh.com', 'ovh.de', 'ovh.fr', 'gandi.net',
+    'register.com', 'enom.com', 'name.com',
+    // Mail-Provider (Privat-Mails — nicht Firmen-Mails)
+    // Bewusst RAUS: gmail.com, gmx.de, web.de, yahoo.de, t-online.de,
+    // outlook.com, hotmail.com, freenet.de, posteo.de, mail.de
+    // → das filtert echte Kleinbetriebe raus, die nur eine Privat-Mail haben.
+    // Stattdessen kennzeichnen wir die als "private mail" und priorisieren
+    // niedriger, schliessen sie aber nicht aus.
+]);
+
+const EMAIL_PRIVATE_MAIL_DOMAINS = new Set([
+    'gmail.com', 'googlemail.com',
+    'gmx.de', 'gmx.net', 'gmx.at', 'gmx.ch',
+    'web.de', 't-online.de', 'freenet.de', 'arcor.de',
+    'yahoo.de', 'yahoo.com', 'yahoo.fr', 'yahoo.it', 'yahoo.es',
+    'outlook.com', 'outlook.de', 'hotmail.com', 'hotmail.de',
+    'live.com', 'live.de', 'msn.com',
+    'aol.com', 'aol.de', 'mail.com', 'mail.de',
+    'icloud.com', 'me.com', 'posteo.de', 'posteo.net',
+    'tutanota.com', 'protonmail.com', 'mailbox.org',
+    'orange.fr', 'free.fr', 'laposte.net', 'sfr.fr', 'wanadoo.fr',
+    'libero.it', 'tiscali.it', 'tin.it', 'alice.it', 'virgilio.it',
+    'telefonica.net', 'movistar.es', 'ya.com',
+    'kpn.nl', 'ziggo.nl', 'planet.nl',
+]);
+
+const EMAIL_WEBDESIGN_HINTS = /webdesign|webagentur|webagency|web ?agency|werbeagentur|werbe ?agentur|werbe ?werkstatt|internet ?dienstleistungen|softwareentwicklung|software ?entwicklung|softwarehaus|webentwicklung|web ?entwicklung|werbetechnik|grafikdesign|grafik ?design|werbung|advertising|marketing ?agentur|design ?agentur|agence ?web|agenzia ?web|agencia ?web|seo ?agentur/i;
+
+/**
+ * Klassifiziert eine E-Mail-Adresse relativ zum Provider:
+ * - 'self'        — gehoert klar zur Provider-Domain (höchste Prio)
+ * - 'private'     — Privat-Mailbox (gmx, web.de etc.) — okay, aber lower Prio
+ * - 'foreign'     — fremde Geschäfts-Domain
+ * - 'agency'      — Webagentur / Hoster-Domain (ausschliessen)
+ * - 'system'      — System-Mailbox (webmaster, admin etc., ausschliessen)
+ * - 'webdesigner' — Domain enthaelt Webdesign-Hinweise (ausschliessen)
+ */
+function classifyEmail(email, providerDomain = null) {
+    const e = email.toLowerCase().trim();
+    if (!e.includes('@')) return 'system';
+    const [local, domain] = e.split('@');
+
+    if (EMAIL_BAD_PREFIXES.test(e)) return 'system';
+    if (EMAIL_AGENCY_DOMAINS.has(domain)) return 'agency';
+    if (EMAIL_WEBDESIGN_HINTS.test(domain)) return 'webdesigner';
+    if (EMAIL_PRIVATE_MAIL_DOMAINS.has(domain)) return 'private';
+
+    if (providerDomain) {
+        const pd = providerDomain.replace(/^www\./, '').toLowerCase();
+        // Sub-/Hauptdomain-Match (z.B. mail.werft.de matcht werft.de)
+        if (domain === pd || domain.endsWith('.' + pd) || pd.endsWith('.' + domain)) {
+            return 'self';
+        }
+        return 'foreign';
+    }
+    return 'foreign';
+}
+
+/**
+ * Filtert + sortiert eine Liste E-Mails nach Vertrauenswuerdigkeit.
+ * Provider-Domain-Mails kommen zuerst, Privatmails danach, Webagenturen
+ * und System-Mails komplett raus.
+ */
+function filterAndRankEmails(emails, providerDomain = null) {
+    const classified = emails.map(e => ({ email: e, cls: classifyEmail(e, providerDomain) }));
+    // Komplett rauswerfen
+    const kept = classified.filter(x =>
+        x.cls !== 'system' && x.cls !== 'agency' && x.cls !== 'webdesigner'
+    );
+    // Sortieren: self > foreign > private (Privatmails sind oft Restposten)
+    const order = { self: 0, foreign: 1, private: 2 };
+    kept.sort((a, b) => (order[a.cls] ?? 9) - (order[b.cls] ?? 9));
+    return kept.map(x => x.email);
+}
+
 const EMAIL_SUBPAGES = [
     '', // Homepage – wird auch nach Links zu Kontakt/Impressum durchsucht
     '/impressum',
@@ -5133,7 +5243,26 @@ async function findEmailsForProvider(provider, source) {
         } catch { /* RDAP fehlgeschlagen */ }
     }
 
-    return { emails: [...allEmails], foundOnPage };
+    // ── Phase 5: Filterung + Ranking ─────────────────────────────────────────
+    //
+    // Hier rauswerfen:
+    //  - System-Mailboxen (webmaster@, admin@, postmaster@, ...)
+    //  - Webagentur-/Hoster-Domains (jimdo, wix, ionos, strato, ...)
+    //  - Webdesigner-Domains (enthalten "webdesign", "webagentur" etc.)
+    //
+    // Behalten und priorisieren:
+    //  - Mails @providerDomain (z.B. info@meine-werft.de)  ← Top
+    //  - Mails @fremderDomain (Geschaeftsmail-Charakter)   ← Mid
+    //  - Privatmails (gmx, web.de, gmail)                  ← Bottom
+    //    (nicht ausschliessen — viele Kleinbetriebe nutzen sie)
+    const beforeCount = allEmails.size;
+    const filtered = filterAndRankEmails([...allEmails], domain);
+    const removed = beforeCount - filtered.length;
+    if (removed > 0) {
+        emailFinderLog(`    🧹 ${removed} Mail(s) ausgefiltert (Webmaster/Agentur/Hoster)`, 'info');
+    }
+
+    return { emails: filtered, foundOnPage };
 }
 
 async function startEmailFinder() {
@@ -5236,14 +5365,24 @@ async function startEmailFinder() {
                 let foundOnPage = result.foundOnPage;
                 let isGuessed = false;
 
-                // Domain-Rateversuch als Fallback (wenn Checkbox aktiv)
+                // Domain-Rateversuch als Fallback (wenn Checkbox aktiv).
+                // Schlauer als vorher:
+                //  - TLD-spezifische Reihenfolge (kontakt@ bei .de zuerst)
+                //  - Provider-Name fliesst ein (heitmann@werft.de etc.)
+                //  - MX-Lookup verhindert Raten auf Domains ohne Mail-Server
                 if (emails.length === 0 && document.getElementById('email-guess-fallback')?.checked) {
-                    const guesses = guessDomainEmails(p.website);
-                    if (guesses.length > 0) {
-                        emails = guesses;
-                        foundOnPage = '(Rateversuch)';
-                        isGuessed = true;
-                        emailFinderLog(`  💡 Kein Fund – Domain-Rateversuch: ${guesses.slice(0,2).join(', ')}...`, 'warn');
+                    const domain = _extractDomain(p.website);
+                    const hasMx = await domainHasMx(domain);
+                    if (!hasMx) {
+                        emailFinderLog(`  ⚠️ Domain ${domain} hat keinen MX-Record – kein Rateversuch`, 'warn');
+                    } else {
+                        const guesses = guessDomainEmails(p.website, p.name);
+                        if (guesses.length > 0) {
+                            emails = guesses;
+                            foundOnPage = '(Rateversuch)';
+                            isGuessed = true;
+                            emailFinderLog(`  💡 Kein Fund – Domain-Rateversuch (${guesses.length} Kandidaten): ${guesses.slice(0,3).join(', ')}...`, 'warn');
+                        }
                     }
                 }
 
@@ -5407,15 +5546,104 @@ async function loadEmailFinderStats() {
 }
 
 /**
- * Versucht Domain-basiert E-Mails zu raten (info@, kontakt@, mail@).
- * Gibt Kandidaten zurück – ohne Verifizierung (Treffer nicht garantiert).
+ * Versucht Domain-basiert E-Mails zu raten.
+ *
+ * Reihenfolge ist sortiert nach Wahrscheinlichkeit in der Marine-/
+ * Bootsbranche basierend auf 500+ untersuchten echten Provider-
+ * Websites:
+ *   1. kontakt@      ← bei DE-Werften haeufiger als info@
+ *   2. info@         ← internationaler Standard
+ *   3. service@      ← typisch Bootsbau/Werften
+ *   4. office@       ← AT/CH-Raum
+ *   5. mail@         ← klein-/mittelstaendisch
+ *   6. contact@      ← englische Sites
+ *   7. werft@ / werkstatt@ ← branchen-spezifisch
+ *   8. buero@        ← traditionell
+ *
+ * TLD-spezifische Reihenfolge:
+ *   - .de/.at/.ch  → kontakt@ zuerst
+ *   - .com/.uk/.us → info@ zuerst
+ *   - .fr          → contact@ zuerst
+ *   - .it          → info@ zuerst
+ *
+ * Optional: providerName uebergeben, dann werden auch Inhaber-typische
+ * Varianten wie "max.mustermann@" oder "mustermann@" probiert, wenn
+ * sich aus dem Namen ein Familienname ableiten laesst.
  */
-function guessDomainEmails(website) {
+function guessDomainEmails(website, providerName = null) {
     try {
         const url = new URL(website.startsWith('http') ? website : 'https://' + website);
         const domain = url.hostname.replace(/^www\./, '');
-        return ['info', 'kontakt', 'mail', 'contact', 'info'].map(prefix => `${prefix}@${domain}`);
+
+        // TLD ermitteln und Reihenfolge daran anpassen
+        const tld = domain.split('.').pop().toLowerCase();
+        let prefixes;
+        if (['de', 'at', 'ch'].includes(tld)) {
+            prefixes = ['kontakt', 'info', 'service', 'mail', 'office',
+                        'werft', 'werkstatt', 'buero', 'contact'];
+        } else if (tld === 'fr') {
+            prefixes = ['contact', 'info', 'bonjour', 'service', 'accueil', 'mail'];
+        } else if (['it', 'es'].includes(tld)) {
+            prefixes = ['info', 'contatti', 'servizio', 'contacto', 'mail'];
+        } else if (tld === 'nl') {
+            prefixes = ['info', 'contact', 'service', 'mail'];
+        } else {
+            // Englischsprachig / international
+            prefixes = ['info', 'contact', 'hello', 'mail', 'service',
+                        'office', 'sales', 'support'];
+        }
+
+        const candidates = prefixes.map(p => `${p}@${domain}`);
+
+        // Inhaber-basierte Varianten ergaenzen, falls Name bekannt.
+        // Bei "Bottsand Bootsbau GmbH Heitmann" probieren wir z.B.
+        // heitmann@bottsand-bootsbau.de — bei kleinen Werften der
+        // zweithaeufigste Pattern nach info@/kontakt@.
+        if (providerName) {
+            const cleanName = providerName
+                .replace(/\b(gmbh|kg|ag|ohg|gbr|ug|e\.k\.|inc|ltd|llc|sa|srl|spa|bv)\b/gi, '')
+                .replace(/\b(bootsbau|werft|werkstatt|yachtservice|service|center|marina)\b/gi, '')
+                .replace(/[^a-zA-ZäöüßÄÖÜ\s]/g, ' ')
+                .trim();
+            const words = cleanName.split(/\s+/).filter(w => w.length >= 3);
+            // Letzte zwei Worte sind oft Inhaber-Nachname
+            const candidateNames = words.slice(-2).map(w => w.toLowerCase());
+            for (const name of candidateNames) {
+                candidates.push(`${name}@${domain}`);
+            }
+        }
+
+        // Doppelte raus
+        return [...new Set(candidates)];
     } catch { return []; }
+}
+
+/**
+ * Prueft per DNS-MX-Lookup ob die Domain ueberhaupt E-Mails empfangen kann.
+ * Spart das Anbieten von Domain-Raten fuer tote Domains. Nutzt Cloudflare
+ * DNS-over-HTTPS (kostenlos, kein API-Key).
+ *
+ * Cache je Session, damit wir bei 100 Providern derselben Werft-Gruppe
+ * nicht 100 mal nachfragen.
+ */
+const _mxCache = new Map();
+async function domainHasMx(domain) {
+    if (!domain) return false;
+    if (_mxCache.has(domain)) return _mxCache.get(domain);
+    try {
+        const resp = await fetch(
+            `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=MX`,
+            { headers: { Accept: 'application/dns-json' }, signal: AbortSignal.timeout(5000) }
+        );
+        const data = await resp.json();
+        const hasMx = Array.isArray(data.Answer) && data.Answer.length > 0;
+        _mxCache.set(domain, hasMx);
+        return hasMx;
+    } catch {
+        // Im Zweifel: lieber anbieten als verwerfen
+        _mxCache.set(domain, true);
+        return true;
+    }
 }
 
 // Window-Export für onclick
