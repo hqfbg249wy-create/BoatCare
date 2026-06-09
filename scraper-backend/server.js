@@ -2995,7 +2995,7 @@ async function cleverreachUpsertReceiver(groupId, provider) {
  * Mapping Country-Code → Sprach-Tag (fuer Newsletter-Personalisierung).
  */
 function countryToLanguage(country) {
-    const c = (country || '').toUpperCase();
+    const c = normalizeCountryCode(country);
     const map = {
         DE: 'de', AT: 'de', CH: 'de',
         FR: 'fr', BE: 'fr', LU: 'fr', MC: 'fr',
@@ -3005,6 +3005,64 @@ function countryToLanguage(country) {
         GB: 'en', UK: 'en', IE: 'en', US: 'en',
     };
     return map[c] || 'en';
+}
+
+/**
+ * Normalisiert verschiedene Country-Schreibweisen auf ISO-2-Codes.
+ *
+ * In der DB stehen Werte gemischt: "DE" / "Deutschland" / "Germany",
+ * "FR" / "France" / "Frankreich", "Niederlande" / "NL" / "Netherlands".
+ * Wir mappen alle Varianten auf das ISO-2-Format (DE, FR, NL, ...).
+ */
+function normalizeCountryCode(country) {
+    if (!country) return '';
+    const raw = country.toString().trim();
+    if (raw.length === 2) return raw.toUpperCase();
+
+    const lower = raw.toLowerCase();
+    const map = {
+        // Deutsch
+        'deutschland': 'DE', 'germany': 'DE', 'allemagne': 'DE', 'germania': 'DE', 'alemania': 'DE',
+        'oesterreich': 'AT', 'österreich': 'AT', 'austria': 'AT', 'autriche': 'AT',
+        'schweiz': 'CH', 'switzerland': 'CH', 'suisse': 'CH', 'svizzera': 'CH',
+
+        // Romanisch
+        'frankreich': 'FR', 'france': 'FR', 'francia': 'FR',
+        'italien': 'IT', 'italy': 'IT', 'italia': 'IT', 'italie': 'IT',
+        'spanien': 'ES', 'spain': 'ES', 'españa': 'ES', 'espana': 'ES', 'espagne': 'ES', 'spagna': 'ES',
+        'portugal': 'PT',
+        'monaco': 'MC',
+
+        // Nord-/Westeuropa
+        'niederlande': 'NL', 'netherlands': 'NL', 'nederland': 'NL', 'pays-bas': 'NL',
+        'belgien': 'BE', 'belgium': 'BE', 'belgique': 'BE', 'belgië': 'BE',
+        'luxemburg': 'LU', 'luxembourg': 'LU',
+        'daenemark': 'DK', 'dänemark': 'DK', 'denmark': 'DK', 'danemark': 'DK',
+        'schweden': 'SE', 'sweden': 'SE', 'sverige': 'SE', 'suede': 'SE', 'suède': 'SE',
+        'norwegen': 'NO', 'norway': 'NO', 'norge': 'NO',
+        'finnland': 'FI', 'finland': 'FI', 'suomi': 'FI',
+        'island': 'IS', 'iceland': 'IS',
+        'irland': 'IE', 'ireland': 'IE', 'eire': 'IE',
+        'grossbritannien': 'GB', 'großbritannien': 'GB', 'great britain': 'GB',
+        'vereinigtes koenigreich': 'GB', 'vereinigtes königreich': 'GB',
+        'united kingdom': 'GB', 'england': 'GB', 'scotland': 'GB', 'wales': 'GB',
+
+        // Suedeuropa / Mittelmeer
+        'griechenland': 'GR', 'greece': 'GR', 'ελλάδα': 'GR',
+        'kroatien': 'HR', 'croatia': 'HR', 'hrvatska': 'HR',
+        'slowenien': 'SI', 'slovenia': 'SI', 'slovenija': 'SI',
+        'malta': 'MT',
+        'zypern': 'CY', 'cyprus': 'CY',
+        'tuerkei': 'TR', 'türkei': 'TR', 'turkey': 'TR',
+
+        // Atlantik
+        'usa': 'US', 'united states': 'US', 'vereinigte staaten': 'US', 'amerika': 'US',
+        'kanada': 'CA', 'canada': 'CA',
+
+        // Gemischte
+        'sp': 'ES',  // "Spain" abgekuerzt zu SP — kommt in den Daten vor
+    };
+    return map[lower] || raw.substring(0, 2).toUpperCase();
 }
 
 /**
@@ -3037,7 +3095,7 @@ app.post('/api/cleverreach-sync', async (req, res) => {
         const perCountry = {};
 
         for (const p of providers) {
-            const cc = (p.country || '').substring(0, 2).toUpperCase() || 'DEFAULT';
+            const cc = normalizeCountryCode(p.country) || 'DEFAULT';
             const groupId = CLEVERREACH_CONFIG.GROUPS[cc] || CLEVERREACH_CONFIG.GROUPS.DEFAULT;
 
             perCountry[cc] = perCountry[cc] || { country: cc, total: 0, synced: 0, errors: 0 };
@@ -3115,7 +3173,7 @@ app.get('/api/cleverreach-stats', async (req, res) => {
 
         const stats = {};
         for (const p of list) {
-            const cc = (p.country || '').substring(0, 2).toUpperCase() || '??';
+            const cc = normalizeCountryCode(p.country) || '??';
             if (!stats[cc]) stats[cc] = { country: cc, totalWithMail: 0, verified: 0, synced: 0, groupConfigured: false };
             stats[cc].totalWithMail++;
             if (p.email_check_status === 'valid') stats[cc].verified++;
@@ -3143,20 +3201,23 @@ app.get('/api/cleverreach-stats', async (req, res) => {
 });
 
 async function loadProvidersForCleverReach({ limit, onlyVerified, country }) {
+    // Wir filtern den Country-Filter NICHT direkt in der DB-Query, weil
+    // die DB gemischte Schreibweisen hat ("DE" / "Deutschland" / "Germany").
+    // Stattdessen laden wir mit grosszuegigem Limit und filtern in JS
+    // ueber normalizeCountryCode, sodass alle Varianten gemappt werden.
     let filterClause = '&email=not.is.null&email=neq.';
     if (onlyVerified) {
         filterClause += '&email_check_status=eq.valid';
     }
-    if (country) {
-        filterClause += `&country=eq.${encodeURIComponent(country)}`;
-    }
-    // Nur Provider die noch nicht synchronisiert wurden — verhindert Duplikat-Pushes.
-    // CleverReach selbst wuerde auch upserten, aber wir sparen uns die API-Calls.
     filterClause += '&cleverreach_synced_at=is.null';
 
-    const url = `${CONFIG.SUPABASE_URL}/rest/v1/service_providers?select=id,name,email,city,country,category,website&${filterClause.substring(1)}&order=country&limit=${limit}`;
+    // Wenn ein Country-Filter gesetzt ist, holen wir mehr Daten und
+    // filtern nach normalisierung — sonst koennten wir die DE-Provider
+    // verpassen die als "Deutschland" gespeichert sind.
+    const dbLimit = country ? Math.max(limit * 5, 500) : limit;
+    const url = `${CONFIG.SUPABASE_URL}/rest/v1/service_providers?select=id,name,email,city,country,category,website&${filterClause.substring(1)}&order=country&limit=${dbLimit}`;
 
-    return await new Promise((resolve, reject) => {
+    const raw = await new Promise((resolve, reject) => {
         const req = https.get(url, {
             headers: {
                 apikey: CONFIG.SUPABASE_SERVICE_KEY,
@@ -3175,6 +3236,14 @@ async function loadProvidersForCleverReach({ limit, onlyVerified, country }) {
         });
         req.on('error', reject);
     });
+
+    if (!country) return raw.slice(0, limit);
+
+    // Country-Filter nach Normalisierung anwenden
+    const wantCC = country.toUpperCase();
+    return raw
+        .filter(p => normalizeCountryCode(p.country) === wantCC)
+        .slice(0, limit);
 }
 
 async function persistCleverReachResult(providerId, groupId, status, errorNote) {
