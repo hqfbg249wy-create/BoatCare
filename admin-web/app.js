@@ -9498,6 +9498,7 @@ function buildDatevCsv(buchungen) {
         if (page === 'customers')         loadCustomers();
         if (page === 'bookkeeping')       loadBookkeeping();
         if (page === 'email-verify')      loadVerifyStats();
+        if (page === 'cleverreach')       loadCleverReachStats();
         // Alte Pages auf die neue umleiten falls noch Direct-Links existieren
         if (page === 'providers' || page === 'shop-management') {
             setTimeout(() => origNav('customers'), 0);
@@ -9825,6 +9826,189 @@ async function rescanProviderEmail(rowIdx) {
 
 window.deleteProvider = deleteProvider;
 window.rescanProviderEmail = rescanProviderEmail;
+
+// ============================================
+// CLEVERREACH NEWSLETTER-SYNC
+// ============================================
+
+function cleverreachLog(msg, type = 'info') {
+    const log = document.getElementById('cleverreach-log');
+    if (!log) return;
+    const colors = { info: '#94a3b8', success: '#10b981', error: '#ef4444', warn: '#f59e0b' };
+    log.innerHTML += `<div style="color:${colors[type] || colors.info};">[${new Date().toLocaleTimeString('de-DE')}] ${msg}</div>`;
+    log.scrollTop = log.scrollHeight;
+}
+
+/**
+ * Laedt Statistik vom Server: pro Land Anzahl Provider, verifiziert,
+ * synchronisiert + welche Groups konfiguriert sind.
+ */
+async function loadCleverReachStats() {
+    const statusBox = document.getElementById('cleverreach-config-status');
+    const tableBox = document.getElementById('cleverreach-country-table');
+    const filterSel = document.getElementById('cleverreach-country-filter');
+
+    try {
+        const resp = await fetch(`${SCRAPER_URL}/api/cleverreach-stats`);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+
+        // Config-Status anzeigen
+        if (statusBox) {
+            const hasCred = data.configured?.hasCredentials;
+            const groupKeys = Object.keys(data.configured?.groups || {});
+            if (!hasCred) {
+                statusBox.style.background = '#fee2e2';
+                statusBox.style.borderColor = '#ef4444';
+                statusBox.innerHTML = `
+                    <strong style="color:#991b1b;">❌ CleverReach nicht verbunden</strong><br>
+                    <span style="font-size:13px;">CLEVERREACH_CLIENT_ID und CLEVERREACH_CLIENT_SECRET sind nicht als Env-Vars im Scraper gesetzt. Siehe Setup-Anleitung unten.</span>
+                `;
+            } else {
+                statusBox.style.background = '#dcfce7';
+                statusBox.style.borderColor = '#10b981';
+                statusBox.innerHTML = `
+                    <strong style="color:#166534;">✅ CleverReach verbunden</strong>
+                    <span style="font-size:13px; color:#166534;">— ${groupKeys.length} Group(s) konfiguriert: ${groupKeys.join(', ')}</span>
+                `;
+            }
+        }
+
+        // Tabelle pro Land
+        if (tableBox) {
+            const rows = data.perCountry || [];
+            if (rows.length === 0) {
+                tableBox.innerHTML = '<p style="color:#9ca3af;">Keine Provider mit E-Mail in der DB.</p>';
+            } else {
+                tableBox.innerHTML = `
+                    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                        <thead>
+                            <tr style="background:#f1f5f9;">
+                                <th style="padding:8px; text-align:left;">Land</th>
+                                <th style="padding:8px; text-align:right;">Mit E-Mail</th>
+                                <th style="padding:8px; text-align:right;">Verifiziert</th>
+                                <th style="padding:8px; text-align:right;">Synchronisiert</th>
+                                <th style="padding:8px; text-align:center;">Group?</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map(r => `
+                                <tr style="border-top:1px solid #e2e8f0;">
+                                    <td style="padding:8px; font-weight:600;">${escapeHtml_v(r.country)}</td>
+                                    <td style="padding:8px; text-align:right;">${r.totalWithMail.toLocaleString('de-DE')}</td>
+                                    <td style="padding:8px; text-align:right; color:#10b981;">${r.verified.toLocaleString('de-DE')}</td>
+                                    <td style="padding:8px; text-align:right; color:#3b82f6;">${r.synced.toLocaleString('de-DE')}</td>
+                                    <td style="padding:8px; text-align:center;">${r.groupConfigured ? '✅' : '❌'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+        }
+
+        // Dropdown fuer Country-Filter befuellen
+        if (filterSel) {
+            const current = filterSel.value;
+            const opts = ['<option value="">Alle Länder mit konfigurierter Group</option>'];
+            for (const r of (data.perCountry || [])) {
+                if (r.groupConfigured && r.verified > 0) {
+                    opts.push(`<option value="${escapeHtml_v(r.country)}">${escapeHtml_v(r.country)} (${r.verified} verifiziert)</option>`);
+                }
+            }
+            filterSel.innerHTML = opts.join('');
+            if (current) filterSel.value = current;
+        }
+    } catch (err) {
+        if (statusBox) {
+            statusBox.style.background = '#fee2e2';
+            statusBox.innerHTML = `<strong style="color:#991b1b;">❌ Status nicht abrufbar:</strong> ${escapeHtml_v(err.message)}`;
+        }
+        if (tableBox) {
+            tableBox.innerHTML = `<p style="color:#ef4444;">Fehler: ${escapeHtml_v(err.message)}</p>`;
+        }
+    }
+}
+
+async function startCleverReachSync() {
+    const country = document.getElementById('cleverreach-country-filter')?.value || null;
+    const limit = parseInt(document.getElementById('cleverreach-limit')?.value || '100');
+    const onlyVerified = document.getElementById('cleverreach-only-verified')?.checked !== false;
+    const dryRun = document.getElementById('cleverreach-dry-run')?.checked === true;
+
+    const btn = document.getElementById('cleverreach-btn');
+    if (btn) btn.disabled = true;
+
+    const progressEl = document.getElementById('cleverreach-progress');
+    const resultsEl = document.getElementById('cleverreach-results');
+    if (progressEl) progressEl.style.display = 'block';
+    if (resultsEl) resultsEl.style.display = 'none';
+
+    const logEl = document.getElementById('cleverreach-log');
+    if (logEl) logEl.innerHTML = '';
+
+    cleverreachLog(`Starte ${dryRun ? 'Trockenlauf' : 'Sync'}: country=${country || 'alle'}, limit=${limit}, onlyVerified=${onlyVerified}`, 'info');
+
+    try {
+        const resp = await fetch(`${SCRAPER_URL}/api/cleverreach-sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ limit, dryRun, onlyVerified, country }),
+        });
+        if (!resp.ok) {
+            const t = await resp.text();
+            throw new Error(`HTTP ${resp.status}: ${t.substring(0, 200)}`);
+        }
+        const data = await resp.json();
+        const c = data.counts || {};
+
+        cleverreachLog(`\n📊 Ergebnis:`, 'info');
+        cleverreachLog(`  ✅ Synchronisiert: ${c.synced || 0}`, 'success');
+        cleverreachLog(`  ⏭ Übersprungen: ${c.skipped || 0}`, 'warn');
+        cleverreachLog(`  ❌ Fehler: ${c.errors || 0}`, c.errors > 0 ? 'error' : 'info');
+
+        renderCleverReachResults(data);
+        loadCleverReachStats();
+    } catch (err) {
+        cleverreachLog(`❌ Fehler: ${err.message}`, 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+function renderCleverReachResults(data) {
+    const resultsEl = document.getElementById('cleverreach-results');
+    const listEl = document.getElementById('cleverreach-results-list');
+    if (!resultsEl || !listEl) return;
+    resultsEl.style.display = 'block';
+
+    const perCountry = data.perCountry || [];
+    listEl.innerHTML = `
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead>
+                <tr style="background:#f1f5f9;">
+                    <th style="padding:8px; text-align:left;">Land</th>
+                    <th style="padding:8px; text-align:right;">Gesamt</th>
+                    <th style="padding:8px; text-align:right; color:#10b981;">✅ Synchronisiert</th>
+                    <th style="padding:8px; text-align:right; color:#ef4444;">❌ Fehler</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${perCountry.map(r => `
+                    <tr style="border-top:1px solid #e2e8f0;">
+                        <td style="padding:8px; font-weight:600;">${escapeHtml_v(r.country)}</td>
+                        <td style="padding:8px; text-align:right;">${r.total}</td>
+                        <td style="padding:8px; text-align:right; color:#10b981;">${r.synced}</td>
+                        <td style="padding:8px; text-align:right; color:#ef4444;">${r.errors}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+window.startCleverReachSync = startCleverReachSync;
+window.loadCleverReachStats = loadCleverReachStats;
 
 function escapeHtml_v(s) {
     return String(s).replace(/[&<>"']/g, ch => ({

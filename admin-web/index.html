@@ -90,6 +90,10 @@
                     <span class="icon">✉️</span>
                     E-Mail-Check
                 </button>
+                <button class="nav-item" data-page="cleverreach" onclick="window.navigateToPage('cleverreach')">
+                    <span class="icon">📬</span>
+                    CleverReach
+                </button>
                 <button class="nav-item" data-page="payments" onclick="window.navigateToPage('payments')">
                     <span class="icon">💳</span>
                     Zahlungen
@@ -922,6 +926,114 @@
                     <h3 style="margin-bottom:12px;">📋 Letzte Prüfungs-Ergebnisse</h3>
                     <div id="verify-results-list"></div>
                 </div>
+            </div>
+
+            <!-- CleverReach Newsletter-Sync Page -->
+            <div id="cleverreach-page" class="page">
+                <h1>📬 CleverReach Newsletter-Sync</h1>
+                <p class="subtitle">Pusht verifizierte Provider-E-Mails in CleverReach-Listen, automatisch aufgeteilt nach Land. Wir tracken Sync-Zeitpunkt und Status pro Provider — keine Duplikate.</p>
+
+                <!-- Config-Status -->
+                <div id="cleverreach-config-status" style="background:#fef3c7; border:1px solid #fbbf24; border-radius:8px; padding:14px; margin-bottom:20px;">
+                    <strong>⏳ Lade Konfiguration …</strong>
+                </div>
+
+                <!-- Pro-Land-Stats -->
+                <h3 style="margin-top:30px;">🌍 Provider-Verteilung pro Land</h3>
+                <p style="color:#64748b; font-size:13px;">Welche Länder bereits konfiguriert sind, wie viele Provider mit E-Mail vorhanden sind, wie viele verifiziert und wie viele schon synchronisiert.</p>
+                <div id="cleverreach-country-table" style="margin-top:12px;">
+                    <p style="color:#9ca3af; font-style:italic;">Lade Statistik …</p>
+                </div>
+
+                <!-- Sync starten -->
+                <div style="background:#f0fdf4; border:1px solid #10b981; border-radius:8px; padding:18px; margin-top:30px;">
+                    <h3 style="margin-top:0;">▶ Sync starten</h3>
+
+                    <div class="form-row" style="margin-bottom:14px;">
+                        <div class="form-group" style="flex:1;">
+                            <label>Land filtern (optional)</label>
+                            <select id="cleverreach-country-filter">
+                                <option value="">Alle Länder mit konfigurierter Group</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Max. pro Lauf</label>
+                            <input type="number" id="cleverreach-limit" value="100" min="1" max="1000">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:10px;">
+                        <label style="display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" id="cleverreach-only-verified" checked>
+                            <span>Nur verifizierte E-Mails (Status=valid)</span>
+                        </label>
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label style="display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" id="cleverreach-dry-run">
+                            <span>Trockenlauf (zeigt was synchronisiert würde, ohne Push)</span>
+                        </label>
+                    </div>
+
+                    <div style="display:flex; gap:8px;">
+                        <button onclick="window.startCleverReachSync()" class="btn-primary" id="cleverreach-btn" style="background:#10b981;">
+                            ▶ Synchronisierung starten
+                        </button>
+                        <button onclick="window.loadCleverReachStats()" class="btn-secondary">
+                            🔄 Statistik aktualisieren
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Progress + Log -->
+                <div id="cleverreach-progress" style="display:none; margin-top:20px;">
+                    <div style="background:#1e293b; color:#e2e8f0; border-radius:8px; padding:15px; font-family:monospace; font-size:12px; max-height:300px; overflow-y:auto;" id="cleverreach-log"></div>
+                </div>
+
+                <!-- Ergebnis pro Land -->
+                <div id="cleverreach-results" style="display:none; margin-top:20px;">
+                    <h3>📊 Ergebnis nach Land</h3>
+                    <div id="cleverreach-results-list"></div>
+                </div>
+
+                <!-- Setup-Anleitung -->
+                <details style="margin-top:30px; background:#f8fafc; padding:14px; border-radius:8px;">
+                    <summary style="cursor:pointer; font-weight:600;">⚙️ Setup-Anleitung (einmalig)</summary>
+                    <div style="margin-top:14px; line-height:1.6;">
+                        <p><strong>1. CleverReach REST-Client anlegen</strong></p>
+                        <ol>
+                            <li>CleverReach-Login → <strong>Einstellungen → REST API</strong></li>
+                            <li>„Neuer Client" → Client-Name z.B. „Skipily Sync"</li>
+                            <li>Client-ID und Client-Secret notieren</li>
+                        </ol>
+
+                        <p><strong>2. Listen (Groups) pro Land anlegen</strong></p>
+                        <ol>
+                            <li>CleverReach → <strong>Empfänger → Empfängerlisten</strong></li>
+                            <li>Pro Land eine Liste anlegen, z.B.:
+                                <ul>
+                                    <li>„Skipily DE-Provider"</li>
+                                    <li>„Skipily FR-Provider"</li>
+                                    <li>„Skipily IT-Provider"</li>
+                                </ul>
+                            </li>
+                            <li>Jeweils die <strong>Group-ID</strong> aus der URL kopieren (Zahl am Ende)</li>
+                        </ol>
+
+                        <p><strong>3. Env-Vars in Fly.io setzen</strong></p>
+                        <pre style="background:#1e293b; color:#e2e8f0; padding:10px; border-radius:6px; overflow-x:auto; font-size:12px;">flyctl secrets set \
+  CLEVERREACH_CLIENT_ID="..." \
+  CLEVERREACH_CLIENT_SECRET="..." \
+  CLEVERREACH_GROUP_DE="123456" \
+  CLEVERREACH_GROUP_FR="234567" \
+  CLEVERREACH_GROUP_IT="345678" \
+  CLEVERREACH_GROUP_ES="456789" \
+  CLEVERREACH_GROUP_NL="567890" \
+  CLEVERREACH_GROUP_GB="678901" \
+  CLEVERREACH_GROUP_DEFAULT="789012"</pre>
+                        <p style="font-size:12px; color:#64748b;">Fly restartet automatisch und der Endpoint ist live.</p>
+                    </div>
+                </details>
             </div>
 
             <!-- Shop-Verwaltung Page (DEPRECATED — durch "Provider" ersetzt, bleibt für Backlinks) -->

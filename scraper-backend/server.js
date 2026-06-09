@@ -2845,6 +2845,374 @@ app.post('/api/google-search', async (req, res) => {
 });
 
 // ============================================================
+// CLEVERREACH NEWSLETTER-SYNC
+// ============================================================
+//
+// Pusht Provider mit verifizierten E-Mail-Adressen in CleverReach-
+// Listen. Wir splitten nach Land (DE, FR, IT, ES, NL, GB, ...) damit
+// die Newsletter sprach-/regionsgerecht versendet werden koennen.
+//
+// CleverReach REST API:
+//   - Auth via OAuth2 client_credentials
+//   - https://rest.cleverreach.com/v3/
+//   - Receivers werden in "Groups" (= Listen) gehalten
+//
+// Required ENV-Vars:
+//   CLEVERREACH_CLIENT_ID
+//   CLEVERREACH_CLIENT_SECRET
+//   CLEVERREACH_GROUP_DE   ← Group-ID fuer deutsche Provider
+//   CLEVERREACH_GROUP_FR   ← Frankreich
+//   CLEVERREACH_GROUP_IT   ← Italien
+//   CLEVERREACH_GROUP_ES   ← Spanien
+//   CLEVERREACH_GROUP_NL   ← Niederlande
+//   CLEVERREACH_GROUP_GB   ← Grossbritannien
+//   CLEVERREACH_GROUP_DEFAULT ← Fallback fuer unbekannte/sonstige
+
+const CLEVERREACH_CONFIG = {
+    CLIENT_ID: process.env.CLEVERREACH_CLIENT_ID || '',
+    CLIENT_SECRET: process.env.CLEVERREACH_CLIENT_SECRET || '',
+    GROUPS: {
+        // ISO-2 Country-Code → CleverReach Group ID
+        DE: process.env.CLEVERREACH_GROUP_DE || '',
+        AT: process.env.CLEVERREACH_GROUP_DE || '',  // Oesterreich oft im DE-Newsletter
+        CH: process.env.CLEVERREACH_GROUP_DE || '',  // Schweiz auch
+        FR: process.env.CLEVERREACH_GROUP_FR || '',
+        IT: process.env.CLEVERREACH_GROUP_IT || '',
+        ES: process.env.CLEVERREACH_GROUP_ES || '',
+        NL: process.env.CLEVERREACH_GROUP_NL || '',
+        BE: process.env.CLEVERREACH_GROUP_NL || '',  // Belgien (NL-sprachiger Teil)
+        GB: process.env.CLEVERREACH_GROUP_GB || '',
+        UK: process.env.CLEVERREACH_GROUP_GB || '',
+        DEFAULT: process.env.CLEVERREACH_GROUP_DEFAULT || '',
+    },
+};
+
+let _crAccessToken = null;
+let _crTokenExpiry = 0;
+
+/**
+ * Holt einen Access-Token via OAuth2 client_credentials. Cached den
+ * Token bis kurz vor Ablauf damit wir nicht bei jedem Receiver-Push
+ * neu authentifizieren.
+ */
+async function cleverreachToken() {
+    if (_crAccessToken && Date.now() < _crTokenExpiry - 60_000) {
+        return _crAccessToken;
+    }
+    if (!CLEVERREACH_CONFIG.CLIENT_ID || !CLEVERREACH_CONFIG.CLIENT_SECRET) {
+        throw new Error('CleverReach Credentials nicht konfiguriert. Setze CLEVERREACH_CLIENT_ID und CLEVERREACH_CLIENT_SECRET als Env-Vars.');
+    }
+
+    const body = JSON.stringify({
+        grant_type: 'client_credentials',
+        client_id: CLEVERREACH_CONFIG.CLIENT_ID,
+        client_secret: CLEVERREACH_CONFIG.CLIENT_SECRET,
+    });
+    const result = await new Promise((resolve, reject) => {
+        const req = https.request({
+            hostname: 'rest.cleverreach.com',
+            path: '/oauth/token.php',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(body),
+            }
+        }, (res) => {
+            let data = '';
+            res.on('data', c => data += c);
+            res.on('end', () => {
+                try { resolve({ status: res.statusCode, body: JSON.parse(data) }); }
+                catch { reject(new Error('Token parse: ' + data.substring(0, 200))); }
+            });
+        });
+        req.on('error', reject);
+        req.write(body);
+        req.end();
+    });
+
+    if (result.status !== 200 || !result.body.access_token) {
+        throw new Error('CleverReach OAuth fehlgeschlagen: ' + JSON.stringify(result.body));
+    }
+    _crAccessToken = result.body.access_token;
+    _crTokenExpiry = Date.now() + (result.body.expires_in || 3600) * 1000;
+    return _crAccessToken;
+}
+
+/**
+ * Fuegt einen Receiver einer Group hinzu (oder aktualisiert ihn).
+ * CleverReach upsert-Verhalten: gleiche Mail in gleicher Group wird
+ * automatisch aktualisiert statt Duplikat angelegt.
+ */
+async function cleverreachUpsertReceiver(groupId, provider) {
+    const token = await cleverreachToken();
+
+    const payload = JSON.stringify({
+        email: provider.email,
+        registered: Math.floor(Date.now() / 1000),
+        activated: Math.floor(Date.now() / 1000),  // Double-Opt-In hier umgangen — siehe Hinweis
+        source: 'Skipily Import',
+        // CleverReach erlaubt benutzerdefinierte Attribute, die du im
+        // Newsletter-Template als Platzhalter nutzen kannst ({{COMPANY}})
+        attributes: {
+            company: provider.name || '',
+            city: provider.city || '',
+            country: provider.country || '',
+            category: provider.category || '',
+            website: provider.website || '',
+            language: countryToLanguage(provider.country),
+        }
+    });
+
+    const result = await new Promise((resolve, reject) => {
+        const req = https.request({
+            hostname: 'rest.cleverreach.com',
+            path: `/v3/groups.json/${encodeURIComponent(groupId)}/receivers/insert`,
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(payload),
+            }
+        }, (res) => {
+            let data = '';
+            res.on('data', c => data += c);
+            res.on('end', () => {
+                resolve({ status: res.statusCode, body: data });
+            });
+        });
+        req.on('error', reject);
+        req.write(payload);
+        req.end();
+    });
+
+    if (result.status >= 200 && result.status < 300) {
+        return { ok: true };
+    }
+    throw new Error(`CleverReach upsert (${result.status}): ${result.body.substring(0, 200)}`);
+}
+
+/**
+ * Mapping Country-Code → Sprach-Tag (fuer Newsletter-Personalisierung).
+ */
+function countryToLanguage(country) {
+    const c = (country || '').toUpperCase();
+    const map = {
+        DE: 'de', AT: 'de', CH: 'de',
+        FR: 'fr', BE: 'fr', LU: 'fr', MC: 'fr',
+        IT: 'it', SM: 'it', VA: 'it',
+        ES: 'es', AD: 'es',
+        NL: 'nl',
+        GB: 'en', UK: 'en', IE: 'en', US: 'en',
+    };
+    return map[c] || 'en';
+}
+
+/**
+ * POST /api/cleverreach-sync
+ * Body: { limit?, dryRun?, onlyVerified?, country? }
+ *
+ * Pusht Provider nach CleverReach. Filter:
+ *   - onlyVerified: nur Provider mit email_check_status='valid' (Default: true)
+ *   - country: Optional ISO-2 Code um nur ein Land zu synchronisieren
+ *   - dryRun: Trockenlauf — listet nur was synchronisiert WUERDE
+ */
+app.post('/api/cleverreach-sync', async (req, res) => {
+    const {
+        limit = 100,
+        dryRun = false,
+        onlyVerified = true,
+        country = null,
+    } = req.body || {};
+
+    if (!CONFIG.SUPABASE_SERVICE_KEY) {
+        return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY fehlt.' });
+    }
+
+    try {
+        const providers = await loadProvidersForCleverReach({ limit, onlyVerified, country });
+        console.log(`\n📧 CleverReach-Sync: ${providers.length} Provider, dryRun=${dryRun}`);
+
+        const results = [];
+        const counts = { synced: 0, skipped: 0, errors: 0 };
+        const perCountry = {};
+
+        for (const p of providers) {
+            const cc = (p.country || '').substring(0, 2).toUpperCase() || 'DEFAULT';
+            const groupId = CLEVERREACH_CONFIG.GROUPS[cc] || CLEVERREACH_CONFIG.GROUPS.DEFAULT;
+
+            perCountry[cc] = perCountry[cc] || { country: cc, total: 0, synced: 0, errors: 0 };
+            perCountry[cc].total++;
+
+            if (!groupId) {
+                counts.skipped++;
+                results.push({ id: p.id, name: p.name, country: cc, status: 'no_group', note: `Keine Group-ID fuer ${cc}` });
+                continue;
+            }
+
+            if (dryRun) {
+                counts.synced++;
+                perCountry[cc].synced++;
+                results.push({ id: p.id, name: p.name, country: cc, status: 'dry_run', groupId });
+                continue;
+            }
+
+            try {
+                await cleverreachUpsertReceiver(groupId, p);
+                counts.synced++;
+                perCountry[cc].synced++;
+                await persistCleverReachResult(p.id, groupId, 'subscribed', null);
+                results.push({ id: p.id, name: p.name, country: cc, status: 'subscribed', groupId });
+            } catch (err) {
+                counts.errors++;
+                perCountry[cc].errors++;
+                await persistCleverReachResult(p.id, null, 'error', err.message.substring(0, 500));
+                results.push({ id: p.id, name: p.name, country: cc, status: 'error', error: err.message });
+            }
+        }
+
+        res.json({
+            success: true,
+            counts,
+            perCountry: Object.values(perCountry).sort((a, b) => b.total - a.total),
+            results,
+        });
+    } catch (err) {
+        console.error('CleverReach-Sync-Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * Statistik-Endpoint: zeigt wie viele Provider pro Land synchronisiert
+ * wurden / synchronisiert werden koennten.
+ */
+app.get('/api/cleverreach-stats', async (req, res) => {
+    if (!CONFIG.SUPABASE_SERVICE_KEY) {
+        return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY fehlt.' });
+    }
+    try {
+        // Aggregation via PostgREST mit Group-By: muss als RPC oder ueber
+        // mehrere Calls. Wir nehmen den einfachen Weg: alle laden und in JS aggregieren.
+        const url = `${CONFIG.SUPABASE_URL}/rest/v1/service_providers?select=country,email,email_check_status,cleverreach_synced_at,cleverreach_status&email=not.is.null&email=neq.&limit=10000`;
+        const list = await new Promise((resolve, reject) => {
+            const req = https.get(url, {
+                headers: {
+                    apikey: CONFIG.SUPABASE_SERVICE_KEY,
+                    Authorization: `Bearer ${CONFIG.SUPABASE_SERVICE_KEY}`,
+                }
+            }, (res) => {
+                let d = '';
+                res.on('data', c => d += c);
+                res.on('end', () => {
+                    try { resolve(JSON.parse(d)); } catch (e) { reject(e); }
+                });
+            });
+            req.on('error', reject);
+        });
+        if (!Array.isArray(list)) {
+            throw new Error('Supabase: ' + JSON.stringify(list).substring(0, 200));
+        }
+
+        const stats = {};
+        for (const p of list) {
+            const cc = (p.country || '').substring(0, 2).toUpperCase() || '??';
+            if (!stats[cc]) stats[cc] = { country: cc, totalWithMail: 0, verified: 0, synced: 0, groupConfigured: false };
+            stats[cc].totalWithMail++;
+            if (p.email_check_status === 'valid') stats[cc].verified++;
+            if (p.cleverreach_synced_at) stats[cc].synced++;
+        }
+        // Markieren welche Laender eine konfigurierte Group haben
+        for (const cc of Object.keys(stats)) {
+            stats[cc].groupConfigured = !!(CLEVERREACH_CONFIG.GROUPS[cc] || CLEVERREACH_CONFIG.GROUPS.DEFAULT);
+        }
+        res.json({
+            success: true,
+            perCountry: Object.values(stats).sort((a, b) => b.totalWithMail - a.totalWithMail),
+            configured: {
+                hasCredentials: !!(CLEVERREACH_CONFIG.CLIENT_ID && CLEVERREACH_CONFIG.CLIENT_SECRET),
+                groups: Object.fromEntries(
+                    Object.entries(CLEVERREACH_CONFIG.GROUPS)
+                          .filter(([_, v]) => !!v)
+                          .map(([k]) => [k, true])
+                ),
+            },
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+async function loadProvidersForCleverReach({ limit, onlyVerified, country }) {
+    let filterClause = '&email=not.is.null&email=neq.';
+    if (onlyVerified) {
+        filterClause += '&email_check_status=eq.valid';
+    }
+    if (country) {
+        filterClause += `&country=eq.${encodeURIComponent(country)}`;
+    }
+    // Nur Provider die noch nicht synchronisiert wurden — verhindert Duplikat-Pushes.
+    // CleverReach selbst wuerde auch upserten, aber wir sparen uns die API-Calls.
+    filterClause += '&cleverreach_synced_at=is.null';
+
+    const url = `${CONFIG.SUPABASE_URL}/rest/v1/service_providers?select=id,name,email,city,country,category,website&${filterClause.substring(1)}&order=country&limit=${limit}`;
+
+    return await new Promise((resolve, reject) => {
+        const req = https.get(url, {
+            headers: {
+                apikey: CONFIG.SUPABASE_SERVICE_KEY,
+                Authorization: `Bearer ${CONFIG.SUPABASE_SERVICE_KEY}`,
+            }
+        }, (res) => {
+            let d = '';
+            res.on('data', c => d += c);
+            res.on('end', () => {
+                try {
+                    const arr = JSON.parse(d);
+                    if (Array.isArray(arr)) resolve(arr);
+                    else reject(new Error('Supabase: ' + d.substring(0, 200)));
+                } catch (e) { reject(e); }
+            });
+        });
+        req.on('error', reject);
+    });
+}
+
+async function persistCleverReachResult(providerId, groupId, status, errorNote) {
+    const url = `${CONFIG.SUPABASE_URL}/rest/v1/service_providers?id=eq.${encodeURIComponent(providerId)}`;
+    const payload = JSON.stringify({
+        cleverreach_synced_at: status === 'subscribed' ? new Date().toISOString() : null,
+        cleverreach_group_id: groupId,
+        cleverreach_status: status,
+    });
+
+    await new Promise((resolve, reject) => {
+        const urlObj = new URL(url);
+        const req = https.request({
+            hostname: urlObj.hostname,
+            path: urlObj.pathname + urlObj.search,
+            method: 'PATCH',
+            headers: {
+                apikey: CONFIG.SUPABASE_SERVICE_KEY,
+                Authorization: `Bearer ${CONFIG.SUPABASE_SERVICE_KEY}`,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(payload),
+                Prefer: 'return=minimal',
+            }
+        }, (res) => {
+            if (res.statusCode >= 200 && res.statusCode < 300) resolve();
+            else {
+                let d = '';
+                res.on('data', c => d += c);
+                res.on('end', () => reject(new Error(`HTTP ${res.statusCode}: ${d}`)));
+            }
+        });
+        req.on('error', reject);
+        req.write(payload);
+        req.end();
+    });
+}
+
+// ============================================================
 // EMAIL-VERIFIZIERUNG
 // ============================================================
 //
