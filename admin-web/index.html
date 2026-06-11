@@ -938,6 +938,33 @@
                     <strong>⏳ Lade Konfiguration …</strong>
                 </div>
 
+                <!-- CSV-Export-Sektion (PRIMÄR-Methode, keine API-Setup nötig) -->
+                <div style="background:#eff6ff; border:1px solid #3b82f6; border-radius:8px; padding:18px; margin-bottom:20px;">
+                    <h3 style="margin-top:0;">📥 CSV-Export für CleverReach-Upload</h3>
+                    <p style="font-size:14px; color:#1e40af; margin:0 0 10px;">
+                        <strong>Empfohlener Weg:</strong> Pro Land eine CSV-Datei generieren, in CleverReach
+                        unter <em>„Daten hinzufügen → Datei hochladen"</em> einspielen. CleverReach
+                        dedupliziert automatisch, prüft gegen Bounce-Index und Blocklist.
+                    </p>
+                    <div class="form-row" style="margin-bottom:10px;">
+                        <div class="form-group" style="flex:1;">
+                            <label>Nur verifizierte (Status=valid)</label>
+                            <input type="checkbox" id="csv-only-verified" checked
+                                   onchange="window.loadCleverReachStats()"
+                                   style="margin-top:6px;">
+                            <span style="font-size:12px; color:#64748b;">empfohlen für saubere Listen</span>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Webagentur/Test-Provider ausschließen</label>
+                            <input type="checkbox" id="csv-clean-filter" checked style="margin-top:6px;">
+                            <span style="font-size:12px; color:#64748b;">filtert Bauhaus, OBI, Test-Shops etc.</span>
+                        </div>
+                    </div>
+                    <div id="csv-export-buttons" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;">
+                        <span style="color:#94a3b8;">Lade verfügbare Länder …</span>
+                    </div>
+                </div>
+
                 <!-- Pro-Land-Stats -->
                 <h3 style="margin-top:30px;">🌍 Provider-Verteilung pro Land</h3>
                 <p style="color:#64748b; font-size:13px;">Welche Länder bereits konfiguriert sind, wie viele Provider mit E-Mail vorhanden sind, wie viele verifiziert und wie viele schon synchronisiert.</p>

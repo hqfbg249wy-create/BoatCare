@@ -9919,6 +9919,9 @@ async function loadCleverReachStats() {
             filterSel.innerHTML = opts.join('');
             if (current) filterSel.value = current;
         }
+
+        // CSV-Export-Buttons pro Land rendern
+        renderCsvExportButtons(data.perCountry);
     } catch (err) {
         if (statusBox) {
             statusBox.style.background = '#fee2e2';
@@ -10009,6 +10012,182 @@ function renderCleverReachResults(data) {
 
 window.startCleverReachSync = startCleverReachSync;
 window.loadCleverReachStats = loadCleverReachStats;
+
+// ============================================
+// CSV-EXPORT FÜR CLEVERREACH (PRIMÄR-METHODE)
+// ============================================
+
+/**
+ * Schmutz-Filter: Provider die offensichtlich NICHT in einen Marine-
+ * Newsletter gehoeren. Werden per Name/Domain rausgeschmissen.
+ * Diese Heuristik laeuft client-side beim CSV-Export, damit der Admin
+ * sieht was er ausschliesst.
+ */
+const CSV_JUNK_NAME_PATTERN = /\b(bauhaus|hornbach|obi|toom|bauking|globus|kaufland|lidl|aldi|edeka|rewe|netto|penny|kiteschule|surfschule|tauchschule|segelschule|hotel|restaurant|gasthof|gasthaus|pension|ferienwohnung|ferienhaus|gartenbau|landschaftsbau|baumarkt|tankstelle|fitnessstudio|frisor|friseur|gebrauchtwagen|autohaus|zahnarzt|arzt|apotheke|bar|nachtclub|disco|club|werbeagentur|webagentur|webdesign|softwareentwicklung|industrie ?gmbh|schifffahrt gmbh|stahlbau|hafenbau|brueckenbau|tiefbau|hochbau|baugesellschaft)\b/i;
+
+const CSV_JUNK_NAME_TEST = /\b(test ?shop|test ?provider|skipily ?test|skipily provider|demo|example|musterbetrieb|musterhaus|placeholder|dummy|temporary|temporaer)\b/i;
+
+/**
+ * CSV-Datei pro Land generieren und Download anstossen.
+ *
+ * Spalten (CleverReach-kompatibel):
+ *   email     ← Pflicht
+ *   firstname ← Wir nutzen den Firmennamen-Vorderteil falls vorhanden
+ *   lastname  ← Wir nutzen den Firmennamen-Restteil
+ *   company   ← Vollstaendiger Name
+ *   city
+ *   country
+ *   category  ← Werft / Motorservice / etc.
+ *   website
+ *   language  ← de/fr/it/es/nl/en (fuer Multi-Sprach-Newsletter)
+ */
+async function exportCleverReachCsv(countryCode) {
+    const onlyVerified = document.getElementById('csv-only-verified')?.checked !== false;
+    const cleanFilter  = document.getElementById('csv-clean-filter')?.checked !== false;
+
+    cleverreachLog(`📥 Lade Provider für ${countryCode || 'alle'} …`, 'info');
+
+    try {
+        // Wir laden grosszügig, damit ALLE Provider eines Landes
+        // mit reinkommen (auch "Deutschland" statt "DE")
+        let q = supabaseClient
+            .from('service_providers')
+            .select('id, name, email, city, country, category, website')
+            .not('email', 'is', null)
+            .neq('email', '')
+            .limit(10000);
+        if (onlyVerified) q = q.eq('email_check_status', 'valid');
+
+        const { data, error } = await q;
+        if (error) throw error;
+
+        // Country normalisierung im Browser
+        const matchCountry = (raw) => {
+            if (!raw) return '';
+            if (raw.length === 2) return raw.toUpperCase();
+            const lower = raw.toLowerCase();
+            const map = {
+                'deutschland': 'DE', 'germany': 'DE',
+                'oesterreich': 'AT', 'österreich': 'AT', 'austria': 'AT',
+                'schweiz': 'CH', 'switzerland': 'CH',
+                'frankreich': 'FR', 'france': 'FR',
+                'italien': 'IT', 'italy': 'IT', 'italia': 'IT',
+                'spanien': 'ES', 'spain': 'ES', 'españa': 'ES',
+                'niederlande': 'NL', 'netherlands': 'NL', 'nederland': 'NL',
+                'belgien': 'BE', 'belgium': 'BE',
+                'grossbritannien': 'GB', 'großbritannien': 'GB', 'united kingdom': 'GB',
+                'griechenland': 'GR', 'greece': 'GR',
+                'kroatien': 'HR', 'croatia': 'HR',
+                'portugal': 'PT', 'sp': 'ES',
+            };
+            return map[lower] || raw.substring(0, 2).toUpperCase();
+        };
+
+        // Filter: nur dieses Land
+        let filtered = data.filter(p => matchCountry(p.country) === countryCode);
+
+        // Schmutz-Filter
+        let removedJunk = 0;
+        if (cleanFilter) {
+            filtered = filtered.filter(p => {
+                const name = (p.name || '').toLowerCase();
+                if (CSV_JUNK_NAME_PATTERN.test(name)) { removedJunk++; return false; }
+                if (CSV_JUNK_NAME_TEST.test(name))    { removedJunk++; return false; }
+                return true;
+            });
+        }
+
+        if (filtered.length === 0) {
+            cleverreachLog(`  ⚠️ Keine Provider für ${countryCode} gefunden`, 'warn');
+            alert(`Keine Provider für ${countryCode} gefunden.\n\nPrüfe die Filter (Nur verifizierte / Schmutz-Filter).`);
+            return;
+        }
+
+        // CSV bauen
+        const language = {
+            DE: 'de', AT: 'de', CH: 'de',
+            FR: 'fr', BE: 'fr', LU: 'fr',
+            IT: 'it', ES: 'es', PT: 'pt',
+            NL: 'nl', GB: 'en', IE: 'en', US: 'en',
+        }[countryCode] || 'en';
+
+        const escapeCsv = (val) => {
+            const s = String(val ?? '');
+            if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+                return '"' + s.replace(/"/g, '""') + '"';
+            }
+            return s;
+        };
+
+        const header = ['email', 'company', 'city', 'country', 'category', 'website', 'language'];
+        const rows = [header.join(',')];
+        for (const p of filtered) {
+            rows.push([
+                p.email,
+                p.name || '',
+                p.city || '',
+                countryCode,
+                p.category || '',
+                p.website || '',
+                language,
+            ].map(escapeCsv).join(','));
+        }
+
+        // UTF-8 BOM voranstellen, damit Excel die Umlaute richtig liest
+        const csv = '﻿' + rows.join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const ts = new Date().toISOString().substring(0, 10);
+        const filename = `skipily-${countryCode.toLowerCase()}-provider-${ts}.csv`;
+
+        // Download anstossen
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        cleverreachLog(
+            `  ✅ ${filename}: ${filtered.length} Provider exportiert` +
+            (removedJunk > 0 ? ` (${removedJunk} Schmutz-Eintraege ausgefiltert)` : ''),
+            'success'
+        );
+    } catch (err) {
+        cleverreachLog(`  ❌ Export für ${countryCode} fehlgeschlagen: ${err.message}`, 'error');
+        alert('Export fehlgeschlagen: ' + err.message);
+    }
+}
+
+/**
+ * Buttons pro Land in die CSV-Export-Sektion einsetzen.
+ * Wird nach loadCleverReachStats aufgerufen.
+ */
+function renderCsvExportButtons(perCountry) {
+    const cont = document.getElementById('csv-export-buttons');
+    if (!cont) return;
+    if (!perCountry || perCountry.length === 0) {
+        cont.innerHTML = '<span style="color:#94a3b8;">Keine Daten</span>';
+        return;
+    }
+    const onlyVerified = document.getElementById('csv-only-verified')?.checked !== false;
+    cont.innerHTML = perCountry
+        .filter(c => c.country && c.country.length === 2 && c.totalWithMail > 0)
+        .map(c => {
+            const count = onlyVerified ? c.verified : c.totalWithMail;
+            const dis = count === 0 ? 'disabled' : '';
+            return `
+                <button class="btn-secondary" onclick="window.exportCleverReachCsv('${c.country}')" ${dis}
+                        style="background:#3b82f6; color:white; padding:8px 14px; border-radius:6px; border:none; cursor:pointer; ${count === 0 ? 'opacity:0.4;' : ''}"
+                        title="${onlyVerified ? c.verified + ' verifizierte' : c.totalWithMail + ' gesamt'} Provider in ${c.country}">
+                    📥 ${c.country} (${count.toLocaleString('de-DE')})
+                </button>
+            `;
+        })
+        .join('');
+}
+
+window.exportCleverReachCsv = exportCleverReachCsv;
 
 function escapeHtml_v(s) {
     return String(s).replace(/[&<>"']/g, ch => ({
