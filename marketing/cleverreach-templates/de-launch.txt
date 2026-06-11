@@ -36,7 +36,7 @@ PROFIL KOSTENLOS BEANSPRUCHEN
 ==============================
 In 2 Minuten eingerichtet, keine Bindung.
 
-→ https://provider.skipily.app/claim?source=newsletter
+→ {$claim_url}
 
 Oder schauen Sie sich zuerst die App an:
 → https://apps.apple.com/app/id6757314378

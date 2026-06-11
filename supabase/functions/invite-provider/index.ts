@@ -88,36 +88,37 @@ Deno.serve(async (req) => {
       }, 409);
     }
 
-    // ── 3) User einladen (schickt Magic-Link-Mail) ──
-    const { data: invited, error: inviteErr } =
-      await admin.auth.admin.inviteUserByEmail(email, {
-        data: {
-          is_provider:  true,
-          company_name,
-          category: category || "repair",
-          city:     city     || null,
-          country:  "Deutschland",
-        },
-        redirectTo: "https://provider.skipily.app/",
-      });
+    // ── 3) Verwaisten Provider-Eintrag anlegen (KEIN Auth-User!) ──
+    //   Vereinheitlichter Claim-Token-Flow: Wir legen nur die
+    //   service_providers-Zeile an (ohne user_id). Sie bekommt per
+    //   DB-Default automatisch ein claim_token. Der Auth-User entsteht
+    //   erst, wenn der Provider den Claim-Link oeffnet und ein Passwort
+    //   setzt (Edge Function claim-provider). Das verhindert Karteileichen.
+    const { data: inserted, error: insErr } = await admin
+      .from("service_providers")
+      .insert({
+        name:     company_name,
+        email:    email.toLowerCase().trim(),
+        category: category || "repair",
+        city:     city     || null,
+        country:  "Deutschland",
+      })
+      .select("id, claim_token")
+      .single();
 
-    if (inviteErr) {
-      console.error("inviteUserByEmail failed:", JSON.stringify(inviteErr));
-      const msg = inviteErr.message || String(inviteErr);
-      const friendly = msg.includes("Database error")
-        ? "Anlegen des Users fehlgeschlagen. Mögliche Ursachen: E-Mail bereits als Auth-User vorhanden, oder der Provider-Signup-Trigger lehnt die Daten ab. Bitte das Function-Log im Supabase-Dashboard prüfen."
-        : msg;
-      return json({ error: friendly, raw: msg }, 400);
+    if (insErr || !inserted) {
+      console.error("provider insert failed:", JSON.stringify(insErr));
+      return json({ error: "Anlegen des Provider-Eintrags fehlgeschlagen: " + (insErr?.message ?? "unbekannt") }, 400);
     }
 
-    // Der Trigger handle_new_provider_signup legt beim INSERT
-    // automatisch die service_providers-Zeile an.
+    const claimUrl = `https://provider.skipily.app/claim/${inserted.claim_token}`;
 
     return json({
       ok: true,
-      user_id: invited.user?.id,
-      email:   invited.user?.email,
-      message: "Einladung per E-Mail gesendet.",
+      provider_id: inserted.id,
+      email,
+      claim_url: claimUrl,
+      message: "Provider angelegt. Claim-Link bereit zum Versenden.",
     });
   } catch (err) {
     console.error("invite-provider error:", err);

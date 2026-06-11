@@ -7561,10 +7561,22 @@ window.handleInviteProvider = async function(event) {
             throw new Error(result.error || `Fehler ${res.status}`);
         }
 
+        const claimUrl = result.claim_url || '';
         msgBox.innerHTML = `
-            <div style="padding:12px 16px;background:#dcfce7;color:#14532d;border-radius:8px;font-size:14px;">
-                ✓ Einladung an <strong>${result.email}</strong> gesendet.<br>
-                <small>User-ID: <code>${result.user_id}</code></small>
+            <div style="padding:16px;background:#dcfce7;color:#14532d;border-radius:8px;font-size:14px;">
+                ✓ Provider <strong>${result.email}</strong> angelegt.<br>
+                <div style="margin-top:10px; font-size:13px; color:#166534;">Claim-Link (an den Provider senden):</div>
+                <div style="display:flex; gap:6px; margin-top:6px;">
+                    <input id="claim-link-out" readonly value="${claimUrl}"
+                           style="flex:1; padding:8px 10px; border:1px solid #86efac; border-radius:6px; font-family:monospace; font-size:12px; background:#fff;">
+                    <button type="button" onclick="window.copyClaimLink()"
+                            style="background:#16a34a; color:#fff; border:none; border-radius:6px; padding:8px 14px; cursor:pointer; font-size:13px; white-space:nowrap;">
+                        📋 Kopieren
+                    </button>
+                </div>
+                <div style="margin-top:8px; font-size:12px; color:#15803d;">
+                    💡 Tipp: per E-Mail, WhatsApp oder Telefon weitergeben. Der Provider setzt ein Passwort und übernimmt sofort sein Profil.
+                </div>
             </div>`;
         form.reset();
     } catch (err) {
@@ -7575,10 +7587,24 @@ window.handleInviteProvider = async function(event) {
             </div>`;
     } finally {
         btn.disabled    = false;
-        btn.textContent = '✉️ Einladung senden';
+        btn.textContent = '🔗 Claim-Link erzeugen';
     }
 
     return false;
+};
+
+window.copyClaimLink = function() {
+    const inp = document.getElementById('claim-link-out');
+    if (!inp) return;
+    inp.select();
+    navigator.clipboard.writeText(inp.value).then(() => {
+        const btn = event.target;
+        const orig = btn.textContent;
+        btn.textContent = '✓ Kopiert';
+        setTimeout(() => { btn.textContent = orig; }, 1500);
+    }).catch(() => {
+        document.execCommand('copy');
+    });
 };
 
 // ========================================================================
@@ -10052,7 +10078,7 @@ async function exportCleverReachCsv(countryCode) {
         // mit reinkommen (auch "Deutschland" statt "DE")
         let q = supabaseClient
             .from('service_providers')
-            .select('id, name, email, city, country, category, website')
+            .select('id, name, email, city, country, category, website, claim_token')
             .not('email', 'is', null)
             .neq('email', '')
             .limit(10000);
@@ -10119,9 +10145,14 @@ async function exportCleverReachCsv(countryCode) {
             return s;
         };
 
-        const header = ['email', 'company', 'city', 'country', 'category', 'website', 'language'];
+        // claim_url pro Provider: persoenlicher Ein-Klick-Uebernahme-Link
+        // fuer den Newsletter-Button. Geht auf das Provider-Portal.
+        const header = ['email', 'company', 'city', 'country', 'category', 'website', 'language', 'claim_url'];
         const rows = [header.join(',')];
         for (const p of filtered) {
+            const claimUrl = p.claim_token
+                ? `https://provider.skipily.app/claim/${p.claim_token}`
+                : '';
             rows.push([
                 p.email,
                 p.name || '',
@@ -10130,6 +10161,7 @@ async function exportCleverReachCsv(countryCode) {
                 p.category || '',
                 p.website || '',
                 language,
+                claimUrl,
             ].map(escapeCsv).join(','));
         }
 

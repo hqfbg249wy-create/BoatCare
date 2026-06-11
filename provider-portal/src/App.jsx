@@ -16,6 +16,7 @@ import Messages from './pages/Messages'
 import MarketInsights from './pages/MarketInsights'
 import Profile from './pages/Profile'
 import ProviderPublicProfile from './pages/ProviderPublicProfile'
+import ClaimProfile from './pages/ClaimProfile'
 
 /**
  * Liest beim allerersten Mount den URL-Hash aus. Supabase leitet Reset-,
@@ -101,9 +102,11 @@ function ProtectedRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      {/* Öffentliche Route: Provider-Profil ohne Login erreichbar */}
+      {/* Öffentliche Routen: ohne Login erreichbar */}
       <Routes>
         <Route path="/provider/:id" element={<ProviderPublicProfile />} />
+        {/* Profil-Claim per Token (Newsletter / Admin-Einladung) */}
+        <Route path="/claim/:token" element={<ClaimProfile />} />
         <Route path="*" element={
           <AuthProvider>
             <ProtectedRoutes />

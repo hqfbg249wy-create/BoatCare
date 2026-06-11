@@ -1478,7 +1478,7 @@
             <!-- Invite Provider Page -->
             <div id="invite-provider-page" class="page">
                 <h1>✉️ Provider einladen</h1>
-                <p class="subtitle">Der eingeladene Provider erhält einen Magic-Link per E-Mail und kann sich anschließend selbst registrieren. Das Profil in <code>service_providers</code> wird automatisch angelegt.</p>
+                <p class="subtitle">Legt einen Provider-Eintrag an und erzeugt einen <strong>Claim-Link</strong>. Der Provider übernimmt sein Profil selbst (setzt Passwort) — es wird <em>kein</em> Account vorab angelegt, daher keine Karteileichen. Der gleiche Link-Mechanismus wird auch im CleverReach-Newsletter genutzt.</p>
 
                 <div class="card" style="max-width:640px;">
                     <form id="invite-provider-form" onsubmit="return window.handleInviteProvider(event)">
@@ -1514,7 +1514,7 @@
                         </div>
 
                         <button type="submit" class="btn-primary" id="invite-submit-btn">
-                            ✉️ Einladung senden
+                            🔗 Claim-Link erzeugen
                         </button>
                     </form>
 
