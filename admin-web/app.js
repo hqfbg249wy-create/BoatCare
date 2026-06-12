@@ -9527,6 +9527,8 @@ function buildDatevCsv(buchungen) {
         if (page === 'cleverreach')       loadCleverReachStats();
         if (page === 'duplicates')        resetDuplicateUI();
         if (page === 'shop-check')        loadShopStats();
+        if (page === 'shop-overview')     loadShopOverview();
+        if (page === 'sales-reps')        loadSalesReps();
         // Alte Pages auf die neue umleiten falls noch Direct-Links existieren
         if (page === 'providers' || page === 'shop-management') {
             setTimeout(() => origNav('customers'), 0);
@@ -10788,6 +10790,421 @@ function renderShopResults(results) {
 
 window.startShopVerify = startShopVerify;
 window.loadShopStats = loadShopStats;
+
+// ============================================
+// SHOP-ÜBERSICHT (Produkte + Umsatz pro Shop)
+// ============================================
+
+let _shopOverviewCache = null;
+let _salesRepsCache = [];
+
+/**
+ * Laedt alle Shop-relevanten Provider, ihre Produktanzahl und
+ * aggregierten Umsatz im gewaehlten Zeitraum. Cached fuer schnelles
+ * Re-Rendern bei Filter-Aenderungen.
+ */
+async function loadShopOverview() {
+    const container = document.getElementById('shop-ov-list');
+    if (container) container.innerHTML = '<div style="padding:30px; text-align:center; color:#64748b;">Lade Daten …</div>';
+
+    try {
+        const period = document.getElementById('shop-ov-period')?.value || '365';
+        const since = period === 'all' ? null : new Date(Date.now() - parseInt(period) * 86400000).toISOString();
+
+        // Sales-Reps für Filter-Dropdown laden
+        const { data: reps } = await supabaseClient
+            .from('sales_reps')
+            .select('id, full_name, commission_pct, active')
+            .order('full_name');
+        _salesRepsCache = reps || [];
+        populateRepFilters();
+
+        // Provider mit Shop-Aktivierung
+        const { data: providers, error: pErr } = await supabaseClient
+            .from('service_providers')
+            .select('id, name, city, country, is_shop_active, commission_rate, sales_rep_id, created_at, claimed_at')
+            .order('name');
+        if (pErr) throw pErr;
+
+        // Produktanzahl pro Provider (Tabelle "products" — falls leer/nicht vorhanden, alle 0)
+        const productCounts = new Map();
+        try {
+            // Wir versuchen den COUNT pro Provider zu holen. Da Supabase
+            // kein GROUP BY direkt anbietet, gruppieren wir client-side.
+            const { data: prods } = await supabaseClient
+                .from('products')
+                .select('provider_id')
+                .limit(50000);
+            if (prods) {
+                for (const p of prods) {
+                    productCounts.set(p.provider_id, (productCounts.get(p.provider_id) || 0) + 1);
+                }
+            }
+        } catch { /* products-Tabelle fehlt → alle 0 */ }
+
+        // Orders im Zeitraum
+        let oQuery = supabaseClient
+            .from('orders')
+            .select('provider_id, total, commission_amount, payment_status, created_at')
+            .eq('payment_status', 'paid')
+            .limit(50000);
+        if (since) oQuery = oQuery.gte('created_at', since);
+        const { data: orders } = await oQuery;
+
+        const revenueByProvider = new Map();
+        const commissionByProvider = new Map();
+        for (const o of (orders || [])) {
+            const pid = o.provider_id;
+            revenueByProvider.set(pid, (revenueByProvider.get(pid) || 0) + parseFloat(o.total || 0));
+            commissionByProvider.set(pid, (commissionByProvider.get(pid) || 0) + parseFloat(o.commission_amount || 0));
+        }
+
+        _shopOverviewCache = (providers || []).map(p => ({
+            ...p,
+            product_count: productCounts.get(p.id) || 0,
+            revenue: revenueByProvider.get(p.id) || 0,
+            commission: commissionByProvider.get(p.id) || 0,
+            sales_rep_name: _salesRepsCache.find(r => r.id === p.sales_rep_id)?.full_name || null,
+        }));
+
+        renderShopOverview();
+    } catch (err) {
+        if (container) container.innerHTML = `<div style="padding:20px; color:#ef4444;">Fehler: ${escapeHtml_v(err.message)}</div>`;
+    }
+}
+
+function populateRepFilters() {
+    const sel = document.getElementById('shop-ov-rep-filter');
+    if (!sel) return;
+    const current = sel.value;
+    const opts = ['<option value="">Alle</option>', '<option value="none">Ohne Vertriebler</option>'];
+    for (const r of _salesRepsCache) {
+        opts.push(`<option value="${escapeHtml_v(r.id)}">${escapeHtml_v(r.full_name)} (${r.commission_pct}%)</option>`);
+    }
+    sel.innerHTML = opts.join('');
+    if (current) sel.value = current;
+}
+
+function renderShopOverview() {
+    const container = document.getElementById('shop-ov-list');
+    if (!container || !_shopOverviewCache) return;
+
+    const repFilter = document.getElementById('shop-ov-rep-filter')?.value || '';
+    const search = (document.getElementById('shop-ov-search')?.value || '').toLowerCase().trim();
+
+    let rows = _shopOverviewCache;
+
+    // Nur Shops anzeigen (Produkte ODER aktiv ODER hatte Umsatz)
+    rows = rows.filter(r => r.product_count > 0 || r.is_shop_active || r.revenue > 0);
+
+    if (repFilter === 'none') {
+        rows = rows.filter(r => !r.sales_rep_id);
+    } else if (repFilter) {
+        rows = rows.filter(r => r.sales_rep_id === repFilter);
+    }
+    if (search) {
+        rows = rows.filter(r =>
+            (r.name || '').toLowerCase().includes(search) ||
+            (r.city || '').toLowerCase().includes(search)
+        );
+    }
+
+    // Sortierung: Umsatz absteigend
+    rows.sort((a, b) => b.revenue - a.revenue);
+
+    // Stats
+    const totalRevenue    = rows.reduce((s, r) => s + r.revenue, 0);
+    const totalCommission = rows.reduce((s, r) => s + r.commission, 0);
+    const totalProducts   = rows.reduce((s, r) => s + r.product_count, 0);
+    document.getElementById('shop-ov-stat-active').textContent     = rows.length.toLocaleString('de-DE');
+    document.getElementById('shop-ov-stat-products').textContent   = totalProducts.toLocaleString('de-DE');
+    document.getElementById('shop-ov-stat-revenue').textContent    = totalRevenue.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €';
+    document.getElementById('shop-ov-stat-commission').textContent = totalCommission.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €';
+
+    if (rows.length === 0) {
+        container.innerHTML = '<div style="padding:30px; text-align:center; color:#94a3b8;">Keine Shops im aktuellen Filter.</div>';
+        return;
+    }
+
+    // Sales-Rep-Dropdown-Optionen
+    const repOpts = ['<option value="">— Kein Vertriebler —</option>'];
+    for (const r of _salesRepsCache) {
+        if (r.active === false) continue;
+        repOpts.push(`<option value="${escapeHtml_v(r.id)}">${escapeHtml_v(r.full_name)}</option>`);
+    }
+    const repOptHtml = repOpts.join('');
+
+    container.innerHTML = `
+        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:13px; min-width:900px;">
+                <thead style="background:#f8fafc;">
+                    <tr>
+                        <th style="padding:10px; text-align:left;">Shop</th>
+                        <th style="padding:10px; text-align:left;">Stadt</th>
+                        <th style="padding:10px; text-align:right;">Produkte</th>
+                        <th style="padding:10px; text-align:right;">Umsatz</th>
+                        <th style="padding:10px; text-align:right;">Marketplace-Provision</th>
+                        <th style="padding:10px; text-align:right;">Provider-Rate</th>
+                        <th style="padding:10px; text-align:left;">Vertriebler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows.map(r => `
+                        <tr style="border-top:1px solid #e2e8f0;">
+                            <td style="padding:10px; font-weight:600;">${escapeHtml_v(r.name || '?')}</td>
+                            <td style="padding:10px; color:#64748b;">${escapeHtml_v(r.city || '–')}</td>
+                            <td style="padding:10px; text-align:right;">${r.product_count.toLocaleString('de-DE')}</td>
+                            <td style="padding:10px; text-align:right; font-weight:600; color:${r.revenue > 0 ? '#166534' : '#94a3b8'};">${r.revenue.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 })} €</td>
+                            <td style="padding:10px; text-align:right; color:#854d0e;">${r.commission.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 })} €</td>
+                            <td style="padding:10px; text-align:right; font-size:12px; color:#64748b;">${(r.commission_rate ?? 10)}%</td>
+                            <td style="padding:10px;">
+                                <select onchange="window.assignSalesRep('${escapeHtml_v(r.id)}', this.value)" style="padding:5px 8px; border-radius:6px; font-size:12px; max-width:160px;">
+                                    ${repOptHtml.replace(`value="${r.sales_rep_id || ''}"`, `value="${r.sales_rep_id || ''}" selected`)}
+                                </select>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+async function assignSalesRep(providerId, repId) {
+    try {
+        const { error } = await supabaseClient
+            .from('service_providers')
+            .update({
+                sales_rep_id: repId || null,
+                sales_rep_assigned_at: repId ? new Date().toISOString() : null,
+            })
+            .eq('id', providerId);
+        if (error) throw error;
+        // Cache lokal updaten
+        const entry = _shopOverviewCache?.find(r => r.id === providerId);
+        if (entry) {
+            entry.sales_rep_id = repId || null;
+            entry.sales_rep_name = _salesRepsCache.find(r => r.id === repId)?.full_name || null;
+        }
+    } catch (err) {
+        alert('Zuweisung fehlgeschlagen: ' + err.message);
+        loadShopOverview();
+    }
+}
+
+// ============================================
+// SALES-REPS (Vertriebler-Verwaltung)
+// ============================================
+
+async function loadSalesReps() {
+    const container = document.getElementById('sales-reps-list');
+    if (container) container.innerHTML = '<div style="padding:30px; text-align:center; color:#64748b;">Lade …</div>';
+
+    try {
+        const period = document.getElementById('sales-reps-period')?.value || '365';
+        const since = period === 'all' ? null : new Date(Date.now() - parseInt(period) * 86400000).toISOString();
+
+        const { data: reps, error: rErr } = await supabaseClient
+            .from('sales_reps')
+            .select('id, full_name, email, phone, commission_pct, active, notes, created_at')
+            .order('active', { ascending: false })
+            .order('full_name');
+        if (rErr) throw rErr;
+        _salesRepsCache = reps || [];
+
+        const { data: providers } = await supabaseClient
+            .from('service_providers')
+            .select('id, name, city, sales_rep_id, commission_rate')
+            .not('sales_rep_id', 'is', null);
+
+        let oQuery = supabaseClient
+            .from('orders')
+            .select('provider_id, total, commission_amount, payment_status, created_at')
+            .eq('payment_status', 'paid')
+            .limit(50000);
+        if (since) oQuery = oQuery.gte('created_at', since);
+        const { data: orders } = await oQuery;
+
+        // Aggregation: Umsatz/Commission pro Provider → pro Sales-Rep
+        const revByProvider = new Map();
+        const commByProvider = new Map();
+        for (const o of (orders || [])) {
+            revByProvider.set(o.provider_id, (revByProvider.get(o.provider_id) || 0) + parseFloat(o.total || 0));
+            commByProvider.set(o.provider_id, (commByProvider.get(o.provider_id) || 0) + parseFloat(o.commission_amount || 0));
+        }
+
+        // Mapping: rep_id → { shops: [], revenue, commission }
+        const byRep = new Map();
+        for (const r of reps) {
+            byRep.set(r.id, { rep: r, shops: [], revenue: 0, marketplaceCommission: 0 });
+        }
+        for (const p of (providers || [])) {
+            if (!byRep.has(p.sales_rep_id)) continue;
+            const bucket = byRep.get(p.sales_rep_id);
+            const revenue = revByProvider.get(p.id) || 0;
+            const commission = commByProvider.get(p.id) || 0;
+            bucket.shops.push({
+                id: p.id, name: p.name, city: p.city, revenue, commission,
+            });
+            bucket.revenue += revenue;
+            bucket.marketplaceCommission += commission;
+        }
+
+        renderSalesReps([...byRep.values()]);
+    } catch (err) {
+        if (container) container.innerHTML = `<div style="padding:20px; color:#ef4444;">Fehler: ${escapeHtml_v(err.message)}</div>`;
+    }
+}
+
+function renderSalesReps(buckets) {
+    const container = document.getElementById('sales-reps-list');
+    if (!container) return;
+
+    if (buckets.length === 0) {
+        container.innerHTML = '<div style="padding:30px; text-align:center; color:#94a3b8;">Noch keine Vertriebler angelegt. Klick „+ Neuer Vertriebler".</div>';
+        return;
+    }
+
+    // Sortierung: aktive zuerst, dann nach Umsatz
+    buckets.sort((a, b) => {
+        if (a.rep.active !== b.rep.active) return a.rep.active ? -1 : 1;
+        return b.revenue - a.revenue;
+    });
+
+    container.innerHTML = buckets.map(b => {
+        const sr = b.rep;
+        const repProvision = b.marketplaceCommission * sr.commission_pct / 100;
+        const inactive = !sr.active;
+        return `
+            <div style="background:#fff; border:1px solid ${inactive ? '#e2e8f0' : '#c4b5fd'}; border-radius:12px; margin-bottom:16px; overflow:hidden; opacity:${inactive ? 0.6 : 1};">
+                <div style="background:${inactive ? '#f1f5f9' : 'linear-gradient(135deg,#ede9fe,#f5f3ff)'}; padding:16px 20px; display:flex; justify-content:space-between; gap:12px; align-items:start;">
+                    <div>
+                        <div style="font-weight:700; font-size:17px;">
+                            ${escapeHtml_v(sr.full_name)}
+                            ${inactive ? '<span style="background:#e2e8f0; color:#64748b; padding:2px 8px; border-radius:8px; font-size:11px; font-weight:600; margin-left:6px;">INAKTIV</span>' : ''}
+                        </div>
+                        <div style="font-size:12px; color:#64748b; margin-top:4px;">
+                            ${sr.email ? '📧 ' + escapeHtml_v(sr.email) + '  ' : ''}
+                            ${sr.phone ? '📞 ' + escapeHtml_v(sr.phone) + '  ' : ''}
+                            • <strong>${sr.commission_pct}%</strong> Provisionssatz
+                        </div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:11px; color:#64748b;">Provision (Zeitraum)</div>
+                        <div style="font-size:22px; font-weight:700; color:#7c3aed;">${repProvision.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 })} €</div>
+                        <div style="display:flex; gap:4px; margin-top:6px;">
+                            <button onclick="window.editSalesRep('${escapeHtml_v(sr.id)}')" class="btn-secondary" style="font-size:11px; padding:4px 10px;">✏️ Bearbeiten</button>
+                        </div>
+                    </div>
+                </div>
+                <div style="padding:14px 20px;">
+                    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px;">
+                        <div>
+                            <div style="font-size:11px; color:#64748b;">Zugewiesene Shops</div>
+                            <div style="font-size:18px; font-weight:600;">${b.shops.length}</div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px; color:#64748b;">Shop-Umsatz</div>
+                            <div style="font-size:18px; font-weight:600; color:#166534;">${b.revenue.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 })} €</div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px; color:#64748b;">Marketplace-Provision</div>
+                            <div style="font-size:18px; font-weight:600; color:#854d0e;">${b.marketplaceCommission.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 })} €</div>
+                        </div>
+                    </div>
+                    ${b.shops.length === 0 ? '<div style="color:#94a3b8; padding:10px;">Noch keine Shops zugewiesen.</div>' : `
+                        <details>
+                            <summary style="cursor:pointer; font-size:13px; color:#64748b;">Shops anzeigen (${b.shops.length})</summary>
+                            <table style="width:100%; border-collapse:collapse; font-size:12px; margin-top:8px;">
+                                <thead><tr style="background:#f8fafc;">
+                                    <th style="padding:6px; text-align:left;">Shop</th>
+                                    <th style="padding:6px; text-align:left;">Stadt</th>
+                                    <th style="padding:6px; text-align:right;">Umsatz</th>
+                                    <th style="padding:6px; text-align:right;">Marketplace-Comm.</th>
+                                </tr></thead>
+                                <tbody>
+                                    ${b.shops.sort((a,c) => c.revenue - a.revenue).map(s => `
+                                        <tr style="border-top:1px solid #f1f5f9;">
+                                            <td style="padding:6px;">${escapeHtml_v(s.name || '?')}</td>
+                                            <td style="padding:6px; color:#64748b;">${escapeHtml_v(s.city || '–')}</td>
+                                            <td style="padding:6px; text-align:right;">${s.revenue.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 })} €</td>
+                                            <td style="padding:6px; text-align:right; color:#854d0e;">${s.commission.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 })} €</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </details>
+                    `}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function openNewSalesRep() {
+    document.getElementById('sales-rep-modal-title').textContent = 'Neuer Vertriebler';
+    document.getElementById('sales-rep-form').reset();
+    document.getElementById('sr-id').value = '';
+    document.getElementById('sr-commission').value = '5';
+    document.getElementById('sr-active').checked = true;
+    document.getElementById('sales-rep-modal').style.display = 'flex';
+}
+
+function editSalesRep(id) {
+    const rep = _salesRepsCache.find(r => r.id === id);
+    if (!rep) return;
+    document.getElementById('sales-rep-modal-title').textContent = 'Vertriebler bearbeiten';
+    document.getElementById('sr-id').value = rep.id;
+    document.getElementById('sr-name').value = rep.full_name || '';
+    document.getElementById('sr-email').value = rep.email || '';
+    document.getElementById('sr-phone').value = rep.phone || '';
+    document.getElementById('sr-commission').value = rep.commission_pct ?? 5;
+    document.getElementById('sr-notes').value = rep.notes || '';
+    document.getElementById('sr-active').checked = rep.active !== false;
+    document.getElementById('sales-rep-modal').style.display = 'flex';
+}
+
+function closeSalesRepModal() {
+    document.getElementById('sales-rep-modal').style.display = 'none';
+}
+
+async function saveSalesRep(event) {
+    event.preventDefault();
+    const id = document.getElementById('sr-id').value;
+    const payload = {
+        full_name: document.getElementById('sr-name').value.trim(),
+        email: document.getElementById('sr-email').value.trim() || null,
+        phone: document.getElementById('sr-phone').value.trim() || null,
+        commission_pct: parseFloat(document.getElementById('sr-commission').value),
+        notes: document.getElementById('sr-notes').value.trim() || null,
+        active: document.getElementById('sr-active').checked,
+        updated_at: new Date().toISOString(),
+    };
+
+    try {
+        if (id) {
+            const { error } = await supabaseClient.from('sales_reps').update(payload).eq('id', id);
+            if (error) throw error;
+        } else {
+            const { error } = await supabaseClient.from('sales_reps').insert(payload);
+            if (error) throw error;
+        }
+        closeSalesRepModal();
+        loadSalesReps();
+    } catch (err) {
+        alert('Speichern fehlgeschlagen: ' + err.message);
+    }
+    return false;
+}
+
+window.loadShopOverview = loadShopOverview;
+window.renderShopOverview = renderShopOverview;
+window.assignSalesRep = assignSalesRep;
+window.loadSalesReps = loadSalesReps;
+window.openNewSalesRep = openNewSalesRep;
+window.editSalesRep = editSalesRep;
+window.closeSalesRepModal = closeSalesRepModal;
+window.saveSalesRep = saveSalesRep;
 
 // ============================================
 // CSV-EXPORT FÜR CLEVERREACH (PRIMÄR-METHODE)

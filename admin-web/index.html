@@ -98,6 +98,14 @@
                     <span class="icon">🛒</span>
                     Shop-Check
                 </button>
+                <button class="nav-item" data-page="shop-overview" onclick="window.navigateToPage('shop-overview')">
+                    <span class="icon">🛍️</span>
+                    Shop-Übersicht
+                </button>
+                <button class="nav-item" data-page="sales-reps" onclick="window.navigateToPage('sales-reps')">
+                    <span class="icon">👔</span>
+                    Vertrieb
+                </button>
                 <button class="nav-item" data-page="duplicates" onclick="window.navigateToPage('duplicates')">
                     <span class="icon">🧹</span>
                     Duplikate
@@ -1077,6 +1085,125 @@
                         <p style="font-size:12px; color:#64748b;">Fly restartet automatisch und der Endpoint ist live.</p>
                     </div>
                 </details>
+            </div>
+
+            <!-- Shop-Übersicht (Produkte + Umsatz pro Shop) -->
+            <div id="shop-overview-page" class="page">
+                <h1>🛍️ Shop-Übersicht</h1>
+                <p class="subtitle">Alle Provider mit aktivem Shop, ihre Produktanzahl, ihr Umsatz und der zugewiesene Vertriebler.</p>
+
+                <!-- Filter -->
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin-bottom:20px;">
+                    <div class="form-row" style="margin-bottom:0;">
+                        <div class="form-group" style="flex:1;">
+                            <label>Zeitraum (Umsatz)</label>
+                            <select id="shop-ov-period" onchange="window.loadShopOverview()">
+                                <option value="all">Gesamt</option>
+                                <option value="365" selected>Letzte 12 Monate</option>
+                                <option value="30">Letzte 30 Tage</option>
+                                <option value="7">Letzte 7 Tage</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Vertriebler-Filter</label>
+                            <select id="shop-ov-rep-filter" onchange="window.renderShopOverview()">
+                                <option value="">Alle</option>
+                                <option value="none">Ohne Vertriebler</option>
+                                <!-- Reps werden dynamisch eingefügt -->
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Suche (Name / Stadt)</label>
+                            <input type="text" id="shop-ov-search" oninput="window.renderShopOverview()" placeholder="Tippen zum Filtern …">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;">
+                    <div style="background:#dcfce7; border-radius:8px; padding:14px;">
+                        <div style="font-size:11px; color:#166534;">🛍️ Shops mit Produkten</div>
+                        <div style="font-size:22px; font-weight:700; color:#166534;" id="shop-ov-stat-active">–</div>
+                    </div>
+                    <div style="background:#dbeafe; border-radius:8px; padding:14px;">
+                        <div style="font-size:11px; color:#1e40af;">📦 Produkte gesamt</div>
+                        <div style="font-size:22px; font-weight:700; color:#1e40af;" id="shop-ov-stat-products">–</div>
+                    </div>
+                    <div style="background:#fff7ed; border-radius:8px; padding:14px;">
+                        <div style="font-size:11px; color:#c2410c;">💰 Umsatz (Zeitraum)</div>
+                        <div style="font-size:22px; font-weight:700; color:#c2410c;" id="shop-ov-stat-revenue">–</div>
+                    </div>
+                    <div style="background:#fef9c3; border-radius:8px; padding:14px;">
+                        <div style="font-size:11px; color:#854d0e;">🤝 Marketplace-Provision</div>
+                        <div style="font-size:22px; font-weight:700; color:#854d0e;" id="shop-ov-stat-commission">–</div>
+                    </div>
+                </div>
+
+                <div id="shop-ov-list">Lade …</div>
+            </div>
+
+            <!-- Vertriebler-Verwaltung -->
+            <div id="sales-reps-page" class="page">
+                <h1>👔 Vertrieb</h1>
+                <p class="subtitle">Vertriebler verwalten, Shops zuweisen, Provisionen berechnen. Jeder Vertriebler bekommt einen Prozent-Anteil am Umsatz seiner zugewiesenen Shops.</p>
+
+                <!-- Aktions-Bar -->
+                <div style="display:flex; gap:8px; margin-bottom:20px;">
+                    <button onclick="window.openNewSalesRep()" class="btn-primary" style="background:#8b5cf6;">
+                        + Neuer Vertriebler
+                    </button>
+                    <div class="form-group" style="flex:1; margin:0;">
+                        <select id="sales-reps-period" onchange="window.loadSalesReps()" style="width:100%; padding:8px;">
+                            <option value="all">Gesamt</option>
+                            <option value="365" selected>Letzte 12 Monate</option>
+                            <option value="30">Letzte 30 Tage</option>
+                            <option value="7">Letzte 7 Tage</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Modal: Neu / Bearbeiten -->
+                <div id="sales-rep-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+                    <div style="background:white; border-radius:12px; padding:24px; max-width:480px; width:90%;">
+                        <h2 style="margin-top:0;" id="sales-rep-modal-title">Neuer Vertriebler</h2>
+                        <form id="sales-rep-form" onsubmit="return window.saveSalesRep(event)">
+                            <input type="hidden" id="sr-id">
+                            <div class="form-group">
+                                <label>Name *</label>
+                                <input type="text" id="sr-name" required placeholder="Max Mustermann">
+                            </div>
+                            <div class="form-group">
+                                <label>E-Mail</label>
+                                <input type="email" id="sr-email" placeholder="max@firma.de">
+                            </div>
+                            <div class="form-group">
+                                <label>Telefon</label>
+                                <input type="text" id="sr-phone" placeholder="+49 …">
+                            </div>
+                            <div class="form-group">
+                                <label>Provisionssatz (%) *</label>
+                                <input type="number" id="sr-commission" step="0.1" min="0" max="50" value="5" required>
+                                <small style="color:#64748b;">Prozent vom Marketplace-Commission der zugewiesenen Shops.</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Notizen</label>
+                                <textarea id="sr-notes" rows="2" placeholder="Optional"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label style="display:flex; gap:8px; align-items:center;">
+                                    <input type="checkbox" id="sr-active" checked>
+                                    Aktiv
+                                </label>
+                            </div>
+                            <div style="display:flex; gap:8px; justify-content:flex-end;">
+                                <button type="button" onclick="window.closeSalesRepModal()" class="btn-secondary">Abbrechen</button>
+                                <button type="submit" class="btn-primary" style="background:#8b5cf6;">Speichern</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="sales-reps-list">Lade …</div>
             </div>
 
             <!-- Online-Shop-Verifizierung -->
