@@ -1,0 +1,66 @@
+SKIPILY — ALWAYS · SAFE · READY TO SAIL
+=========================================
+
+Bonjour {$company},
+
+Les plaisanciers à {$city} et dans la région cherchent exactement ce
+que vous proposez — {$category}. Jusqu'à présent, ils vous trouvaient
+via les moteurs de recherche, le bouche-à-oreille ou pas du tout.
+
+Avec Skipily, vous apparaissez sur une carte que les plaisanciers
+ouvrent directement sur leur iPhone quand ils ont besoin d'un service
+nautique — que ce soit dans leur port d'attache ou en escale.
+
+
+CE QUE SKIPILY VOUS APPORTE
+----------------------------
+
+📍 Visibilité géolocalisée
+   Les plaisanciers voient votre entreprise dès qu'ils cherchent un
+   service dans votre région — y compris les charters et voyageurs.
+
+⭐ Des avis fiables pour les clients
+   Avis authentiques de vrais plaisanciers — bénéfique pour vous,
+   honnête pour eux.
+
+🛒 En option : vente directe de pièces
+   Lancez une mini-boutique sur votre profil — Apple Pay intégré,
+   versements via Stripe.
+
+📱 Présentoir QR-code gratuit pour votre port
+   Nous vous envoyons des présentoirs imprimés gratuits — les skippers
+   les scannent au ponton, sans installation d'app.
+
+
+REVENDIQUEZ VOTRE PROFIL — GRATUIT
+====================================
+Configuré en 2 minutes, sans engagement.
+
+→ {$claim_url}
+
+Voir l'application d'abord ?
+→ https://apps.apple.com/app/id6757314378
+
+
+COMMENT ÇA MARCHE
+------------------
+1. Revendiquez votre profil (adresse, services, logo, photos)
+2. Les plaisanciers vous trouvent immédiatement sur la carte
+3. En option : vendez pièces et accessoires directement
+
+
+Nous mettons aussi votre site web en lien :
+{$website}
+
+
+---
+Skipily — La plateforme de services nautiques pour plaisanciers et chantiers
+
+Vous recevez cet e-mail car vous êtes répertorié comme prestataire
+de services nautiques dans notre base de données. Ce message
+s'inscrit dans notre intérêt légitime de communication B2B
+sectorielle au sens de l'art. 6 (1) (f) RGPD.
+
+Se désinscrire :    {$unsubscribe}
+Mentions légales :  https://skipily.app/impressum
+Confidentialité :   https://skipily.app/datenschutz

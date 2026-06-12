@@ -6,13 +6,13 @@ Vorlagen für die ersten Aussende-Kampagnen an Marine-Service-Provider.
 
 | Datei | Sprache | Verwendung |
 |---|---|---|
-| `de-launch.html` / `de-launch.txt` | 🇩🇪 Deutsch | DE-, AT-, CH-Listen |
-| `en-launch.html` / `en-launch.txt` | 🇬🇧 English | GB-, US-, internationale Liste |
-| `fr-launch.html` | 🇫🇷 Français | FR-, BE-, LU-Listen *(noch zu erstellen)* |
-| `it-launch.html` | 🇮🇹 Italiano | IT-Liste *(noch zu erstellen)* |
-| `es-launch.html` | 🇪🇸 Español | ES-Liste *(noch zu erstellen)* |
-| `nl-launch.html` | 🇳🇱 Nederlands | NL-, BE-Liste *(noch zu erstellen)* |
-| `SUBJECTS.md` | alle | Betreffzeilen + Preheader-Texte |
+| `de-launch.html` / `.txt` | 🇩🇪 Deutsch | DE-, AT-, CH-Listen |
+| `en-launch.html` / `.txt` | 🇬🇧 English | GB-, US-, IE-, internationale Liste |
+| `fr-launch.html` / `.txt` | 🇫🇷 Français | FR-, BE- (Wallonien), LU-, MC-Listen |
+| `it-launch.html` / `.txt` | 🇮🇹 Italiano | IT-, SM-, VA-Liste |
+| `es-launch.html` / `.txt` | 🇪🇸 Español | ES-, AD-Liste, LatAm |
+| `nl-launch.html` / `.txt` | 🇳🇱 Nederlands | NL-, BE- (Flandern)-Liste |
+| `SUBJECTS.md` | alle | Betreffzeilen + Preheader-Texte (6 Sprachen) |
 
 ## Personalisierungs-Variablen
 

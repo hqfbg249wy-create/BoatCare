@@ -1,0 +1,66 @@
+SKIPILY — ALWAYS · SAFE · READY TO SAIL
+=========================================
+
+Hola {$company},
+
+Los navegantes en {$city} y alrededores buscan exactamente lo que
+ofrecéis — {$category}. Hasta ahora os encontraban por buscadores,
+boca a boca o no os encontraban en absoluto.
+
+Con Skipily aparecéis en un mapa que los navegantes abren directamente
+en su iPhone cuando necesitan un servicio náutico — tanto en su
+puerto base como en travesía.
+
+
+LO QUE SKIPILY OS APORTA
+-------------------------
+
+📍 Visibilidad por geolocalización
+   Los navegantes ven vuestro negocio en cuanto buscan servicio en
+   vuestra región — incluyendo clientes de chárter y viajeros.
+
+⭐ Valoraciones en las que los clientes confían
+   Reseñas reales de navegantes reales — buenas para vosotros,
+   honestas para ellos.
+
+🛒 Opcional: venta directa de recambios
+   Abrid una mini-tienda en vuestro perfil — Apple Pay integrado,
+   pagos a través de Stripe.
+
+📱 Expositor QR gratuito para vuestro puerto
+   Os enviamos expositores impresos gratuitos — los patrones los
+   escanean en el pantalán, sin instalar la app.
+
+
+RECLAMAD VUESTRO PERFIL — GRATIS
+==================================
+Configurado en 2 minutos, sin compromiso.
+
+→ {$claim_url}
+
+¿Queréis ver primero la app?
+→ https://apps.apple.com/app/id6757314378
+
+
+CÓMO FUNCIONA
+--------------
+1. Reclamad el perfil (dirección, servicios, logo, fotos)
+2. Los navegantes os encuentran al instante en el mapa
+3. Opcional: vended recambios y accesorios directamente
+
+
+También enlazamos vuestra web:
+{$website}
+
+
+---
+Skipily — La plataforma de servicios náuticos para navegantes y astilleros
+
+Recibís este correo porque estáis listados como proveedor de
+servicios náuticos en nuestra base de datos. Este mensaje forma
+parte de nuestro interés legítimo en la comunicación B2B sectorial
+conforme al art. 6 (1) (f) RGPD.
+
+Darse de baja:  {$unsubscribe}
+Aviso legal:    https://skipily.app/impressum
+Privacidad:     https://skipily.app/datenschutz
