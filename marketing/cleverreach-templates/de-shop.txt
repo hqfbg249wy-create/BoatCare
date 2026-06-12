@@ -39,18 +39,21 @@ WAS DIE ANBINDUNG IHREM SHOP BRINGT
    Wenn ein User "neuer Schalter fuer die Bilgenpumpe" sucht, sieht er
    Ihre passenden Artikel direkt — mit Preis, Verfuegbarkeit, Lieferung.
 
-🤝 Provisions-Modell ohne Fix-Kosten
-   Sie zahlen nur bei Verkauf. Keine Setup-Gebuehr, keine Listing-
-   Gebuehr, kein monatliches Abo erforderlich.
+🤝 Faire Preise — kostenlos starten
+   Standard gratis (bis 10 Produkte zum Testen). Wachstum:
+   Pro 79 EUR/Monat oder 789 EUR/Jahr (unbegrenzte Produkte,
+   Sortiment-API, Statistiken). Marketplace-Provision 10 % pro
+   Verkauf.
 
 🔌 Anbindung ueber CSV, API oder Shopify-Webhook
    Wir holen Ihr Sortiment automatisch ab — egal ob WooCommerce,
    Shopify, Magento oder eigener Shop. Einrichtung in einem Termin.
 
 
-SHOP KOSTENLOS ANBINDEN
-========================
-Wir richten Sie ein, Sie verkaufen.
+PROFIL KOSTENLOS BEANSPRUCHEN
+==============================
+Standard-Plan gratis testen (bis 10 Produkte). Pro-Abo nur wenn
+Sie wachsen wollen — kein Risiko, keine Bindung.
 
 → {$claim_url}
 
