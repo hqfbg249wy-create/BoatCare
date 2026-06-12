@@ -1,0 +1,75 @@
+SKIPILY — ALWAYS · SAFE · READY TO SAIL
+=========================================
+
+Hello {$company},
+
+Boat owners in {$city} and the surrounding area are looking for
+exactly what you offer — {$category}. So far, they've found you
+through search engines, word of mouth, or not at all.
+
+With Skipily, you appear on a map that boat owners open directly
+on their iPhone when they need marine service — whether in their
+home harbor or while cruising.
+
+
+HOW BOAT OWNERS FIND YOU ON THE MAP
+--------------------------------------
+Skipily shows boatyards, service providers and chandlers
+right around the boat — one tap gives address, reviews and
+a call button.
+
+Learn more about the app:  https://skipily.app
+
+
+WHAT SKIPILY DELIVERS
+----------------------
+
+📍 Location-based visibility
+   Boat owners see your business the moment they search for
+   services in your region — including charter guests and travelers.
+
+⭐ Reviews customers trust
+   Real reviews from real boat owners — good for you, honest
+   for them.
+
+🛒 Optional: sell parts directly
+   Run a mini-shop right in your profile — Apple Pay built-in,
+   payouts via Stripe.
+
+📱 Free QR-code stand for your harbor
+   We send you free printable stands — skippers scan them on
+   the dock, no app install needed.
+
+
+CLAIM YOUR PROFILE — FREE
+==========================
+Set up in 2 minutes, no commitment.
+
+→ {$claim_url}
+
+Want to see the app first?
+→ https://apps.apple.com/app/id6757314378
+
+
+HOW IT WORKS
+-------------
+1. Claim your profile (address, services, logo, photos)
+2. Boat owners find you on the map instantly
+3. Optional: sell parts and accessories directly
+
+
+We also link to your website:
+{$website}
+
+
+---
+Skipily — The marine service platform for boat owners and yards
+
+You receive this email because you are listed as a marine
+service provider in our database. This message is part of our
+legitimate B2B industry communication interest under GDPR
+Art. 6 (1) (f).
+
+Unsubscribe: {$unsubscribe}
+Imprint:     https://skipily.app/impressum
+Privacy:     https://skipily.app/datenschutz

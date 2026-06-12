@@ -12,6 +12,15 @@ en su iPhone cuando necesitan un servicio náutico — tanto en su
 puerto base como en travesía.
 
 
+COMO LOS NAVEGANTES OS ENCUENTRAN EN EL MAPA
+----------------------------------------------
+Skipily muestra astilleros, proveedores de servicios y
+chandlers directamente alrededor del barco — un toque para
+direccion, resenas y llamada.
+
+Mas sobre la app:  https://skipily.app
+
+
 LO QUE SKIPILY OS APORTA
 -------------------------
 

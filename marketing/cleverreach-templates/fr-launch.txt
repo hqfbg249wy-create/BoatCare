@@ -12,6 +12,15 @@ ouvrent directement sur leur iPhone quand ils ont besoin d'un service
 nautique — que ce soit dans leur port d'attache ou en escale.
 
 
+COMMENT LES PLAISANCIERS VOUS TROUVENT SUR LA CARTE
+-----------------------------------------------------
+Skipily affiche chantiers, prestataires de services et
+shipchandlers directement autour du bateau — un tap pour
+l'adresse, les avis et l'appel.
+
+En savoir plus sur l'app :  https://skipily.app
+
+
 CE QUE SKIPILY VOUS APPORTE
 ----------------------------
 
