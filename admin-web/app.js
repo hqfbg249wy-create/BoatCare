@@ -9525,6 +9525,7 @@ function buildDatevCsv(buchungen) {
         if (page === 'bookkeeping')       loadBookkeeping();
         if (page === 'email-verify')      loadVerifyStats();
         if (page === 'cleverreach')       loadCleverReachStats();
+        if (page === 'duplicates')        resetDuplicateUI();
         // Alte Pages auf die neue umleiten falls noch Direct-Links existieren
         if (page === 'providers' || page === 'shop-management') {
             setTimeout(() => origNav('customers'), 0);
@@ -10038,6 +10039,599 @@ function renderCleverReachResults(data) {
 
 window.startCleverReachSync = startCleverReachSync;
 window.loadCleverReachStats = loadCleverReachStats;
+
+// ============================================
+// DUPLIKAT-SUCHE (client-side, multi-signal)
+// ============================================
+//
+// Findet wahrscheinliche Duplikate in service_providers anhand mehrerer
+// Signale, die unabhaengig voneinander zaehlen. Jeder Treffer gibt
+// Punkte; ab einer Schwelle (default 50) gelten zwei Provider als
+// Duplikat-Kandidaten.
+//
+// Signale + Gewichte:
+//   - Selbe E-Mail (exakt, normalisiert)            +55
+//   - Selbe Website-Domain (ohne www, ohne Pfad)    +50
+//   - Selbe normalisierte Telefonnummer             +45
+//   - Selbe Strasse + Stadt + PLZ                   +35
+//   - Geo-Distanz < 200 m (gleicher Hafen/Werft)    +20
+//   - Name-Ähnlichkeit ≥ 85% UND selbe Stadt        +30
+//   - Name-Ähnlichkeit ≥ 70% UND Geo < 1 km         +20
+//
+// Performance:
+//   Bei 2000 Providern sind 2000² = 4 Mio Paare zu viel. Stattdessen
+//   bucketing: erst nach Domain/Phone/Email gruppieren (Hash-Map), dann
+//   Cluster aufbauen. Nur fuer Name-Aehnlichkeit innerhalb Stadt-Bucket
+//   pairwise vergleichen. → O(n) bis O(n·k) je nach Stadt-Groesse.
+
+let _dupAllProviders = [];
+let _lastDupClusters = null;
+
+function dupLog(msg, type = 'info') {
+    const el = document.getElementById('dup-log');
+    if (!el) return;
+    const colors = { info:'#94a3b8', success:'#10b981', warn:'#f59e0b', error:'#ef4444' };
+    el.innerHTML += `<div style="color:${colors[type] || colors.info};">[${new Date().toLocaleTimeString('de-DE')}] ${msg}</div>`;
+    el.scrollTop = el.scrollHeight;
+}
+
+function resetDuplicateUI() {
+    const stats = document.getElementById('dup-stats');
+    const results = document.getElementById('dup-results');
+    const progress = document.getElementById('dup-progress');
+    if (stats) stats.style.display = 'none';
+    if (results) results.innerHTML = '';
+    if (progress) progress.style.display = 'none';
+}
+
+// ── Normalisierungs-Helper ──────────────────────────────────────────────
+
+/**
+ * Telefonnummer: alles ausser Ziffern weg, fuehrende 0 bzw. Landesvorwahl
+ * abschneiden, sodass Anrufer-relevante Endung uebrig bleibt.
+ *
+ * Beispiele:
+ *   "+49 175 1234567"    → "1751234567"
+ *   "0049 175 1234567"   → "1751234567"
+ *   "0175 1234567"       → "1751234567"  (führende 0 weg)
+ *   "0175/12 34 567"     → "1751234567"
+ *   "+33 4 67 12 34 56"  → "467123456"   (Frankreich, alles ohne 0)
+ *
+ * Wir vergleichen die LETZTEN 9-10 Ziffern → Treffer auch bei
+ * verschiedenen Vorwahl-Schreibweisen.
+ */
+function normalizePhone(phone) {
+    if (!phone) return '';
+    const digits = String(phone).replace(/[^\d]/g, '');
+    if (digits.length < 6) return '';
+    // Wir vergleichen die letzten 9 Ziffern (deckt nationale Nummern
+    // ohne Vorwahl-Variation ab). Sehr kurze Nummern voll vergleichen.
+    return digits.length >= 9 ? digits.slice(-9) : digits;
+}
+
+/**
+ * Website-Domain: protokoll, www, pfad und query weg, nur die Basis-
+ * Domain als Lowercase. Subdomains (shop.werft.de) werden auf die
+ * registrierte Domain (werft.de) reduziert.
+ */
+function normalizeDomain(website) {
+    if (!website) return '';
+    try {
+        const url = new URL(website.startsWith('http') ? website : 'https://' + website);
+        let host = url.hostname.toLowerCase().replace(/^www\./, '');
+        // Subdomain weg → letzte 2 Teile (werft.de). Bei zwei-teiligen
+        // TLDs (co.uk, com.tr) lassen wir die 3 letzten Teile stehen.
+        const parts = host.split('.');
+        const twoPartTld = /^(co|com|org|net|gov|ac|edu)\.(uk|au|nz|za|in|jp|tr|br|mx|il|hk|sg)$/;
+        if (parts.length >= 3) {
+            const lastTwo = parts.slice(-2).join('.');
+            if (twoPartTld.test(lastTwo)) {
+                host = parts.slice(-3).join('.');
+            } else {
+                host = parts.slice(-2).join('.');
+            }
+        }
+        return host;
+    } catch {
+        // Fallback: simpler String-Cleanup
+        return String(website).toLowerCase()
+            .replace(/^https?:\/\//, '')
+            .replace(/^www\./, '')
+            .replace(/\/.*$/, '')
+            .trim();
+    }
+}
+
+/** E-Mail-Normalisierung (lowercase + trim). */
+function normalizeEmail(email) {
+    return (email || '').toLowerCase().trim();
+}
+
+/**
+ * Name-Normalisierung: Rechtsform-Suffixe (GmbH, KG, AG, ...) und
+ * generische Marine-Worte weg, Sonderzeichen reduzieren, Whitespace
+ * normalisieren — damit "Bottsand Bootsbau GmbH" und "Bottsand Bootsbau"
+ * gleich aussehen.
+ */
+function normalizeName(name) {
+    if (!name) return '';
+    return String(name)
+        .toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')   // Diakritika weg
+        .replace(/\bgmbh\b|\bkg\b|\bag\b|\bohg\b|\bgbr\b|\bug\b|\be\.k\.|\binc\b|\bltd\b|\bllc\b|\bsa\b|\bsrl\b|\bspa\b|\bbv\b|\bsarl\b|\bsas\b|\beurl\b|\bcompany\b|\bco\.\b/g, '')
+        .replace(/\binhaber|\binh\.|\bowner\b|\bproprietor\b/g, '')
+        .replace(/[^\w\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/** Adresse zu Vergleichs-Key. */
+function normalizeAddress(p) {
+    const street = (p.street || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const plz    = (p.postal_code || '').replace(/\s+/g, '').trim();
+    const city   = (p.city || '').toLowerCase().trim();
+    if (!street || !city) return '';
+    return `${street}|${plz}|${city}`;
+}
+
+/**
+ * Levenshtein-Distance fuer kurze Strings (< 200 Zeichen). Ausreichend
+ * fuer Provider-Namen.
+ */
+function levenshtein(a, b) {
+    if (a === b) return 0;
+    if (!a.length) return b.length;
+    if (!b.length) return a.length;
+    const prev = new Array(b.length + 1);
+    for (let j = 0; j <= b.length; j++) prev[j] = j;
+    for (let i = 1; i <= a.length; i++) {
+        let curr = i;
+        for (let j = 1; j <= b.length; j++) {
+            const cost = a[i-1] === b[j-1] ? 0 : 1;
+            const next = Math.min(prev[j] + 1, curr + 1, prev[j-1] + cost);
+            prev[j-1] = curr;
+            curr = next;
+        }
+        prev[b.length] = curr;
+    }
+    return prev[b.length];
+}
+
+/** Aehnlichkeit 0..1 basierend auf Levenshtein. */
+function nameSimilarity(a, b) {
+    if (!a || !b) return 0;
+    const maxLen = Math.max(a.length, b.length);
+    if (maxLen === 0) return 1;
+    return 1 - levenshtein(a, b) / maxLen;
+}
+
+/** Haversine-Distanz in Metern. */
+function geoDistanceM(lat1, lon1, lat2, lon2) {
+    if (!lat1 || !lat2) return Infinity;
+    const R = 6371000;
+    const toRad = (d) => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat/2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// ── Scoring eines Paares ────────────────────────────────────────────────
+
+/**
+ * Berechnet Confidence-Score und gefundene Match-Signale fuer zwei
+ * Provider. Hoehere Werte = wahrscheinlicher Duplikat.
+ */
+function scorePair(a, b) {
+    const reasons = [];
+    let score = 0;
+
+    // Selber Provider? Sollte vorher gefiltert sein.
+    if (a.id === b.id) return { score: 0, reasons: [] };
+
+    // 1. E-Mail exakt gleich (sehr hoch)
+    const emailA = normalizeEmail(a.email);
+    const emailB = normalizeEmail(b.email);
+    if (emailA && emailB && emailA === emailB) {
+        score += 55; reasons.push('selbe E-Mail');
+    }
+
+    // 2. Domain (sehr hoch — Webseite ist eindeutige Geschaeftsidentitaet)
+    const domA = normalizeDomain(a.website);
+    const domB = normalizeDomain(b.website);
+    if (domA && domB && domA === domB) {
+        score += 50; reasons.push(`selbe Domain (${domA})`);
+    }
+
+    // 3. Telefonnummer (sehr hoch)
+    const phoneA = normalizePhone(a.phone);
+    const phoneB = normalizePhone(b.phone);
+    if (phoneA && phoneB && phoneA === phoneB && phoneA.length >= 7) {
+        score += 45; reasons.push('selbe Telefonnummer');
+    }
+
+    // 4. Identische Adresse (Strasse + PLZ + Stadt)
+    const addrA = normalizeAddress(a);
+    const addrB = normalizeAddress(b);
+    if (addrA && addrB && addrA === addrB) {
+        score += 35; reasons.push('identische Adresse');
+    }
+
+    // 5. Geo-Distanz < 200m (gleicher Hafen, Werftgelaende)
+    const dist = geoDistanceM(a.latitude, a.longitude, b.latitude, b.longitude);
+    if (dist < 200) {
+        score += 20; reasons.push(`Standort identisch (~${Math.round(dist)} m)`);
+    } else if (dist < 1000) {
+        // Vermerk nur fuer Name-Match-Bonus, kein eigener Score
+    }
+
+    // 6. Name-Aehnlichkeit (Token-basiert + Levenshtein)
+    const nameA = normalizeName(a.name);
+    const nameB = normalizeName(b.name);
+    const cityMatch = (a.city || '').toLowerCase().trim() ===
+                      (b.city || '').toLowerCase().trim() && a.city;
+    if (nameA && nameB) {
+        const sim = nameSimilarity(nameA, nameB);
+        if (sim >= 0.85 && cityMatch) {
+            score += 30;
+            reasons.push(`Name ≥ 85% ähnlich + selbe Stadt`);
+        } else if (sim >= 0.70 && dist < 1000) {
+            score += 20;
+            reasons.push(`Name ≥ 70% ähnlich + < 1 km entfernt`);
+        } else if (sim === 1 && nameA.length >= 4) {
+            // Vollständig gleicher Name, aber unklare Stadt
+            score += 18;
+            reasons.push(`identischer Name`);
+        }
+    }
+
+    return { score, reasons };
+}
+
+// ── Cluster-Aufbau via Union-Find ───────────────────────────────────────
+
+class UnionFind {
+    constructor(size) {
+        this.p = Array.from({ length: size }, (_, i) => i);
+    }
+    find(i) {
+        while (this.p[i] !== i) { this.p[i] = this.p[this.p[i]]; i = this.p[i]; }
+        return i;
+    }
+    union(a, b) {
+        const ra = this.find(a), rb = this.find(b);
+        if (ra !== rb) this.p[ra] = rb;
+    }
+}
+
+// ── Hauptablauf ─────────────────────────────────────────────────────────
+
+async function startDuplicateScan() {
+    const btn = document.getElementById('dup-scan-btn');
+    const progress = document.getElementById('dup-progress');
+    const stats = document.getElementById('dup-stats');
+    const results = document.getElementById('dup-results');
+    const logEl = document.getElementById('dup-log');
+
+    const threshold = parseInt(document.getElementById('dup-threshold').value, 10);
+    const limit = parseInt(document.getElementById('dup-limit').value, 10);
+
+    if (btn) btn.disabled = true;
+    if (progress) progress.style.display = 'block';
+    if (results) results.innerHTML = '';
+    if (stats) stats.style.display = 'none';
+    if (logEl) logEl.innerHTML = '';
+
+    dupLog(`Lade Provider (Limit ${limit}) …`, 'info');
+    try {
+        const { data, error } = await supabaseClient
+            .from('service_providers')
+            .select('id, name, email, phone, website, street, postal_code, city, country, category, latitude, longitude, user_id, created_at')
+            .order('created_at', { ascending: true })
+            .limit(limit);
+        if (error) throw error;
+
+        _dupAllProviders = data || [];
+        dupLog(`✓ ${_dupAllProviders.length} Provider geladen.`, 'success');
+
+        // ── Index-Phase: Hash-Maps fuer schnelle Match-Erkennung ─────────
+        dupLog('Baue Indexe (Domain / Phone / E-Mail / Adresse) …', 'info');
+        const byDomain = new Map();
+        const byPhone  = new Map();
+        const byEmail  = new Map();
+        const byAddr   = new Map();
+        const byCity   = new Map();
+
+        _dupAllProviders.forEach((p, idx) => {
+            const dom = normalizeDomain(p.website);
+            if (dom) {
+                if (!byDomain.has(dom)) byDomain.set(dom, []);
+                byDomain.get(dom).push(idx);
+            }
+            const ph = normalizePhone(p.phone);
+            if (ph && ph.length >= 7) {
+                if (!byPhone.has(ph)) byPhone.set(ph, []);
+                byPhone.get(ph).push(idx);
+            }
+            const em = normalizeEmail(p.email);
+            if (em && em.includes('@')) {
+                if (!byEmail.has(em)) byEmail.set(em, []);
+                byEmail.get(em).push(idx);
+            }
+            const addr = normalizeAddress(p);
+            if (addr) {
+                if (!byAddr.has(addr)) byAddr.set(addr, []);
+                byAddr.get(addr).push(idx);
+            }
+            const city = (p.city || '').toLowerCase().trim();
+            if (city) {
+                if (!byCity.has(city)) byCity.set(city, []);
+                byCity.get(city).push(idx);
+            }
+        });
+
+        // ── Kandidaten-Paare ermitteln ───────────────────────────────────
+        // Wir sammeln aus den Buckets alle Index-Paare. Dann scoren wir
+        // genau diese Paare. Spart die O(n²)-Schleife.
+        const candidatePairs = new Set();
+        const addPairs = (indices) => {
+            if (indices.length < 2) return;
+            for (let i = 0; i < indices.length; i++) {
+                for (let j = i + 1; j < indices.length; j++) {
+                    const a = Math.min(indices[i], indices[j]);
+                    const b = Math.max(indices[i], indices[j]);
+                    candidatePairs.add(`${a}_${b}`);
+                }
+            }
+        };
+        byDomain.forEach(addPairs);
+        byPhone.forEach(addPairs);
+        byEmail.forEach(addPairs);
+        byAddr.forEach(addPairs);
+
+        // Zusaetzlich: innerhalb gleicher Stadt name-aehnliche Paare.
+        // Wir cappen pro Stadt auf 100 Provider (sonst werden Grossstaedte teuer).
+        byCity.forEach((indices) => {
+            if (indices.length < 2 || indices.length > 100) return;
+            for (let i = 0; i < indices.length; i++) {
+                for (let j = i + 1; j < indices.length; j++) {
+                    const a = Math.min(indices[i], indices[j]);
+                    const b = Math.max(indices[i], indices[j]);
+                    candidatePairs.add(`${a}_${b}`);
+                }
+            }
+        });
+
+        dupLog(`Kandidaten-Paare: ${candidatePairs.size.toLocaleString('de-DE')}`, 'info');
+
+        // ── Scoring ──────────────────────────────────────────────────────
+        const matches = [];
+        for (const key of candidatePairs) {
+            const [i, j] = key.split('_').map(Number);
+            const a = _dupAllProviders[i];
+            const b = _dupAllProviders[j];
+            const { score, reasons } = scorePair(a, b);
+            if (score >= threshold) {
+                matches.push({ i, j, score, reasons });
+            }
+        }
+        dupLog(`Paare über Schwelle ${threshold}: ${matches.length}`, 'success');
+
+        // ── Union-Find: Cluster aufbauen ─────────────────────────────────
+        const uf = new UnionFind(_dupAllProviders.length);
+        const pairInfo = new Map(); // root → Liste der besten Reasons
+        for (const m of matches) {
+            uf.union(m.i, m.j);
+        }
+        // Pro Cluster Provider-Indizes sammeln + max Score + alle Reasons
+        const clusters = new Map();
+        for (const m of matches) {
+            const root = uf.find(m.i);
+            if (!clusters.has(root)) {
+                clusters.set(root, { members: new Set(), maxScore: 0, allReasons: new Set() });
+            }
+            const c = clusters.get(root);
+            c.members.add(m.i); c.members.add(m.j);
+            c.maxScore = Math.max(c.maxScore, m.score);
+            m.reasons.forEach(r => c.allReasons.add(r));
+        }
+
+        const clusterArr = [...clusters.values()]
+            .map(c => ({
+                providers: [...c.members]
+                    .sort((a, b) => {
+                        // Sortier-Heuristik: claimed (mit user_id) zuerst,
+                        // dann mit hoechster Datenfuelle
+                        const pa = _dupAllProviders[a];
+                        const pb = _dupAllProviders[b];
+                        const aClaimed = !!pa.user_id;
+                        const bClaimed = !!pb.user_id;
+                        if (aClaimed !== bClaimed) return aClaimed ? -1 : 1;
+                        return providerDataScore(pb) - providerDataScore(pa);
+                    })
+                    .map(i => _dupAllProviders[i]),
+                maxScore: c.maxScore,
+                reasons: [...c.allReasons],
+            }))
+            .sort((a, b) => b.maxScore - a.maxScore);
+
+        const affectedCount = clusterArr.reduce((s, c) => s + c.providers.length, 0);
+
+        // ── UI: Statistik + Cluster-Liste ────────────────────────────────
+        document.getElementById('dup-count-clusters').textContent = clusterArr.length.toLocaleString('de-DE');
+        document.getElementById('dup-count-records').textContent  = affectedCount.toLocaleString('de-DE');
+        document.getElementById('dup-count-scanned').textContent  = _dupAllProviders.length.toLocaleString('de-DE');
+        document.getElementById('dup-count-clean').textContent    = (_dupAllProviders.length - affectedCount).toLocaleString('de-DE');
+        if (stats) stats.style.display = 'block';
+
+        _lastDupClusters = clusterArr;
+        renderDuplicateClusters(clusterArr);
+        dupLog(`✓ Fertig. ${clusterArr.length} Cluster, ${affectedCount} betroffene Provider.`, 'success');
+
+    } catch (err) {
+        dupLog('❌ Fehler: ' + err.message, 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+/** Heuristik: wie "voll" ein Provider-Datensatz ist (mehr = besser zum Behalten). */
+function providerDataScore(p) {
+    let s = 0;
+    if (p.email)       s += 3;
+    if (p.phone)       s += 3;
+    if (p.website)     s += 2;
+    if (p.street)      s += 2;
+    if (p.postal_code) s += 1;
+    if (p.latitude)    s += 1;
+    if (p.user_id)     s += 5;  // claimed → keinesfalls loeschen
+    return s;
+}
+
+function renderDuplicateClusters(clusterArr) {
+    const container = document.getElementById('dup-results');
+    if (!container) return;
+
+    if (clusterArr.length === 0) {
+        container.innerHTML = `
+            <div style="background:#dcfce7; padding:18px; border-radius:8px; color:#166534; text-align:center;">
+                ✅ Keine Duplikate gefunden — saubere Datenbank.
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = clusterArr.map((cluster, ci) => {
+        const headerColor = cluster.maxScore >= 80 ? '#fee2e2' :
+                            cluster.maxScore >= 50 ? '#ffedd5' : '#fef3c7';
+        const headerText  = cluster.maxScore >= 80 ? '#991b1b' :
+                            cluster.maxScore >= 50 ? '#9a3412' : '#854d0e';
+        return `
+            <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:18px; overflow:hidden;">
+                <div style="background:${headerColor}; padding:12px 18px; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <strong style="color:${headerText}; font-size:14px;">
+                            Cluster #${ci + 1} — ${cluster.providers.length} Provider · Konfidenz ${cluster.maxScore}
+                        </strong>
+                        <div style="font-size:12px; color:${headerText}; margin-top:3px;">
+                            Übereinstimmung in: ${cluster.reasons.join(' · ')}
+                        </div>
+                    </div>
+                </div>
+                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                    <thead>
+                        <tr style="background:#f8fafc;">
+                            <th style="padding:8px; text-align:left;">Provider</th>
+                            <th style="padding:8px; text-align:left;">Kontakt</th>
+                            <th style="padding:8px; text-align:left;">Adresse</th>
+                            <th style="padding:8px; text-align:left;">Status</th>
+                            <th style="padding:8px; text-align:left; width:160px;">Aktion</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${cluster.providers.map((p, pi) => `
+                            <tr style="border-top:1px solid #e2e8f0; ${pi === 0 ? 'background:#f0fdf4;' : ''}" data-pid="${escapeHtml_v(p.id)}">
+                                <td style="padding:10px; vertical-align:top;">
+                                    ${pi === 0 ? '<span style="background:#10b981; color:#fff; padding:2px 7px; border-radius:8px; font-size:10px; font-weight:700; margin-right:6px;">EMPFOHLEN BEHALTEN</span><br>' : ''}
+                                    <div style="font-weight:600;">${escapeHtml_v(p.name || '?')}</div>
+                                    ${p.category ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">${escapeHtml_v(p.category)}</div>` : ''}
+                                    <div style="font-size:10px; color:#94a3b8; font-family:monospace; margin-top:3px;">${escapeHtml_v((p.id || '').substring(0,8))}…</div>
+                                </td>
+                                <td style="padding:10px; vertical-align:top; font-family:monospace; font-size:12px;">
+                                    ${p.email ? `<div>📧 ${escapeHtml_v(p.email)}</div>` : ''}
+                                    ${p.phone ? `<div>📞 ${escapeHtml_v(p.phone)}</div>` : ''}
+                                    ${p.website ? `<div>🌐 <a href="${escapeHtml_v(p.website)}" target="_blank" style="color:#3b82f6;">${escapeHtml_v(normalizeDomain(p.website) || p.website)}</a></div>` : ''}
+                                </td>
+                                <td style="padding:10px; vertical-align:top; font-size:12px; color:#475569;">
+                                    ${p.street ? escapeHtml_v(p.street) + '<br>' : ''}
+                                    ${[p.postal_code, p.city].filter(Boolean).join(' ')}
+                                    ${p.country ? '<br>' + escapeHtml_v(p.country) : ''}
+                                </td>
+                                <td style="padding:10px; vertical-align:top; font-size:11px;">
+                                    ${p.user_id ? '<span style="color:#15803d;">✓ beansprucht</span>' : '<span style="color:#94a3b8;">verwaist</span>'}
+                                    <div style="color:#94a3b8; margin-top:3px;">${p.created_at ? new Date(p.created_at).toLocaleDateString('de-DE') : ''}</div>
+                                </td>
+                                <td style="padding:10px; vertical-align:top;">
+                                    <button onclick="window.dupKeepThis('${escapeHtml_v(p.id)}', ${ci})"
+                                            style="background:#10b981; color:#fff; border:none; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; margin-bottom:4px; width:100%;"
+                                            title="Diesen behalten, andere im Cluster löschen">
+                                        ⭐ Diesen behalten
+                                    </button>
+                                    <button onclick="window.dupDeleteOne('${escapeHtml_v(p.id)}')"
+                                            style="background:#ef4444; color:#fff; border:none; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; width:100%;"
+                                            title="Nur diesen löschen">
+                                        🗑 Diesen löschen
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * "Diesen behalten" — loescht alle anderen Provider im Cluster.
+ * Beachtet: claimed Provider werden NIE geloescht.
+ */
+async function dupKeepThis(keepId, clusterIdx) {
+    // Cluster aus dem letzten Scan finden
+    const cluster = _lastDupClusters?.[clusterIdx];
+    if (!cluster) { alert('Cluster nicht mehr verfügbar — bitte Suche neu starten.'); return; }
+
+    const toDelete = cluster.providers.filter(p => p.id !== keepId);
+    const claimedSkip = toDelete.filter(p => p.user_id);
+    const safeDelete = toDelete.filter(p => !p.user_id);
+
+    let msg = `Im Cluster behalten: einen Eintrag.\n\nLöschen: ${safeDelete.length} verwaiste Provider`;
+    if (claimedSkip.length > 0) {
+        msg += `\n\n⚠️ ${claimedSkip.length} Provider sind beansprucht und werden NICHT gelöscht. Falls du diese auch entfernen willst, geht das nur manuell pro Provider.`;
+    }
+    msg += '\n\nFortfahren?';
+
+    if (!confirm(msg)) return;
+
+    let ok = 0, fail = 0;
+    for (const p of safeDelete) {
+        try {
+            const { error } = await supabaseClient
+                .from('service_providers').delete().eq('id', p.id);
+            if (error) throw error;
+            ok++;
+        } catch (e) {
+            fail++;
+            console.warn('Loeschen fehlgeschlagen:', p.id, e.message);
+        }
+    }
+    alert(`Fertig: ${ok} gelöscht${fail > 0 ? `, ${fail} Fehler` : ''}.\nDuplikat-Suche bitte erneut starten.`);
+    document.getElementById('dup-results').innerHTML = '';
+}
+
+/** Einzel-Loeschung mit Sicherheitsabfrage. */
+async function dupDeleteOne(id) {
+    const p = _dupAllProviders.find(x => x.id === id);
+    if (!p) return;
+    if (p.user_id) {
+        if (!confirm(`⚠️ "${p.name}" ist BEANSPRUCHT (hat einen Account).\n\nTrotzdem löschen? Der Provider verliert dann den Zugang.`)) return;
+    } else {
+        if (!confirm(`"${p.name}" wirklich löschen?\n(Adresse: ${p.street || ''} ${p.city || ''})`)) return;
+    }
+    try {
+        const { error } = await supabaseClient
+            .from('service_providers').delete().eq('id', id);
+        if (error) throw error;
+        // Zeile aus UI nehmen
+        document.querySelector(`tr[data-pid="${id}"]`)?.remove();
+    } catch (e) {
+        alert('Löschen fehlgeschlagen: ' + e.message);
+    }
+}
+
+window.startDuplicateScan = startDuplicateScan;
+window.dupKeepThis = dupKeepThis;
+window.dupDeleteOne = dupDeleteOne;
 
 // ============================================
 // CSV-EXPORT FÜR CLEVERREACH (PRIMÄR-METHODE)

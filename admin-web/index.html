@@ -94,6 +94,10 @@
                     <span class="icon">📬</span>
                     CleverReach
                 </button>
+                <button class="nav-item" data-page="duplicates" onclick="window.navigateToPage('duplicates')">
+                    <span class="icon">🧹</span>
+                    Duplikate
+                </button>
                 <button class="nav-item" data-page="payments" onclick="window.navigateToPage('payments')">
                     <span class="icon">💳</span>
                     Zahlungen
@@ -1061,6 +1065,66 @@
                         <p style="font-size:12px; color:#64748b;">Fly restartet automatisch und der Endpoint ist live.</p>
                     </div>
                 </details>
+            </div>
+
+            <!-- Duplikat-Suche -->
+            <div id="duplicates-page" class="page">
+                <h1>🧹 Duplikat-Suche</h1>
+                <p class="subtitle">Findet Provider-Eintraege die mit hoher Wahrscheinlichkeit doppelt sind — auch bei unterschiedlicher Schreibweise. Pruefung anhand von Domain, Telefon, E-Mail, Name+Stadt und Geo-Distanz.</p>
+
+                <!-- Konfiguration + Start -->
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:18px; margin-bottom:20px;">
+                    <div class="form-row" style="margin-bottom:12px;">
+                        <div class="form-group" style="flex:1;">
+                            <label>Mindest-Konfidenz</label>
+                            <select id="dup-threshold">
+                                <option value="80">Sehr hoch (≥ 80) — fast sicher Duplikat</option>
+                                <option value="50" selected>Hoch (≥ 50) — wahrscheinlich Duplikat</option>
+                                <option value="35">Mittel (≥ 35) — verdächtig, manuell prüfen</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Max. Provider laden</label>
+                            <input type="number" id="dup-limit" value="3000" min="100" max="10000">
+                        </div>
+                    </div>
+                    <button onclick="window.startDuplicateScan()" class="btn-primary" id="dup-scan-btn" style="background:#8b5cf6;">
+                        🔍 Duplikate suchen
+                    </button>
+                    <p style="font-size:12px; color:#64748b; margin-top:10px;">
+                        Läuft komplett im Browser, kein Server-Roundtrip. Dauer bei 2 000 Providern: ~3 Sekunden.
+                    </p>
+                </div>
+
+                <!-- Progress + Log -->
+                <div id="dup-progress" style="display:none; margin-bottom:20px;">
+                    <div style="background:#1e293b; color:#e2e8f0; border-radius:8px; padding:15px; font-family:monospace; font-size:12px; max-height:200px; overflow-y:auto;" id="dup-log"></div>
+                </div>
+
+                <!-- Statistik der Treffer -->
+                <div id="dup-stats" style="display:none; margin-bottom:20px;">
+                    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+                        <div style="background:#fee2e2; border-radius:8px; padding:14px; text-align:center;">
+                            <div style="font-size:24px; font-weight:700; color:#991b1b;" id="dup-count-clusters">0</div>
+                            <div style="font-size:11px; color:#991b1b; margin-top:4px;">Duplikat-Cluster</div>
+                        </div>
+                        <div style="background:#ffedd5; border-radius:8px; padding:14px; text-align:center;">
+                            <div style="font-size:24px; font-weight:700; color:#9a3412;" id="dup-count-records">0</div>
+                            <div style="font-size:11px; color:#9a3412; margin-top:4px;">Betroffene Provider</div>
+                        </div>
+                        <div style="background:#dbeafe; border-radius:8px; padding:14px; text-align:center;">
+                            <div style="font-size:24px; font-weight:700; color:#1e40af;" id="dup-count-scanned">0</div>
+                            <div style="font-size:11px; color:#1e40af; margin-top:4px;">Gescannt</div>
+                        </div>
+                        <div style="background:#dcfce7; border-radius:8px; padding:14px; text-align:center;">
+                            <div style="font-size:24px; font-weight:700; color:#166534;" id="dup-count-clean">0</div>
+                            <div style="font-size:11px; color:#166534; margin-top:4px;">Sauber</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ergebnis-Cluster -->
+                <div id="dup-results"></div>
             </div>
 
             <!-- Shop-Verwaltung Page (DEPRECATED — durch "Provider" ersetzt, bleibt für Backlinks) -->
