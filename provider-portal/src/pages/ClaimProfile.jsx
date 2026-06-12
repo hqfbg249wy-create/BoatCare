@@ -177,6 +177,23 @@ export default function ClaimProfile() {
             </div>
           ) : (
             <>
+              {/* Frühstarter-Hinweis */}
+              <div style={{
+                background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+                border: '1px solid #fdba74',
+                borderRadius: 10, padding: 14, marginBottom: 16,
+                fontSize: 13, color: '#9a3412',
+              }}>
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                  🎁 Frühstarter-Bonus aktiv
+                </div>
+                <div style={{ lineHeight: 1.5 }}>
+                  Beim Beanspruchen erhalten Sie automatisch <strong>6 Monate Pro gratis</strong>{' '}
+                  und — solange Sie unter den ersten 100 Shops sind —{' '}
+                  <strong>dauerhaft 7 % Marketplace-Provision</strong> statt 10 %.
+                </div>
+              </div>
+
               {/* Profil-Vorschau */}
               <p style={{ color: '#334155', fontSize: 15, margin: '0 0 16px' }}>
                 Ist das Ihr Betrieb? Setzen Sie ein Passwort und Sie übernehmen

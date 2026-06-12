@@ -119,10 +119,48 @@ Deno.serve(async (req) => {
       userId = created.user.id;
     }
 
-    // ── 4) Provider mit user_id verknuepfen + claimed markieren ──
+    // ── 4) Provider-Update vorbereiten: Frühstarter-Aktionen ──
+    //
+    // 4a) 6 Monate Pro gratis ab Claim:
+    //     free_until wird auf NOW + 6 Monate gesetzt. useFeatureAccess
+    //     interpretiert free_until > now als Pro-Niveau, ohne
+    //     subscription_tier zu beruehren (so faellt der Provider
+    //     nach 6 Monaten automatisch auf Standard zurueck — keine
+    //     ungewollte Verlaengerung).
+    //
+    // 4b) 7 % Provision fuer die ersten 100 angebundenen Shops:
+    //     Wir zaehlen wieviele Provider bereits claimed_at IS NOT NULL
+    //     UND commission_rate <= 7 haben. Sind das weniger als 100,
+    //     bekommt dieser Provider auch 7 %. Sonst bleibt 10 % (Default).
+    const sixMonths = new Date();
+    sixMonths.setMonth(sixMonths.getMonth() + 6);
+
+    const updateFields: Record<string, unknown> = {
+      user_id: userId,
+      claimed_at: new Date().toISOString(),
+      free_until: sixMonths.toISOString(),
+    };
+
+    try {
+      const { count: earlyMoverCount } = await admin
+        .from("service_providers")
+        .select("id", { count: "exact", head: true })
+        .not("claimed_at", "is", null)
+        .lte("commission_rate", 7);
+
+      if ((earlyMoverCount ?? 0) < 100) {
+        updateFields.commission_rate = 7;
+      }
+    } catch (e) {
+      // Wenn der Count fehlschlaegt, lieber kein 7 % vergeben als
+      // versehentlich allen. Standard 10 % bleibt.
+      console.warn("early-mover-count failed:", (e as Error).message);
+    }
+
+    // ── 5) Provider verknuepfen + Fruehstarter-Felder setzen ──
     const { error: uErr } = await admin
       .from("service_providers")
-      .update({ user_id: userId, claimed_at: new Date().toISOString() })
+      .update(updateFields)
       .eq("id", provider.id)
       .is("user_id", null); // doppelte Einloesung verhindern (Race)
 
@@ -135,6 +173,9 @@ Deno.serve(async (req) => {
       email,
       provider_name: provider.name,
       existing_account: !!existing,
+      free_until: sixMonths.toISOString(),
+      commission_rate: updateFields.commission_rate ?? null, // null = bleibt bei Default 10
+      early_mover: updateFields.commission_rate === 7,
       message: existing
         ? "Profil verknüpft. Bitte mit deinem bestehenden Passwort einloggen."
         : "Profil beansprucht. Du kannst dich jetzt einloggen.",

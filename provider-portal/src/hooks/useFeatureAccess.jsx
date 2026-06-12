@@ -15,6 +15,13 @@
 //   pro_monthly / pro_yearly  → Pro-Niveau
 //   ent_monthly / ent_yearly  → Enterprise-Niveau
 //   null + admin_grant        → Pro-Niveau (Default für Admin-Grants ohne Plan)
+//
+// Frühstarter-Bonus:
+//   free_until (timestamp) wird beim Claim auf NOW + 6 Monate gesetzt.
+//   Solange free_until in der Zukunft liegt, hat der Provider Pro-Niveau —
+//   OHNE bezahltes Abo. Nach Ablauf rutscht er automatisch auf Standard
+//   zurück (keine ungewollte Verlängerung). Falls in dieser Zeit ein
+//   echtes Abo abgeschlossen wird, übernimmt das die Verlängerung.
 
 import { useAuth } from './useAuth'
 
@@ -44,6 +51,12 @@ export function useFeatureAccess() {
   const isPaidActive = tier === 'professional' && status === 'active'
   const isAdminGrant = tier === 'admin_grant'
 
+  // Frühstarter-Bonus: 6 Monate Pro gratis ab Claim.
+  // free_until > now() → behandelt wie Pro (kein Enterprise-Bonus,
+  // damit sich der Provider bewusst entscheiden muss für Enterprise).
+  const freeUntil = provider?.free_until ? new Date(provider.free_until) : null
+  const isEarlyMoverFree = freeUntil && freeUntil > new Date()
+
   // Admin-Grants öffnen alle Features (entspricht Enterprise),
   // außer der Admin hat explizit einen Pro-Plan-Code gesetzt.
   const isEnterprise =
@@ -51,8 +64,8 @@ export function useFeatureAccess() {
     || (isAdminGrant && plan !== 'pro_monthly' && plan !== 'pro_yearly')
 
   // Pro-Niveau gilt für: bezahlte Pro-Abos, Enterprise-Abos (haben Pro inklusive),
-  // UND Admin-Grants
-  const isPro = isPaidActive || isAdminGrant
+  // Admin-Grants UND Frühstarter-Bonus
+  const isPro = isPaidActive || isAdminGrant || isEarlyMoverFree
 
   const level = isEnterprise ? 'enterprise' : isPro ? 'pro' : 'standard'
   const limits = FEATURE_LIMITS[level]
@@ -73,10 +86,15 @@ export function useFeatureAccess() {
     canAnalytics:        isEnterprise,    // Markt-Analytics
     canMultiUser:        isEnterprise,    // Mehrere Mitarbeiter-Logins
 
+    // Frühstarter-Status (für UI: "Du nutzt aktuell die 6-Monate-Gratisphase")
+    isEarlyMoverFree,
+    earlyMoverEndsAt: isEarlyMoverFree ? freeUntil : null,
+
     // Display-Helper
     tierLabel:
-      isEnterprise ? 'Enterprise' :
-      isPro        ? 'Pro' : 'Standard',
+      isEnterprise        ? 'Enterprise' :
+      isEarlyMoverFree    ? 'Pro (Frühstarter)' :
+      isPro               ? 'Pro' : 'Standard',
     upgradeTarget:
       isStandardOrPro(level) ? (level === 'standard' ? 'Pro' : 'Enterprise') : null,
   }
