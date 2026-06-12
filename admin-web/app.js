@@ -10717,6 +10717,36 @@ async function exportCleverReachCsv(countryCode) {
             });
         }
 
+        // E-Mail-Dedup: bei Franchise-Ketten und zentralen Online-Shops
+        // (z.B. zentrale@händler.de für viele Filialen) bekommt sonst eine
+        // Adresse das gleiche Mailing 30× — schlecht fuer Open-Rate +
+        // Spam-Score. Wir behalten pro E-Mail nur den besten Eintrag:
+        //   1. Claimed Provider (mit user_id) zuerst
+        //   2. Dann der mit den meisten Daten (website, phone, geo)
+        //   3. Dann der zuerst eingetragene
+        const beforeDedup = filtered.length;
+        const dedupScore = (p) => {
+            let s = 0;
+            if (p.user_id)         s += 100; // Claimed niemals verlieren
+            if (p.website)         s += 4;
+            if (p.phone)           s += 3;
+            if (p.latitude)        s += 2;
+            if (p.postal_code)     s += 1;
+            if (p.street)          s += 1;
+            return s;
+        };
+        const byEmail = new Map();
+        for (const p of filtered) {
+            const em = (p.email || '').toLowerCase().trim();
+            if (!em || !em.includes('@')) continue;
+            const existing = byEmail.get(em);
+            if (!existing || dedupScore(p) > dedupScore(existing)) {
+                byEmail.set(em, p);
+            }
+        }
+        filtered = [...byEmail.values()];
+        const dedupRemoved = beforeDedup - filtered.length;
+
         if (filtered.length === 0) {
             cleverreachLog(`  ⚠️ Keine Provider für ${countryCode} gefunden`, 'warn');
             alert(`Keine Provider für ${countryCode} gefunden.\n\nPrüfe die Filter (Nur verifizierte / Schmutz-Filter).`);
@@ -10774,9 +10804,12 @@ async function exportCleverReachCsv(countryCode) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
+        const extra = [
+            removedJunk > 0 ? `${removedJunk} Schmutz` : '',
+            dedupRemoved > 0 ? `${dedupRemoved} doppelte E-Mails dedupliziert (Franchise/Ketten)` : '',
+        ].filter(Boolean).join(', ');
         cleverreachLog(
-            `  ✅ ${filename}: ${filtered.length} Provider exportiert` +
-            (removedJunk > 0 ? ` (${removedJunk} Schmutz-Eintraege ausgefiltert)` : ''),
+            `  ✅ ${filename}: ${filtered.length} Provider exportiert` + (extra ? ` (${extra})` : ''),
             'success'
         );
     } catch (err) {

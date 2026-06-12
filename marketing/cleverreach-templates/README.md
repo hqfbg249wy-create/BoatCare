@@ -6,12 +6,20 @@ Vorlagen für die ersten Aussende-Kampagnen an Marine-Service-Provider.
 
 | Datei | Sprache | Verwendung |
 |---|---|---|
+**Service-Provider Launch-Mailing** — alle Werften / Werkstätten / Segelmacher etc.:
+
 | `de-launch.html` / `.txt` | 🇩🇪 Deutsch | DE-, AT-, CH-Listen |
 | `en-launch.html` / `.txt` | 🇬🇧 English | GB-, US-, IE-, internationale Liste |
 | `fr-launch.html` / `.txt` | 🇫🇷 Français | FR-, BE- (Wallonien), LU-, MC-Listen |
 | `it-launch.html` / `.txt` | 🇮🇹 Italiano | IT-, SM-, VA-Liste |
 | `es-launch.html` / `.txt` | 🇪🇸 Español | ES-, AD-Liste, LatAm |
 | `nl-launch.html` / `.txt` | 🇳🇱 Nederlands | NL-, BE- (Flandern)-Liste |
+
+**Shop-Anbindung** — für Online-Händler / Bootszubehör-Shops (KI-Matching-Pitch):
+
+| `de-shop.html` / `.txt` | 🇩🇪 Deutsch | Marketplace-Pitch DE-Region |
+| `en-shop.html` | 🇬🇧 English | International Online-Shops |
+
 | `SUBJECTS.md` | alle | Betreffzeilen + Preheader-Texte (6 Sprachen) |
 
 ## Personalisierungs-Variablen

@@ -1,0 +1,80 @@
+SKIPILY — SHOP-ANBINDUNG · KI-MATCHING
+========================================
+
+Hallo {$company},
+
+Sie verkaufen {$category} online. Ihr Marketing-Problem kennen wir:
+Sie geben Geld fuer Suchanzeigen aus, die auch Hobby-Hardware-Kaeufer
+treffen. Bootseigner, die genau Ihr Sortiment brauchen, finden Sie
+oft erst ueber muehsame Recherche — wenn ueberhaupt.
+
+Skipily loest das. Wir kennen jedes Boot, jeden Motor, jede installierte
+Elektronik unserer User — und matchen mit KI, was sie wirklich brauchen.
+Ihr Shop steht in der Empfehlung, nicht im Streuverlust.
+
+
+KI-MATCHING: VOM BOOT ZUM PRODUKT — AUTOMATISCH
+-------------------------------------------------
+Jeder Skipily-User hinterlegt sein Boot mit Marke, Modell, Baujahr,
+Motor und Equipment. Die KI weiss: "Auf der Bavaria 38 von 2014 sind
+die Antifouling-Reste faellig — und der Eigner war auf der Suche nach
+Coppercoat."
+
+Ihr Shop bekommt diesen Hinweis als Empfehlung im richtigen Moment —
+nicht als Streuanzeige.
+
+
+WAS DIE ANBINDUNG IHREM SHOP BRINGT
+------------------------------------
+
+🎯 Direkter Marktzugang ohne Streuverlust
+   Empfehlungen erscheinen kontextbezogen — bei Wartungs-Erinnerungen,
+   im KI-Chat, in der Equipment-Uebersicht. Kein Banner-Spam.
+
+💳 Apple Pay & Stripe-Auszahlung integriert
+   Kaeufer bezahlt mit einem Tap. Auszahlung direkt auf Ihr Stripe-
+   Connect-Konto — wie bei Etsy oder Booking, aber fuer Marine.
+
+📦 Ihr Sortiment auf der Boot-Profil-Seite
+   Wenn ein User "neuer Schalter fuer die Bilgenpumpe" sucht, sieht er
+   Ihre passenden Artikel direkt — mit Preis, Verfuegbarkeit, Lieferung.
+
+🤝 Provisions-Modell ohne Fix-Kosten
+   Sie zahlen nur bei Verkauf. Keine Setup-Gebuehr, keine Listing-
+   Gebuehr, kein monatliches Abo erforderlich.
+
+🔌 Anbindung ueber CSV, API oder Shopify-Webhook
+   Wir holen Ihr Sortiment automatisch ab — egal ob WooCommerce,
+   Shopify, Magento oder eigener Shop. Einrichtung in einem Termin.
+
+
+SHOP KOSTENLOS ANBINDEN
+========================
+Wir richten Sie ein, Sie verkaufen.
+
+→ {$claim_url}
+
+Direkter Draht zum Team:  partner@skipily.app
+
+
+IN 3 SCHRITTEN ANGEBUNDEN
+--------------------------
+1. Profil ueber den Link beanspruchen — Passwort setzen, fertig (2 Min)
+2. Stripe-Connect aktivieren fuer Auszahlungen — Standard-Onboarding
+3. Sortiment-Import per CSV / API / Webhook — wir helfen technisch
+
+
+Ihr Shop, den wir verlinken:
+{$website}
+
+
+---
+Skipily — Die Boot-Service-Plattform fuer Eigner, Werften und Shops
+
+Sie erhalten diese E-Mail als Online-Haendler fuer Bootszubehoer in
+unserer Branchen-Datenbank. Diese B2B-Branchenkommunikation erfolgt
+im berechtigten Interesse gem. Art. 6 Abs. 1 lit. f DSGVO.
+
+Abmelden:    {$unsubscribe}
+Impressum:   https://skipily.app/impressum
+Datenschutz: https://skipily.app/datenschutz
