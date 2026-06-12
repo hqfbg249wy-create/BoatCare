@@ -94,6 +94,10 @@
                     <span class="icon">📬</span>
                     CleverReach
                 </button>
+                <button class="nav-item" data-page="shop-check" onclick="window.navigateToPage('shop-check')">
+                    <span class="icon">🛒</span>
+                    Shop-Check
+                </button>
                 <button class="nav-item" data-page="duplicates" onclick="window.navigateToPage('duplicates')">
                     <span class="icon">🧹</span>
                     Duplikate
@@ -963,10 +967,18 @@
                             <input type="checkbox" id="csv-clean-filter" checked style="margin-top:6px;">
                             <span style="font-size:12px; color:#64748b;">filtert Bauhaus, OBI, Test-Shops etc.</span>
                         </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Nur verifizierte Online-Shops</label>
+                            <input type="checkbox" id="csv-only-shops" style="margin-top:6px;">
+                            <span style="font-size:12px; color:#64748b;">für Shop-Onboarding-Mailing</span>
+                        </div>
                     </div>
                     <div id="csv-export-buttons" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;">
                         <span style="color:#94a3b8;">Lade verfügbare Länder …</span>
                     </div>
+                    <p style="font-size:12px; color:#1e40af; margin-top:12px;">
+                        💡 Für die Shop-Anbindungs-Kampagne: Erst auf der Seite <strong>🛒 Shop-Check</strong> verifizieren, dann hier „Nur verifizierte Online-Shops" anhaken und exportieren.
+                    </p>
                 </div>
 
                 <!-- Pro-Land-Stats -->
@@ -1065,6 +1077,77 @@
                         <p style="font-size:12px; color:#64748b;">Fly restartet automatisch und der Endpoint ist live.</p>
                     </div>
                 </details>
+            </div>
+
+            <!-- Online-Shop-Verifizierung -->
+            <div id="shop-check-page" class="page">
+                <h1>🛒 Shop-Check</h1>
+                <p class="subtitle">Prüft automatisch ob die hinterlegte Provider-Website ein echter Online-Shop ist (Shopify, WooCommerce, Magento, JTL, PrestaShop, Shopware etc.). Verhindert dass das Shop-Anbindungs-Mailing an Werften ohne Shop geht.</p>
+
+                <!-- Statistik -->
+                <div id="shop-stats" style="display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:24px;">
+                    <div style="background:#dcfce7; border-radius:8px; padding:14px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:#166534;" id="shop-count-online">–</div>
+                        <div style="font-size:11px; color:#166534; margin-top:4px;">🛒 Online-Shops</div>
+                    </div>
+                    <div style="background:#fef9c3; border-radius:8px; padding:14px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:#854d0e;" id="shop-count-maybe">–</div>
+                        <div style="font-size:11px; color:#854d0e; margin-top:4px;">🤔 Unsicher</div>
+                    </div>
+                    <div style="background:#e2e8f0; border-radius:8px; padding:14px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:#475569;" id="shop-count-websiteonly">–</div>
+                        <div style="font-size:11px; color:#475569; margin-top:4px;">📄 Nur Website</div>
+                    </div>
+                    <div style="background:#fee2e2; border-radius:8px; padding:14px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:#991b1b;" id="shop-count-unreachable">–</div>
+                        <div style="font-size:11px; color:#991b1b; margin-top:4px;">⚠️ Unerreichbar</div>
+                    </div>
+                    <div style="background:#dbeafe; border-radius:8px; padding:14px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:#1e40af;" id="shop-count-unchecked">–</div>
+                        <div style="font-size:11px; color:#1e40af; margin-top:4px;">⏱ Ungeprüft</div>
+                    </div>
+                </div>
+
+                <!-- Filter + Start -->
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:18px; margin-bottom:20px;">
+                    <div class="form-row" style="margin-bottom:12px;">
+                        <div class="form-group" style="flex:2;">
+                            <label>Welche Provider prüfen?</label>
+                            <select id="shop-filter">
+                                <option value="never_checked">Nur ungeprüfte</option>
+                                <option value="older_than_30d">Älter als 30 Tage</option>
+                                <option value="category_supplies">Nur Kategorie Zubehör/Ship Chandler</option>
+                                <option value="all">Alle mit Website</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Maximal pro Lauf</label>
+                            <input type="number" id="shop-limit" value="25" min="1" max="500">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button onclick="window.startShopVerify()" class="btn-primary" id="shop-verify-btn">
+                            ▶ Shop-Prüfung starten
+                        </button>
+                        <button onclick="window.loadShopStats()" class="btn-secondary">
+                            🔄 Statistik aktualisieren
+                        </button>
+                    </div>
+                    <p style="font-size:12px; color:#64748b; margin-top:10px;">
+                        Lädt die Website, erkennt Shop-Plattform (Shopify, WooCommerce ...) und generische Indikatoren (Warenkorb, Schema.org Product, Checkout-Buttons). Score 0–100. Dauer pro Provider ~3–6 Sekunden.
+                    </p>
+                </div>
+
+                <!-- Progress + Log -->
+                <div id="shop-progress" style="display:none; margin-bottom:20px;">
+                    <div style="background:#1e293b; color:#e2e8f0; border-radius:8px; padding:15px; font-family:monospace; font-size:12px; max-height:300px; overflow-y:auto;" id="shop-log"></div>
+                </div>
+
+                <!-- Ergebnisse -->
+                <div id="shop-results" style="display:none;">
+                    <h3 style="margin-bottom:12px;">📋 Letzte Prüfungs-Ergebnisse</h3>
+                    <div id="shop-results-list"></div>
+                </div>
             </div>
 
             <!-- Duplikat-Suche -->

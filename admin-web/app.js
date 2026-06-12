@@ -9526,6 +9526,7 @@ function buildDatevCsv(buchungen) {
         if (page === 'email-verify')      loadVerifyStats();
         if (page === 'cleverreach')       loadCleverReachStats();
         if (page === 'duplicates')        resetDuplicateUI();
+        if (page === 'shop-check')        loadShopStats();
         // Alte Pages auf die neue umleiten falls noch Direct-Links existieren
         if (page === 'providers' || page === 'shop-management') {
             setTimeout(() => origNav('customers'), 0);
@@ -10634,6 +10635,161 @@ window.dupKeepThis = dupKeepThis;
 window.dupDeleteOne = dupDeleteOne;
 
 // ============================================
+// SHOP-CHECK (Online-Shop-Verifizierung)
+// ============================================
+
+function shopLog(msg, type = 'info') {
+    const el = document.getElementById('shop-log');
+    if (!el) return;
+    const colors = { info:'#94a3b8', success:'#10b981', warn:'#f59e0b', error:'#ef4444' };
+    el.innerHTML += `<div style="color:${colors[type] || colors.info};">[${new Date().toLocaleTimeString('de-DE')}] ${msg}</div>`;
+    el.scrollTop = el.scrollHeight;
+}
+
+async function loadShopStats() {
+    const setCount = (id, v) => {
+        const e = document.getElementById(id);
+        if (e) e.textContent = (v ?? 0).toLocaleString('de-DE');
+    };
+    try {
+        const probe = async (status) => {
+            let q = supabaseClient
+                .from('service_providers')
+                .select('id', { count: 'exact', head: true })
+                .not('website', 'is', null)
+                .neq('website', '');
+            if (status === null) q = q.is('shop_check_status', null);
+            else q = q.eq('shop_check_status', status);
+            const { count, error } = await q;
+            if (error) throw error;
+            return count;
+        };
+        const [online, maybe, websiteOnly, unreachable, unchecked] = await Promise.all([
+            probe('online_shop'),
+            probe('maybe_shop'),
+            probe('website_only'),
+            probe('unreachable'),
+            probe(null),
+        ]);
+        setCount('shop-count-online', online);
+        setCount('shop-count-maybe', maybe);
+        setCount('shop-count-websiteonly', websiteOnly);
+        setCount('shop-count-unreachable', unreachable);
+        setCount('shop-count-unchecked', unchecked);
+    } catch (err) {
+        console.warn('loadShopStats failed:', err);
+        ['online','maybe','websiteonly','unreachable','unchecked'].forEach(k =>
+            setCount(`shop-count-${k}`, '?')
+        );
+    }
+}
+
+async function startShopVerify() {
+    const filter = document.getElementById('shop-filter')?.value || 'never_checked';
+    const limit = parseInt(document.getElementById('shop-limit')?.value || '25');
+
+    const btn = document.getElementById('shop-verify-btn');
+    if (btn) btn.disabled = true;
+
+    const progress = document.getElementById('shop-progress');
+    const results  = document.getElementById('shop-results');
+    if (progress) progress.style.display = 'block';
+    if (results)  results.style.display = 'none';
+    const log = document.getElementById('shop-log');
+    if (log) log.innerHTML = '';
+
+    shopLog(`Starte Shop-Check: filter="${filter}", limit=${limit}`, 'info');
+    try {
+        const resp = await fetch(`${SCRAPER_URL}/api/verify-shops-batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filter, limit }),
+        });
+        if (!resp.ok) {
+            const t = await resp.text();
+            throw new Error(`HTTP ${resp.status}: ${t.substring(0, 200)}`);
+        }
+        const data = await resp.json();
+        const c = data.counts || {};
+
+        shopLog(`\n📊 Ergebnis (von ${data.totalChecked} geprüft):`, 'info');
+        shopLog(`  🛒 Online-Shops:  ${c.online_shop || 0}`, 'success');
+        shopLog(`  🤔 Unsicher:      ${c.maybe_shop || 0}`, 'warn');
+        shopLog(`  📄 Nur Website:   ${c.website_only || 0}`, 'info');
+        shopLog(`  ⚠️ Unerreichbar:  ${c.unreachable || 0}`, c.unreachable > 0 ? 'error' : 'info');
+
+        renderShopResults(data.results || []);
+        loadShopStats();
+    } catch (err) {
+        shopLog(`❌ Fehler: ${err.message}`, 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+function renderShopResults(results) {
+    const wrap = document.getElementById('shop-results');
+    const list = document.getElementById('shop-results-list');
+    if (!wrap || !list) return;
+
+    if (results.length === 0) {
+        wrap.style.display = 'block';
+        list.innerHTML = '<p style="color:#9ca3af; padding:20px;">Keine Provider geprüft.</p>';
+        return;
+    }
+    wrap.style.display = 'block';
+
+    const badge = (status) => {
+        const map = {
+            online_shop:  { bg:'#dcfce7', col:'#166534', icon:'🛒', label:'Online-Shop' },
+            maybe_shop:   { bg:'#fef9c3', col:'#854d0e', icon:'🤔', label:'Unsicher' },
+            website_only: { bg:'#e2e8f0', col:'#475569', icon:'📄', label:'Nur Website' },
+            unreachable:  { bg:'#fee2e2', col:'#991b1b', icon:'⚠️', label:'Unerreichbar' },
+        };
+        const m = map[status] || map.website_only;
+        return `<span style="background:${m.bg}; color:${m.col}; padding:3px 9px; border-radius:10px; font-size:12px; font-weight:600; white-space:nowrap;">${m.icon} ${m.label}</span>`;
+    };
+
+    list.innerHTML = `
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead>
+                <tr style="background:#f1f5f9;">
+                    <th style="padding:8px; text-align:left;">Provider</th>
+                    <th style="padding:8px; text-align:left;">Website</th>
+                    <th style="padding:8px; text-align:left;">Status</th>
+                    <th style="padding:8px; text-align:right;">Score</th>
+                    <th style="padding:8px; text-align:left;">Plattform</th>
+                    <th style="padding:8px; text-align:left;">Erkannt</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${results.map(r => `
+                    <tr style="border-top:1px solid #e2e8f0;">
+                        <td style="padding:8px; vertical-align:top;">
+                            <div style="font-weight:600;">${escapeHtml_v(r.name || '?')}</div>
+                        </td>
+                        <td style="padding:8px; vertical-align:top; font-family:monospace; font-size:12px;">
+                            ${r.website ? `<a href="${escapeHtml_v(r.website)}" target="_blank" style="color:#3b82f6;">${escapeHtml_v(r.website.replace(/^https?:\/\//, '').replace(/^www\./, '').substring(0, 40))}</a>` : '–'}
+                        </td>
+                        <td style="padding:8px; vertical-align:top;">${badge(r.status)}</td>
+                        <td style="padding:8px; vertical-align:top; text-align:right; font-weight:600; ${r.score >= 50 ? 'color:#166534' : r.score >= 25 ? 'color:#854d0e' : 'color:#64748b'};">${r.score || 0}</td>
+                        <td style="padding:8px; vertical-align:top;">
+                            ${r.platform ? `<code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:11px;">${escapeHtml_v(r.platform)}</code>` : '–'}
+                        </td>
+                        <td style="padding:8px; vertical-align:top; color:#475569; font-size:11px;">
+                            ${(r.signals || []).slice(0, 3).map(s => `<span style="background:#fff7ed; color:#c2410c; padding:1px 6px; border-radius:8px; margin-right:3px; display:inline-block; margin-bottom:2px;">${escapeHtml_v(s)}</span>`).join('')}
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+window.startShopVerify = startShopVerify;
+window.loadShopStats = loadShopStats;
+
+// ============================================
 // CSV-EXPORT FÜR CLEVERREACH (PRIMÄR-METHODE)
 // ============================================
 
@@ -10664,6 +10820,7 @@ const CSV_JUNK_NAME_TEST = /\b(test ?shop|test ?provider|skipily ?test|skipily p
 async function exportCleverReachCsv(countryCode) {
     const onlyVerified = document.getElementById('csv-only-verified')?.checked !== false;
     const cleanFilter  = document.getElementById('csv-clean-filter')?.checked !== false;
+    const onlyShops    = document.getElementById('csv-only-shops')?.checked === true;
 
     cleverreachLog(`📥 Lade Provider für ${countryCode || 'alle'} …`, 'info');
 
@@ -10672,11 +10829,12 @@ async function exportCleverReachCsv(countryCode) {
         // mit reinkommen (auch "Deutschland" statt "DE")
         let q = supabaseClient
             .from('service_providers')
-            .select('id, name, email, city, country, category, website, claim_token')
+            .select('id, name, email, city, country, category, website, claim_token, user_id, phone, latitude, postal_code, street, shop_check_status')
             .not('email', 'is', null)
             .neq('email', '')
             .limit(10000);
         if (onlyVerified) q = q.eq('email_check_status', 'valid');
+        if (onlyShops)    q = q.eq('shop_check_status', 'online_shop');
 
         const { data, error } = await q;
         if (error) throw error;

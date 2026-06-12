@@ -2845,6 +2845,343 @@ app.post('/api/google-search', async (req, res) => {
 });
 
 // ============================================================
+// ONLINE-SHOP-VERIFIZIERUNG
+// ============================================================
+//
+// Prueft ob eine Provider-Website ein echter Online-Shop ist. Wichtig
+// fuer das Shop-Onboarding-Mailing: wir wollen Werften mit nur
+// statischer Firmen-Website nicht mit Marketplace-Pitch nerven.
+//
+// Erkennung in zwei Stufen:
+//   1. Shop-Plattform anhand technischer Signaturen (Shopify-CDN,
+//      WooCommerce-Pfade, Magento-Variablen etc.) → hoechste Konfidenz
+//   2. Generische Shop-Indikatoren (Schema.org Product, "Warenkorb",
+//      Checkout-Buttons, Preis-Angaben, Versand-Erklaerungen)
+//
+// Score-System (0-100):
+//   ≥ 50 → online_shop
+//   25-49 → maybe_shop (manuell pruefen)
+//   < 25 → website_only
+//   HTML leer / Fehler → unreachable
+
+/**
+ * Erkennt Shop-Plattform anhand technischer Fingerprints.
+ * Sehr zuverlaessig, weil diese Marker im Markup oder Asset-URLs
+ * immer auftauchen wenn die Plattform genutzt wird.
+ */
+function detectShopPlatform(html) {
+    const checks = [
+        { id: 'shopify', score: 50, patterns: [
+            /cdn\.shopify\.com/i, /myshopify\.com/i,
+            /<meta\s+name=["']shopify-/i, /Shopify\.Checkout/i,
+            /shopify-section/i, /\.shopifycdn\.com/i,
+        ]},
+        { id: 'woocommerce', score: 50, patterns: [
+            /\/wp-content\/plugins\/woocommerce/i, /\bwoocommerce-page\b/i,
+            /woocommerce_params/i, /class=["'][^"']*woocommerce[^"']*["']/i,
+            /\/?add-to-cart=/i, /woocommerce-product/i,
+        ]},
+        { id: 'magento', score: 50, patterns: [
+            /Mage\.Cookies/, /var\s+BASE_URL\s*=/i, /\/skin\/frontend\/(?:base|default)/i,
+            /Magento_/i, /mage\/cookies\.js/i, /static\/version\d+\/frontend/i,
+        ]},
+        { id: 'prestashop', score: 50, patterns: [
+            /prestashop/i, /\/modules\/blockcart/i, /var\s+prestashop\s*=/i,
+        ]},
+        { id: 'shopware', score: 45, patterns: [
+            /shopware/i, /\/themes\/Frontend\/Responsive/i, /sw-emotion-grid/i,
+            /shopware-?(5|6)/i,
+        ]},
+        { id: 'jtl', score: 45, patterns: [
+            /\bjtl-shop\b/i, /\/Shop\/templates_c\//i, /jtl-?shop/i,
+        ]},
+        { id: 'oxid', score: 40, patterns: [
+            /\boxid(?:eshop|esales)/i, /\/source\/out\/azure/i,
+        ]},
+        { id: 'plentymarkets', score: 40, patterns: [
+            /plentymarkets/i, /ceres\.js/i, /\/ceres-/i,
+        ]},
+        { id: 'webflow_ecommerce', score: 35, patterns: [
+            /w-commerce-/i, /webflow\.com\/ecommerce/i,
+        ]},
+        { id: 'wix_stores', score: 35, patterns: [
+            /wix-?stores/i, /<meta\s+property=["']og:type["']\s+content=["']product/i,
+        ]},
+        { id: 'squarespace_commerce', score: 30, patterns: [
+            /squarespace-commerce/i, /sqs-block-product/i,
+        ]},
+    ];
+
+    for (const c of checks) {
+        for (const re of c.patterns) {
+            if (re.test(html)) return { platform: c.id, platformScore: c.score };
+        }
+    }
+    return { platform: null, platformScore: 0 };
+}
+
+/**
+ * Generische Shop-Signale die auch bei selbstgebauten Shops zaehlen.
+ * Jeder Treffer addiert Punkte — gedeckelt damit unwichtige Signale
+ * nicht das ganze Ergebnis kippen.
+ */
+function detectShopSignals(html) {
+    const signals = [];
+    let score = 0;
+
+    // 1. Schema.org Product / Offer markup (sehr starkes Signal)
+    if (/<script[^>]+type=["']application\/ld\+json["'][^>]*>[\s\S]*?"@type"\s*:\s*"(?:Product|Offer|AggregateOffer)"/i.test(html)) {
+        score += 25; signals.push('Schema.org Product');
+    }
+    // 2. OpenGraph product type
+    if (/<meta[^>]+property=["']og:type["'][^>]+content=["']product["']/i.test(html)) {
+        score += 15; signals.push('og:type=product');
+    }
+    // 3. Warenkorb-Indikator (mehrsprachig)
+    if (/(?:warenkorb|add[- ]?to[- ]?cart|in den warenkorb|panier|carrito|carrello|winkelwagen|in.den.einkaufswagen)/i.test(html)) {
+        score += 12; signals.push('Warenkorb-Button');
+    }
+    // 4. Checkout / Kasse
+    if (/(?:\b(?:checkout|kasse|bezahlen|zur kasse|panier\/payment|finalizar compra|cassa|afrekenen)\b)/i.test(html)) {
+        score += 8; signals.push('Checkout-Begriff');
+    }
+    // 5. Preis-Auszeichnung (klares Online-Shop-Indiz)
+    if (/(?:itemprop=["']price["']|data-price=|class=["'][^"']*\bprice\b[^"']*["']|<span[^>]+price)/i.test(html)) {
+        score += 10; signals.push('Preis-Markup');
+    }
+    // 6. Versand-/Lieferzeit-Information
+    if (/(?:versandkosten|lieferzeit|shipping cost|delivery time|frais de port|gastos de envío|spese di spedizione|verzendkosten)/i.test(html)) {
+        score += 8; signals.push('Versand-Info');
+    }
+    // 7. Produkt-URL-Pattern im HTML (links auf eigene /product/, /produkt/, /shop/ Seiten)
+    if (/href=["'][^"']*\/(?:product|produkt|shop|store|kaufen|buy)\//i.test(html)) {
+        score += 8; signals.push('Shop-URL-Pfade');
+    }
+    // 8. Bezahl-/Payment-Provider erwaehnt
+    if (/(?:paypal|klarna|amazon pay|stripe|apple pay|google pay|sofortueberweisung|sofort\.com|rechnungskauf)/i.test(html)) {
+        score += 5; signals.push('Payment-Provider erwaehnt');
+    }
+    // 9. AGB/Widerruf — sehr typisch fuer DE-Shops
+    if (/(?:widerrufsbelehrung|widerrufsrecht|rueckgaberecht|allgemeine geschaeftsbedingungen)/i.test(html)) {
+        score += 4; signals.push('AGB/Widerruf');
+    }
+
+    // Cap bei 60 Punkten — Plattform-Erkennung soll die finale
+    // Differenzierung machen.
+    return { signalScore: Math.min(score, 60), signals };
+}
+
+async function verifyShop(website) {
+    const result = {
+        status: 'unverified',
+        score: 0,
+        platform: null,
+        signals: [],
+        note: '',
+    };
+
+    if (!website || typeof website !== 'string') {
+        result.note = 'Keine Website hinterlegt';
+        return result;
+    }
+
+    try {
+        const html = await fetchWebpage(website);
+        if (!html || html.length < 500) {
+            result.status = 'unreachable';
+            result.note = 'Antwort zu kurz / leer';
+            return result;
+        }
+
+        // Plattform-Erkennung (starke Signale, eigener Score)
+        const platformResult = detectShopPlatform(html);
+        const signalResult   = detectShopSignals(html);
+
+        // Gesamt-Score: Plattform-Score (max 50) + Signal-Score (max 60)
+        // → max 110, gedeckelt bei 100
+        const totalScore = Math.min(
+            platformResult.platformScore + signalResult.signalScore,
+            100
+        );
+
+        result.score = totalScore;
+        result.platform = platformResult.platform;
+        result.signals = signalResult.signals;
+
+        if (totalScore >= 50) {
+            result.status = 'online_shop';
+            result.note = platformResult.platform
+                ? `Plattform: ${platformResult.platform}. Signale: ${signalResult.signals.join(', ') || 'keine generischen'}`
+                : `Generischer Shop erkannt. Signale: ${signalResult.signals.join(', ')}`;
+        } else if (totalScore >= 25) {
+            result.status = 'maybe_shop';
+            result.note = `Score ${totalScore}. Signale: ${signalResult.signals.join(', ') || 'keine'}. Manuell pruefen.`;
+        } else {
+            result.status = 'website_only';
+            result.note = signalResult.signals.length > 0
+                ? `Score ${totalScore} (zu niedrig). Schwache Signale: ${signalResult.signals.join(', ')}`
+                : `Score 0 — keine Shop-Indikatoren gefunden. Nur Firmen-Webseite.`;
+        }
+
+        return result;
+    } catch (err) {
+        result.status = 'unreachable';
+        result.note = `Website nicht erreichbar: ${err.message}`;
+        return result;
+    }
+}
+
+/**
+ * POST /api/verify-shop
+ * Body: { website, providerId? }
+ */
+app.post('/api/verify-shop', async (req, res) => {
+    const { website, providerId } = req.body || {};
+    if (!website) return res.status(400).json({ error: 'website erforderlich' });
+
+    const result = await verifyShop(website);
+
+    if (providerId && CONFIG.SUPABASE_SERVICE_KEY) {
+        try {
+            await persistShopVerificationResult(providerId, result);
+        } catch (e) {
+            console.warn('Persist fehlgeschlagen:', e.message);
+        }
+    }
+
+    res.json({ success: true, website, ...result });
+});
+
+/**
+ * POST /api/verify-shops-batch
+ * Body: { filter, limit }
+ *
+ * filter:
+ *   - 'never_checked'  — Provider mit Website die noch nicht geprueft wurden (default)
+ *   - 'older_than_30d' — Provider mit Check aelter als 30 Tage
+ *   - 'category_supplies' — nur Kategorie "Zubehoer" / Marine Supplies
+ *   - 'all'            — alle mit Website
+ */
+app.post('/api/verify-shops-batch', async (req, res) => {
+    const { filter = 'never_checked', limit = 25 } = req.body || {};
+
+    if (!CONFIG.SUPABASE_SERVICE_KEY) {
+        return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY fehlt.' });
+    }
+
+    try {
+        const providers = await loadProvidersForShopCheck(filter, limit);
+        console.log(`\n🛒 Shop-Verify: ${providers.length} Provider, filter=${filter}`);
+
+        const results = [];
+        const counts = { online_shop: 0, maybe_shop: 0, website_only: 0, unreachable: 0 };
+
+        for (const p of providers) {
+            const r = await verifyShop(p.website);
+            counts[r.status] = (counts[r.status] || 0) + 1;
+            try {
+                await persistShopVerificationResult(p.id, r);
+            } catch (e) {
+                console.warn(`Persist fuer ${p.id} fehlgeschlagen:`, e.message);
+            }
+            results.push({
+                id: p.id, name: p.name, website: p.website,
+                ...r,
+            });
+            const icon = r.status === 'online_shop' ? '🛒' :
+                         r.status === 'maybe_shop' ? '🤔' :
+                         r.status === 'website_only' ? '📄' : '⚠️';
+            console.log(`  ${icon} ${p.name} → ${r.status} (Score ${r.score}, ${r.platform || 'no platform'})`);
+        }
+
+        res.json({ success: true, totalChecked: providers.length, counts, results });
+    } catch (err) {
+        console.error('Shop-Verify-Batch-Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+async function loadProvidersForShopCheck(filter, limit) {
+    let filterClause = '&website=not.is.null&website=neq.';
+    const now = new Date();
+    switch (filter) {
+        case 'never_checked':
+            filterClause += `&shop_verified_at=is.null`;
+            break;
+        case 'older_than_30d':
+            {
+                const d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+                filterClause += `&or=(shop_verified_at.is.null,shop_verified_at.lt.${d})`;
+            }
+            break;
+        case 'category_supplies':
+            filterClause += `&category=in.(Zubehör,Zubehor,supplies,marine_supplies,Ship Chandler)&shop_verified_at=is.null`;
+            break;
+        case 'all':
+        default:
+            break;
+    }
+    const url = `${CONFIG.SUPABASE_URL}/rest/v1/service_providers?select=id,name,website,category,shop_verified_at,shop_check_status${filterClause}&order=shop_verified_at.asc.nullsfirst&limit=${limit}`;
+
+    return await new Promise((resolve, reject) => {
+        const req = https.get(url, {
+            headers: {
+                apikey: CONFIG.SUPABASE_SERVICE_KEY,
+                Authorization: `Bearer ${CONFIG.SUPABASE_SERVICE_KEY}`,
+            }
+        }, (res) => {
+            let d = '';
+            res.on('data', c => d += c);
+            res.on('end', () => {
+                try {
+                    const arr = JSON.parse(d);
+                    if (Array.isArray(arr)) resolve(arr);
+                    else reject(new Error('Supabase: ' + d.substring(0, 200)));
+                } catch (e) { reject(e); }
+            });
+        });
+        req.on('error', reject);
+    });
+}
+
+async function persistShopVerificationResult(providerId, result) {
+    const url = `${CONFIG.SUPABASE_URL}/rest/v1/service_providers?id=eq.${encodeURIComponent(providerId)}`;
+    const payload = JSON.stringify({
+        shop_verified_at: new Date().toISOString(),
+        shop_check_status: result.status,
+        shop_check_score: result.score || 0,
+        shop_platform: result.platform || null,
+        shop_check_note: result.note ? result.note.substring(0, 500) : null,
+    });
+
+    await new Promise((resolve, reject) => {
+        const urlObj = new URL(url);
+        const req = https.request({
+            hostname: urlObj.hostname,
+            path: urlObj.pathname + urlObj.search,
+            method: 'PATCH',
+            headers: {
+                apikey: CONFIG.SUPABASE_SERVICE_KEY,
+                Authorization: `Bearer ${CONFIG.SUPABASE_SERVICE_KEY}`,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(payload),
+                Prefer: 'return=minimal',
+            }
+        }, (res) => {
+            if (res.statusCode >= 200 && res.statusCode < 300) resolve();
+            else {
+                let d = '';
+                res.on('data', c => d += c);
+                res.on('end', () => reject(new Error(`HTTP ${res.statusCode}: ${d}`)));
+            }
+        });
+        req.on('error', reject);
+        req.write(payload);
+        req.end();
+    });
+}
+
+// ============================================================
 // CLEVERREACH NEWSLETTER-SYNC
 // ============================================================
 //
