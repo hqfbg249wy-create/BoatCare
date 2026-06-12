@@ -1,5 +1,5 @@
-SKIPILY — SHOP-ANBINDUNG · KI-MATCHING
-========================================
+SKIPILY — SHOP-ANBINDUNG · 6 MONATE GRATIS
+============================================
 
 Hallo {$company},
 
@@ -31,29 +31,30 @@ WAS DIE ANBINDUNG IHREM SHOP BRINGT
    Empfehlungen erscheinen kontextbezogen — bei Wartungs-Erinnerungen,
    im KI-Chat, in der Equipment-Uebersicht. Kein Banner-Spam.
 
-💳 Apple Pay & Stripe-Auszahlung integriert
-   Kaeufer bezahlt mit einem Tap. Auszahlung direkt auf Ihr Stripe-
-   Connect-Konto — wie bei Etsy oder Booking, aber fuer Marine.
+💳 Apple-Pay-Checkout — Bezahlanbieter-Gebuehren tragen wir
+   Kaeufer bezahlt mit einem Tap in der App. Auszahlung direkt auf
+   Ihr Konto. Die Transaktionsgebuehren der Zahlungsabwicklung
+   uebernimmt Skipily.
 
 📦 Ihr Sortiment auf der Boot-Profil-Seite
    Wenn ein User "neuer Schalter fuer die Bilgenpumpe" sucht, sieht er
    Ihre passenden Artikel direkt — mit Preis, Verfuegbarkeit, Lieferung.
 
-🤝 Faire Preise — kostenlos starten
-   Standard gratis (bis 10 Produkte zum Testen). Wachstum:
-   Pro 79 EUR/Monat oder 789 EUR/Jahr (unbegrenzte Produkte,
-   Sortiment-API, Statistiken). Marketplace-Provision 10 % pro
-   Verkauf.
+🎁 FRUEHSTARTER-VORTEIL: 6 Monate Pro gratis + 7 % Provision
+   6 Monate ohne Fixkosten — Sie testen die Anbindung in Ruhe.
+   Danach Pro 79 EUR/Monat (oder weiterhin Standard gratis bei
+   kleinem Sortiment). Die ersten 100 angebundenen Shops zahlen
+   dauerhaft 7 % Marketplace-Provision statt der regulaeren 10 %.
 
-🔌 Anbindung ueber CSV, API oder Shopify-Webhook
-   Wir holen Ihr Sortiment automatisch ab — egal ob WooCommerce,
-   Shopify, Magento oder eigener Shop. Einrichtung in einem Termin.
+🔌 Einbindungs-Support inklusive
+   Sortiment-Import per CSV, API oder Shopify-Webhook — wir holen
+   Ihr Angebot automatisch ab und helfen technisch beim Setup,
+   falls erforderlich.
 
 
-PROFIL KOSTENLOS BEANSPRUCHEN
-==============================
-Standard-Plan gratis testen (bis 10 Produkte). Pro-Abo nur wenn
-Sie wachsen wollen — kein Risiko, keine Bindung.
+6 MONATE GRATIS TESTEN — 7 % FRUEHSTARTER-PROVISION SICHERN
+=============================================================
+Solange unter den ersten 100 Shops — Plaetze sind begrenzt.
 
 → {$claim_url}
 
