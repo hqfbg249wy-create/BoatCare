@@ -8924,13 +8924,14 @@ function renderModalSubscriptionStatus() {
 function renderModalUserStatus() {
     const p = _editingProvider;
     const statusEl = document.getElementById('edit-user-status');
-    const btn      = document.getElementById('edit-invite-btn');
+    const btnCR    = document.getElementById('edit-invite-btn');
+    const btnMail  = document.getElementById('edit-invite-mailto-btn');
     const emailInp = document.getElementById('edit-invite-email');
-    if (!p || !statusEl || !btn) return;
+    if (!p || !statusEl || !btnCR) return;
 
-    const email = p.email || '';
+    const email    = p.email || '';
     const hasEmail = !!email;
-    const isLinked = !!p.user_id;
+    const isLinked = !!p.user_id || !!p.claimed_at;
 
     // Versand-Adresse mit der gespeicherten E-Mail als Vorschlag befüllen,
     // aber nur wenn der User noch nichts manuell eingetippt hat (sonst
@@ -8941,13 +8942,36 @@ function renderModalUserStatus() {
 
     if (!hasEmail) {
         statusEl.innerHTML = `<span style="color:#b45309;">⚠️ Keine E-Mail im Profil hinterlegt — du kannst aber unten direkt eine Versand-Adresse eintragen.</span>`;
-        // Trotzdem nutzbar lassen, falls User direkt eine Adresse eingibt.
+        btnCR.textContent   = '✉️ Willkommensmail via CleverReach';
+        if (btnMail) btnMail.textContent = '📧 Nachfassen per Mail';
+        btnCR.disabled  = false;
+        if (btnMail) btnMail.disabled = false;
     } else if (isLinked) {
-        statusEl.innerHTML = `✅ Account verknüpft · <span style="font-family:monospace;">${escapeHtml(email)}</span>`;
-        btn.textContent = '🔁 Login-Link erneut senden';
+        // Account schon geclaimed → kein Claim-Link mehr senden,
+        // sonst wird die Edge Function 409 zurückgeben.
+        statusEl.innerHTML =
+            `✅ Account verknüpft · <span style="font-family:monospace;">${escapeHtml(email)}</span>` +
+            `<div style="font-size:11px; color:#475569; margin-top:4px;">` +
+            `Für Passwort-Reset bitte „Passwort vergessen" im Provider-Portal nutzen.` +
+            `</div>`;
+        btnCR.textContent   = '✉️ Willkommensmail via CleverReach';
+        if (btnMail) btnMail.textContent = '📧 Nachfassen per Mail';
+        btnCR.disabled  = true;
+        if (btnMail) btnMail.disabled = true;
+        btnCR.style.opacity = '0.5';
+        if (btnMail) btnMail.style.opacity = '0.5';
+        btnCR.style.cursor  = 'not-allowed';
+        if (btnMail) btnMail.style.cursor = 'not-allowed';
     } else {
         statusEl.innerHTML = `Noch kein Account · <span style="font-family:monospace;">${escapeHtml(email)}</span>`;
-        btn.textContent = '✉️ Zugangsdaten senden';
+        btnCR.textContent   = '✉️ Willkommensmail via CleverReach';
+        if (btnMail) btnMail.textContent = '📧 Nachfassen per Mail';
+        btnCR.disabled  = false;
+        if (btnMail) btnMail.disabled = false;
+        btnCR.style.opacity = '';
+        if (btnMail) btnMail.style.opacity = '';
+        btnCR.style.cursor  = 'pointer';
+        if (btnMail) btnMail.style.cursor = 'pointer';
     }
 
     // Markierung „User hat Feld manuell editiert" einmalig pro Modal-Öffnung setzen,
@@ -8956,10 +8980,6 @@ function renderModalUserStatus() {
         emailInp.addEventListener('input', () => { emailInp.dataset.touched = '1'; });
         emailInp.dataset.handlerBound = '1';
     }
-
-    btn.disabled = false;
-    btn.style.opacity = '';
-    btn.style.cursor = 'pointer';
 }
 
 // ═════════════════════════════════════════════════════════════════════
@@ -9165,12 +9185,19 @@ function openInviteMailDialog({ email, providerName, claimLink }) {
     };
 }
 
-async function sendProviderInvite() {
+async function sendProviderInvite(deliveryMode) {
     if (!_editingProvider) return;
-    const btn       = document.getElementById('edit-invite-btn');
+
+    // deliveryMode: "cleverreach" (Standard, automatisch) oder "mailto"
+    // (nur Link erzeugen, im Mailprogramm öffnen — typisch fürs Nachfassen).
+    const mode = deliveryMode === 'mailto' ? 'mailto' : 'cleverreach';
+
+    const btn       = document.getElementById(
+        mode === 'mailto' ? 'edit-invite-mailto-btn' : 'edit-invite-btn'
+    );
     const resultBox = document.getElementById('edit-invite-result');
     const emailInp  = document.getElementById('edit-invite-email');
-    const origLabel = btn.textContent;
+    const origLabel = btn?.textContent || '';
 
     // Versand-Adresse: aus dem Eingabefeld (vorbelegt mit gespeicherter Mail,
     // aber editierbar). Fallback auf die Profil-Mail.
@@ -9208,13 +9235,13 @@ async function sendProviderInvite() {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session) throw new Error('Nicht eingeloggt');
 
-        // Body: provider_id + optionaler email-Override + delivery="mailto".
-        // delivery="mailto" → die Edge-Function generiert den Zugangs-Link, schickt
-        // aber KEINE Supabase-Mail. Wir bekommen action_link zurück und öffnen
-        // damit das Mailprogramm des Admins mit einer vorgefertigten Willkommensmail.
+        // Body: provider_id + optionaler email-Override + delivery-Mode.
+        //   delivery="cleverreach" → CR triggert Welcome-Mailing automatisch
+        //   delivery="mailto"      → nur Claim-Link zurück → Admin öffnet Mail
+        // In keinem Fall verschickt Supabase Auth eine Mail.
         const payload = {
             provider_id: _editingProvider.id,
-            delivery:    'mailto',
+            delivery:    mode,
         };
         if (overrideEmail && overrideEmail.toLowerCase() !== (_editingProvider.email || '').toLowerCase()) {
             payload.email = overrideEmail;
@@ -9233,28 +9260,41 @@ async function sendProviderInvite() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Einladung fehlgeschlagen');
 
-        // Zugangs-Link + Empfänger aus der Antwort
-        const claimLink    = data.action_link || data.link || '';
+        // Claim-Link + Empfänger aus der Antwort
+        const claimLink    = data.claim_url || data.action_link || data.link || '';
         const recipientMail = data.email || targetEmail;
         const providerName  = data.provider_name || _editingProvider?.name || '';
 
-        if (!claimLink) {
-            throw new Error('Server hat keinen Zugangs-Link zurückgegeben. Bitte Edge Function neu deployen.');
-        }
-
-        // Mailto-Dialog öffnen (Subject + Body sind editierbar)
-        openInviteMailDialog({
-            email:        recipientMail,
-            providerName: providerName,
-            claimLink:    claimLink,
-        });
-
-        if (resultBox) {
-            resultBox.style.display = '';
-            resultBox.style.background = '#dcfce7';
-            resultBox.style.color      = '#166534';
-            resultBox.style.border     = '1px solid #bbf7d0';
-            resultBox.innerHTML = '✅ Mailprogramm geöffnet — Du kannst die Willkommensmail jetzt prüfen und absenden.';
+        if (mode === 'mailto') {
+            // Nachfassen-Pfad → Mailprogramm öffnen
+            if (!claimLink) {
+                throw new Error('Server hat keinen Claim-Link zurückgegeben. Bitte Edge Function neu deployen.');
+            }
+            openInviteMailDialog({
+                email:        recipientMail,
+                providerName: providerName,
+                claimLink:    claimLink,
+            });
+            if (resultBox) {
+                resultBox.style.display = '';
+                resultBox.style.background = '#dcfce7';
+                resultBox.style.color      = '#166534';
+                resultBox.style.border     = '1px solid #bbf7d0';
+                resultBox.innerHTML = '✅ Mailprogramm geöffnet — Text prüfen und absenden.';
+            }
+        } else {
+            // CleverReach-Pfad → Erfolgsmeldung mit Hinweis
+            if (resultBox) {
+                resultBox.style.display = '';
+                resultBox.style.background = '#dcfce7';
+                resultBox.style.color      = '#166534';
+                resultBox.style.border     = '1px solid #bbf7d0';
+                resultBox.innerHTML =
+                    '✅ ' + escapeHtml(data.message || `Willkommensmail an ${recipientMail} ausgelöst.`) +
+                    `<div style="margin-top:6px; font-size:11px; color:#475569;">` +
+                    `Falls Du noch persönlich nachhaken willst → Button "📧 Nachfassen per Mail".` +
+                    `</div>`;
+            }
         }
 
         // Cache refresh + Status neu rendern
@@ -9270,9 +9310,11 @@ async function sendProviderInvite() {
             resultBox.innerHTML = '❌ ' + escapeHtml(err.message);
         }
     } finally {
-        btn.disabled = false;
-        btn.textContent = origLabel;
-        // Status-Render setzt das richtige Label danach
+        if (btn) {
+            btn.disabled    = false;
+            btn.textContent = origLabel;
+        }
+        // Status-Render setzt das richtige Label / Disable-State danach
         renderModalUserStatus();
     }
 }

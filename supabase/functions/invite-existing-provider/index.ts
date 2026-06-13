@@ -1,26 +1,35 @@
-// ========================================================================
+// ════════════════════════════════════════════════════════════════════
 // invite-existing-provider — Admin-only Edge Function
 //
-// Verknüpft einen bestehenden Provider-Eintrag (service_providers.id) mit
-// einem neuen Auth-Account. Im Gegensatz zu `invite-provider` legt diese
-// Function KEINEN neuen service_providers-Datensatz an — sie sucht den
-// bestehenden anhand der provider_id, lädt den User per Magic-Link ein und
-// trägt die neue user_id nach erfolgreicher Einladung in die existierende
-// Zeile ein.
+// Erzeugt einen Claim-Link für einen bestehenden service_providers-Eintrag
+// und versendet ihn entweder
+//   • automatisch über CleverReach  (delivery: "cleverreach")
+//   • oder gibt den Link nur zurück, damit der Admin im Frontend sein
+//     lokales Mailprogramm öffnet                     (delivery: "mailto")
 //
-// Verwendung: Admin-UI Bearbeiten-Modal → "Zugangsdaten senden"
+// Es wird KEIN Supabase-Auth-Mailversand mehr ausgelöst — weder
+// inviteUserByEmail noch generateLink — damit der Provider auf keinen
+// Fall eine zweite, automatisch generierte Mail bekommt.
 //
-// Body: { provider_id: UUID, email?: string }
-//   - provider_id ist Pflicht
-//   - email optional: überschreibt die in service_providers gespeicherte Adresse
-//     (gleichzeitig wird der Datensatz auf die neue E-Mail aktualisiert)
-// ========================================================================
+// Der eigentliche Account-Anlage-Vorgang läuft erst beim Aufruf von
+// /functions/v1/claim-provider durch den Provider selbst (Token +
+// Wunsch-Passwort).
+//
+// POST /functions/v1/invite-existing-provider
+//   { "provider_id": "<uuid>",
+//     "delivery":   "cleverreach" | "mailto",
+//     "email":      "..."                     // optional: Override }
+// ════════════════════════════════════════════════════════════════════
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders }   from "../_shared/cors.ts";
+import { upsertReceiver } from "../_shared/cleverreach.ts";
 
 const SUPABASE_URL     = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const PROVIDER_PORTAL_BASE = Deno.env.get("PROVIDER_PORTAL_URL")
+  ?? "https://provider.skipily.app";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -28,7 +37,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // ── 1) Authorization prüfen
+    // ── 1) Auth: nur Admin
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) {
       return json({ error: "Missing Authorization header" }, 401);
@@ -39,29 +48,32 @@ Deno.serve(async (req) => {
     const { data: userData, error: userErr } = await admin.auth.getUser(token);
     if (userErr || !userData.user) return json({ error: "Invalid token" }, 401);
 
-    const { data: profile } = await admin
+    const { data: callerProfile } = await admin
       .from("profiles")
       .select("role")
       .eq("id", userData.user.id)
       .single();
-    if (profile?.role !== "admin") {
+    if (callerProfile?.role !== "admin") {
       return json({ error: "Forbidden — admin only" }, 403);
     }
 
     // ── 2) Body
     const body = await req.json().catch(() => ({}));
-    const { provider_id, email: emailOverride, delivery } = body ?? {};
+    const {
+      provider_id,
+      email: emailOverride,
+      delivery,
+    } = body ?? {};
+
     if (!provider_id) return json({ error: "provider_id fehlt" }, 400);
 
-    // delivery === "mailto"  → wir generieren den Link, schicken aber KEINE
-    // automatische Supabase-Mail. Der Admin bekommt den Link zurück und öffnet
-    // damit sein lokales Mailprogramm mit einer vorgefertigten Willkommensmail.
-    const mailtoMode = delivery === "mailto";
+    const mode: "cleverreach" | "mailto" =
+      delivery === "cleverreach" ? "cleverreach" : "mailto";
 
-    // ── 3) Provider laden
+    // ── 3) Provider laden (inkl. claim_token + Account-Status)
     const { data: provider, error: provErr } = await admin
       .from("service_providers")
-      .select("id, name, email, user_id, category, city")
+      .select("id, name, email, user_id, claim_token, claimed_at, category, city, country")
       .eq("id", provider_id)
       .single();
 
@@ -74,148 +86,105 @@ Deno.serve(async (req) => {
       return json({ error: "Keine E-Mail-Adresse beim Provider hinterlegt — bitte zuerst speichern." }, 400);
     }
 
-    // Falls user_id bereits vergeben → wir senden trotzdem einen Recovery-Link,
-    // damit der Provider seine Zugangsdaten zurücksetzen kann.
-    if (provider.user_id) {
-      const { data: pwReset, error: prErr } = await admin.auth.admin.generateLink({
-        type:    "recovery",
-        email:   targetEmail,
-        options: { redirectTo: "https://provider.skipily.app/" },
-      });
-      if (prErr) {
-        return json({ error: "Recovery-Link konnte nicht erstellt werden: " + prErr.message }, 400);
-      }
-      // Supabase sendet den Recovery-Link automatisch, wenn SMTP konfiguriert ist
-      return json({
-        ok: true,
-        mode: "recovery",
-        email: targetEmail,
-        provider_name: provider.name,
-        action_link: pwReset.properties?.action_link,
-        message: mailtoMode
-          ? `Recovery-Link für ${targetEmail} erzeugt. Öffne jetzt Dein Mailprogramm.`
-          : `Recovery-Link an ${targetEmail} gesendet. Der Provider kann sein Passwort neu setzen und sich danach einloggen.`,
-        link: pwReset.properties?.action_link,  // alt — Kompatibilität
-      });
-    }
-
-    // user_id ist NULL → wir laden neu ein
-    // Prüfen ob die E-Mail evtl. schon einem anderen Profil gehört
-    const { data: otherProfile } = await admin
-      .from("profiles")
-      .select("id, role")
-      .ilike("email", targetEmail)
-      .maybeSingle();
-
-    if (otherProfile) {
-      // E-Mail existiert bereits → wir verknüpfen einfach die bestehende user_id
-      // mit unserem Provider-Eintrag und schicken einen Recovery-Link.
-      const { error: linkErr } = await admin
+    // Wenn die Empfänger-Adresse überschrieben wurde, in der DB nachziehen,
+    // damit der spätere claim-provider-Aufruf damit den Auth-User anlegt.
+    if (emailOverride && emailOverride.toLowerCase() !== (provider.email || "").toLowerCase()) {
+      const { error: updErr } = await admin
         .from("service_providers")
-        .update({ user_id: otherProfile.id, email: targetEmail })
+        .update({ email: targetEmail })
         .eq("id", provider_id);
-      if (linkErr) return json({ error: "Verknüpfung fehlgeschlagen: " + linkErr.message }, 400);
+      if (updErr) {
+        return json({ error: "E-Mail konnte nicht aktualisiert werden: " + updErr.message }, 400);
+      }
+      provider.email = targetEmail;
+    }
 
-      const { data: pwReset2, error: prErr } = await admin.auth.admin.generateLink({
-        type:    "recovery",
-        email:   targetEmail,
-        options: { redirectTo: "https://provider.skipily.app/" },
-      });
-      if (prErr) return json({ error: "Recovery-Link fehlgeschlagen: " + prErr.message }, 400);
+    // ── 4) Bereits beansprucht?
+    //    Dann KEIN Claim-Link mehr — das wäre ein zweiter Onboarding-Pfad.
+    //    Stattdessen Hinweis an den Admin (für "Passwort vergessen" hat das
+    //    Provider-Portal eine eigene /forgot-password-Route).
+    if (provider.user_id || provider.claimed_at) {
+      return json({
+        error:
+          "Dieser Provider hat bereits einen Account beansprucht. " +
+          "Für einen Passwort-Reset soll er bitte 'Passwort vergessen' " +
+          "im Provider-Portal nutzen.",
+      }, 409);
+    }
+
+    // ── 5) Claim-Token sicherstellen
+    //    Die DB legt beim Insert automatisch einen claim_token an
+    //    (siehe service_providers.claim_token DEFAULT). Falls aus alten
+    //    Datensätzen leer: jetzt nachholen.
+    let claimToken = provider.claim_token as string | null;
+    if (!claimToken) {
+      const { data: regen, error: regenErr } = await admin
+        .from("service_providers")
+        .update({ claim_token: crypto.randomUUID() })
+        .eq("id", provider_id)
+        .select("claim_token")
+        .single();
+      if (regenErr || !regen?.claim_token) {
+        return json({ error: "Claim-Token konnte nicht erzeugt werden: " + (regenErr?.message || "unknown") }, 500);
+      }
+      claimToken = regen.claim_token;
+    }
+
+    const claimUrl = `${PROVIDER_PORTAL_BASE}/claim/${claimToken}`;
+
+    // ── 6a) Versand über CleverReach
+    if (mode === "cleverreach") {
+      const groupId = Deno.env.get("CLEVERREACH_GROUP_PROVIDER_ONBOARDING") ?? "";
+      if (!groupId) {
+        return json({
+          error:
+            "CLEVERREACH_GROUP_PROVIDER_ONBOARDING ist nicht gesetzt. " +
+            "Bitte in den Supabase Edge Function Secrets eintragen.",
+        }, 500);
+      }
+
+      try {
+        await upsertReceiver(groupId, {
+          email: targetEmail,
+          source: "Skipily Provider-Onboarding (Admin-Invite)",
+          activatedImmediately: true,
+          attributes: {
+            company:     provider.name      || "",
+            city:        provider.city      || "",
+            country:     provider.country   || "",
+            category:    provider.category  || "",
+            claim_link:  claimUrl,
+            provider_id: provider.id,
+          },
+        });
+      } catch (e) {
+        return json({
+          error: "CleverReach-Versand fehlgeschlagen: " + (e as Error).message,
+        }, 502);
+      }
 
       return json({
         ok: true,
-        mode: "linked-existing",
+        mode: "cleverreach",
         email: targetEmail,
         provider_name: provider.name,
-        action_link: pwReset2.properties?.action_link,
-        message: mailtoMode
-          ? `Die E-Mail ${targetEmail} hatte bereits einen Account. Provider verknüpft — Link zum Mitschicken ist bereit.`
-          : `Die E-Mail ${targetEmail} hatte bereits einen Account. Wir haben den Provider damit verknüpft und einen Login-Link verschickt.`,
+        claim_url: claimUrl,   // für Diagnose im Admin sichtbar
+        message:
+          `Willkommensmail an ${targetEmail} über CleverReach ausgelöst. ` +
+          `Der Provider erhält den Link in Kürze.`,
       });
     }
 
-    // ── Einladung als NEUER User
-    // WICHTIG: kein is_provider=true setzen, sonst legt der Trigger einen
-    // weiteren service_providers-Eintrag an. Wir verknüpfen manuell hinterher.
-    //
-    // Zwei Pfade:
-    //   mailtoMode = true   → generateLink({type:"invite"})  — KEINE Auto-Mail,
-    //                         Admin verschickt selbst über sein Mailprogramm
-    //   mailtoMode = false  → inviteUserByEmail              — Supabase sendet
-    //                         die Einladung wie bisher
-    let newUserId: string | null = null;
-    let actionLink: string | undefined;
-
-    if (mailtoMode) {
-      const { data: linkData, error: linkGenErr } = await admin.auth.admin.generateLink({
-        type:  "invite",
-        email: targetEmail,
-        options: {
-          data: {
-            existing_provider_id: provider_id,
-            company_name: provider.name,
-            category:     provider.category || "repair",
-            city:         provider.city     || null,
-          },
-          redirectTo: "https://provider.skipily.app/",
-        },
-      });
-      if (linkGenErr || !linkData?.user) {
-        console.error("generateLink(invite) failed:", linkGenErr);
-        return json({
-          error: "Einladungs-Link konnte nicht erzeugt werden: " + (linkGenErr?.message || "unbekannter Fehler"),
-        }, 400);
-      }
-      newUserId  = linkData.user.id;
-      actionLink = linkData.properties?.action_link;
-    } else {
-      const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
-        targetEmail,
-        {
-          data: {
-            existing_provider_id: provider_id,
-            company_name: provider.name,
-            category:     provider.category || "repair",
-            city:         provider.city     || null,
-          },
-          redirectTo: "https://provider.skipily.app/",
-        },
-      );
-      if (inviteErr || !invited.user) {
-        console.error("inviteUserByEmail failed:", inviteErr);
-        return json({
-          error: "Einladung fehlgeschlagen: " + (inviteErr?.message || "unbekannter Fehler"),
-        }, 400);
-      }
-      newUserId = invited.user.id;
-    }
-
-    // ── Bestehenden Provider-Eintrag mit dem neuen User verknüpfen
-    const { error: linkErr } = await admin
-      .from("service_providers")
-      .update({
-        user_id: newUserId,
-        email:   targetEmail,
-      })
-      .eq("id", provider_id);
-
-    if (linkErr) {
-      // Rollback: User wieder löschen, damit nicht wieder dieselben kryptischen Fehler kommen
-      if (newUserId) await admin.auth.admin.deleteUser(newUserId).catch(() => null);
-      return json({ error: "Verknüpfung fehlgeschlagen: " + linkErr.message }, 400);
-    }
-
+    // ── 6b) Mailto: nur Link zurückgeben, kein Versand
     return json({
       ok: true,
-      mode: "invited",
-      user_id: newUserId,
-      email:   targetEmail,
+      mode: "mailto",
+      email: targetEmail,
       provider_name: provider.name,
-      action_link: actionLink,
-      message: mailtoMode
-        ? `Provider ${provider.name} angelegt. Einladungs-Link ist bereit zum Verschicken.`
-        : `Magic-Link an ${targetEmail} gesendet. Der Provider kann sich damit erstmals einloggen.`,
+      claim_url: claimUrl,
+      action_link: claimUrl,   // Kompatibilität zum bisherigen Frontend
+      message:
+        `Claim-Link erzeugt — bitte im Mailprogramm prüfen und absenden.`,
     });
 
   } catch (err) {

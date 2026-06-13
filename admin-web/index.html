@@ -354,12 +354,22 @@
                                     Vorbelegt mit der gespeicherten E-Mail — bei Bedarf für diesen Versand anpassen.
                                 </div>
                             </div>
-                            <button class="btn-primary"
-                                    id="edit-invite-btn"
-                                    onclick="window.sendProviderInvite()"
-                                    style="font-size:13px; padding:9px 14px; white-space:nowrap;">
-                                ✉️ Zugangsdaten senden
-                            </button>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button class="btn-primary"
+                                        id="edit-invite-btn"
+                                        onclick="window.sendProviderInvite('cleverreach')"
+                                        style="font-size:13px; padding:9px 14px; white-space:nowrap;"
+                                        title="Schickt die Willkommensmail automatisch über CleverReach mit Tracking">
+                                    ✉️ Willkommensmail via CleverReach
+                                </button>
+                                <button class="btn-secondary"
+                                        id="edit-invite-mailto-btn"
+                                        onclick="window.sendProviderInvite('mailto')"
+                                        style="font-size:13px; padding:9px 14px; white-space:nowrap; background:#fff; color:#1e40af; border:1px solid #93c5fd; border-radius:6px; cursor:pointer;"
+                                        title="Öffnet Dein Mailprogramm mit dem Claim-Link — zum Nachfassen oder für persönliche Erstmail">
+                                    📧 Nachfassen per Mail
+                                </button>
+                            </div>
                         </div>
                         <div id="edit-invite-result" style="display:none; margin-top:10px; padding:8px 12px; border-radius:6px; font-size:12px;"></div>
                     </div>
