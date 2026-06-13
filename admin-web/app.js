@@ -10889,11 +10889,33 @@ async function loadShopOverview() {
             commissionByProvider.set(pid, (commissionByProvider.get(pid) || 0) + parseFloat(o.commission_amount || 0));
         }
 
-        // Safety-Net: Provider die NUR durch Produkte/Umsatz qualifizieren,
-        // aber im obigen .limit(20000) der Pagination zum Opfer gefallen
-        // sein koennten. Wir checken welche provider_ids in productCounts/
-        // revenueByProvider auftauchen, aber in providers fehlen — und
-        // laden die gezielt nach.
+        // GARANTIE-ABFRAGE: Server-seitig alle "definitiv Shop" Provider
+        // holen, unabhaengig von Pagination. Das umfasst alles mit
+        // is_shop_active=true, und falls die Spalte existiert auch
+        // shop_check_status in (online_shop, maybe_shop). Damit kann
+        // kein aktiver Shop mehr durchrutschen.
+        const colSet = hasShopCol ? SELECT_COLS_WITH_SHOP : SELECT_COLS;
+        const guarantees = [];
+        try {
+            const { data: activeShops } = await supabaseClient
+                .from('service_providers')
+                .select(colSet)
+                .eq('is_shop_active', true)
+                .limit(5000);
+            if (activeShops) guarantees.push(...activeShops);
+        } catch (_) { /* ignore */ }
+        if (hasShopCol) {
+            try {
+                const { data: checkedShops } = await supabaseClient
+                    .from('service_providers')
+                    .select(colSet)
+                    .in('shop_check_status', ['online_shop', 'maybe_shop'])
+                    .limit(5000);
+                if (checkedShops) guarantees.push(...checkedShops);
+            } catch (_) { /* ignore */ }
+        }
+
+        // Safety-Net: Provider die NUR durch Produkte/Umsatz qualifizieren
         const providerIdSet = new Set(providers.map(p => p.id));
         const missingIds = [];
         productCounts.forEach((_, pid) => { if (!providerIdSet.has(pid)) missingIds.push(pid); });
@@ -10901,13 +10923,22 @@ async function loadShopOverview() {
 
         if (missingIds.length > 0) {
             const uniqueMissing = [...new Set(missingIds)];
-            const colSet = hasShopCol ? SELECT_COLS_WITH_SHOP : SELECT_COLS;
             const { data: extra } = await supabaseClient
                 .from('service_providers')
                 .select(colSet)
                 .in('id', uniqueMissing);
-            if (extra && extra.length > 0) providers.push(...extra);
+            if (extra && extra.length > 0) guarantees.push(...extra);
         }
+
+        // Garantien zum Hauptdatensatz mergen, Duplikate raus
+        for (const g of guarantees) {
+            if (!providerIdSet.has(g.id)) {
+                providers.push(g);
+                providerIdSet.add(g.id);
+            }
+        }
+
+        console.log(`🛍️ Shop-Übersicht: ${providers.length} Provider geladen (davon ${providers.filter(p => p.is_shop_active).length} mit is_shop_active=true)`);
 
         _shopOverviewCache = providers.map(p => ({
             ...p,
