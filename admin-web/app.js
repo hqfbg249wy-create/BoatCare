@@ -10822,19 +10822,39 @@ async function loadShopOverview() {
         // Provider mit Shop-Aktivierung. shop_check_status ist optional —
         // wenn die Migration noch nicht gelaufen ist, fangen wir den Error
         // ab und laden ohne diese Spalte.
-        let providers, pErr;
-        ({ data: providers, error: pErr } = await supabaseClient
-            .from('service_providers')
-            .select('id, name, city, country, website, is_shop_active, commission_rate, sales_rep_id, created_at, claimed_at, shop_check_status')
-            .order('name'));
-        if (pErr && /shop_check_status/.test(pErr.message || '')) {
-            // Fallback ohne shop_check_status
-            ({ data: providers, error: pErr } = await supabaseClient
+        //
+        // WICHTIG: Supabase default-limit ist 1000 (von PostgREST). Bei
+        // ~4700 Providern in der DB würden also ~3700 fehlen — darunter
+        // potenzielle Shops mit Buchstaben weit hinten im Alphabet. Daher
+        // explizit limit(20000) UND auch IDs aus orders/products
+        // hinzunehmen, damit kein Shop verloren geht.
+        const SELECT_COLS = 'id, name, city, country, website, is_shop_active, commission_rate, sales_rep_id, created_at, claimed_at';
+        const SELECT_COLS_WITH_SHOP = SELECT_COLS + ', shop_check_status';
+
+        const tryWithShopStatus = async () => {
+            const { data, error } = await supabaseClient
                 .from('service_providers')
-                .select('id, name, city, country, website, is_shop_active, commission_rate, sales_rep_id, created_at, claimed_at')
-                .order('name'));
+                .select(SELECT_COLS_WITH_SHOP)
+                .order('name')
+                .limit(20000);
+            return { data, error, hasShopCol: !error };
+        };
+        const tryWithout = async () => {
+            const { data, error } = await supabaseClient
+                .from('service_providers')
+                .select(SELECT_COLS)
+                .order('name')
+                .limit(20000);
+            return { data, error, hasShopCol: false };
+        };
+
+        let providers, pErr, hasShopCol;
+        ({ data: providers, error: pErr, hasShopCol } = await tryWithShopStatus());
+        if (pErr && /shop_check_status/.test(pErr.message || '')) {
+            ({ data: providers, error: pErr, hasShopCol } = await tryWithout());
         }
         if (pErr) throw pErr;
+        if (!providers) providers = [];
 
         // Produktanzahl pro Provider (Tabelle "products" — falls leer/nicht vorhanden, alle 0)
         const productCounts = new Map();
@@ -10869,7 +10889,27 @@ async function loadShopOverview() {
             commissionByProvider.set(pid, (commissionByProvider.get(pid) || 0) + parseFloat(o.commission_amount || 0));
         }
 
-        _shopOverviewCache = (providers || []).map(p => ({
+        // Safety-Net: Provider die NUR durch Produkte/Umsatz qualifizieren,
+        // aber im obigen .limit(20000) der Pagination zum Opfer gefallen
+        // sein koennten. Wir checken welche provider_ids in productCounts/
+        // revenueByProvider auftauchen, aber in providers fehlen — und
+        // laden die gezielt nach.
+        const providerIdSet = new Set(providers.map(p => p.id));
+        const missingIds = [];
+        productCounts.forEach((_, pid) => { if (!providerIdSet.has(pid)) missingIds.push(pid); });
+        revenueByProvider.forEach((_, pid) => { if (!providerIdSet.has(pid)) missingIds.push(pid); });
+
+        if (missingIds.length > 0) {
+            const uniqueMissing = [...new Set(missingIds)];
+            const colSet = hasShopCol ? SELECT_COLS_WITH_SHOP : SELECT_COLS;
+            const { data: extra } = await supabaseClient
+                .from('service_providers')
+                .select(colSet)
+                .in('id', uniqueMissing);
+            if (extra && extra.length > 0) providers.push(...extra);
+        }
+
+        _shopOverviewCache = providers.map(p => ({
             ...p,
             product_count: productCounts.get(p.id) || 0,
             revenue: revenueByProvider.get(p.id) || 0,
