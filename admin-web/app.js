@@ -8962,6 +8962,209 @@ function renderModalUserStatus() {
     btn.style.cursor = 'pointer';
 }
 
+// ═════════════════════════════════════════════════════════════════════
+// WILLKOMMENSMAIL — Vorlage + Mailto-Dialog
+// ═════════════════════════════════════════════════════════════════════
+//
+// Die Vorlage kannst Du jederzeit hier anpassen — oder im Mailprogramm
+// direkt vor dem Versenden. Platzhalter:
+//   {{PROVIDER_NAME}}  → Firmenname aus service_providers.name
+//   {{CLAIM_LINK}}     → einmaliger Zugangs-Link (Magic-/Recovery-Link)
+//   {{EMAIL}}          → die Empfänger-Adresse
+//
+// Eine vom Admin angepasste Vorlage wird in localStorage gespeichert
+// (Key 'skipily_invite_mail_template') und beim nächsten Aufruf
+// wiederverwendet. "Vorlage zurücksetzen" stellt den Default her.
+// ═════════════════════════════════════════════════════════════════════
+const INVITE_MAIL_DEFAULT = {
+    subject: 'Willkommen bei Skipily — Dein Zugang zum Provider-Portal',
+    body:
+`Hallo {{PROVIDER_NAME}},
+
+herzlich willkommen bei Skipily — der Plattform, über die Bootseigner
+direkt mit Werften, Riggern, Segelmachern und Marine-Servicebetrieben
+zusammenfinden.
+
+Wir haben für Euch ein Profil im Skipily Provider-Portal angelegt.
+Mit dem folgenden Link aktiviert Ihr Euren Zugang, vergebt ein Passwort
+und übernehmt sofort Euer Profil:
+
+{{CLAIM_LINK}}
+
+Was Ihr im Provider-Portal könnt:
+• Euer Profil pflegen (Leistungen, Öffnungszeiten, Bilder, Marken)
+• Anfragen von Bootseignern empfangen und beantworten
+• Produkte und Aktionen in Eurem Shop hinterlegen
+• Bewertungen einsehen und darauf reagieren
+
+Der Link ist personalisiert und einmalig gültig. Bei Fragen oder
+Problemen beim Login meldet Euch einfach bei uns — wir helfen gerne.
+
+Schöne Grüße
+Das Skipily-Team
+
+—
+Skipily · https://skipily.app
+Empfänger dieser Mail: {{EMAIL}}
+`,
+};
+
+function loadInviteMailTemplate() {
+    try {
+        const raw = localStorage.getItem('skipily_invite_mail_template');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.subject && parsed.body) return parsed;
+        }
+    } catch (_) { /* fällt auf Default zurück */ }
+    return { ...INVITE_MAIL_DEFAULT };
+}
+
+function saveInviteMailTemplate(tpl) {
+    try {
+        localStorage.setItem('skipily_invite_mail_template', JSON.stringify(tpl));
+    } catch (_) { /* localStorage voll oder verboten — egal */ }
+}
+
+function renderInviteMailTemplate(tpl, vars) {
+    const replace = (s) => s
+        .replaceAll('{{PROVIDER_NAME}}', vars.providerName || 'Team')
+        .replaceAll('{{CLAIM_LINK}}',    vars.claimLink    || '')
+        .replaceAll('{{EMAIL}}',         vars.email        || '');
+    return { subject: replace(tpl.subject), body: replace(tpl.body) };
+}
+
+function openInviteMailDialog({ email, providerName, claimLink }) {
+    const tpl = loadInviteMailTemplate();
+    const rendered = renderInviteMailTemplate(tpl, { email, providerName, claimLink });
+
+    // Bereits offenen Dialog entfernen
+    document.getElementById('invite-mail-dialog')?.remove();
+
+    const dlg = document.createElement('div');
+    dlg.id = 'invite-mail-dialog';
+    dlg.style.cssText = `
+        position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9999;
+        display:flex; align-items:center; justify-content:center; padding:20px;
+    `;
+    dlg.innerHTML = `
+      <div style="background:#fff; border-radius:12px; max-width:720px; width:100%;
+                  max-height:90vh; overflow:auto; box-shadow:0 24px 64px rgba(0,0,0,0.3);">
+        <div style="padding:18px 22px; border-bottom:1px solid #e2e8f0;
+                    display:flex; align-items:center; justify-content:space-between;">
+          <h3 style="margin:0; font-size:17px; color:#0f172a;">
+            ✉️ Willkommensmail an ${escapeHtml(email)}
+          </h3>
+          <button type="button" id="invite-mail-close"
+                  style="background:none; border:none; font-size:22px; cursor:pointer; color:#64748b;">×</button>
+        </div>
+        <div style="padding:18px 22px; display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:4px;">
+              Betreff
+            </label>
+            <input id="invite-mail-subject" type="text" value="${escapeHtml(rendered.subject)}"
+                   style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:4px;">
+              Nachricht
+            </label>
+            <textarea id="invite-mail-body" rows="16"
+                      style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px;
+                             font-family:ui-sans-serif,system-ui,sans-serif; font-size:13.5px;
+                             line-height:1.5; resize:vertical;">${escapeHtml(rendered.body)}</textarea>
+          </div>
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 12px;
+                      font-size:12.5px; color:#1e3a8a;">
+            💡 Du kannst Subject + Body hier oder direkt in Deinem Mailprogramm bearbeiten.
+            <strong>"Als Vorlage speichern"</strong> übernimmt die aktuellen Texte (mit Platzhaltern
+            <code>{{PROVIDER_NAME}}</code>, <code>{{CLAIM_LINK}}</code>, <code>{{EMAIL}}</code>)
+            für alle künftigen Einladungen.
+          </div>
+        </div>
+        <div style="padding:14px 22px; border-top:1px solid #e2e8f0; display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+          <button type="button" id="invite-mail-reset"
+                  style="background:#fff; color:#475569; border:1px solid #cbd5e1; border-radius:8px;
+                         padding:9px 14px; cursor:pointer; font-size:13px;">
+            ↩︎ Vorlage zurücksetzen
+          </button>
+          <button type="button" id="invite-mail-save"
+                  style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; border-radius:8px;
+                         padding:9px 14px; cursor:pointer; font-size:13px;">
+            💾 Als Vorlage speichern
+          </button>
+          <button type="button" id="invite-mail-copy"
+                  style="background:#fff; color:#0f172a; border:1px solid #cbd5e1; border-radius:8px;
+                         padding:9px 14px; cursor:pointer; font-size:13px;">
+            📋 Link kopieren
+          </button>
+          <button type="button" id="invite-mail-open"
+                  style="background:#2563eb; color:#fff; border:none; border-radius:8px;
+                         padding:9px 16px; cursor:pointer; font-size:13px; font-weight:600;">
+            ✉️ Im Mailprogramm öffnen
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(dlg);
+
+    const $subj = dlg.querySelector('#invite-mail-subject');
+    const $body = dlg.querySelector('#invite-mail-body');
+
+    const close = () => dlg.remove();
+    dlg.querySelector('#invite-mail-close').onclick = close;
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) close(); });
+
+    dlg.querySelector('#invite-mail-reset').onclick = () => {
+        const fresh = renderInviteMailTemplate(INVITE_MAIL_DEFAULT, { email, providerName, claimLink });
+        $subj.value = fresh.subject;
+        $body.value = fresh.body;
+    };
+
+    dlg.querySelector('#invite-mail-save').onclick = (e) => {
+        // Wir speichern die Variante MIT Platzhaltern wieder zurück:
+        // Wir lesen die aktuellen Felder ein und ersetzen die konkreten Werte
+        // erneut durch die Platzhalter, damit die Vorlage generisch bleibt.
+        const toTemplate = (s) => s
+            .replaceAll(claimLink || '', '{{CLAIM_LINK}}')
+            .replaceAll(providerName || '', '{{PROVIDER_NAME}}')
+            .replaceAll(email || '', '{{EMAIL}}');
+        saveInviteMailTemplate({
+            subject: toTemplate($subj.value),
+            body:    toTemplate($body.value),
+        });
+        const b = e.currentTarget;
+        const orig = b.textContent;
+        b.textContent = '✓ Gespeichert';
+        setTimeout(() => { b.textContent = orig; }, 1500);
+    };
+
+    dlg.querySelector('#invite-mail-copy').onclick = (e) => {
+        navigator.clipboard?.writeText(claimLink).catch(() => {});
+        const b = e.currentTarget;
+        const orig = b.textContent;
+        b.textContent = '✓ Link kopiert';
+        setTimeout(() => { b.textContent = orig; }, 1500);
+    };
+
+    dlg.querySelector('#invite-mail-open').onclick = () => {
+        const subject = encodeURIComponent($subj.value);
+        const body    = encodeURIComponent($body.value);
+        const to      = encodeURIComponent(email);
+        // mailto: hat in vielen Mail-Clients ein Limit (~2000 Zeichen). Sollte
+        // hier reichen — Body ist überschaubar. Falls doch: per <a> klicken
+        // ist robuster als window.location, weil es das Popup-Blocking umgeht.
+        const a = document.createElement('a');
+        a.href = `mailto:${to}?subject=${subject}&body=${body}`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        close();
+    };
+}
+
 async function sendProviderInvite() {
     if (!_editingProvider) return;
     const btn       = document.getElementById('edit-invite-btn');
@@ -9005,10 +9208,14 @@ async function sendProviderInvite() {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session) throw new Error('Nicht eingeloggt');
 
-        // Body: provider_id + optionaler email-Override.
-        // Edge-Function 'invite-existing-provider' nutzt 'email' als Override,
-        // wenn vorhanden, sonst die gespeicherte service_providers.email.
-        const payload = { provider_id: _editingProvider.id };
+        // Body: provider_id + optionaler email-Override + delivery="mailto".
+        // delivery="mailto" → die Edge-Function generiert den Zugangs-Link, schickt
+        // aber KEINE Supabase-Mail. Wir bekommen action_link zurück und öffnen
+        // damit das Mailprogramm des Admins mit einer vorgefertigten Willkommensmail.
+        const payload = {
+            provider_id: _editingProvider.id,
+            delivery:    'mailto',
+        };
         if (overrideEmail && overrideEmail.toLowerCase() !== (_editingProvider.email || '').toLowerCase()) {
             payload.email = overrideEmail;
         }
@@ -9026,12 +9233,28 @@ async function sendProviderInvite() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Einladung fehlgeschlagen');
 
+        // Zugangs-Link + Empfänger aus der Antwort
+        const claimLink    = data.action_link || data.link || '';
+        const recipientMail = data.email || targetEmail;
+        const providerName  = data.provider_name || _editingProvider?.name || '';
+
+        if (!claimLink) {
+            throw new Error('Server hat keinen Zugangs-Link zurückgegeben. Bitte Edge Function neu deployen.');
+        }
+
+        // Mailto-Dialog öffnen (Subject + Body sind editierbar)
+        openInviteMailDialog({
+            email:        recipientMail,
+            providerName: providerName,
+            claimLink:    claimLink,
+        });
+
         if (resultBox) {
             resultBox.style.display = '';
             resultBox.style.background = '#dcfce7';
             resultBox.style.color      = '#166534';
             resultBox.style.border     = '1px solid #bbf7d0';
-            resultBox.innerHTML = '✅ ' + escapeHtml(data.message || 'Erfolgreich versendet.');
+            resultBox.innerHTML = '✅ Mailprogramm geöffnet — Du kannst die Willkommensmail jetzt prüfen und absenden.';
         }
 
         // Cache refresh + Status neu rendern

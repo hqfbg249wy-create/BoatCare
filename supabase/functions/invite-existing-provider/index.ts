@@ -50,8 +50,13 @@ Deno.serve(async (req) => {
 
     // ── 2) Body
     const body = await req.json().catch(() => ({}));
-    const { provider_id, email: emailOverride } = body ?? {};
+    const { provider_id, email: emailOverride, delivery } = body ?? {};
     if (!provider_id) return json({ error: "provider_id fehlt" }, 400);
+
+    // delivery === "mailto"  → wir generieren den Link, schicken aber KEINE
+    // automatische Supabase-Mail. Der Admin bekommt den Link zurück und öffnet
+    // damit sein lokales Mailprogramm mit einer vorgefertigten Willkommensmail.
+    const mailtoMode = delivery === "mailto";
 
     // ── 3) Provider laden
     const { data: provider, error: provErr } = await admin
@@ -84,8 +89,13 @@ Deno.serve(async (req) => {
       return json({
         ok: true,
         mode: "recovery",
-        message: `Recovery-Link an ${targetEmail} gesendet. Der Provider kann sein Passwort neu setzen und sich danach einloggen.`,
-        link: pwReset.properties?.action_link,  // nur in Dashboard sichtbar, für Diagnose
+        email: targetEmail,
+        provider_name: provider.name,
+        action_link: pwReset.properties?.action_link,
+        message: mailtoMode
+          ? `Recovery-Link für ${targetEmail} erzeugt. Öffne jetzt Dein Mailprogramm.`
+          : `Recovery-Link an ${targetEmail} gesendet. Der Provider kann sein Passwort neu setzen und sich danach einloggen.`,
+        link: pwReset.properties?.action_link,  // alt — Kompatibilität
       });
     }
 
@@ -106,7 +116,7 @@ Deno.serve(async (req) => {
         .eq("id", provider_id);
       if (linkErr) return json({ error: "Verknüpfung fehlgeschlagen: " + linkErr.message }, 400);
 
-      const { error: prErr } = await admin.auth.admin.generateLink({
+      const { data: pwReset2, error: prErr } = await admin.auth.admin.generateLink({
         type:    "recovery",
         email:   targetEmail,
         options: { redirectTo: "https://provider.skipily.app/" },
@@ -116,54 +126,96 @@ Deno.serve(async (req) => {
       return json({
         ok: true,
         mode: "linked-existing",
-        message: `Die E-Mail ${targetEmail} hatte bereits einen Account. Wir haben den Provider damit verknüpft und einen Login-Link verschickt.`,
+        email: targetEmail,
+        provider_name: provider.name,
+        action_link: pwReset2.properties?.action_link,
+        message: mailtoMode
+          ? `Die E-Mail ${targetEmail} hatte bereits einen Account. Provider verknüpft — Link zum Mitschicken ist bereit.`
+          : `Die E-Mail ${targetEmail} hatte bereits einen Account. Wir haben den Provider damit verknüpft und einen Login-Link verschickt.`,
       });
     }
 
-    // ── Einladung als NEUER User — ohne Provider-Trigger
+    // ── Einladung als NEUER User
     // WICHTIG: kein is_provider=true setzen, sonst legt der Trigger einen
     // weiteren service_providers-Eintrag an. Wir verknüpfen manuell hinterher.
-    const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
-      targetEmail,
-      {
-        data: {
-          existing_provider_id: provider_id,
-          company_name: provider.name,
-          category:     provider.category || "repair",
-          city:         provider.city     || null,
-        },
-        redirectTo: "https://provider.skipily.app/",
-      },
-    );
+    //
+    // Zwei Pfade:
+    //   mailtoMode = true   → generateLink({type:"invite"})  — KEINE Auto-Mail,
+    //                         Admin verschickt selbst über sein Mailprogramm
+    //   mailtoMode = false  → inviteUserByEmail              — Supabase sendet
+    //                         die Einladung wie bisher
+    let newUserId: string | null = null;
+    let actionLink: string | undefined;
 
-    if (inviteErr || !invited.user) {
-      console.error("inviteUserByEmail failed:", inviteErr);
-      return json({
-        error: "Einladung fehlgeschlagen: " + (inviteErr?.message || "unbekannter Fehler"),
-      }, 400);
+    if (mailtoMode) {
+      const { data: linkData, error: linkGenErr } = await admin.auth.admin.generateLink({
+        type:  "invite",
+        email: targetEmail,
+        options: {
+          data: {
+            existing_provider_id: provider_id,
+            company_name: provider.name,
+            category:     provider.category || "repair",
+            city:         provider.city     || null,
+          },
+          redirectTo: "https://provider.skipily.app/",
+        },
+      });
+      if (linkGenErr || !linkData?.user) {
+        console.error("generateLink(invite) failed:", linkGenErr);
+        return json({
+          error: "Einladungs-Link konnte nicht erzeugt werden: " + (linkGenErr?.message || "unbekannter Fehler"),
+        }, 400);
+      }
+      newUserId  = linkData.user.id;
+      actionLink = linkData.properties?.action_link;
+    } else {
+      const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
+        targetEmail,
+        {
+          data: {
+            existing_provider_id: provider_id,
+            company_name: provider.name,
+            category:     provider.category || "repair",
+            city:         provider.city     || null,
+          },
+          redirectTo: "https://provider.skipily.app/",
+        },
+      );
+      if (inviteErr || !invited.user) {
+        console.error("inviteUserByEmail failed:", inviteErr);
+        return json({
+          error: "Einladung fehlgeschlagen: " + (inviteErr?.message || "unbekannter Fehler"),
+        }, 400);
+      }
+      newUserId = invited.user.id;
     }
 
     // ── Bestehenden Provider-Eintrag mit dem neuen User verknüpfen
     const { error: linkErr } = await admin
       .from("service_providers")
       .update({
-        user_id: invited.user.id,
+        user_id: newUserId,
         email:   targetEmail,
       })
       .eq("id", provider_id);
 
     if (linkErr) {
       // Rollback: User wieder löschen, damit nicht wieder dieselben kryptischen Fehler kommen
-      await admin.auth.admin.deleteUser(invited.user.id).catch(() => null);
+      if (newUserId) await admin.auth.admin.deleteUser(newUserId).catch(() => null);
       return json({ error: "Verknüpfung fehlgeschlagen: " + linkErr.message }, 400);
     }
 
     return json({
       ok: true,
       mode: "invited",
-      user_id: invited.user.id,
-      email:   invited.user.email,
-      message: `Magic-Link an ${targetEmail} gesendet. Der Provider kann sich damit erstmals einloggen.`,
+      user_id: newUserId,
+      email:   targetEmail,
+      provider_name: provider.name,
+      action_link: actionLink,
+      message: mailtoMode
+        ? `Provider ${provider.name} angelegt. Einladungs-Link ist bereit zum Verschicken.`
+        : `Magic-Link an ${targetEmail} gesendet. Der Provider kann sich damit erstmals einloggen.`,
     });
 
   } catch (err) {
