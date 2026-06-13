@@ -1117,14 +1117,18 @@
                             <input type="text" id="shop-ov-search" oninput="window.renderShopOverview()" placeholder="Tippen zum Filtern …">
                         </div>
                     </div>
-                    <div style="margin-top:12px; display:flex; gap:18px; align-items:center; font-size:13px;">
+                    <div style="margin-top:12px; display:flex; flex-direction:column; gap:6px; font-size:13px;">
                         <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
-                            <input type="radio" name="shop-ov-mode" value="shops" checked onchange="window.renderShopOverview()">
-                            <span>Nur Shop-Provider (aktiv / Produkte / Umsatz / Shop-Check positiv)</span>
+                            <input type="radio" name="shop-ov-mode" value="active" checked onchange="window.renderShopOverview()">
+                            <span><strong>Nur selbst-aktivierte Shops</strong> (Provider hat <code>is_shop_active=true</code> oder bereits Produkte/Umsatz)</span>
+                        </label>
+                        <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
+                            <input type="radio" name="shop-ov-mode" value="potential" onchange="window.renderShopOverview()">
+                            <span><strong>+ Shop-Check-Treffer</strong> (zusätzlich Provider die der Shop-Check als <code>online_shop</code>/<code>maybe_shop</code> erkannt hat)</span>
                         </label>
                         <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
                             <input type="radio" name="shop-ov-mode" value="website" onchange="window.renderShopOverview()">
-                            <span>Alle mit Website (für Vertriebler-Vorzuweisung)</span>
+                            <span><strong>Alle Provider mit Website</strong> (für Vertriebler-Vorzuweisung an noch nicht aktivierte Shops)</span>
                         </label>
                     </div>
                 </div>

@@ -10975,20 +10975,33 @@ function renderShopOverview() {
 
     let rows = _shopOverviewCache;
 
-    // Modus: "shops" = nur echte/wahrscheinliche Shops
-    //        "website" = alle Provider mit Website (für Vertriebler-Vorzuweisung
-    //                    bevor der Shop überhaupt aktiv ist)
-    const mode = document.querySelector('input[name="shop-ov-mode"]:checked')?.value || 'shops';
+    // Drei Anzeige-Modi:
+    //   "active"    = nur selbst-aktiviert (is_shop_active=true) ODER hat
+    //                 schon Produkte/Umsatz. Das ist die ehrliche Sicht
+    //                 "wer ist tatsächlich live als Shop". DEFAULT.
+    //   "potential" = active + Shop-Check-Treffer (online_shop / maybe_shop).
+    //                 Zeigt "wer könnte ein Shop sein laut technischer
+    //                 Prüfung" — gut für Cold-Outreach an noch nicht
+    //                 aktivierte Online-Händler.
+    //   "website"   = alle Provider mit Website. Für Vertriebler-Vorzuweisung
+    //                 bevor überhaupt klar ist ob jemand Shop wird.
+    const mode = document.querySelector('input[name="shop-ov-mode"]:checked')?.value || 'active';
     if (mode === 'website') {
         rows = rows.filter(r => r.website && r.website.trim() !== '');
-    } else {
-        // Shops: aktiv geschaltet ODER Produkte ODER Umsatz ODER vom Shop-Check positiv
+    } else if (mode === 'potential') {
         rows = rows.filter(r =>
             r.is_shop_active ||
             r.product_count > 0 ||
             r.revenue > 0 ||
             r.shop_check_status === 'online_shop' ||
             r.shop_check_status === 'maybe_shop'
+        );
+    } else {
+        // "active": die ehrliche Sicht — nur was wirklich live ist
+        rows = rows.filter(r =>
+            r.is_shop_active ||
+            r.product_count > 0 ||
+            r.revenue > 0
         );
     }
 
