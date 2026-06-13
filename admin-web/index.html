@@ -1090,7 +1090,7 @@
             <!-- Shop-Übersicht (Produkte + Umsatz pro Shop) -->
             <div id="shop-overview-page" class="page">
                 <h1>🛍️ Shop-Übersicht</h1>
-                <p class="subtitle">Alle Provider mit aktivem Shop, ihre Produktanzahl, ihr Umsatz und der zugewiesene Vertriebler.</p>
+                <p class="subtitle">Alle Provider mit Shop, ihre Produktanzahl, ihr Umsatz und der zugewiesene Vertriebler. <strong>So weist du einen Vertriebler zu:</strong> Pro Zeile rechts ist eine Dropdown-Liste — auswählen, fertig. Vertriebler musst du vorher unter <strong>👔 Vertrieb</strong> anlegen.</p>
 
                 <!-- Filter -->
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin-bottom:20px;">
@@ -1116,6 +1116,16 @@
                             <label>Suche (Name / Stadt)</label>
                             <input type="text" id="shop-ov-search" oninput="window.renderShopOverview()" placeholder="Tippen zum Filtern …">
                         </div>
+                    </div>
+                    <div style="margin-top:12px; display:flex; gap:18px; align-items:center; font-size:13px;">
+                        <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
+                            <input type="radio" name="shop-ov-mode" value="shops" checked onchange="window.renderShopOverview()">
+                            <span>Nur Shop-Provider (aktiv / Produkte / Umsatz / Shop-Check positiv)</span>
+                        </label>
+                        <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
+                            <input type="radio" name="shop-ov-mode" value="website" onchange="window.renderShopOverview()">
+                            <span>Alle mit Website (für Vertriebler-Vorzuweisung)</span>
+                        </label>
                     </div>
                 </div>
 

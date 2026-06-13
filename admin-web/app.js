@@ -10819,11 +10819,21 @@ async function loadShopOverview() {
         _salesRepsCache = reps || [];
         populateRepFilters();
 
-        // Provider mit Shop-Aktivierung
-        const { data: providers, error: pErr } = await supabaseClient
+        // Provider mit Shop-Aktivierung. shop_check_status ist optional —
+        // wenn die Migration noch nicht gelaufen ist, fangen wir den Error
+        // ab und laden ohne diese Spalte.
+        let providers, pErr;
+        ({ data: providers, error: pErr } = await supabaseClient
             .from('service_providers')
-            .select('id, name, city, country, is_shop_active, commission_rate, sales_rep_id, created_at, claimed_at')
-            .order('name');
+            .select('id, name, city, country, website, is_shop_active, commission_rate, sales_rep_id, created_at, claimed_at, shop_check_status')
+            .order('name'));
+        if (pErr && /shop_check_status/.test(pErr.message || '')) {
+            // Fallback ohne shop_check_status
+            ({ data: providers, error: pErr } = await supabaseClient
+                .from('service_providers')
+                .select('id, name, city, country, website, is_shop_active, commission_rate, sales_rep_id, created_at, claimed_at')
+                .order('name'));
+        }
         if (pErr) throw pErr;
 
         // Produktanzahl pro Provider (Tabelle "products" — falls leer/nicht vorhanden, alle 0)
@@ -10894,8 +10904,22 @@ function renderShopOverview() {
 
     let rows = _shopOverviewCache;
 
-    // Nur Shops anzeigen (Produkte ODER aktiv ODER hatte Umsatz)
-    rows = rows.filter(r => r.product_count > 0 || r.is_shop_active || r.revenue > 0);
+    // Modus: "shops" = nur echte/wahrscheinliche Shops
+    //        "website" = alle Provider mit Website (für Vertriebler-Vorzuweisung
+    //                    bevor der Shop überhaupt aktiv ist)
+    const mode = document.querySelector('input[name="shop-ov-mode"]:checked')?.value || 'shops';
+    if (mode === 'website') {
+        rows = rows.filter(r => r.website && r.website.trim() !== '');
+    } else {
+        // Shops: aktiv geschaltet ODER Produkte ODER Umsatz ODER vom Shop-Check positiv
+        rows = rows.filter(r =>
+            r.is_shop_active ||
+            r.product_count > 0 ||
+            r.revenue > 0 ||
+            r.shop_check_status === 'online_shop' ||
+            r.shop_check_status === 'maybe_shop'
+        );
+    }
 
     if (repFilter === 'none') {
         rows = rows.filter(r => !r.sales_rep_id);
