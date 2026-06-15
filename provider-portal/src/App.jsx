@@ -6,6 +6,7 @@ import MFAChallenge from './components/MFAChallenge'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import SetPassword from './pages/SetPassword'
 import MfaSetup from './pages/MfaSetup'
 import Dashboard from './pages/Dashboard'
@@ -107,6 +108,9 @@ export default function App() {
         <Route path="/provider/:id" element={<ProviderPublicProfile />} />
         {/* Profil-Claim per Token (Newsletter / Admin-Einladung) */}
         <Route path="/claim/:token" element={<ClaimProfile />} />
+        {/* Passwort-Reset: öffentlich, damit der Recovery-Hash vor jeder
+            Login-/MFA-Logik greift (symmetrisch zum Eigner-Portal). */}
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={
           <AuthProvider>
             <ProtectedRoutes />

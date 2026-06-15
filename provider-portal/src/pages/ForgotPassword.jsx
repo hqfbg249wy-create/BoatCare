@@ -13,8 +13,11 @@ export default function ForgotPassword() {
     setError('')
     setLoading(true)
     try {
+      // Explizit auf die dedizierte Reset-Seite leiten. Diese URL muss in
+      // Supabase → Auth → Redirect URLs eingetragen sein, sonst fällt
+      // Supabase auf die Site-URL (Eigner-Portal) zurück.
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/'
+        redirectTo: window.location.origin + '/reset-password'
       })
       if (error) throw error
       setSent(true)
