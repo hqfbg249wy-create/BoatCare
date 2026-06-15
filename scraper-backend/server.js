@@ -1117,6 +1117,20 @@ async function enrichProviderFromWebsite(provider, authKey) {
         if (brands   && brands.length   > 0) patch.brands   = brands;
         if (logoUrl) patch.logo_url = logoUrl;  // Echtes Firmenlogo von Website
 
+        // E-Mail aus DERSELBEN Seite extrahieren (kein zusätzlicher Fetch) —
+        // nur wenn der Provider noch keine hat. So findet der Scrape jetzt
+        // E-Mails wie die Update-Suche.
+        let resolvedEmail = provider.email || null;
+        if (!resolvedEmail) {
+            try {
+                const emails = extractEmailFromHtml(html);
+                if (emails && emails.length > 0) {
+                    resolvedEmail = emails[0];
+                    patch.email = resolvedEmail;
+                }
+            } catch (_) { /* E-Mail-Fund optional */ }
+        }
+
         // Website erreichbar aber KEINE konkreten Services gefunden
         // → Provider entfernen, da Leistungen nicht verifizierbar
         if (!patch.services) {
@@ -1135,6 +1149,9 @@ async function enrichProviderFromWebsite(provider, authKey) {
         return {
             status: 'enriched',
             provider: provider.name,
+            id: provider.id || null,
+            email: resolvedEmail || null,
+            website: provider.website || null,
             services: patch.services || null,
             brands: patch.brands || null,
             logoUrl: patch.logo_url || null,
@@ -1828,11 +1845,12 @@ async function scrapeLocation(locationName, options = {}) {
  */
 async function runWebsiteEnrichment(providers, authKey) {
     const withWebsite = providers.filter(p => p.website);
-    if (withWebsite.length === 0) return;
+    if (withWebsite.length === 0) return [];
 
     console.log(`\n🌐 Hintergrund: Website-Verifizierung & Anreicherung für ${withWebsite.length} Betriebe...`);
     console.log(`   → Provider ohne verifizierbare Leistungen werden entfernt`);
     let enriched = 0, removed = 0, errors = 0;
+    const survivors = []; // {id, name, email, website} für die Folge-Checks
 
     for (let i = 0; i < withWebsite.length; i++) {
         const prov = withWebsite[i];
@@ -1844,9 +1862,8 @@ async function runWebsiteEnrichment(providers, authKey) {
             if (!result) { removed++; continue; }
             if (result.status === 'enriched') {
                 enriched++;
-                console.log(`   ✅ ${prov.name}: ${result.services?.length || 0} Services, ${result.brands?.length || 0} Brands${result.logoUrl ? ', 🖼️ Logo gefunden' : ''}`);
-            } else if (result.status === 'disqualified' || result.status === 'no_services' || result.status === 'website_error') {
-                removed++;
+                survivors.push({ id: result.id || prov.id, name: prov.name, email: result.email || prov.email || null, website: result.website || prov.website || null });
+                console.log(`   ✅ ${prov.name}: ${result.services?.length || 0} Services, ${result.brands?.length || 0} Brands${result.logoUrl ? ', 🖼️ Logo' : ''}${result.email ? ', ✉️ E-Mail' : ''}`);
             } else {
                 removed++;
             }
@@ -1856,6 +1873,62 @@ async function runWebsiteEnrichment(providers, authKey) {
         }
     }
     console.log(`\n✅ Website-Verifizierung abgeschlossen: ${enriched} bestätigt, ${removed} entfernt, ${errors} Fehler`);
+    return survivors;
+}
+
+/**
+ * Voll-Pipeline nach dem Scrape (Hintergrund, non-blocking):
+ *   1. Website-Anreicherung (+ E-Mail-Fund)  → entfernt Fehlimporte
+ *   2. E-Mail-Check (MX + Site-Recheck)       → email_check_status
+ *   3. Shop-Check                             → shop_check_status
+ * Danach sind die Daten ohne weiteren Klick CleverReach-bereit.
+ */
+async function runFullEnrichmentPipeline(providers, authKey) {
+    try {
+        const survivors = await runWebsiteEnrichment(providers, authKey);
+        if (!survivors || survivors.length === 0) {
+            console.log('ℹ️ Keine verifizierten Betriebe für Folge-Checks.');
+            return;
+        }
+
+        // ── 2) E-Mail-Check ──
+        const withMail = survivors.filter(p => p.email && p.id);
+        if (withMail.length > 0) {
+            console.log(`\n✉️ Hintergrund: E-Mail-Check für ${withMail.length} Betriebe...`);
+            let valid = 0, bad = 0;
+            for (let i = 0; i < withMail.length; i++) {
+                if (i > 0) await new Promise(r => setTimeout(r, 300));
+                const p = withMail[i];
+                try {
+                    const r = await verifyEmail(p.email, p.website);
+                    await persistVerificationResult(p.id, r);
+                    if (r.status === 'valid') valid++; else bad++;
+                } catch (e) { /* einzelner Fehler kippt die Kette nicht */ }
+            }
+            console.log(`✅ E-Mail-Check: ${valid} gültig, ${bad} problematisch`);
+        }
+
+        // ── 3) Shop-Check ──
+        const withSite = survivors.filter(p => p.website && p.id);
+        if (withSite.length > 0) {
+            console.log(`\n🛒 Hintergrund: Shop-Check für ${withSite.length} Betriebe...`);
+            let shops = 0;
+            for (let i = 0; i < withSite.length; i++) {
+                if (i > 0) await new Promise(r => setTimeout(r, 500));
+                const p = withSite[i];
+                try {
+                    const r = await verifyShop(p.website);
+                    await persistShopVerificationResult(p.id, r);
+                    if (r.status === 'online_shop') shops++;
+                } catch (e) { /* weiter */ }
+            }
+            console.log(`✅ Shop-Check: ${shops} Online-Shops erkannt`);
+        }
+
+        console.log(`\n🎉 Pipeline fertig — ${survivors.length} Betriebe verifiziert & CleverReach-bereit.`);
+    } catch (e) {
+        console.error('Pipeline-Fehler:', e.message);
+    }
 }
 
 /**
@@ -1922,7 +1995,7 @@ app.post('/api/scrape', async (req, res) => {
 
             // Website-Anreicherung im Hintergrund starten (NACH der Antwort an den Client)
             if (importedProviders.length > 0) {
-                setImmediate(() => runWebsiteEnrichment(importedProviders, authKey));
+                setImmediate(() => runFullEnrichmentPipeline(importedProviders, authKey));
             }
         } else if (autoImport) {
             importResult = { imported: 0, skipped: duplicates.length, message: 'Alle bereits vorhanden' };
@@ -2035,7 +2108,7 @@ app.post('/api/scrape-multiple', async (req, res) => {
 
     // Website-Anreicherung im Hintergrund starten (NACH der Antwort an den Client)
     if (allImportedProviders.length > 0) {
-        setImmediate(() => runWebsiteEnrichment(allImportedProviders, authKey));
+        setImmediate(() => runFullEnrichmentPipeline(allImportedProviders, authKey));
     }
 
     res.json({

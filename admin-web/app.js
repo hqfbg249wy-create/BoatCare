@@ -252,11 +252,31 @@ function setupNavigation() {
     console.log('✅ Navigation Setup abgeschlossen');
 }
 
+// Übergeordnete Menü-Gruppe auf-/zuklappen
+function toggleNavGroup(name) {
+    const sub = document.getElementById(`navsub-${name}`);
+    const caret = document.getElementById(`caret-${name}`);
+    if (!sub) return;
+    const open = sub.style.display !== 'none';
+    sub.style.display = open ? 'none' : '';
+    if (caret) caret.textContent = open ? '▸' : '▾';
+}
+window.toggleNavGroup = toggleNavGroup;
+
 function navigateToPage(pageName) {
     // Update active nav item
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.toggle('active', item.dataset.page === pageName);
     });
+
+    // Wenn die Zielseite in einer Menü-Gruppe liegt, Gruppe offen halten
+    const sub = document.querySelector(`#navsub-updatesuche [data-page="${pageName}"]`);
+    if (sub) {
+        const box = document.getElementById('navsub-updatesuche');
+        const caret = document.getElementById('caret-updatesuche');
+        if (box) box.style.display = '';
+        if (caret) caret.textContent = '▾';
+    }
 
     // Show page
     document.querySelectorAll('.page').forEach(page => {

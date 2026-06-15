@@ -82,21 +82,32 @@
                     <span class="icon">🔍</span>
                     Betriebe suchen
                 </button>
-                <button class="nav-item" data-page="update-search" onclick="window.navigateToPage('update-search')">
-                    <span class="icon">🔄</span>
-                    Update-Suche
-                </button>
-                <button class="nav-item" data-page="email-verify" onclick="window.navigateToPage('email-verify')">
-                    <span class="icon">✉️</span>
-                    E-Mail-Check
-                </button>
+                <!-- ★ Übergeordneter Menüpunkt: Updatesuche (Daten-Pflege & Verifizierung) -->
+                <div class="nav-group" id="navgroup-updatesuche">
+                    <button class="nav-item nav-group-header" type="button" onclick="window.toggleNavGroup('updatesuche')"
+                            style="width:100%;">
+                        <span class="icon">🔄</span>
+                        Updatesuche
+                        <span class="nav-group-caret" id="caret-updatesuche" style="margin-left:auto;">▾</span>
+                    </button>
+                    <div class="nav-subitems" id="navsub-updatesuche" style="padding-left:14px;">
+                        <button class="nav-item" data-page="update-search" onclick="window.navigateToPage('update-search')">
+                            <span class="icon">🔁</span>
+                            Update-Suche
+                        </button>
+                        <button class="nav-item" data-page="email-verify" onclick="window.navigateToPage('email-verify')">
+                            <span class="icon">✉️</span>
+                            E-Mail-Check
+                        </button>
+                        <button class="nav-item" data-page="shop-check" onclick="window.navigateToPage('shop-check')">
+                            <span class="icon">🛒</span>
+                            Shop-Check
+                        </button>
+                    </div>
+                </div>
                 <button class="nav-item" data-page="cleverreach" onclick="window.navigateToPage('cleverreach')">
                     <span class="icon">📬</span>
                     CleverReach
-                </button>
-                <button class="nav-item" data-page="shop-check" onclick="window.navigateToPage('shop-check')">
-                    <span class="icon">🛒</span>
-                    Shop-Check
                 </button>
                 <button class="nav-item" data-page="shop-overview" onclick="window.navigateToPage('shop-overview')">
                     <span class="icon">🛍️</span>
