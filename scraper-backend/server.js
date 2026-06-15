@@ -3209,7 +3209,7 @@ const CLEVERREACH_CONFIG = {
     CLIENT_ID: process.env.CLEVERREACH_CLIENT_ID || '',
     CLIENT_SECRET: process.env.CLEVERREACH_CLIENT_SECRET || '',
     GROUPS: {
-        // ISO-2 Country-Code → CleverReach Group ID
+        // ISO-2 Country-Code → CleverReach Group ID (alter Pro-Land-Modus)
         DE: process.env.CLEVERREACH_GROUP_DE || '',
         AT: process.env.CLEVERREACH_GROUP_DE || '',  // Oesterreich oft im DE-Newsletter
         CH: process.env.CLEVERREACH_GROUP_DE || '',  // Schweiz auch
@@ -3221,6 +3221,27 @@ const CLEVERREACH_CONFIG = {
         GB: process.env.CLEVERREACH_GROUP_GB || '',
         UK: process.env.CLEVERREACH_GROUP_GB || '',
         DEFAULT: process.env.CLEVERREACH_GROUP_DEFAULT || '',
+    },
+    // ── NEU: Sprach-Gruppen (6 Sprachen × 2 Typen = 12 Groups) ──
+    // Sync nach App-Sprache statt Land. Provider = Nicht-Shops,
+    // Shop = shop_check_status='online_shop'. Fehlende Mappings → 'en'.
+    LANG_GROUPS: {
+        provider: {
+            de: process.env.CLEVERREACH_GROUP_PROVIDER_DE || '',
+            en: process.env.CLEVERREACH_GROUP_PROVIDER_EN || '',
+            fr: process.env.CLEVERREACH_GROUP_PROVIDER_FR || '',
+            it: process.env.CLEVERREACH_GROUP_PROVIDER_IT || '',
+            es: process.env.CLEVERREACH_GROUP_PROVIDER_ES || '',
+            nl: process.env.CLEVERREACH_GROUP_PROVIDER_NL || '',
+        },
+        shop: {
+            de: process.env.CLEVERREACH_GROUP_SHOP_DE || '',
+            en: process.env.CLEVERREACH_GROUP_SHOP_EN || '',
+            fr: process.env.CLEVERREACH_GROUP_SHOP_FR || '',
+            it: process.env.CLEVERREACH_GROUP_SHOP_IT || '',
+            es: process.env.CLEVERREACH_GROUP_SHOP_ES || '',
+            nl: process.env.CLEVERREACH_GROUP_SHOP_NL || '',
+        },
     },
 };
 
@@ -3417,10 +3438,62 @@ app.post('/api/cleverreach-sync', async (req, res) => {
         dryRun = false,
         onlyVerified = true,
         country = null,
+        groupMode = 'country',   // 'country' (alt) oder 'language' (12 Sprach-Gruppen)
     } = req.body || {};
 
     if (!CONFIG.SUPABASE_SERVICE_KEY) {
         return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY fehlt.' });
+    }
+
+    // ── NEU: Sprach-Modus — 6 Provider + 6 Shop Gruppen ──
+    if (groupMode === 'language') {
+        try {
+            const providers = await loadAllProvidersForLanguageSync({ onlyVerified, includeSynced: true });
+            console.log(`\n🌍 CleverReach Sprach-Sync: ${providers.length} Provider, dryRun=${dryRun}`);
+
+            const counts = { synced: 0, skipped: 0, errors: 0 };
+            const perGroup = {}; // key: "provider:de" etc.
+            const results = [];
+
+            for (const p of providers) {
+                const lang = countryToLanguage(p.country);                       // de/en/fr/it/es/nl
+                const type = p.shop_check_status === 'online_shop' ? 'shop' : 'provider';
+                const key = `${type}:${lang}`;
+                const groupId = (CLEVERREACH_CONFIG.LANG_GROUPS[type] || {})[lang] || '';
+
+                perGroup[key] = perGroup[key] || { group: key, type, lang, total: 0, synced: 0, errors: 0, skipped: 0 };
+                perGroup[key].total++;
+
+                if (!groupId) {
+                    counts.skipped++; perGroup[key].skipped++;
+                    continue;
+                }
+                if (dryRun) {
+                    counts.synced++; perGroup[key].synced++;
+                    continue;
+                }
+                try {
+                    await cleverreachUpsertReceiver(groupId, p);
+                    counts.synced++; perGroup[key].synced++;
+                    await persistCleverReachResult(p.id, groupId, 'subscribed', null);
+                } catch (err) {
+                    counts.errors++; perGroup[key].errors++;
+                    await persistCleverReachResult(p.id, null, 'error', err.message.substring(0, 500));
+                    results.push({ id: p.id, name: p.name, group: key, status: 'error', error: err.message });
+                }
+            }
+
+            return res.json({
+                success: true,
+                groupMode: 'language',
+                counts,
+                perGroup: Object.values(perGroup).sort((a, b) => b.total - a.total),
+                results,
+            });
+        } catch (err) {
+            console.error('CleverReach Sprach-Sync-Error:', err);
+            return res.status(500).json({ error: err.message });
+        }
     }
 
     try {
@@ -3539,12 +3612,56 @@ app.get('/api/cleverreach-stats', async (req, res) => {
                           .filter(([_, v]) => !!v)
                           .map(([k]) => [k, true])
                 ),
+                langGroups: {
+                    provider: Object.fromEntries(Object.entries(CLEVERREACH_CONFIG.LANG_GROUPS.provider).map(([k, v]) => [k, !!v])),
+                    shop:     Object.fromEntries(Object.entries(CLEVERREACH_CONFIG.LANG_GROUPS.shop).map(([k, v]) => [k, !!v])),
+                },
             },
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
+
+/**
+ * Lädt ALLE (paginiert) Provider mit E-Mail für den Sprach-Sync —
+ * inkl. shop_check_status, um Provider vs. Shop zu trennen.
+ * onlyVerified: nur email_check_status='valid'.
+ * includeSynced: auch bereits synchronisierte erneut pushen (Upsert ist idempotent).
+ */
+async function loadAllProvidersForLanguageSync({ onlyVerified = true, includeSynced = true } = {}) {
+    let filter = 'email=not.is.null&email=neq.';
+    if (onlyVerified) filter += '&email_check_status=eq.valid';
+    if (!includeSynced) filter += '&cleverreach_synced_at=is.null';
+
+    const fetchPage = (offset, pageSize) => new Promise((resolve, reject) => {
+        const u = new URL(CONFIG.SUPABASE_URL);
+        const path = `/rest/v1/service_providers?select=id,name,email,city,country,category,website,shop_check_status&${filter}&order=id.asc`;
+        https.get({
+            hostname: u.hostname, path,
+            headers: {
+                apikey: CONFIG.SUPABASE_SERVICE_KEY,
+                Authorization: `Bearer ${CONFIG.SUPABASE_SERVICE_KEY}`,
+                Range: `${offset}-${offset + pageSize - 1}`,
+                'Range-Unit': 'items',
+            }
+        }, (res) => {
+            let d = '';
+            res.on('data', c => d += c);
+            res.on('end', () => { try { resolve(JSON.parse(d)); } catch (e) { reject(e); } });
+        }).on('error', reject);
+    });
+
+    const PAGE = 1000;
+    let all = [];
+    for (let offset = 0; ; offset += PAGE) {
+        const page = await fetchPage(offset, PAGE);
+        if (!Array.isArray(page)) throw new Error('Supabase: ' + JSON.stringify(page).substring(0, 200));
+        all = all.concat(page);
+        if (page.length < PAGE) break;
+    }
+    return all;
+}
 
 async function loadProvidersForCleverReach({ limit, onlyVerified, country }) {
     // Wir filtern den Country-Filter NICHT direkt in der DB-Query, weil

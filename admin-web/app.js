@@ -10215,6 +10215,26 @@ async function loadCleverReachStats() {
             if (current) filterSel.value = current;
         }
 
+        // 12-Sprach-Gruppen-Status anzeigen
+        const lgBox = document.getElementById('cleverreach-langgroups-status');
+        if (lgBox) {
+            const lg = data.configured?.langGroups;
+            if (!lg) {
+                lgBox.innerHTML = '';
+            } else {
+                const langs = ['de', 'en', 'fr', 'it', 'es', 'nl'];
+                const cell = (ok) => ok ? '✅' : '❌';
+                lgBox.innerHTML = `
+                    <table style="border-collapse:collapse; font-size:12px;">
+                        <tr><td style="padding:2px 8px;"></td>${langs.map(l => `<td style="padding:2px 8px; font-weight:700;">${l.toUpperCase()}</td>`).join('')}</tr>
+                        <tr><td style="padding:2px 8px; font-weight:600;">Provider</td>${langs.map(l => `<td style="padding:2px 8px; text-align:center;">${cell(lg.provider?.[l])}</td>`).join('')}</tr>
+                        <tr><td style="padding:2px 8px; font-weight:600;">Shop</td>${langs.map(l => `<td style="padding:2px 8px; text-align:center;">${cell(lg.shop?.[l])}</td>`).join('')}</tr>
+                    </table>
+                    <div style="color:#64748b; margin-top:4px;">❌ = Group-ID fehlt als Env-Var (Adressen dieser Gruppe werden übersprungen).</div>
+                `;
+            }
+        }
+
         // CSV-Export-Buttons pro Land rendern
         renderCsvExportButtons(data.perCountry);
     } catch (err) {
@@ -10307,6 +10327,44 @@ function renderCleverReachResults(data) {
 
 window.startCleverReachSync = startCleverReachSync;
 window.loadCleverReachStats = loadCleverReachStats;
+
+// ── NEU: Sprach-Sync in 12 Gruppen (6 Provider + 6 Shop) ──
+async function startCleverReachLanguageSync() {
+    const dryRun = document.getElementById('cleverreach-lang-dryrun')?.checked !== false;
+    const btn = document.getElementById('cleverreach-lang-btn');
+    if (btn) btn.disabled = true;
+
+    const progressEl = document.getElementById('cleverreach-progress');
+    if (progressEl) progressEl.style.display = 'block';
+    const logEl = document.getElementById('cleverreach-log');
+    if (logEl) logEl.innerHTML = '';
+
+    cleverreachLog(`🌍 Starte Sprach-Sync (${dryRun ? 'Trockenlauf' : 'ECHT'}) in 12 Gruppen …`, 'info');
+    try {
+        const resp = await fetch(`${SCRAPER_URL}/api/cleverreach-sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ groupMode: 'language', dryRun, onlyVerified: true }),
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${(await resp.text()).substring(0, 200)}`);
+        const data = await resp.json();
+        const c = data.counts || {};
+
+        cleverreachLog(`\n📊 Ergebnis (${dryRun ? 'Trockenlauf' : 'gesendet'}):`, 'info');
+        cleverreachLog(`  ✅ ${c.synced || 0}  ⏭ übersprungen (keine Group-ID): ${c.skipped || 0}  ❌ Fehler: ${c.errors || 0}`, c.errors > 0 ? 'error' : 'success');
+        cleverreachLog(`\n  Verteilung pro Gruppe:`, 'info');
+        for (const g of (data.perGroup || [])) {
+            cleverreachLog(`   ${g.group.padEnd(14)} ${String(g.total).padStart(5)} Adressen` + (g.skipped ? `  (⏭ ${g.skipped} ohne Group-ID)` : ''), g.skipped ? 'warn' : 'success');
+        }
+        if (dryRun) cleverreachLog(`\n  ℹ️ Trockenlauf — nichts gesendet. Häkchen entfernen für echten Sync.`, 'warn');
+        loadCleverReachStats();
+    } catch (err) {
+        cleverreachLog(`❌ Fehler: ${err.message}`, 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+window.startCleverReachLanguageSync = startCleverReachLanguageSync;
 
 // ============================================
 // DUPLIKAT-SUCHE (client-side, multi-signal)

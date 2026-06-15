@@ -1064,13 +1064,31 @@
                         </label>
                     </div>
 
-                    <div style="display:flex; gap:8px;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
                         <button onclick="window.startCleverReachSync()" class="btn-primary" id="cleverreach-btn" style="background:#10b981;">
-                            ▶ Synchronisierung starten
+                            ▶ Synchronisierung starten (Pro-Land)
                         </button>
                         <button onclick="window.loadCleverReachStats()" class="btn-secondary">
                             🔄 Statistik aktualisieren
                         </button>
+                    </div>
+
+                    <!-- ★ NEU: Sprach-Sync in 12 Gruppen -->
+                    <div style="margin-top:16px; padding:14px; background:#ecfeff; border:1px solid #a5f3fc; border-radius:8px;">
+                        <div style="font-weight:700; color:#155e75; margin-bottom:4px;">🌍 Sync in Sprach-Gruppen (empfohlen)</div>
+                        <p style="font-size:13px; color:#155e75; margin:0 0 10px;">
+                            Schiebt <strong>alle verifizierten</strong> Adressen in 12 CleverReach-Gruppen:
+                            6 Sprachen × <strong>Provider</strong> (Nicht-Shops) + 6 Sprachen × <strong>Shop</strong>
+                            (online_shop). Vollständig paginiert.
+                        </p>
+                        <label style="font-size:13px; display:inline-flex; align-items:center; gap:6px; margin-bottom:10px;">
+                            <input type="checkbox" id="cleverreach-lang-dryrun" checked> Erst Trockenlauf (zeigt nur Verteilung, sendet nichts)
+                        </label><br>
+                        <button onclick="window.startCleverReachLanguageSync()" class="btn-primary" id="cleverreach-lang-btn"
+                                style="background:#0891b2; color:#fff;">
+                            🌍 Sprach-Sync starten (12 Gruppen)
+                        </button>
+                        <div id="cleverreach-langgroups-status" style="margin-top:10px; font-size:12px;"></div>
                     </div>
                 </div>
 
