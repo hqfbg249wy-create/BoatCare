@@ -247,9 +247,42 @@ export default function Products() {
     URL.revokeObjectURL(url)
   }
 
+  // Header-Aliase: deutsche/englische Schreibweisen → kanonischer Feldname.
+  // So laufen CSVs aus Excel, Lieferantenlisten und Warenwirtschaft direkt durch.
+  const HEADER_ALIASES = {
+    name: ['name', 'bezeichnung', 'produktname', 'artikel', 'artikelbezeichnung', 'titel', 'title', 'product', 'produkt'],
+    manufacturer: ['manufacturer', 'hersteller', 'marke', 'brand', 'fabrikat'],
+    part_number: ['part_number', 'partnumber', 'artikelnummer', 'artikel-nr', 'artikelnr', 'art-nr', 'artnr', 'teilenummer', 'herstellernummer', 'mpn'],
+    sku: ['sku', 'sku-nr', 'lagernummer', 'lager-nr'],
+    ean: ['ean', 'gtin', 'barcode', 'ean13'],
+    price: ['price', 'preis', 'vk', 'verkaufspreis', 'preis_brutto', 'bruttopreis', 'einzelpreis', 'vk-preis'],
+    currency: ['currency', 'währung', 'waehrung'],
+    stock_quantity: ['stock_quantity', 'bestand', 'lagerbestand', 'menge', 'anzahl', 'quantity', 'qty', 'stück', 'stueck'],
+    description: ['description', 'beschreibung', 'beschr', 'text', 'produktbeschreibung'],
+    category: ['category', 'kategorie', 'warengruppe', 'gruppe'],
+    shipping_cost: ['shipping_cost', 'versandkosten', 'versand', 'porto'],
+    delivery_days: ['delivery_days', 'lieferzeit', 'lieferzeit_tage', 'lieferung', 'lieferzeit-tage'],
+    weight_kg: ['weight_kg', 'gewicht', 'gewicht_kg', 'kg'],
+    min_order_quantity: ['min_order_quantity', 'mindestbestellmenge', 'mbm', 'mindestmenge'],
+    is_active: ['is_active', 'aktiv', 'active'],
+    in_stock: ['in_stock', 'verfügbar', 'verfuegbar', 'vorrätig', 'vorraetig', 'lieferbar'],
+    image_url: ['image_url', 'bild', 'bild_url', 'bildurl', 'foto', 'image', 'picture', 'bild-url'],
+  }
+  const ALIAS_LOOKUP = (() => {
+    const m = {}
+    for (const [canon, aliases] of Object.entries(HEADER_ALIASES)) {
+      for (const a of aliases) m[a] = canon
+    }
+    return m
+  })()
+  const normalizeHeader = (h) =>
+    ALIAS_LOOKUP[h.toLowerCase().replace(/^"|"$/g, '').trim()] || h.toLowerCase().replace(/^"|"$/g, '').trim()
+
   function parseCsv(text) {
-    // Simpler Parser: Semikolon oder Komma, Anführungszeichen für eingebettete Kommas
-    const lines = text.replace(/\r\n?/g, '\n').split('\n').filter(l => l.trim())
+    // UTF-8-BOM entfernen (Excel/Numbers hängen es an → sonst heißt die erste
+    // Spalte "﻿name" und die Pflichtspalten-Prüfung schlägt fehl).
+    const clean = text.replace(/^﻿/, '')
+    const lines = clean.replace(/\r\n?/g, '\n').split('\n').filter(l => l.trim())
     if (lines.length === 0) return { rows: [], headers: [] }
 
     const detectDelim = (line) => (line.split(';').length > line.split(',').length ? ';' : ',')
@@ -269,7 +302,8 @@ export default function Products() {
       return result.map(s => s.trim())
     }
 
-    const headers = splitLine(lines[0]).map(h => h.toLowerCase().replace(/^"|"$/g, ''))
+    // Header lowercasen UND über Aliase auf kanonische Feldnamen mappen
+    const headers = splitLine(lines[0]).map(normalizeHeader)
     const rows = lines.slice(1).map(line => {
       const cells = splitLine(line)
       const obj = {}
@@ -281,15 +315,33 @@ export default function Products() {
 
   function rowToPayload(row) {
     const asBool = (v) => ['true', '1', 'ja', 'yes', 'y'].includes(String(v).toLowerCase().trim())
+    // Robust gegen deutsches Zahlenformat + Währungszeichen:
+    //   "1.299,00 €" → 1299.00 · "29,90" → 29.90 · "1,234.56" → 1234.56
     const asNum = (v) => {
-      if (v === '' || v == null) return null
-      const n = parseFloat(String(v).replace(',', '.'))
+      if (v == null) return null
+      let s = String(v).trim()
+      if (!s) return null
+      // Währungssymbole/-codes + Leerzeichen raus
+      s = s.replace(/[€$£\s]/g, '').replace(/eur/ig, '').replace(/chf/ig, '')
+      if (!s) return null
+      const hasComma = s.includes(',')
+      const hasDot = s.includes('.')
+      if (hasComma && hasDot) {
+        // Letztes Trennzeichen = Dezimaltrenner, das andere = Tausender
+        if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+          s = s.replace(/\./g, '').replace(',', '.')   // deutsch: 1.299,00
+        } else {
+          s = s.replace(/,/g, '')                      // englisch: 1,299.00
+        }
+      } else if (hasComma) {
+        s = s.replace(',', '.')                          // 29,90
+      }
+      const n = parseFloat(s)
       return isNaN(n) ? null : n
     }
     const asInt = (v) => {
-      if (v === '' || v == null) return null
-      const n = parseInt(String(v), 10)
-      return isNaN(n) ? null : n
+      const n = asNum(v)
+      return n == null ? null : Math.round(n)
     }
 
     return {
@@ -333,7 +385,11 @@ export default function Products() {
 
       const missing = ['name', 'price'].filter(h => !headers.includes(h))
       if (missing.length) {
-        setMessage({ type: 'error', text: `Pflichtspalten fehlen: ${missing.join(', ')}. Lade die Vorlage herunter.` })
+        setMessage({
+          type: 'error',
+          text: `Pflichtspalten fehlen: ${missing.join(', ')}. Erkannte Spalten: ${headers.join(', ') || '—'}. `
+              + `Tipp: erste Zeile muss die Spaltenüberschriften enthalten (name und price bzw. „Name" und „Preis"). Lade die Vorlage herunter.`,
+        })
         return
       }
 
