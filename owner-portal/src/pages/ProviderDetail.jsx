@@ -90,7 +90,10 @@ export default function ProviderDetail() {
     }
   }, [user, id])
 
-  // ?inquiry=1 → Anfrage-Formular auto-öffnen mit Daten aus sessionStorage
+  // ?inquiry=1 → Anfrage-Formular auto-öffnen.
+  // sessionStorage liefert ggf. vorausgefüllte Daten (kommt aus Equipment-Anfrage),
+  // aber auch ohne sessionStorage soll das Formular aufgehen, damit der User
+  // direkt eine leere Anfrage schreiben kann.
   useEffect(() => {
     if (searchParams.get('inquiry') !== '1') return
     try {
@@ -99,12 +102,12 @@ export default function ProviderDetail() {
         setInquirySubject(pending.subject || '')
         setInquiryMessage(pending.message || '')
         setInquiryBoatId(pending.boat_id || '')
-        setShowInquiryForm(true)
-        // Nicht löschen — User könnte zurückspringen und anderen Provider wählen
       }
     } catch (e) {
       console.warn('Could not parse pending_inquiry from sessionStorage')
     }
+    // Form IMMER öffnen wenn ?inquiry=1 — auch wenn sessionStorage leer ist
+    setShowInquiryForm(true)
   }, [searchParams])
 
   useEffect(() => {
@@ -301,7 +304,14 @@ export default function ProviderDetail() {
 
       {/* Name + Category + Rating */}
       <div className="pd-name-section">
-        <h1>{provider.name}</h1>
+        <h1>
+          {provider.name}
+          {(provider.is_verified || provider.user_id) && (
+            <span className="pd-verified-badge" title="Dieser Betrieb hat sein Profil bei Skipily übernommen und bestätigt.">
+              ✓ Verifizierter Service-Betrieb
+            </span>
+          )}
+        </h1>
         {provider.slogan && <p className="pd-slogan">{provider.slogan}</p>}
         <div className="pd-badges">
           <span className="pd-cat-badge" style={{ background: `${cat.color}15`, color: cat.color }}>

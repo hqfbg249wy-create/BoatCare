@@ -11766,6 +11766,174 @@ async function exportCleverReachCsv(countryCode) {
     }
 }
 
+// ════════════════════════════════════════════════════════════════════
+// ★ EXPORT NACH APP-SPRACHE (alle 6 Sprachen, 1:1 alle verifizierten Mails)
+// ════════════════════════════════════════════════════════════════════
+//
+// Bündelt JEDE verifizierte E-Mail in genau eine der 6 App-Sprachen.
+// Länder ohne explizites Mapping (und leere Länder) fallen auf 'en' →
+// dadurch geht garantiert keine Adresse verloren (1:1).
+
+const LANG_COUNTRIES = {
+    de: ['DE', 'AT', 'CH', 'LI'],
+    fr: ['FR', 'BE', 'LU', 'MC'],
+    it: ['IT', 'SM', 'VA'],
+    es: ['ES', 'PT', 'AD', 'GI'],          // PT linguistisch näher an ES als an EN
+    nl: ['NL'],
+    // en = Auffangbecken für ALLE übrigen Länder (GB, IE, US, HR, GR, SE, …)
+};
+const LANG_LABELS = { de: 'Deutsch', en: 'English', fr: 'Français', it: 'Italiano', es: 'Español', nl: 'Nederlands' };
+const LANG_ORDER = ['de', 'en', 'fr', 'it', 'es', 'nl'];
+
+// Land (roh, z.B. "Deutschland"/"DE"/"germany") → ISO-2
+function csvNormalizeCountry(raw) {
+    if (!raw) return '';
+    if (raw.length === 2) return raw.toUpperCase();
+    const map = {
+        'deutschland': 'DE', 'germany': 'DE',
+        'oesterreich': 'AT', 'österreich': 'AT', 'austria': 'AT',
+        'schweiz': 'CH', 'switzerland': 'CH', 'suisse': 'CH',
+        'frankreich': 'FR', 'france': 'FR',
+        'italien': 'IT', 'italy': 'IT', 'italia': 'IT',
+        'spanien': 'ES', 'spain': 'ES', 'españa': 'ES', 'espana': 'ES',
+        'niederlande': 'NL', 'netherlands': 'NL', 'nederland': 'NL', 'holland': 'NL',
+        'belgien': 'BE', 'belgium': 'BE', 'belgique': 'BE',
+        'luxemburg': 'LU', 'luxembourg': 'LU',
+        'grossbritannien': 'GB', 'großbritannien': 'GB', 'united kingdom': 'GB', 'uk': 'GB', 'england': 'GB',
+        'irland': 'IE', 'ireland': 'IE',
+        'griechenland': 'GR', 'greece': 'GR',
+        'kroatien': 'HR', 'croatia': 'HR', 'hrvatska': 'HR',
+        'portugal': 'PT',
+        'monaco': 'MC',
+    };
+    return map[raw.toLowerCase().trim()] || raw.substring(0, 2).toUpperCase();
+}
+
+// ISO-2 → App-Sprache (Fallback 'en')
+function csvLangOfCountry(raw) {
+    const iso = csvNormalizeCountry(raw);
+    for (const lang of Object.keys(LANG_COUNTRIES)) {
+        if (LANG_COUNTRIES[lang].includes(iso)) return lang;
+    }
+    return 'en';
+}
+
+function langExportLog(msg, type = 'info') {
+    const el = document.getElementById('lang-export-log');
+    if (!el) return;
+    const colors = { info: '#94a3b8', success: '#10b981', error: '#ef4444', warn: '#f59e0b' };
+    el.innerHTML += `<div style="color:${colors[type] || colors.info};">[${new Date().toLocaleTimeString('de-DE')}] ${msg}</div>`;
+    el.scrollTop = el.scrollHeight;
+}
+
+function csvEscape(val) {
+    const s = String(val ?? '');
+    return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function buildProviderCsv(list, lang) {
+    const header = ['email', 'company', 'city', 'country', 'category', 'website', 'language', 'claim_url'];
+    const rows = [header.join(',')];
+    for (const p of list) {
+        const claimUrl = p.claim_token ? `https://provider.skipily.app/claim/${p.claim_token}` : '';
+        rows.push([
+            p.email, p.name || '', p.city || '', csvNormalizeCountry(p.country),
+            p.category || '', p.website || '', lang, claimUrl,
+        ].map(csvEscape).join(','));
+    }
+    return '﻿' + rows.join('\n');
+}
+
+function triggerDownload(csv, filename) {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+const csvSleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * mode: 'all' (Provider + Shop), 'provider', oder 'shop'
+ */
+async function exportAllCleverReachLanguages(mode = 'all') {
+    const cleanFilter = document.getElementById('csv-clean-filter')?.checked !== false;
+    const ts = new Date().toISOString().substring(0, 10);
+    langExportLog(`📥 Lade alle verifizierten Provider …`, 'info');
+
+    try {
+        // ALLE verifizierten Provider mit E-Mail laden (ein einziger Query)
+        const { data, error } = await supabaseClient
+            .from('service_providers')
+            .select('id, name, email, city, country, category, website, claim_token, user_id, phone, latitude, postal_code, street, shop_check_status, email_check_status')
+            .eq('email_check_status', 'valid')
+            .not('email', 'is', null)
+            .neq('email', '')
+            .limit(50000);
+        if (error) throw error;
+
+        langExportLog(`  ${data.length} verifizierte Adressen geladen.`, 'info');
+
+        // Schmutz-Filter
+        let providers = data;
+        if (cleanFilter) {
+            const before = providers.length;
+            providers = providers.filter(p => {
+                const name = (p.name || '').toLowerCase();
+                return !(CSV_JUNK_NAME_PATTERN.test(name) || CSV_JUNK_NAME_TEST.test(name));
+            });
+            langExportLog(`  ${before - providers.length} Schmutz-Einträge gefiltert.`, 'info');
+        }
+
+        // In Sprach-Buckets einsortieren
+        const buckets = { de: [], en: [], fr: [], it: [], es: [], nl: [] };
+        for (const p of providers) buckets[csvLangOfCountry(p.country)].push(p);
+
+        // Dedup-Score (Claimed zuerst, dann datenreichster Eintrag)
+        const score = (p) => (p.user_id ? 100 : 0) + (p.website ? 4 : 0) + (p.phone ? 3 : 0) + (p.latitude ? 2 : 0) + (p.postal_code ? 1 : 0) + (p.street ? 1 : 0);
+        const dedupByEmail = (list) => {
+            const m = new Map();
+            for (const p of list) {
+                const em = (p.email || '').toLowerCase().trim();
+                if (!em.includes('@')) continue;
+                if (!m.has(em) || score(p) > score(m.get(em))) m.set(em, p);
+            }
+            return [...m.values()];
+        };
+
+        let fileCount = 0, totalProvider = 0, totalShop = 0;
+        for (const lang of LANG_ORDER) {
+            const all = dedupByEmail(buckets[lang]);
+
+            if (mode === 'all' || mode === 'provider') {
+                if (all.length > 0) {
+                    triggerDownload(buildProviderCsv(all, lang), `skipily-${lang}-provider-${ts}.csv`);
+                    fileCount++; totalProvider += all.length;
+                    langExportLog(`  ✅ ${lang}-provider: ${all.length} Adressen`, 'success');
+                    await csvSleep(400); // Browser-Download-Queue entlasten
+                }
+            }
+            if (mode === 'all' || mode === 'shop') {
+                const shops = all.filter(p => p.shop_check_status === 'online_shop');
+                if (shops.length > 0) {
+                    triggerDownload(buildProviderCsv(shops, lang), `skipily-${lang}-shop-${ts}.csv`);
+                    fileCount++; totalShop += shops.length;
+                    langExportLog(`  🛒 ${lang}-shop: ${shops.length} Shops`, 'success');
+                    await csvSleep(400);
+                }
+            }
+        }
+        langExportLog(`📦 Fertig: ${fileCount} Dateien · ${totalProvider} Provider · ${totalShop} Shop-Adressen.`, 'success');
+        if (fileCount === 0) langExportLog(`⚠️ Keine verifizierten Adressen gefunden — erst auf "🛒 Shop-Check" / E-Mail-Verifizierung prüfen.`, 'warn');
+    } catch (err) {
+        langExportLog(`❌ Fehler: ${err.message}`, 'error');
+        alert('Sprach-Export fehlgeschlagen: ' + err.message);
+    }
+}
+window.exportAllCleverReachLanguages = exportAllCleverReachLanguages;
+
 /**
  * Buttons pro Land in die CSV-Export-Sektion einsetzen.
  * Wird nach loadCleverReachStats aufgerufen.

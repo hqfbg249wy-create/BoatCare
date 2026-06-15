@@ -139,6 +139,9 @@ Deno.serve(async (req) => {
       user_id: userId,
       claimed_at: new Date().toISOString(),
       free_until: sixMonths.toISOString(),
+      // Provider hat sich aktiv angemeldet → als verifizierter Service-Betrieb
+      // kennzeichnen (Badge im Eigner-Portal / öffentlichem Profil).
+      is_verified: true,
     };
 
     try {
