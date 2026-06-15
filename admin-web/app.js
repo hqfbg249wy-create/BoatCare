@@ -11864,17 +11864,28 @@ async function exportAllCleverReachLanguages(mode = 'all') {
     langExportLog(`📥 Lade alle verifizierten Provider …`, 'info');
 
     try {
-        // ALLE verifizierten Provider mit E-Mail laden (ein einziger Query)
-        const { data, error } = await supabaseClient
-            .from('service_providers')
-            .select('id, name, email, city, country, category, website, claim_token, user_id, phone, latitude, postal_code, street, shop_check_status, email_check_status')
-            .eq('email_check_status', 'valid')
-            .not('email', 'is', null)
-            .neq('email', '')
-            .limit(50000);
-        if (error) throw error;
+        // ALLE verifizierten Provider mit E-Mail laden — PAGINIERT.
+        // PostgREST/Supabase deckelt jede Antwort (häufig auf 1000 Zeilen),
+        // egal welches .limit() gesetzt ist. Wir holen daher in 1000er-Seiten
+        // via .range(), bis alles da ist → garantiert vollständig.
+        const PAGE = 1000;
+        let data = [];
+        for (let from = 0; ; from += PAGE) {
+            const { data: page, error } = await supabaseClient
+                .from('service_providers')
+                .select('id, name, email, city, country, category, website, claim_token, user_id, phone, latitude, postal_code, street, shop_check_status, email_check_status')
+                .eq('email_check_status', 'valid')
+                .not('email', 'is', null)
+                .neq('email', '')
+                .order('id', { ascending: true })
+                .range(from, from + PAGE - 1);
+            if (error) throw error;
+            data = data.concat(page || []);
+            langExportLog(`  … ${data.length} geladen`, 'info');
+            if (!page || page.length < PAGE) break;
+        }
 
-        langExportLog(`  ${data.length} verifizierte Adressen geladen.`, 'info');
+        langExportLog(`  ${data.length} verifizierte Adressen geladen (vollständig, paginiert).`, 'success');
 
         // Schmutz-Filter
         let providers = data;

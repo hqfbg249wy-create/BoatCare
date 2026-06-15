@@ -3486,26 +3486,35 @@ app.get('/api/cleverreach-stats', async (req, res) => {
         return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY fehlt.' });
     }
     try {
-        // Aggregation via PostgREST mit Group-By: muss als RPC oder ueber
-        // mehrere Calls. Wir nehmen den einfachen Weg: alle laden und in JS aggregieren.
-        const url = `${CONFIG.SUPABASE_URL}/rest/v1/service_providers?select=country,email,email_check_status,cleverreach_synced_at,cleverreach_status&email=not.is.null&email=neq.&limit=10000`;
-        const list = await new Promise((resolve, reject) => {
-            const req = https.get(url, {
+        // Aggregation in JS. WICHTIG: PostgREST deckelt jede Antwort (häufig
+        // auf 1000 Zeilen), egal welches limit gesetzt ist. Wir paginieren
+        // deshalb mit Range-Header in 1000er-Seiten, bis alles geladen ist —
+        // sonst zeigt die Tabelle nur ~1000 von tausenden Providern.
+        const fetchPage = (offset, pageSize) => new Promise((resolve, reject) => {
+            const path = `/rest/v1/service_providers?select=country,email,email_check_status,cleverreach_synced_at,cleverreach_status&email=not.is.null&email=neq.&order=id.asc`;
+            const u = new URL(CONFIG.SUPABASE_URL);
+            https.get({
+                hostname: u.hostname, path,
                 headers: {
                     apikey: CONFIG.SUPABASE_SERVICE_KEY,
                     Authorization: `Bearer ${CONFIG.SUPABASE_SERVICE_KEY}`,
+                    Range: `${offset}-${offset + pageSize - 1}`,
+                    'Range-Unit': 'items',
                 }
             }, (res) => {
                 let d = '';
                 res.on('data', c => d += c);
-                res.on('end', () => {
-                    try { resolve(JSON.parse(d)); } catch (e) { reject(e); }
-                });
-            });
-            req.on('error', reject);
+                res.on('end', () => { try { resolve(JSON.parse(d)); } catch (e) { reject(e); } });
+            }).on('error', reject);
         });
-        if (!Array.isArray(list)) {
-            throw new Error('Supabase: ' + JSON.stringify(list).substring(0, 200));
+
+        const PAGE = 1000;
+        let list = [];
+        for (let offset = 0; ; offset += PAGE) {
+            const page = await fetchPage(offset, PAGE);
+            if (!Array.isArray(page)) throw new Error('Supabase: ' + JSON.stringify(page).substring(0, 200));
+            list = list.concat(page);
+            if (page.length < PAGE) break;
         }
 
         const stats = {};
