@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../lib/supabase'
 import { Anchor, Mail, Lock, User, Gift } from 'lucide-react'
 
 export default function Login() {
@@ -27,6 +28,30 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState('')
+
+  // Passwort-vergessen-Modus (inline, ohne eigene Route)
+  const [isForgot, setIsForgot] = useState(false)
+  const [forgotSent, setForgotSent] = useState(false)
+
+  async function handleForgotSubmit(e) {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+    setLoading(true)
+    try {
+      // redirectTo muss in Supabase → Auth → Redirect URLs freigegeben sein
+      // (https://app.skipily.app/** ist es bereits). Sonst Fallback auf Site-URL.
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password',
+      })
+      if (error) throw error
+      setForgotSent(true)
+    } catch (err) {
+      setError(err.message || 'Fehler beim Senden des Reset-Links.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -66,9 +91,49 @@ export default function Login() {
         <div className="login-logo">
           <img src="/icon-192.png" alt="Skipily" style={{ width: 64, height: 64, borderRadius: 14 }} />
           <h1>Skipily</h1>
-          <p>{isRegister ? 'Konto erstellen' : 'Bootseigner-Portal'}</p>
+          <p>{isForgot ? 'Passwort zurücksetzen' : isRegister ? 'Konto erstellen' : 'Bootseigner-Portal'}</p>
         </div>
 
+        {/* ─── Passwort-vergessen-Modus ─── */}
+        {isForgot ? (
+          forgotSent ? (
+            <>
+              <p style={{ textAlign: 'center', margin: '20px 0', lineHeight: 1.6, color: '#334155' }}>
+                Wir haben Dir einen Link an<br />
+                <strong>{email}</strong><br />
+                geschickt. Klick darauf, um ein neues Passwort zu setzen.
+              </p>
+              <button className="btn-primary btn-full"
+                      onClick={() => { setIsForgot(false); setForgotSent(false) }}>
+                Zurück zum Login
+              </button>
+            </>
+          ) : (
+            <form onSubmit={handleForgotSubmit}>
+              <p style={{ margin: '0 0 16px', fontSize: '0.9rem', lineHeight: 1.5, color: '#64748b' }}>
+                Gib Deine E-Mail ein — wir schicken Dir einen Link zum
+                Zurücksetzen des Passworts.
+              </p>
+              <div className="form-group">
+                <label><Mail size={14} /> E-Mail</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="ihre@email.de" required />
+              </div>
+
+              {error && <div className="alert alert-error">{error}</div>}
+
+              <button type="submit" className="btn-primary btn-full" disabled={loading}>
+                {loading ? 'Wird gesendet…' : 'Reset-Link senden'}
+              </button>
+
+              <div className="login-toggle">
+                <p><button type="button" onClick={() => { setIsForgot(false); setError('') }}>
+                  Zurück zum Login
+                </button></p>
+              </div>
+            </form>
+          )
+        ) : (
         <form onSubmit={handleSubmit}>
           {isRegister && (
             <div className="form-group">
@@ -111,7 +176,19 @@ export default function Login() {
           <button type="submit" className="btn-primary btn-full" disabled={loading}>
             {loading ? 'Laden...' : isRegister ? 'Registrieren' : 'Anmelden'}
           </button>
+
+          {!isRegister && (
+            <p style={{ textAlign: 'center', marginTop: 12 }}>
+              <button type="button"
+                      onClick={() => { setIsForgot(true); setError(''); setSuccess('') }}
+                      style={{ background: 'none', border: 'none', color: '#f97316',
+                               cursor: 'pointer', fontSize: '0.88rem', textDecoration: 'underline' }}>
+                Passwort vergessen?
+              </button>
+            </p>
+          )}
         </form>
+        )}
 
         {/*
           Apple Sign-In Button vorerst ausgeblendet — Apple-seitige
@@ -122,13 +199,15 @@ export default function Login() {
           unter 30 Min wieder anschalten koennen.
         */}
 
-        <div className="login-toggle">
-          {isRegister ? (
-            <p>Bereits ein Konto? <button onClick={() => setIsRegister(false)}>Anmelden</button></p>
-          ) : (
-            <p>Noch kein Konto? <button onClick={() => setIsRegister(true)}>Registrieren</button></p>
-          )}
-        </div>
+        {!isForgot && (
+          <div className="login-toggle">
+            {isRegister ? (
+              <p>Bereits ein Konto? <button onClick={() => setIsRegister(false)}>Anmelden</button></p>
+            ) : (
+              <p>Noch kein Konto? <button onClick={() => setIsRegister(true)}>Registrieren</button></p>
+            )}
+          </div>
+        )}
 
         <p style={{ marginTop: 16, fontSize: '0.78rem', color: '#94a3b8', textAlign: 'center' }}>
           <a href="/datenschutz.html" target="_blank" rel="noopener noreferrer"
