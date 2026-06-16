@@ -9399,17 +9399,20 @@ window.closeProviderModal = closeProviderModal;
 
 async function grantFromModal(months) {
     if (!_editingProvider) return;
+    const level = document.getElementById('edit-grant-level')?.value === 'pro' ? 'pro' : 'enterprise';
+    const levelLabel = level === 'pro' ? 'Pro' : 'Enterprise';
     const name = _editingProvider.name || 'diesen Provider';
     const msg  = months === 0
-        ? `${name} DAUERHAFT auf Professional freischalten (kein Ablauf)?`
-        : `${name} für ${months} Monat${months > 1 ? 'e' : ''} kostenfrei auf Professional freischalten?`;
+        ? `${name} DAUERHAFT auf ${levelLabel} freischalten (kein Ablauf)?`
+        : `${name} für ${months} Monat${months > 1 ? 'e' : ''} kostenfrei auf ${levelLabel} freischalten?`;
     if (!confirm(msg)) return;
 
     try {
         const { error } = await supabaseClient.rpc('admin_grant_subscription', {
             p_provider_id: _editingProvider.id,
             p_months:      months === 0 ? null : months,
-            p_note:        months === 0 ? 'Dauerhafte Freischaltung durch Admin' : null,
+            p_note:        `${levelLabel}-Freischaltung durch Admin${months === 0 ? ' (dauerhaft)' : ''}`,
+            p_level:       level,
         });
         if (error) throw error;
 

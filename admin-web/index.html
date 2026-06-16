@@ -410,7 +410,12 @@
 
                         <!-- Abo-Aktionen -->
                         <div id="edit-sub-actions" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                            <span style="font-size:13px; color:#475569; margin-right:4px;">🎁 Freischalten:</span>
+                            <span style="font-size:13px; color:#475569; margin-right:4px;">🎁 Freischalten als</span>
+                            <select id="edit-grant-level" style="font-size:12px; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px;">
+                                <option value="enterprise" selected>Enterprise</option>
+                                <option value="pro">Pro</option>
+                            </select>
+                            <span style="font-size:13px; color:#475569;">für</span>
                             <button class="btn-secondary" onclick="window.grantFromModal(1)"  style="font-size:12px; padding:5px 11px;">1 Monat</button>
                             <button class="btn-secondary" onclick="window.grantFromModal(3)"  style="font-size:12px; padding:5px 11px;">3 Monate</button>
                             <button class="btn-secondary" onclick="window.grantFromModal(6)"  style="font-size:12px; padding:5px 11px;">6 Monate</button>
