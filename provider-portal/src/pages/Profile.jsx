@@ -1880,6 +1880,24 @@ export default function Profile() {
                 )}
               </div>
 
+              {/* Rechte-Legende: was darf welche Rolle? */}
+              <div style={{ background: '#f8fafc', border: '1px solid var(--gray-200)', borderRadius: 8, padding: '10px 12px', marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 8 }}>Was darf welche Rolle?</div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: 14, flexShrink: 0 }}>👑🛡️</span>
+                  <div style={{ fontSize: 12, color: '#475569' }}>
+                    <strong>Inhaber / Admin:</strong> Profil &amp; Stammdaten · Team · API &amp; Webhook · Versandregeln · Produkte · Bestellungen
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <span style={{ fontSize: 14, flexShrink: 0 }}>👤</span>
+                  <div style={{ fontSize: 12, color: '#475569' }}>
+                    <strong>Mitglied:</strong> nur Produkte · Bestellungen
+                    <span style={{ color: '#94a3b8' }}> — kein Zugriff auf Profil, Team, API, Versand</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Einladungsformular */}
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 <input
