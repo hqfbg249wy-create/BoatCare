@@ -8891,6 +8891,7 @@ async function openProviderModal(providerId) {
 
     renderModalSubscriptionStatus();
     renderModalUserStatus();
+    loadProviderTeam(providerId);
     document.getElementById('provider-edit-modal').style.display = 'block';
     document.body.style.overflow = 'hidden';
 
@@ -8939,6 +8940,46 @@ function renderModalSubscriptionStatus() {
         html = '<strong>Standard</strong> · Kostenfrei, keine Pro-Features';
     }
     document.getElementById('edit-sub-current').innerHTML = html;
+}
+
+// ── Team-Struktur (read-only) im Provider-Modal ──
+async function loadProviderTeam(providerId) {
+    const box = document.getElementById('edit-team-block');
+    if (!box) return;
+    box.innerHTML = '<div style="font-size:12px; color:#94a3b8;">Team wird geladen…</div>';
+    try {
+        const { data: members, error } = await supabaseClient
+            .from('provider_members')
+            .select('email, role, accepted_at')
+            .eq('provider_id', providerId)
+            .order('role', { ascending: true });
+        if (error) throw error;
+
+        const ownerEmail = (_editingProvider?.email || '—');
+        const memberRows = (members || []).map(m => `
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; margin-left:18px; border-left:2px solid #e9d5ff; background:#fafafa; border-radius:6px; margin-top:4px;">
+                <span>${m.role === 'admin' ? '🛡️' : '👤'}</span>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:600; font-size:12px; color:#0f172a; overflow:hidden; text-overflow:ellipsis;">${escapeHtml_v(m.email)}</div>
+                    <div style="font-size:11px; color:#64748b;">${m.role === 'admin' ? 'Admin' : 'Mitglied'} · ${m.accepted_at ? 'Aktiv' : 'Einladung verschickt'}</div>
+                </div>
+            </div>`).join('');
+
+        box.innerHTML = `
+            <div style="font-size:11px; font-weight:700; color:#7e22ce; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">👥 Team-Struktur</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#faf5ff; border:1px solid #e9d5ff; border-radius:6px;">
+                <span>👑</span>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:700; font-size:12px; color:#0f172a;">Inhaber</div>
+                    <div style="font-size:11px; color:#64748b; overflow:hidden; text-overflow:ellipsis;">${escapeHtml_v(ownerEmail)}</div>
+                </div>
+                <span style="background:#7e22ce; color:#fff; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700;">Vollzugriff</span>
+            </div>
+            ${memberRows || '<div style="font-size:11px; color:#94a3b8; margin-left:18px; margin-top:4px;">Keine Team-Mitglieder.</div>'}
+        `;
+    } catch (err) {
+        box.innerHTML = `<div style="font-size:11px; color:#ef4444;">Team nicht ladbar: ${escapeHtml_v(err.message)}</div>`;
+    }
 }
 
 function renderModalUserStatus() {
