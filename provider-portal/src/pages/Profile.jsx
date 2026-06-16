@@ -9,6 +9,20 @@ import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock
 const PROVIDER_IMAGES_BUCKET = 'provider-images'
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5 MB (matches bucket limit)
 
+const CATEGORY_OPTIONS = [
+  ['repair', '🔧 Reparatur'],
+  ['motor_service', '⚙️ Motorservice'],
+  ['segelmacher', '⛵ Segelmacher'],
+  ['marine_supplies', '🛒 Zubehör / Marine Supplies'],
+  ['elektronik', '📡 Elektronik'],
+  ['werft', '🚢 Werft'],
+  ['winterlager', '❄️ Winterlager'],
+  ['lackiererei', '🎨 Lackiererei'],
+  ['gutachter', '📋 Gutachter'],
+  ['tankstelle', '⛽ Tankstelle'],
+  ['marina', '🌊 Marina'],
+]
+
 export default function Profile() {
   const { provider, loadProvider, user } = useAuth()
   const access = useFeatureAccess()
@@ -120,6 +134,9 @@ export default function Profile() {
       setForm({
         name: provider.name || '',
         description: provider.description || '',
+        category: provider.category || '',
+        category2: provider.category2 || '',
+        category3: provider.category3 || '',
         street: provider.street || '',
         postal_code: provider.postal_code || '',
         city: provider.city || '',
@@ -568,6 +585,9 @@ export default function Profile() {
         .update({
           name: form.name,
           description: form.description,
+          category:  form.category || null,
+          category2: form.category2 || null,
+          category3: form.category3 || null,
           street: form.street,
           postal_code: form.postal_code,
           city: form.city,
@@ -1346,6 +1366,27 @@ export default function Profile() {
           <div className="form-group">
             <label>Shop-Beschreibung</label>
             <textarea name="shop_description" value={form.shop_description} onChange={handleChange} rows={3} placeholder="Text, der im Shop unter Ihrem Namen angezeigt wird" />
+          </div>
+
+          {/* Kategorien — bis zu 3 (z.B. Zubehör + Motorservice) */}
+          <h3 style={{ fontSize: '0.95rem', margin: '14px 0 6px' }}>Kategorien (bis zu 3)</h3>
+          <p className="hint" style={{ marginTop: 0 }}>In welchen Bereichen ist Dein Betrieb aktiv? Die Hauptkategorie ist Pflicht, zwei weitere optional.</p>
+          <div className="form-row">
+            {['category', 'category2', 'category3'].map((field, idx) => (
+              <div className="form-group" key={field}>
+                <label>{idx === 0 ? 'Hauptkategorie *' : `Kategorie ${idx + 1} (optional)`}</label>
+                <select name={field} value={form[field] || ''} onChange={handleChange} required={idx === 0}>
+                  <option value="">{idx === 0 ? '— bitte wählen —' : '— keine —'}</option>
+                  {CATEGORY_OPTIONS
+                    // gleiche Kategorie nicht doppelt wählbar
+                    .filter(([val]) => {
+                      const others = ['category', 'category2', 'category3'].filter(f => f !== field).map(f => form[f])
+                      return val === form[field] || !others.includes(val)
+                    })
+                    .map(([val, label]) => <option key={val} value={val}>{label}</option>)}
+                </select>
+              </div>
+            ))}
           </div>
         </div>
 

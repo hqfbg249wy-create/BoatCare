@@ -1594,26 +1594,39 @@ async function updateProvider(providerId) {
 
     console.log('Updating provider', providerId, updates);
 
+    // 1) Das eigentliche UPDATE isoliert — nur dessen Fehler gilt als „Speichern fehlgeschlagen".
+    let saveErr = null;
     try {
         const { error } = await supabaseClient
             .from('service_providers')
             .update(updates)
             .eq('id', providerId);
+        if (error) saveErr = error;
+    } catch (e) {
+        saveErr = e;
+    }
 
-        if (error) throw error;
+    if (saveErr) {
+        console.error('Update-Fehler:', saveErr);
+        const msg = /load failed|fetch|network/i.test(saveErr.message || '')
+            ? `Netzwerkfehler beim Speichern (${saveErr.message}). Bitte Internetverbindung prüfen und erneut speichern.`
+            : ('Fehler beim Aktualisieren: ' + saveErr.message);
+        alert(msg);
+        return;
+    }
 
-        alert('✅ Provider erfolgreich aktualisiert!');
-        document.getElementById('provider-modal').classList.remove('active');
+    // 2) Erfolg — Reloads sind „best effort" und dürfen das Speichern NICHT als Fehler melden.
+    alert('✅ Provider erfolgreich aktualisiert!');
+    document.getElementById('provider-modal').classList.remove('active');
+    try {
         _invalidateProviderCache();
         loadProviders();
         loadDashboard();
-        // Map aktualisieren falls aktiv
         if (document.getElementById('map-page')?.classList.contains('active')) {
-            loadAllMapProviders().then(() => applyMapFilters());
+            loadAllMapProviders().then(() => applyMapFilters()).catch(() => {});
         }
-    } catch (error) {
-        console.error('Fehler:', error);
-        alert('Fehler beim Aktualisieren: ' + error.message);
+    } catch (e) {
+        console.warn('Reload nach Speichern fehlgeschlagen (unkritisch):', e);
     }
 }
 
