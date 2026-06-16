@@ -100,31 +100,19 @@ Deno.serve(async (req) => {
 
     // ── Einladungsmail
     if (existingProfile) {
-      // User existiert bereits — wir nutzen den anon-Client für resetPasswordForEmail.
-      // Wichtig: admin.auth.admin.generateLink() erzeugt NUR den Link, sendet aber
-      // KEINE Mail. resetPasswordForEmail (über anon-Key) triggert dagegen den
-      // Supabase-Mailversand mit dem konfigurierten "Reset Password"-Template.
-      const anonClient = createClient(
-        SUPABASE_URL,
-        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      );
-      const { error: mailErr } = await anonClient.auth.resetPasswordForEmail(
-        normalizedEmail,
-        { redirectTo: "https://provider.skipily.app/" },
-      );
-      if (mailErr) {
-        console.warn("Recovery-Mail konnte nicht versendet werden:", mailErr);
-        return json({
-          ok: true,
-          mode: "linked-existing",
-          message: `${normalizedEmail} wurde als ${memberRole} hinzugefügt, aber die Login-Mail konnte nicht versendet werden: ${mailErr.message}. Bitte das Team-Mitglied manuell informieren — es kann sich mit dem bestehenden Passwort einloggen.`,
-        });
-      }
+      // User existiert bereits → er ist sofort im Team (accepted_at gesetzt)
+      // und meldet sich mit seinem BESTEHENDEN Passwort an. Wir schicken
+      // deshalb KEINE Passwort-Reset-Mail (verwirrend!), sondern eine echte
+      // Team-Benachrichtigung über Resend.
+      const roleLabel = memberRole === "admin" ? "Admin" : "Mitglied";
+      const mailSent = await sendTeamNotification(normalizedEmail, provider.name, roleLabel);
 
       return json({
         ok: true,
         mode: "linked-existing",
-        message: `${normalizedEmail} ist bereits registriert und wurde als ${memberRole} hinzugefügt. Login-Link wurde per E-Mail verschickt.`,
+        message: mailSent
+          ? `${normalizedEmail} ist bereits registriert und wurde als ${memberRole} hinzugefügt. Eine Info-Mail wurde verschickt — Login mit dem bestehenden Passwort.`
+          : `${normalizedEmail} wurde als ${memberRole} hinzugefügt. Bitte das Team-Mitglied informieren — Login mit dem bestehenden Passwort unter provider.skipily.app.`,
       });
     }
 
@@ -169,4 +157,62 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+// Team-Benachrichtigung an einen BEREITS registrierten User (kein Passwort-Reset).
+async function sendTeamNotification(email: string, providerName: string, roleLabel: string): Promise<boolean> {
+  const resendKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendKey) {
+    console.warn("RESEND_API_KEY nicht gesetzt — Team-Mail wird übersprungen.");
+    return false;
+  }
+  const portalUrl = "https://provider.skipily.app/";
+  const subject = `Du wurdest zum Skipily-Team von ${providerName} hinzugefügt`;
+  const html = `
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif">
+      <tr><td align="center">
+        <table width="480" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(11,29,58,0.08)">
+          <tr><td style="background:#0B1D3A;padding:24px 32px;text-align:center">
+            <div style="font-size:24px;font-weight:800;letter-spacing:2px;color:#fff">SKIPILY</div>
+            <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:#f97316;text-transform:uppercase;margin-top:4px">Always · Safe · Ready to Sail</div>
+          </td></tr>
+          <tr><td style="padding:32px">
+            <h1 style="margin:0 0 16px;font-size:20px;color:#0B1D3A">Willkommen im Team</h1>
+            <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#334155">
+              Du wurdest als <strong>${roleLabel}</strong> zum Skipily-Provider-Konto von
+              <strong>${providerName}</strong> hinzugefügt. Ihr verwaltet ab jetzt gemeinsam
+              Anfragen, Bestellungen und den Shop.
+            </p>
+            <table cellpadding="0" cellspacing="0" style="margin:0 auto 22px">
+              <tr><td align="center" style="border-radius:8px;background:#f97316">
+                <a href="${portalUrl}" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:700;color:#fff;text-decoration:none;border-radius:8px">Zum Provider-Portal</a>
+              </td></tr>
+            </table>
+            <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#64748b">
+              Melde Dich einfach mit Deinen <strong>bestehenden Zugangsdaten</strong> an
+              (${email}). Es ist <strong>kein neues Passwort nötig</strong>.
+            </p>
+            <hr style="border:0;border-top:1px solid #e5e7eb;margin:22px 0">
+            <p style="margin:0;font-size:12px;line-height:1.6;color:#94a3b8">
+              Du erwartest diese Einladung nicht? Dann ignoriere diese E-Mail einfach.
+            </p>
+          </td></tr>
+          <tr><td style="background:#f8fafc;padding:18px 32px;text-align:center;font-size:12px;color:#94a3b8">
+            Skipily · <a href="https://skipily.app" style="color:#94a3b8">skipily.app</a>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>`;
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: "noreply@skipily.app", to: [email], subject, html }),
+    });
+    if (!res.ok) { console.warn("Resend Team-Mail fehlgeschlagen:", await res.text()); return false; }
+    return true;
+  } catch (e) {
+    console.warn("Resend Team-Mail Exception:", (e as Error).message);
+    return false;
+  }
 }
