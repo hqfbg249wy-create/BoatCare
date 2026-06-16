@@ -10430,6 +10430,44 @@ async function startCleverReachLanguageSync() {
 }
 window.startCleverReachLanguageSync = startCleverReachLanguageSync;
 
+// ── Geo-Korrektur: Provider neu geocodieren ──
+async function startRegeocode() {
+    const mode    = document.getElementById('geo-mode')?.value || 'missing';
+    const country = (document.getElementById('geo-country')?.value || '').trim().toUpperCase() || null;
+    const limit   = parseInt(document.getElementById('geo-limit')?.value || '40');
+    const minShiftKm = parseFloat(document.getElementById('geo-minshift')?.value || '0');
+    const dryRun  = document.getElementById('geo-dryrun')?.checked !== false;
+    const btn = document.getElementById('geo-btn');
+    const log = document.getElementById('geo-log');
+    if (log) { log.style.display = 'block'; log.innerHTML = ''; }
+    const write = (msg, color = '#94a3b8') => { if (log) { log.innerHTML += `<div style="color:${color}">${msg}</div>`; log.scrollTop = log.scrollHeight; } };
+
+    if (btn) btn.disabled = true;
+    write(`📍 Starte ${dryRun ? 'Trockenlauf' : 'Geocodierung'}: mode=${mode}, land=${country || 'alle'}, limit=${limit}, minShift=${minShiftKm}km …`, '#38bdf8');
+    try {
+        const resp = await fetch(`${SCRAPER_URL}/api/regeocode`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode, country, limit, minShiftKm, dryRun }),
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${(await resp.text()).substring(0, 200)}`);
+        const data = await resp.json();
+        const c = data.counts || {};
+        for (const r of (data.results || [])) {
+            if (r.status === 'not_found') write(`  ❓ ${r.name}: nicht gefunden`, '#f59e0b');
+            else if (r.status === 'ok')   write(`  ⏭ ${r.name}: ok (${r.shiftKm} km, unter Schwelle)`, '#64748b');
+            else write(`  ${dryRun ? '🔍' : '✅'} ${r.name}: ${r.shiftKm != null ? r.shiftKm + ' km verschoben' : 'neu gesetzt'} → ${r.lat?.toFixed(4)}, ${r.lon?.toFixed(4)}`, '#10b981');
+        }
+        write(`\n📊 ${c.processed} geprüft · ${c.updated} ${dryRun ? 'würden geändert' : 'aktualisiert'} · ${c.skipped} übersprungen · ${c.notFound} nicht gefunden`, '#38bdf8');
+        if (dryRun) write(`ℹ️ Trockenlauf — nichts geändert. Häkchen entfernen für echten Lauf.`, '#f59e0b');
+    } catch (err) {
+        write(`❌ Fehler: ${err.message}`, '#ef4444');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+window.startRegeocode = startRegeocode;
+
 // ============================================
 // DUPLIKAT-SUCHE (client-side, multi-signal)
 // ============================================

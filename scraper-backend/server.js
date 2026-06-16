@@ -4142,6 +4142,111 @@ async function persistVerificationResult(providerId, result) {
     });
 }
 
+// ============================================================
+// GEO-KORREKTUR: Provider neu geocodieren (Nominatim/OSM, kostenlos)
+// ============================================================
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371, toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function geocodeNominatim(street, postalCode, city, country) {
+    const params = new URLSearchParams({ format: 'json', limit: '1' });
+    if (street)     params.set('street', street);
+    if (postalCode) params.set('postalcode', postalCode);
+    if (city)       params.set('city', city);
+    params.set('country', country || 'Germany');
+    const path = `/search?${params.toString()}`;
+    return new Promise((resolve) => {
+        https.get({
+            hostname: 'nominatim.openstreetmap.org', path,
+            headers: { 'User-Agent': 'Skipily-Geocode/1.0 (admin@skipily.app)' },
+        }, (res) => {
+            let d = '';
+            res.on('data', c => d += c);
+            res.on('end', () => {
+                try {
+                    const arr = JSON.parse(d);
+                    if (Array.isArray(arr) && arr[0]) resolve({ lat: parseFloat(arr[0].lat), lon: parseFloat(arr[0].lon) });
+                    else resolve(null);
+                } catch { resolve(null); }
+            });
+        }).on('error', () => resolve(null));
+    });
+}
+
+/**
+ * POST /api/regeocode
+ * Body: { limit=40, dryRun=true, country=null, mode='missing'|'all', minShiftKm=0 }
+ *   mode 'missing' → nur Provider ohne Koordinaten
+ *   mode 'all'     → alle mit Adresse (neu verorten)
+ *   minShiftKm     → nur aktualisieren wenn die neue Position ≥ X km abweicht
+ *                    (bei 'all' sinnvoll, um nur wirklich falsche zu korrigieren)
+ */
+app.post('/api/regeocode', async (req, res) => {
+    if (!CONFIG.SUPABASE_SERVICE_KEY) return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY fehlt.' });
+    const { limit = 40, dryRun = true, country = null, mode = 'missing', minShiftKm = 0 } = req.body || {};
+
+    try {
+        // Provider laden (großzügig, dann in JS filtern wegen gemischter Country-Formate)
+        let filter = 'city=not.is.null&city=neq.';
+        if (mode === 'missing') filter += '&or=(latitude.is.null,longitude.is.null)';
+        const dbLimit = country ? Math.max(limit * 6, 300) : limit * 2;
+        const path = `service_providers?select=id,name,street,postal_code,city,country,latitude,longitude&${filter}&order=id&limit=${dbLimit}`;
+        let providers = await supabaseGet(path, null);
+        if (!Array.isArray(providers)) throw new Error('Supabase: ' + JSON.stringify(providers).substring(0, 200));
+
+        if (country) {
+            const want = country.toUpperCase();
+            providers = providers.filter(p => normalizeCountryCode(p.country) === want);
+        }
+        providers = providers.slice(0, limit);
+
+        const counts = { processed: 0, updated: 0, skipped: 0, notFound: 0 };
+        const results = [];
+
+        for (let i = 0; i < providers.length; i++) {
+            const p = providers[i];
+            if (i > 0) await new Promise(r => setTimeout(r, 1100)); // Nominatim: max 1 req/s
+            counts.processed++;
+
+            const geo = await geocodeNominatim(p.street, p.postal_code, p.city, p.country);
+            if (!geo) {
+                counts.notFound++;
+                results.push({ id: p.id, name: p.name, status: 'not_found' });
+                continue;
+            }
+
+            const shift = (p.latitude && p.longitude)
+                ? haversineKm(p.latitude, p.longitude, geo.lat, geo.lon) : null;
+
+            if (minShiftKm > 0 && shift !== null && shift < minShiftKm) {
+                counts.skipped++;
+                results.push({ id: p.id, name: p.name, status: 'ok', shiftKm: Math.round(shift * 10) / 10 });
+                continue;
+            }
+
+            if (!dryRun) {
+                await supabasePatch('service_providers', p.id, { latitude: geo.lat, longitude: geo.lon }, null);
+            }
+            counts.updated++;
+            results.push({
+                id: p.id, name: p.name, status: dryRun ? 'would_update' : 'updated',
+                shiftKm: shift !== null ? Math.round(shift * 10) / 10 : null,
+                lat: geo.lat, lon: geo.lon,
+            });
+        }
+
+        res.json({ success: true, dryRun, counts, results });
+    } catch (err) {
+        console.error('regeocode error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🚀 Skipily Places Scraper v4.0 läuft auf Port ${PORT}`);
     console.log(`\n📡 Endpoints:`);

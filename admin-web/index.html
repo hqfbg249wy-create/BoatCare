@@ -103,6 +103,10 @@
                             <span class="icon">🛒</span>
                             Shop-Check
                         </button>
+                        <button class="nav-item" data-page="geo-fix" onclick="window.navigateToPage('geo-fix')">
+                            <span class="icon">📍</span>
+                            Geo-Korrektur
+                        </button>
                     </div>
                 </div>
                 <button class="nav-item" data-page="cleverreach" onclick="window.navigateToPage('cleverreach')">
@@ -1363,6 +1367,46 @@
                 <div id="shop-results" style="display:none;">
                     <h3 style="margin-bottom:12px;">📋 Letzte Prüfungs-Ergebnisse</h3>
                     <div id="shop-results-list"></div>
+                </div>
+            </div>
+
+            <!-- Geo-Korrektur: Provider neu geocodieren -->
+            <div id="geo-fix-page" class="page">
+                <h1>📍 Geo-Korrektur</h1>
+                <p class="subtitle">Verortet Provider anhand ihrer Adresse neu (Nominatim/OSM, kostenlos). Korrigiert falsche Karten-Positionen aus dem Scraper-Import.</p>
+
+                <div class="card" style="padding:18px;">
+                    <div class="form-row" style="gap:14px; flex-wrap:wrap; align-items:flex-end;">
+                        <div class="form-group">
+                            <label>Modus</label>
+                            <select id="geo-mode" style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                                <option value="missing" selected>Nur ohne Koordinaten</option>
+                                <option value="all">Alle (neu verorten)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Land (ISO-2, optional)</label>
+                            <input type="text" id="geo-country" maxlength="2" placeholder="z.B. DE" style="width:90px; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Max. pro Lauf</label>
+                            <input type="number" id="geo-limit" value="40" min="1" max="80" style="width:90px; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Nur wenn Abweichung ≥ (km)</label>
+                            <input type="number" id="geo-minshift" value="0" min="0" step="0.5" style="width:110px; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                        </div>
+                    </div>
+                    <label style="display:inline-flex; align-items:center; gap:6px; margin:8px 0 12px; font-size:13px;">
+                        <input type="checkbox" id="geo-dryrun" checked> Trockenlauf (zeigt nur, ändert nichts)
+                    </label>
+                    <div>
+                        <button class="btn-primary" id="geo-btn" onclick="window.startRegeocode()" style="background:#0891b2;">📍 Geocodieren starten</button>
+                    </div>
+                    <p style="font-size:12px; color:#64748b; margin-top:8px;">
+                        ⏱ Nominatim erlaubt 1 Anfrage/Sekunde — ein Lauf mit 40 dauert ~45 Sek. Für den Gesamtbestand mehrfach laufen lassen (z.B. „Nur ohne Koordinaten", dann pro Land „Alle" mit Abweichung ≥ 2 km).
+                    </p>
+                    <div id="geo-log" style="margin-top:14px; font-family:monospace; font-size:12px; max-height:340px; overflow:auto; background:#0f172a; color:#e2e8f0; border-radius:8px; padding:12px; display:none;"></div>
                 </div>
             </div>
 
