@@ -1481,9 +1481,18 @@ export default function Profile() {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Heimatland (ISO-2)</label>
-              <input type="text" maxLength={2} value={shipRule.domestic_country || ''}
-                     onChange={e => setShip('domestic_country', e.target.value.toUpperCase())} placeholder="DE" />
+              <label>Heimatland</label>
+              <select value={shipRule.domestic_country || 'DE'}
+                      onChange={e => setShip('domestic_country', e.target.value)}>
+                {[
+                  ['DE','Deutschland'],['AT','Österreich'],['CH','Schweiz'],['FR','Frankreich'],
+                  ['IT','Italien'],['ES','Spanien'],['NL','Niederlande'],['BE','Belgien'],
+                  ['LU','Luxemburg'],['DK','Dänemark'],['SE','Schweden'],['PL','Polen'],
+                  ['PT','Portugal'],['GR','Griechenland'],['HR','Kroatien'],['GB','Großbritannien'],
+                ].map(([code, name]) => (
+                  <option key={code} value={code}>{name} ({code})</option>
+                ))}
+              </select>
             </div>
             <div className="form-group">
               <label>Kostenlos ab (€, Heimatland)</label>
