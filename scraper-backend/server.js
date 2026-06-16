@@ -4247,10 +4247,14 @@ async function runGeoJob(opts) {
         for (const p of providers) {
             // Google braucht keine künstliche Pause; Nominatim 1,1s.
             let geo = await geocodeGoogle(p.street, p.postal_code, p.city, p.country);
-            if (!geo) {
-                if (_googleGeocodeDisabled) { geo = await geocodeNominatim(p.street, p.postal_code, p.city, p.country); await new Promise(r => setTimeout(r, 1100)); }
-            } else {
+            if (geo) {
+                _geoJob.source = 'google';
                 await new Promise(r => setTimeout(r, 60)); // sanftes Google-Rate-Limit
+            } else if (_googleGeocodeDisabled) {
+                _geoJob.source = 'nominatim';
+                _geoJob.note = 'Google Geocoding API ist nicht aktiviert — bitte in der Google Cloud Console aktivieren. Nominatim wird vom Server oft blockiert (Bulk).';
+                geo = await geocodeNominatim(p.street, p.postal_code, p.city, p.country);
+                await new Promise(r => setTimeout(r, 1100));
             }
             _geoJob.processed++;
 

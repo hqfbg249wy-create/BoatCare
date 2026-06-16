@@ -10480,6 +10480,7 @@ async function pollGeoStatus() {
             else log.innerHTML += `<div data-progress="1" style="color:#38bdf8">${line}</div>`;
             log.scrollTop = log.scrollHeight;
         }
+        if (s.note && !log.dataset.noteShown) { log.dataset.noteShown = '1'; geoWrite('⚠️ ' + s.note, '#f59e0b'); }
         if (s.running) {
             _geoPollTimer = setTimeout(pollGeoStatus, 2500);
         } else {
