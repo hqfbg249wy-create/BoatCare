@@ -404,16 +404,25 @@ export default function Products() {
         payloads.push(p)
       })
 
-      // Batch-Insert in 50er-Paketen
+      // Import über Service-Role Edge Function (umgeht RLS-Fragilität,
+      // prüft serverseitig Owner/Mitglied-Berechtigung).
       let imported = 0
-      for (let i = 0; i < payloads.length; i += 50) {
-        const batch = payloads.slice(i, i + 50)
-        const { error } = await supabase.from('metashop_products').insert(batch)
-        if (error) {
-          batch.forEach((_, j) => failed.push({ row: i + j + 2, error: error.message }))
-        } else {
-          imported += batch.length
-        }
+      const { data: { session } } = await supabase.auth.getSession()
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
+      const res = await fetch(`${supabaseUrl}/functions/v1/import-products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ provider_id: provider.id, products: payloads }),
+      })
+      const result = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setMessage({ type: 'error', text: result.error || `Import fehlgeschlagen (HTTP ${res.status})` })
+      } else {
+        imported = result.ok || 0
+        if (Array.isArray(result.failed)) failed.push(...result.failed)
       }
 
       setCsvResult({ ok: imported, failed })
