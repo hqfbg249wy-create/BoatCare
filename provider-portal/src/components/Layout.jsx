@@ -17,7 +17,7 @@ const navItems = [
 ]
 
 export default function Layout() {
-  const { provider, signOut } = useAuth()
+  const { provider, providers, switchProvider, signOut } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
@@ -47,7 +47,25 @@ export default function Layout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="provider-name">{provider?.name}</div>
+          {/* Konto-Wechsler: nur wenn der User mehreren Betrieben angehört */}
+          {providers && providers.length > 1 ? (
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ fontSize: 11, color: 'var(--gray-500)', display: 'block', marginBottom: 4 }}>Aktiver Betrieb</label>
+              <select
+                value={provider?.id || ''}
+                onChange={e => switchProvider(e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--gray-300)', fontSize: 13, background: '#fff', cursor: 'pointer' }}
+              >
+                {providers.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}{p._membership === 'owner' ? ' (Inhaber)' : p._membership === 'admin' ? ' (Admin)' : ' (Mitglied)'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="provider-name">{provider?.name}</div>
+          )}
           <button className="btn-logout" onClick={signOut}>
             <LogOut size={16} />
             <span>Abmelden</span>

@@ -3,9 +3,12 @@ import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext({})
 
+const ACTIVE_KEY = 'skipily_active_provider_id'
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [provider, setProvider] = useState(null)
+  const [providers, setProviders] = useState([]) // alle Konten: eigenes + Mitgliedschaften
   const [loading, setLoading] = useState(true)
   const [mfaEnrolled, setMfaEnrolled] = useState(false)
   const [mfaRequired, setMfaRequired] = useState(false)
@@ -48,31 +51,60 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Aktives Provider-Konto setzen (eigenes ODER Team-Mitgliedschaft) + merken
+  function switchProvider(id) {
+    setProviders(curr => {
+      const target = curr.find(p => p.id === id)
+      if (target) {
+        setProvider(target)
+        try { localStorage.setItem(ACTIVE_KEY, id) } catch (_) {}
+      }
+      return curr
+    })
+  }
+
   async function loadProvider(userId) {
     try {
-      // 1) Direkter Treffer über user_id (Standard-Fall)
-      const { data: linked } = await supabase
-        .from('service_providers')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle()
+      const byId = new Map()
 
-      if (linked) { setProvider(linked); return }
+      // 1) Eigenes Konto (Owner)
+      const { data: owned } = await supabase
+        .from('service_providers').select('*').eq('user_id', userId).maybeSingle()
+      if (owned) byId.set(owned.id, { ...owned, _membership: 'owner' })
 
-      // 2) Fallback via RPC: verknüpft einen verwaisten Provider (im Admin-Panel
-      //    ohne user_id angelegt) anhand der Login-E-Mail. SECURITY DEFINER
-      //    umgeht RLS sauber — siehe migration 045_claim_provider_by_email.sql
-      const { data: claimed, error: claimErr } = await supabase
-        .rpc('claim_provider_by_email')
-      if (!claimErr && claimed) {
-        console.log('✅ Provider via E-Mail-Match verknüpft:', claimed.id || claimed)
-        setProvider(claimed)
-        return
+      // 2) Team-Mitgliedschaften (provider_members → service_providers)
+      const { data: memberships } = await supabase
+        .from('provider_members').select('provider_id, role').eq('user_id', userId)
+      const memberIds = (memberships || []).map(m => m.provider_id).filter(pid => !byId.has(pid))
+      if (memberIds.length > 0) {
+        const { data: memberProviders } = await supabase
+          .from('service_providers').select('*').in('id', memberIds)
+        for (const mp of (memberProviders || [])) {
+          const role = memberships.find(m => m.provider_id === mp.id)?.role || 'member'
+          byId.set(mp.id, { ...mp, _membership: role })
+        }
       }
-      if (claimErr) console.warn('claim_provider_by_email Fehler:', claimErr.message)
 
-      console.warn('Kein Provider-Profil für user', userId)
-      setProvider(null)
+      // 3) Fallback: verwaisten Provider per E-Mail verknüpfen (Alt-Logik)
+      if (byId.size === 0) {
+        const { data: claimed, error: claimErr } = await supabase.rpc('claim_provider_by_email')
+        if (!claimErr && claimed) byId.set(claimed.id || claimed, { ...claimed, _membership: 'owner' })
+        else if (claimErr) console.warn('claim_provider_by_email Fehler:', claimErr.message)
+      }
+
+      const list = [...byId.values()]
+      setProviders(list)
+
+      if (list.length === 0) { setProvider(null); return }
+
+      // Aktives Konto: gemerktes (falls noch gültig) → sonst eigenes → sonst erstes
+      let activeId = null
+      try { activeId = localStorage.getItem(ACTIVE_KEY) } catch (_) {}
+      const active = list.find(p => p.id === activeId)
+                  || list.find(p => p._membership === 'owner')
+                  || list[0]
+      setProvider(active)
+      try { localStorage.setItem(ACTIVE_KEY, active.id) } catch (_) {}
     } catch (err) {
       console.error('loadProvider Fehler:', err.message)
       setProvider(null)
@@ -156,7 +188,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user, provider, loading,
+      user, provider, providers, switchProvider, loading,
       mfaEnrolled, mfaRequired, mfaFactors,
       signIn, signUp, signOut, loadProvider, refreshMfaStatus,
       verifyMFA, enrollMFA, confirmMFAEnrollment, unenrollMFA
