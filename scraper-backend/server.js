@@ -4178,74 +4178,115 @@ function geocodeNominatim(street, postalCode, city, country) {
     });
 }
 
-/**
- * POST /api/regeocode
- * Body: { limit=40, dryRun=true, country=null, mode='missing'|'all', minShiftKm=0 }
- *   mode 'missing' → nur Provider ohne Koordinaten
- *   mode 'all'     → alle mit Adresse (neu verorten)
- *   minShiftKm     → nur aktualisieren wenn die neue Position ≥ X km abweicht
- *                    (bei 'all' sinnvoll, um nur wirklich falsche zu korrigieren)
- */
-app.post('/api/regeocode', async (req, res) => {
-    if (!CONFIG.SUPABASE_SERVICE_KEY) return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY fehlt.' });
-    const { limit = 40, dryRun = true, country = null, mode = 'missing', minShiftKm = 0 } = req.body || {};
-
-    try {
-        // Provider laden (großzügig, dann in JS filtern wegen gemischter Country-Formate)
-        let filter = 'city=not.is.null&city=neq.';
-        if (mode === 'missing') filter += '&or=(latitude.is.null,longitude.is.null)';
-        const dbLimit = country ? Math.max(limit * 6, 300) : limit * 2;
-        const path = `service_providers?select=id,name,street,postal_code,city,country,latitude,longitude&${filter}&order=id&limit=${dbLimit}`;
-        let providers = await supabaseGet(path, null);
-        if (!Array.isArray(providers)) throw new Error('Supabase: ' + JSON.stringify(providers).substring(0, 200));
-
-        if (country) {
-            const want = country.toUpperCase();
-            providers = providers.filter(p => normalizeCountryCode(p.country) === want);
-        }
-        providers = providers.slice(0, limit);
-
-        const counts = { processed: 0, updated: 0, skipped: 0, notFound: 0 };
-        const results = [];
-
-        for (let i = 0; i < providers.length; i++) {
-            const p = providers[i];
-            if (i > 0) await new Promise(r => setTimeout(r, 1100)); // Nominatim: max 1 req/s
-            counts.processed++;
-
-            const geo = await geocodeNominatim(p.street, p.postal_code, p.city, p.country);
-            if (!geo) {
-                counts.notFound++;
-                results.push({ id: p.id, name: p.name, status: 'not_found' });
-                continue;
-            }
-
-            const shift = (p.latitude && p.longitude)
-                ? haversineKm(p.latitude, p.longitude, geo.lat, geo.lon) : null;
-
-            if (minShiftKm > 0 && shift !== null && shift < minShiftKm) {
-                counts.skipped++;
-                results.push({ id: p.id, name: p.name, status: 'ok', shiftKm: Math.round(shift * 10) / 10 });
-                continue;
-            }
-
-            if (!dryRun) {
-                await supabasePatch('service_providers', p.id, { latitude: geo.lat, longitude: geo.lon }, null);
-            }
-            counts.updated++;
-            results.push({
-                id: p.id, name: p.name, status: dryRun ? 'would_update' : 'updated',
-                shiftKm: shift !== null ? Math.round(shift * 10) / 10 : null,
-                lat: geo.lat, lon: geo.lon,
+// Google Geocoding (schnell, kein 1/s-Limit) — nutzt den vorhandenen Places-Key.
+let _googleGeocodeDisabled = false;
+function geocodeGoogle(street, postalCode, city, country) {
+    const key = CONFIG.GOOGLE_PLACES_API_KEY;
+    if (!key || _googleGeocodeDisabled) return Promise.resolve(null);
+    const addr = [street, [postalCode, city].filter(Boolean).join(' '), country].filter(Boolean).join(', ');
+    const path = `/maps/api/geocode/json?address=${encodeURIComponent(addr)}&key=${key}`;
+    return new Promise((resolve) => {
+        https.get({ hostname: 'maps.googleapis.com', path }, (res) => {
+            let d = '';
+            res.on('data', c => d += c);
+            res.on('end', () => {
+                try {
+                    const j = JSON.parse(d);
+                    if (j.status === 'REQUEST_DENIED') { _googleGeocodeDisabled = true; resolve(null); return; }
+                    const loc = j.results?.[0]?.geometry?.location;
+                    if (loc) resolve({ lat: loc.lat, lon: loc.lng });
+                    else resolve(null);
+                } catch { resolve(null); }
             });
-        }
+        }).on('error', () => resolve(null));
+    });
+}
 
-        res.json({ success: true, dryRun, counts, results });
-    } catch (err) {
-        console.error('regeocode error:', err);
-        res.status(500).json({ error: err.message });
+// Alle Provider mit Adresse laden (paginiert), optional nur ohne Koordinaten.
+async function loadProvidersForGeo(mode, country) {
+    let filter = 'city=not.is.null&city=neq.';
+    if (mode === 'missing') filter += '&or=(latitude.is.null,longitude.is.null)';
+    const out = [];
+    for (let offset = 0; ; offset += 1000) {
+        const page = await new Promise((resolve, reject) => {
+            const u = new URL(CONFIG.SUPABASE_URL);
+            https.get({
+                hostname: u.hostname,
+                path: `/rest/v1/service_providers?select=id,name,street,postal_code,city,country,latitude,longitude&${filter}&order=id`,
+                headers: {
+                    apikey: CONFIG.SUPABASE_SERVICE_KEY,
+                    Authorization: `Bearer ${CONFIG.SUPABASE_SERVICE_KEY}`,
+                    Range: `${offset}-${offset + 999}`, 'Range-Unit': 'items',
+                },
+            }, (res) => { let d = ''; res.on('data', c => d += c); res.on('end', () => { try { resolve(JSON.parse(d)); } catch (e) { reject(e); } }); }).on('error', reject);
+        });
+        if (!Array.isArray(page)) throw new Error('Supabase: ' + JSON.stringify(page).substring(0, 200));
+        out.push(...page);
+        if (page.length < 1000) break;
     }
+    if (country) {
+        const want = country.toUpperCase();
+        return out.filter(p => normalizeCountryCode(p.country) === want);
+    }
+    return out;
+}
+
+// Hintergrund-Job-Status (in-memory; für einmalige Cleanups ausreichend)
+let _geoJob = { running: false, mode: null, country: null, dryRun: true, minShiftKm: 0,
+                total: 0, processed: 0, updated: 0, skipped: 0, notFound: 0,
+                startedAt: null, finishedAt: null, source: null, samples: [] };
+
+async function runGeoJob(opts) {
+    _geoJob = { running: true, ...opts, total: 0, processed: 0, updated: 0, skipped: 0,
+                notFound: 0, startedAt: new Date().toISOString(), finishedAt: null,
+                source: CONFIG.GOOGLE_PLACES_API_KEY ? 'google' : 'nominatim', samples: [] };
+    try {
+        const providers = await loadProvidersForGeo(opts.mode, opts.country);
+        _geoJob.total = providers.length;
+
+        for (const p of providers) {
+            // Google braucht keine künstliche Pause; Nominatim 1,1s.
+            let geo = await geocodeGoogle(p.street, p.postal_code, p.city, p.country);
+            if (!geo) {
+                if (_googleGeocodeDisabled) { geo = await geocodeNominatim(p.street, p.postal_code, p.city, p.country); await new Promise(r => setTimeout(r, 1100)); }
+            } else {
+                await new Promise(r => setTimeout(r, 60)); // sanftes Google-Rate-Limit
+            }
+            _geoJob.processed++;
+
+            if (!geo) { _geoJob.notFound++; continue; }
+            const shift = (p.latitude && p.longitude) ? haversineKm(p.latitude, p.longitude, geo.lat, geo.lon) : null;
+            if (opts.minShiftKm > 0 && shift !== null && shift < opts.minShiftKm) { _geoJob.skipped++; continue; }
+
+            if (!opts.dryRun) await supabasePatch('service_providers', p.id, { latitude: geo.lat, longitude: geo.lon }, null);
+            _geoJob.updated++;
+            if (_geoJob.samples.length < 50)
+                _geoJob.samples.push({ name: p.name, shiftKm: shift !== null ? Math.round(shift * 10) / 10 : null });
+        }
+    } catch (err) {
+        _geoJob.error = err.message;
+        console.error('geo job error:', err);
+    } finally {
+        _geoJob.running = false;
+        _geoJob.finishedAt = new Date().toISOString();
+        console.log(`📍 Geo-Job fertig: ${_geoJob.updated}/${_geoJob.total} ${_geoJob.dryRun ? '(Trockenlauf)' : 'aktualisiert'}`);
+    }
+}
+
+/**
+ * POST /api/regeocode  → startet einen HINTERGRUND-Job (für 5000+ Provider).
+ * Body: { dryRun=true, country=null, mode='missing'|'all', minShiftKm=0 }
+ * Antwort: sofort { started: true }. Fortschritt via GET /api/regeocode-status.
+ */
+app.post('/api/regeocode', (req, res) => {
+    if (!CONFIG.SUPABASE_SERVICE_KEY) return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY fehlt.' });
+    if (_geoJob.running) return res.status(409).json({ error: 'Es läuft bereits ein Geo-Job. Bitte abwarten.', status: _geoJob });
+    const { dryRun = true, country = null, mode = 'missing', minShiftKm = 0 } = req.body || {};
+    setImmediate(() => runGeoJob({ dryRun, country, mode, minShiftKm }));
+    res.json({ started: true });
 });
+
+app.get('/api/regeocode-status', (req, res) => res.json(_geoJob));
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🚀 Skipily Places Scraper v4.0 läuft auf Port ${PORT}`);

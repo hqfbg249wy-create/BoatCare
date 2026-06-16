@@ -10430,39 +10430,72 @@ async function startCleverReachLanguageSync() {
 }
 window.startCleverReachLanguageSync = startCleverReachLanguageSync;
 
-// ── Geo-Korrektur: Provider neu geocodieren ──
+// ── Geo-Korrektur: Hintergrund-Job starten + Fortschritt pollen ──
+let _geoPollTimer = null;
+
+function geoWrite(msg, color = '#94a3b8') {
+    const log = document.getElementById('geo-log');
+    if (log) { log.style.display = 'block'; log.innerHTML += `<div style="color:${color}">${msg}</div>`; log.scrollTop = log.scrollHeight; }
+}
+
 async function startRegeocode() {
     const mode    = document.getElementById('geo-mode')?.value || 'missing';
     const country = (document.getElementById('geo-country')?.value || '').trim().toUpperCase() || null;
-    const limit   = parseInt(document.getElementById('geo-limit')?.value || '40');
     const minShiftKm = parseFloat(document.getElementById('geo-minshift')?.value || '0');
     const dryRun  = document.getElementById('geo-dryrun')?.checked !== false;
     const btn = document.getElementById('geo-btn');
+
     const log = document.getElementById('geo-log');
     if (log) { log.style.display = 'block'; log.innerHTML = ''; }
-    const write = (msg, color = '#94a3b8') => { if (log) { log.innerHTML += `<div style="color:${color}">${msg}</div>`; log.scrollTop = log.scrollHeight; } };
-
     if (btn) btn.disabled = true;
-    write(`📍 Starte ${dryRun ? 'Trockenlauf' : 'Geocodierung'}: mode=${mode}, land=${country || 'alle'}, limit=${limit}, minShift=${minShiftKm}km …`, '#38bdf8');
+
+    geoWrite(`📍 Starte Hintergrund-Job: mode=${mode}, Land=${country || 'alle'}, minShift=${minShiftKm}km, ${dryRun ? 'Trockenlauf' : 'ECHT'} …`, '#38bdf8');
     try {
         const resp = await fetch(`${SCRAPER_URL}/api/regeocode`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mode, country, limit, minShiftKm, dryRun }),
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode, country, minShiftKm, dryRun }),
         });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${(await resp.text()).substring(0, 200)}`);
-        const data = await resp.json();
-        const c = data.counts || {};
-        for (const r of (data.results || [])) {
-            if (r.status === 'not_found') write(`  ❓ ${r.name}: nicht gefunden`, '#f59e0b');
-            else if (r.status === 'ok')   write(`  ⏭ ${r.name}: ok (${r.shiftKm} km, unter Schwelle)`, '#64748b');
-            else write(`  ${dryRun ? '🔍' : '✅'} ${r.name}: ${r.shiftKm != null ? r.shiftKm + ' km verschoben' : 'neu gesetzt'} → ${r.lat?.toFixed(4)}, ${r.lon?.toFixed(4)}`, '#10b981');
-        }
-        write(`\n📊 ${c.processed} geprüft · ${c.updated} ${dryRun ? 'würden geändert' : 'aktualisiert'} · ${c.skipped} übersprungen · ${c.notFound} nicht gefunden`, '#38bdf8');
-        if (dryRun) write(`ℹ️ Trockenlauf — nichts geändert. Häkchen entfernen für echten Lauf.`, '#f59e0b');
+        if (resp.status === 409) { geoWrite('⚠️ Es läuft bereits ein Geo-Job — Fortschritt unten.', '#f59e0b'); pollGeoStatus(); return; }
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${(await resp.text()).substring(0, 150)}`);
+        geoWrite('✅ Job gestartet, lädt Provider …', '#10b981');
+        pollGeoStatus();
     } catch (err) {
-        write(`❌ Fehler: ${err.message}`, '#ef4444');
-    } finally {
+        geoWrite(`❌ Fehler: ${err.message}`, '#ef4444');
+        if (btn) btn.disabled = false;
+    }
+}
+
+async function pollGeoStatus() {
+    if (_geoPollTimer) clearTimeout(_geoPollTimer);
+    try {
+        const s = await (await fetch(`${SCRAPER_URL}/api/regeocode-status`)).json();
+        const pct = s.total > 0 ? Math.round((s.processed / s.total) * 100) : 0;
+        const line = `   ⏳ ${s.processed}/${s.total} (${pct}%) · ${s.updated} ${s.dryRun ? 'Treffer' : 'aktualisiert'} · ${s.skipped} ok · ${s.notFound} nicht gefunden · Quelle: ${s.source || '?'}`;
+        // letzte Zeile ersetzen statt anhängen
+        const log = document.getElementById('geo-log');
+        if (log) {
+            const lines = log.querySelectorAll('div');
+            const last = lines[lines.length - 1];
+            if (last && last.dataset.progress) last.outerHTML = `<div data-progress="1" style="color:#38bdf8">${line}</div>`;
+            else log.innerHTML += `<div data-progress="1" style="color:#38bdf8">${line}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+        if (s.running) {
+            _geoPollTimer = setTimeout(pollGeoStatus, 2500);
+        } else {
+            geoWrite(`\n📊 Fertig: ${s.updated}/${s.total} ${s.dryRun ? 'würden geändert' : 'aktualisiert'} · ${s.skipped} unter Schwelle · ${s.notFound} ohne Treffer`, '#10b981');
+            if (s.error) geoWrite(`❌ Fehler: ${s.error}`, '#ef4444');
+            if (s.dryRun) geoWrite('ℹ️ Trockenlauf — nichts geändert. Häkchen entfernen für echten Lauf.', '#f59e0b');
+            if (Array.isArray(s.samples) && s.samples.length) {
+                geoWrite('Beispiele:', '#94a3b8');
+                s.samples.slice(0, 20).forEach(x => geoWrite(`  • ${x.name}: ${x.shiftKm != null ? x.shiftKm + ' km' : 'neu gesetzt'}`, '#64748b'));
+            }
+            const btn = document.getElementById('geo-btn');
+            if (btn) btn.disabled = false;
+        }
+    } catch (err) {
+        geoWrite(`❌ Status-Fehler: ${err.message}`, '#ef4444');
+        const btn = document.getElementById('geo-btn');
         if (btn) btn.disabled = false;
     }
 }
