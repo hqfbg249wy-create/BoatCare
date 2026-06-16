@@ -105,14 +105,30 @@ Deno.serve(async (req) => {
       // deshalb KEINE Passwort-Reset-Mail (verwirrend!), sondern eine echte
       // Team-Benachrichtigung über Resend.
       const roleLabel = memberRole === "admin" ? "Admin" : "Mitglied";
-      const mailSent = await sendTeamNotification(normalizedEmail, provider.name, roleLabel);
+
+      // 1) Bevorzugt: gebrandete Team-Mail über Resend
+      let mailSent = await sendTeamNotification(normalizedEmail, provider.name, roleLabel);
+      let via = mailSent ? "resend" : "";
+
+      // 2) Fallback: zuverlässiger Magic-Link über Supabase-SMTP (KEIN Passwort-Reset).
+      //    signInWithOtp sendet einen Anmelde-Link an bestehende User.
+      if (!mailSent) {
+        const anonClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") ?? "");
+        const { error: otpErr } = await anonClient.auth.signInWithOtp({
+          email: normalizedEmail,
+          options: { shouldCreateUser: false, emailRedirectTo: "https://provider.skipily.app/" },
+        });
+        if (!otpErr) { mailSent = true; via = "magiclink"; }
+        else console.warn("Magic-Link-Fallback fehlgeschlagen:", otpErr.message);
+      }
 
       return json({
         ok: true,
         mode: "linked-existing",
+        mail_via: via,
         message: mailSent
-          ? `${normalizedEmail} ist bereits registriert und wurde als ${memberRole} hinzugefügt. Eine Info-Mail wurde verschickt — Login mit dem bestehenden Passwort.`
-          : `${normalizedEmail} wurde als ${memberRole} hinzugefügt. Bitte das Team-Mitglied informieren — Login mit dem bestehenden Passwort unter provider.skipily.app.`,
+          ? `${normalizedEmail} wurde als ${memberRole} hinzugefügt. Eine Anmelde-Info wurde per E-Mail verschickt — Login mit dem bestehenden Passwort.`
+          : `${normalizedEmail} wurde als ${memberRole} hinzugefügt, aber es konnte keine E-Mail versendet werden. Bitte das Team-Mitglied manuell informieren — Login unter provider.skipily.app.`,
       });
     }
 
