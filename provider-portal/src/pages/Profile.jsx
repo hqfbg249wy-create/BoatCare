@@ -171,8 +171,18 @@ export default function Profile() {
     if (!provider?.id) return
     supabase.from('provider_shipping_rules').select('*').eq('provider_id', provider.id).maybeSingle()
       .then(({ data }) => {
+        // Land auf ISO-2 normalisieren (in der DB steht oft "Deutschland")
+        const toIso2 = (c) => {
+          if (!c) return 'DE'
+          const s = String(c).trim()
+          if (s.length === 2) return s.toUpperCase()
+          const m = { deutschland:'DE', germany:'DE', österreich:'AT', oesterreich:'AT', austria:'AT',
+            schweiz:'CH', switzerland:'CH', frankreich:'FR', france:'FR', italien:'IT', italy:'IT', italia:'IT',
+            spanien:'ES', spain:'ES', niederlande:'NL', netherlands:'NL', nederland:'NL', belgien:'BE', belgium:'BE' }
+          return m[s.toLowerCase()] || s.substring(0,2).toUpperCase()
+        }
         setShipRule(data || {
-          provider_id: provider.id, enabled: false, domestic_country: provider.country || 'DE',
+          provider_id: provider.id, enabled: false, domestic_country: toIso2(provider.country),
           free_threshold_domestic: 85, free_threshold_eu: null,
           rate_domestic_base: 5.90, rate_domestic_per_kg: 0,
           rate_eu_base: 14.90, rate_eu_per_kg: 1.50,

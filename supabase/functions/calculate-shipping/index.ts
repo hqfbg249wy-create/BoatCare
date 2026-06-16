@@ -22,6 +22,19 @@ const EU = new Set([
   "LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE",
 ]);
 
+// Land → ISO-2 (DB enthält teils volle Namen wie "Deutschland")
+function iso2(c: unknown): string {
+  if (!c) return "";
+  const s = String(c).trim();
+  if (s.length === 2) return s.toUpperCase();
+  const m: Record<string, string> = {
+    deutschland: "DE", germany: "DE", "österreich": "AT", oesterreich: "AT", austria: "AT",
+    schweiz: "CH", switzerland: "CH", frankreich: "FR", france: "FR", italien: "IT", italy: "IT", italia: "IT",
+    spanien: "ES", spain: "ES", niederlande: "NL", netherlands: "NL", nederland: "NL", belgien: "BE", belgium: "BE",
+  };
+  return m[s.toLowerCase()] || s.substring(0, 2).toUpperCase();
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -47,10 +60,11 @@ Deno.serve(async (req) => {
       return json({ shipping_cost: round2(fallback), free: fallback === 0, zone: "flat", reason: "Engine inaktiv — Produkt-Versand", currency: "EUR" });
     }
 
-    // ── Zone bestimmen ──
+    // ── Zone bestimmen (beide Seiten auf ISO-2 normalisiert) ──
+    const destCc = iso2(dest);
     let zone: "domestic" | "eu" | "world";
-    if (dest === String(rule.domestic_country).toUpperCase()) zone = "domestic";
-    else if (EU.has(dest)) zone = "eu";
+    if (destCc === iso2(rule.domestic_country)) zone = "domestic";
+    else if (EU.has(destCc)) zone = "eu";
     else zone = "world";
 
     // ── Freigrenze prüfen ──
