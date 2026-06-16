@@ -16,6 +16,18 @@ export default function Profile() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
 
+  // ── Rolle des angemeldeten Users im Betrieb ──
+  // 'owner' (service_providers.user_id) oder Rolle aus provider_members.
+  // canAdmin = Owner/Admin → darf Profil, Team, API, Versand ändern.
+  const [myRole, setMyRole] = useState('owner')
+  useEffect(() => {
+    if (!provider?.id || !user?.id) return
+    if (provider.user_id === user.id) { setMyRole('owner'); return }
+    supabase.from('provider_members').select('role').eq('provider_id', provider.id).eq('user_id', user.id).maybeSingle()
+      .then(({ data }) => setMyRole(data?.role || 'member'))
+  }, [provider?.id, provider?.user_id, user?.id])
+  const canAdmin = myRole === 'owner' || myRole === 'admin'
+
   // Stripe Connect state
   const [stripeLoading, setStripeLoading] = useState(false)
   const [stripeStatus, setStripeStatus] = useState(null)
@@ -789,6 +801,12 @@ export default function Profile() {
 
   return (
     <div className="page">
+      {!canAdmin && (
+        <div className="alert" style={{ background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', marginBottom: 12 }}>
+          👤 Du bist als <strong>Mitglied</strong> angemeldet. Du kannst <strong>Produkte und Bestellungen</strong> bearbeiten.
+          Profil/Stammdaten, Team, API-Zugang und Versandregeln sind dem Inhaber/Admin vorbehalten.
+        </div>
+      )}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 8 }}>
         <div>
           <h1 style={{ marginBottom: 4 }}>Stammdaten</h1>
@@ -1524,7 +1542,7 @@ export default function Profile() {
           </div>
 
           {shipMsg && <div className={`alert alert-${shipMsg.type}`}>{shipMsg.text}</div>}
-          <button className="btn-primary" onClick={saveShippingRule}>Versandregeln speichern</button>
+          <button className="btn-primary" onClick={saveShippingRule} disabled={!canAdmin}>Versandregeln speichern</button>
         </div>
         )}
 
@@ -1858,6 +1876,7 @@ export default function Profile() {
                 <button
                   type="button"
                   className="btn-primary"
+                  disabled={!canAdmin}
                   onClick={inviteTeamMember}
                   disabled={teamLoading}
                 >
@@ -1916,13 +1935,13 @@ export default function Profile() {
                 <button type="button" className="btn-icon" onClick={copyApiKey} title="Kopieren">
                   {apiKeyCopied ? <CheckCircle size={16} style={{ color: 'var(--green)' }} /> : <Copy size={16} />}
                 </button>
-                <button type="button" className="btn-icon" onClick={generateApiKey} title="Neu generieren" disabled={generatingKey}>
+                <button type="button" className="btn-icon" onClick={generateApiKey} title="Neu generieren" disabled={generatingKey || !canAdmin}>
                   <RefreshCw size={16} className={generatingKey ? 'spin' : ''} />
                 </button>
               </div>
             ) : (
               <div>
-                <button type="button" className="btn-secondary" onClick={generateApiKey} disabled={generatingKey}>
+                <button type="button" className="btn-secondary" onClick={generateApiKey} disabled={generatingKey || !canAdmin}>
                   {generatingKey ? <><Loader size={14} className="spin" /> Generieren...</> : <><Key size={14} /> API-Schlüssel generieren</>}
                 </button>
               </div>
@@ -1942,7 +1961,7 @@ export default function Profile() {
                 placeholder="https://dein-server.de/webhooks/boatcare"
                 style={{ flex: 1 }}
               />
-              <button type="button" className="btn-secondary" onClick={saveWebhookUrl} style={{ whiteSpace: 'nowrap' }}>
+              <button type="button" className="btn-secondary" onClick={saveWebhookUrl} disabled={!canAdmin} style={{ whiteSpace: 'nowrap' }}>
                 <Save size={14} /> Speichern
               </button>
             </div>
@@ -1974,7 +1993,7 @@ export default function Profile() {
         </div>
 
         <div className="form-actions">
-          <button type="submit" className="btn-primary" disabled={saving}>
+          <button type="submit" className="btn-primary" disabled={saving || !canAdmin}>
             {saving ? <><Loader size={16} className="spin" /> Speichern...</> : <><Save size={16} /> Speichern</>}
           </button>
         </div>
