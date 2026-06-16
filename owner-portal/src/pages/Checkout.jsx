@@ -129,7 +129,27 @@ export default function Checkout() {
 
       for (const [providerId, items] of Object.entries(groupedByProvider)) {
         const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0)
-        const shippingCost = 0
+
+        // Versandkosten über die Engine berechnen (Freigrenze + Gewicht/Zone).
+        // Fällt bei Fehler/Engine-aus auf höchsten Produkt-Versand bzw. 0 zurück.
+        let shippingCost = 0
+        if (providerId !== 'unknown') {
+          try {
+            const { data: ship } = await supabase.functions.invoke('calculate-shipping', {
+              body: {
+                provider_id: providerId,
+                country: shipping.country,
+                subtotal,
+                items: items.map(i => ({
+                  weight_kg: i.weight_kg ?? null,
+                  quantity: i.quantity,
+                  shipping_cost: i.shipping_cost ?? null,
+                })),
+              },
+            })
+            if (ship && typeof ship.shipping_cost === 'number') shippingCost = ship.shipping_cost
+          } catch (_) { /* Fallback 0 */ }
+        }
 
         let commissionRate = 10
         if (providerId !== 'unknown') {
