@@ -164,6 +164,37 @@ export default function Profile() {
     }
   }, [provider])
 
+  // Versandregeln laden
+  const [shipRule, setShipRule] = useState(null)
+  const [shipMsg, setShipMsg] = useState(null)
+  useEffect(() => {
+    if (!provider?.id) return
+    supabase.from('provider_shipping_rules').select('*').eq('provider_id', provider.id).maybeSingle()
+      .then(({ data }) => {
+        setShipRule(data || {
+          provider_id: provider.id, enabled: false, domestic_country: provider.country || 'DE',
+          free_threshold_domestic: 85, free_threshold_eu: null,
+          rate_domestic_base: 5.90, rate_domestic_per_kg: 0,
+          rate_eu_base: 14.90, rate_eu_per_kg: 1.50,
+          rate_world_base: 29.90, rate_world_per_kg: 3.00,
+          max_shipping: null, default_item_weight: 0.50,
+        })
+      })
+  }, [provider?.id])
+
+  async function saveShippingRule() {
+    setShipMsg(null)
+    try {
+      const payload = { ...shipRule, provider_id: provider.id, updated_at: new Date().toISOString() }
+      const { error } = await supabase.from('provider_shipping_rules').upsert(payload, { onConflict: 'provider_id' })
+      if (error) throw error
+      setShipMsg({ type: 'success', text: 'Versandregeln gespeichert.' })
+    } catch (err) {
+      setShipMsg({ type: 'error', text: 'Fehler: ' + err.message })
+    }
+  }
+  const setShip = (k, v) => setShipRule(r => ({ ...r, [k]: v }))
+
   // Load shop products (used for auto-suggesting brands/services + linking chips)
   useEffect(() => {
     if (!provider?.id) return
@@ -1423,6 +1454,60 @@ export default function Profile() {
             })}
           </div>
         </div>
+
+        {/* ── Versandkosten-Engine ── */}
+        {shipRule && (
+        <div className="card">
+          <h2 style={{ display:'flex', alignItems:'center', gap:8 }}>📦 Versandkosten</h2>
+          <p style={{ fontSize:'0.85rem', color:'#64748b', marginTop:0 }}>
+            Frei ab Betrag + gewichtsbasierte Staffel pro Zone. Ist die Engine
+            aus, gilt der höchste Produkt-Versand wie bisher.
+          </p>
+
+          <label style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
+            <input type="checkbox" checked={!!shipRule.enabled} onChange={e => setShip('enabled', e.target.checked)} />
+            <span style={{ fontWeight:600 }}>Versandkosten-Engine aktivieren</span>
+          </label>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Heimatland (ISO-2)</label>
+              <input type="text" maxLength={2} value={shipRule.domestic_country || ''}
+                     onChange={e => setShip('domestic_country', e.target.value.toUpperCase())} placeholder="DE" />
+            </div>
+            <div className="form-group">
+              <label>Kostenlos ab (€, Heimatland)</label>
+              <input type="number" step="0.01" value={shipRule.free_threshold_domestic ?? ''}
+                     onChange={e => setShip('free_threshold_domestic', e.target.value === '' ? null : parseFloat(e.target.value))} placeholder="85.00" />
+            </div>
+            <div className="form-group">
+              <label>Kostenlos ab (€, EU)</label>
+              <input type="number" step="0.01" value={shipRule.free_threshold_eu ?? ''}
+                     onChange={e => setShip('free_threshold_eu', e.target.value === '' ? null : parseFloat(e.target.value))} placeholder="optional" />
+            </div>
+          </div>
+
+          <h3 style={{ fontSize:'0.95rem', margin:'10px 0 6px' }}>Tarife (Grundpreis + €/kg)</h3>
+          {[['domestic','Heimatland'],['eu','EU'],['world','Welt']].map(([z, label]) => (
+            <div className="form-row" key={z}>
+              <div className="form-group"><label>{label} — Grundpreis €</label>
+                <input type="number" step="0.01" value={shipRule[`rate_${z}_base`] ?? ''} onChange={e => setShip(`rate_${z}_base`, parseFloat(e.target.value) || 0)} /></div>
+              <div className="form-group"><label>{label} — € pro kg</label>
+                <input type="number" step="0.01" value={shipRule[`rate_${z}_per_kg`] ?? ''} onChange={e => setShip(`rate_${z}_per_kg`, parseFloat(e.target.value) || 0)} /></div>
+            </div>
+          ))}
+
+          <div className="form-row">
+            <div className="form-group"><label>Max. Versand (€, optional)</label>
+              <input type="number" step="0.01" value={shipRule.max_shipping ?? ''} onChange={e => setShip('max_shipping', e.target.value === '' ? null : parseFloat(e.target.value))} placeholder="Deckel" /></div>
+            <div className="form-group"><label>Standard-Gewicht/Artikel (kg)</label>
+              <input type="number" step="0.01" value={shipRule.default_item_weight ?? ''} onChange={e => setShip('default_item_weight', parseFloat(e.target.value) || 0.5)} /></div>
+          </div>
+
+          {shipMsg && <div className={`alert alert-${shipMsg.type}`}>{shipMsg.text}</div>}
+          <button className="btn-primary" onClick={saveShippingRule}>Versandregeln speichern</button>
+        </div>
+        )}
 
         <div className="card">
           <h2>Kontakt</h2>
