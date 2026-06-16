@@ -67,9 +67,10 @@ serve(async (req: Request) => {
 
         console.log(`Payment succeeded for orders: ${orderIds.join(", ")}`);
 
-        // Update all associated orders
+        // Update all associated orders + Provider-/Käufer-Webhook anstoßen
         for (const orderId of orderIds) {
           if (!orderId) continue;
+          const oid = orderId.trim();
 
           await supabase
             .from("orders")
@@ -77,7 +78,18 @@ serve(async (req: Request) => {
               payment_status: "paid",
               status: "confirmed",
             })
-            .eq("id", orderId.trim());
+            .eq("id", oid);
+
+          // order-webhooks benachrichtigt den Provider (webhook_url) + Käufer.
+          // Fire-and-forget, damit der Stripe-Webhook schnell mit 200 antwortet.
+          fetch(`${supabaseUrl}/functions/v1/order-webhooks`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({ order_id: oid, event_type: "order_confirmed" }),
+          }).catch((e) => console.warn("order-webhooks Trigger fehlgeschlagen:", e?.message));
         }
 
         // Create transfers for multi-provider orders
