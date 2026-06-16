@@ -1807,53 +1807,78 @@ export default function Profile() {
                 </div>
               )}
 
-              {/* Mitglieder-Liste */}
-              {teamMembers.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
-                  {teamMembers.map(m => (
-                    <div key={m.email} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '8px 12px',
-                      background: '#fafafa',
-                      border: '1px solid var(--gray-200)',
-                      borderRadius: 8,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-                        <span style={{ fontSize: 18 }}>{m.accepted_at ? '✅' : '⏳'}</span>
-                        <div style={{ overflow: 'hidden' }}>
-                          <div style={{ fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {m.email}
-                          </div>
-                          <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>
-                            {m.accepted_at ? 'Aktiv' : 'Einladung verschickt'}
+              {/* Team-Struktur: Inhaber (Hauptrolle) oben, Mitglieder darunter eingerückt */}
+              <div style={{ marginBottom: 16 }}>
+                {/* Inhaber-Zeile */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 12px', background: '#faf5ff',
+                  border: '1px solid #e9d5ff', borderRadius: 8,
+                }}>
+                  <span style={{ fontSize: 18 }}>👑</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                      Inhaber{myRole === 'owner' ? ' · Du' : ''}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--gray-500)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {provider.email || '—'}
+                    </div>
+                  </div>
+                  <span style={{ background: '#7e22ce', color: '#fff', padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
+                    Vollzugriff
+                  </span>
+                </div>
+
+                {/* Mitglieder, eingerückt + Verbindungslinie zum Inhaber */}
+                {teamMembers.length > 0 && (
+                  <div style={{ marginLeft: 20, borderLeft: '2px solid #e9d5ff', paddingLeft: 14, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {teamMembers.map(m => (
+                      <div key={m.email} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                        padding: '8px 12px', background: '#fafafa',
+                        border: '1px solid var(--gray-200)', borderRadius: 8, position: 'relative',
+                      }}>
+                        <span style={{ position: 'absolute', left: -16, top: '50%', width: 12, borderTop: '2px solid #e9d5ff' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: 16 }}>{m.role === 'admin' ? '🛡️' : '👤'}</span>
+                          <div style={{ overflow: 'hidden' }}>
+                            <div style={{ fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {m.email}
+                            </div>
+                            <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>
+                              {m.role === 'admin' ? 'Admin' : 'Mitglied'} · {m.accepted_at ? 'Aktiv' : 'Einladung verschickt'}
+                            </div>
                           </div>
                         </div>
+                        <select
+                          value={m.role}
+                          onChange={e => changeTeamRole(m.email, e.target.value)}
+                          disabled={!canAdmin}
+                          title="Rolle ändern"
+                          style={{
+                            padding: '5px 8px', border: '1px solid var(--gray-200)', borderRadius: 6,
+                            fontSize: 12, background: '#fff', cursor: canAdmin ? 'pointer' : 'not-allowed',
+                          }}>
+                          <option value="member">👤 Mitglied</option>
+                          <option value="admin">🛡️ Admin</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => removeTeamMember(m.email)}
+                          disabled={!canAdmin}
+                          style={{
+                            background: 'transparent', border: '1px solid #fecaca',
+                            color: '#991b1b', padding: '4px 10px', borderRadius: 6,
+                            fontSize: 12, fontWeight: 600, cursor: canAdmin ? 'pointer' : 'not-allowed',
+                            opacity: canAdmin ? 1 : 0.5,
+                          }}>
+                          Entfernen
+                        </button>
                       </div>
-                      <select
-                        value={m.role}
-                        onChange={e => changeTeamRole(m.email, e.target.value)}
-                        title="Rolle ändern"
-                        style={{
-                          padding: '5px 8px', border: '1px solid var(--gray-200)', borderRadius: 6,
-                          fontSize: 12, background: '#fff', cursor: 'pointer',
-                        }}>
-                        <option value="member">👤 Mitglied</option>
-                        <option value="admin">🛡️ Admin</option>
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => removeTeamMember(m.email)}
-                        style={{
-                          background: 'transparent', border: '1px solid #fecaca',
-                          color: '#991b1b', padding: '4px 10px', borderRadius: 6,
-                          fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                        }}>
-                        Entfernen
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Einladungsformular */}
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -1876,9 +1901,8 @@ export default function Profile() {
                 <button
                   type="button"
                   className="btn-primary"
-                  disabled={!canAdmin}
                   onClick={inviteTeamMember}
-                  disabled={teamLoading}
+                  disabled={teamLoading || !canAdmin}
                 >
                   {teamLoading
                     ? <><Loader size={14} className="spin" /> Sende…</>
