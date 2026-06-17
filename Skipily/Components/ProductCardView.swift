@@ -28,7 +28,7 @@ struct ProductCardView: View {
                         .fill(AppColors.gray100)
 
                     if let url = product.firstImageURL {
-                        AsyncImage(url: url) { phase in
+                        CachedAsyncImage(url: url, targetSize: CGSize(width: 400, height: 300)) { phase in
                             switch phase {
                             case .success(let image):
                                 image

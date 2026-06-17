@@ -258,7 +258,7 @@ struct ProductDetailView: View {
             TabView(selection: $selectedImageIndex) {
                 if let images = product.images, !images.isEmpty {
                     ForEach(images.indices, id: \.self) { index in
-                        AsyncImage(url: URL(string: images[index])) { phase in
+                        CachedAsyncImage(url: URL(string: images[index]), targetSize: CGSize(width: 700, height: 500)) { phase in
                             switch phase {
                             case .success(let image):
                                 image
@@ -610,7 +610,7 @@ struct ProductDetailView: View {
                     .fill(AppColors.gray100)
 
                 if let url = prod.firstImageURL {
-                    AsyncImage(url: url) { phase in
+                    CachedAsyncImage(url: url, targetSize: CGSize(width: 120, height: 90)) { phase in
                         switch phase {
                         case .success(let image):
                             image.resizable().aspectRatio(contentMode: .fill)

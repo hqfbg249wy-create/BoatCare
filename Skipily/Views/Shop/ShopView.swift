@@ -280,7 +280,7 @@ struct ShopView: View {
                                 .fill(AppColors.gray100)
 
                             if let url = product.firstImageURL {
-                                AsyncImage(url: url) { phase in
+                                CachedAsyncImage(url: url, targetSize: CGSize(width: 160, height: 110)) { phase in
                                     switch phase {
                                     case .success(let image):
                                         image
@@ -417,7 +417,7 @@ struct ShopView: View {
                     .fill(AppColors.gray100)
 
                 if let url = product.firstImageURL {
-                    AsyncImage(url: url) { phase in
+                    CachedAsyncImage(url: url, targetSize: CGSize(width: 140, height: 100)) { phase in
                         switch phase {
                         case .success(let image):
                             image
