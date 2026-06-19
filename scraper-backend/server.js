@@ -3412,6 +3412,9 @@ async function cleverreachUpsertReceiver(groupId, provider) {
             });
         });
         req.on('error', reject);
+        // Ohne Timeout kann ein haengender CleverReach-Call den ganzen Job
+        // einfrieren (Event-Loop blockiert auf dem await). 15s-Limit + abort.
+        req.setTimeout(15000, () => req.destroy(new Error('CleverReach Timeout (15s)')));
         req.write(payload);
         req.end();
     });
@@ -3636,13 +3639,15 @@ let _crLangJob = {
     total: 0, synced: 0, skipped: 0, errors: 0, perGroup: {}, error: null, lastError: null,
 };
 
-async function runCleverReachLangJob({ onlyVerified = true, dryRun = false } = {}) {
+async function runCleverReachLangJob({ onlyVerified = true, dryRun = false, includeSynced = false } = {}) {
     _crLangJob = {
-        running: true, dryRun, startedAt: new Date().toISOString(), finishedAt: null,
+        running: true, dryRun, includeSynced, startedAt: new Date().toISOString(), finishedAt: null,
         total: 0, synced: 0, skipped: 0, errors: 0, perGroup: {}, error: null, lastError: null,
     };
     try {
-        const providers = await loadAllProvidersForLanguageSync({ onlyVerified, includeSynced: true });
+        // Default: nur noch NICHT synchronisierte (Delta) — schnell + schont die
+        // kleine Maschine. includeSynced=true erzwingt einen vollen Re-Push.
+        const providers = await loadAllProvidersForLanguageSync({ onlyVerified, includeSynced });
         _crLangJob.total = providers.length;
         console.log(`\n🌍 CleverReach Sprach-Job: ${providers.length} Provider, dryRun=${dryRun}`);
 
@@ -3682,8 +3687,8 @@ async function runCleverReachLangJob({ onlyVerified = true, dryRun = false } = {
 app.post('/api/cleverreach-language-sync', (req, res) => {
     if (!CONFIG.SUPABASE_SERVICE_KEY) return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY fehlt.' });
     if (_crLangJob.running) return res.status(409).json({ error: 'Es läuft bereits ein Sprach-Sync. Bitte abwarten.', status: _crLangJob });
-    const { onlyVerified = true, dryRun = false } = req.body || {};
-    setImmediate(() => runCleverReachLangJob({ onlyVerified, dryRun }));
+    const { onlyVerified = true, dryRun = false, includeSynced = false } = req.body || {};
+    setImmediate(() => runCleverReachLangJob({ onlyVerified, dryRun, includeSynced }));
     res.json({ started: true });
 });
 
