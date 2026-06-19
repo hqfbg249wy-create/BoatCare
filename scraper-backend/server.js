@@ -3623,6 +3623,77 @@ app.post('/api/cleverreach-sync', async (req, res) => {
     }
 });
 
+// ════════════════════════════════════════════════════════════════
+// SPRACH-SYNC als HINTERGRUND-Job
+//
+// Der synchrone /api/cleverreach-sync verarbeitet alle ~2400 Adressen in
+// EINEM Request (~9 min) → Fly kappt die Verbindung mit 502, paralleles
+// Klicken erzeugt EPIPE. Dieser Job antwortet sofort und läuft im
+// Hintergrund weiter; Fortschritt via GET /api/cleverreach-language-status.
+// ════════════════════════════════════════════════════════════════
+let _crLangJob = {
+    running: false, dryRun: false, startedAt: null, finishedAt: null,
+    total: 0, synced: 0, skipped: 0, errors: 0, perGroup: {}, error: null, lastError: null,
+};
+
+async function runCleverReachLangJob({ onlyVerified = true, dryRun = false } = {}) {
+    _crLangJob = {
+        running: true, dryRun, startedAt: new Date().toISOString(), finishedAt: null,
+        total: 0, synced: 0, skipped: 0, errors: 0, perGroup: {}, error: null, lastError: null,
+    };
+    try {
+        const providers = await loadAllProvidersForLanguageSync({ onlyVerified, includeSynced: true });
+        _crLangJob.total = providers.length;
+        console.log(`\n🌍 CleverReach Sprach-Job: ${providers.length} Provider, dryRun=${dryRun}`);
+
+        for (const p of providers) {
+            const lang = countryToLanguage(p.country);
+            const type = p.shop_check_status === 'online_shop' ? 'shop' : 'provider';
+            const key = `${type}:${lang}`;
+            const groupId = (CLEVERREACH_CONFIG.LANG_GROUPS[type] || {})[lang] || '';
+
+            const g = _crLangJob.perGroup[key]
+                || (_crLangJob.perGroup[key] = { group: key, type, lang, total: 0, synced: 0, errors: 0, skipped: 0 });
+            g.total++;
+
+            if (!groupId) { _crLangJob.skipped++; g.skipped++; continue; }
+            if (dryRun) { _crLangJob.synced++; g.synced++; continue; }
+            try {
+                await cleverreachUpsertReceiver(groupId, p);
+                _crLangJob.synced++; g.synced++;
+                await persistCleverReachResult(p.id, groupId, 'subscribed', null);
+            } catch (err) {
+                _crLangJob.errors++; g.errors++;
+                _crLangJob.lastError = err.message;
+                await persistCleverReachResult(p.id, null, 'error', err.message.substring(0, 500));
+            }
+        }
+    } catch (err) {
+        _crLangJob.error = err.message;
+        console.error('CleverReach Sprach-Job-Error:', err);
+    } finally {
+        _crLangJob.running = false;
+        _crLangJob.finishedAt = new Date().toISOString();
+        console.log(`🌍 Sprach-Job fertig: synced=${_crLangJob.synced} skipped=${_crLangJob.skipped} errors=${_crLangJob.errors}`);
+    }
+}
+
+// POST → startet den Job (sofortige Antwort). GET → Fortschritt.
+app.post('/api/cleverreach-language-sync', (req, res) => {
+    if (!CONFIG.SUPABASE_SERVICE_KEY) return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY fehlt.' });
+    if (_crLangJob.running) return res.status(409).json({ error: 'Es läuft bereits ein Sprach-Sync. Bitte abwarten.', status: _crLangJob });
+    const { onlyVerified = true, dryRun = false } = req.body || {};
+    setImmediate(() => runCleverReachLangJob({ onlyVerified, dryRun }));
+    res.json({ started: true });
+});
+
+app.get('/api/cleverreach-language-status', (req, res) => {
+    res.json({
+        ..._crLangJob,
+        perGroup: Object.values(_crLangJob.perGroup).sort((a, b) => b.total - a.total),
+    });
+});
+
 /**
  * Statistik-Endpoint: zeigt wie viele Provider pro Land synchronisiert
  * wurden / synchronisiert werden koennten.

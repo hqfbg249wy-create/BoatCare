@@ -10239,9 +10239,11 @@ async function loadCleverReachStats() {
             } else {
                 statusBox.style.background = '#dcfce7';
                 statusBox.style.borderColor = '#10b981';
+                const lg = data.configured?.langGroups || {};
+                const langCount = ['provider', 'shop'].reduce((n, t) => n + Object.values(lg[t] || {}).filter(Boolean).length, 0);
                 statusBox.innerHTML = `
                     <strong style="color:#166534;">✅ CleverReach verbunden</strong>
-                    <span style="font-size:13px; color:#166534;">— ${groupKeys.length} Group(s) konfiguriert: ${groupKeys.join(', ')}</span>
+                    <span style="font-size:13px; color:#166534;">— ${langCount}/12 Sprach-Gruppen konfiguriert (6 Sprachen × Provider/Shop). Der Sprach-Sync schreibt in diese 12 Gruppen.</span>
                 `;
             }
         }
@@ -10406,6 +10408,7 @@ window.startCleverReachSync = startCleverReachSync;
 window.loadCleverReachStats = loadCleverReachStats;
 
 // ── NEU: Sprach-Sync in 12 Gruppen (6 Provider + 6 Shop) ──
+let _crLangPollTimer = null;
 async function startCleverReachLanguageSync() {
     const dryRun = document.getElementById('cleverreach-lang-dryrun')?.checked !== false;
     const btn = document.getElementById('cleverreach-lang-btn');
@@ -10416,29 +10419,54 @@ async function startCleverReachLanguageSync() {
     const logEl = document.getElementById('cleverreach-log');
     if (logEl) logEl.innerHTML = '';
 
-    cleverreachLog(`🌍 Starte Sprach-Sync (${dryRun ? 'Trockenlauf' : 'ECHT'}) in 12 Gruppen …`, 'info');
+    cleverreachLog(`🌍 Starte Sprach-Sync (${dryRun ? 'Trockenlauf' : 'ECHT'}) als Hintergrund-Job …`, 'info');
     try {
-        const resp = await fetch(`${SCRAPER_URL}/api/cleverreach-sync`, {
+        const resp = await fetch(`${SCRAPER_URL}/api/cleverreach-language-sync`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ groupMode: 'language', dryRun, onlyVerified: true }),
+            body: JSON.stringify({ dryRun, onlyVerified: true }),
         });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${(await resp.text()).substring(0, 200)}`);
-        const data = await resp.json();
-        const c = data.counts || {};
+        cleverreachLog(`⏳ Job läuft serverseitig — Fortschritt wird alle 3 s aktualisiert (kein Timeout/502).`, 'info');
+        if (_crLangPollTimer) clearInterval(_crLangPollTimer);
+        _crLangPollTimer = setInterval(pollCleverReachLangStatus, 3000);
+        pollCleverReachLangStatus();
+    } catch (err) {
+        cleverreachLog(`❌ Fehler beim Start: ${err.message}`, 'error');
+        if (btn) btn.disabled = false;
+    }
+}
 
-        cleverreachLog(`\n📊 Ergebnis (${dryRun ? 'Trockenlauf' : 'gesendet'}):`, 'info');
-        cleverreachLog(`  ✅ ${c.synced || 0}  ⏭ übersprungen (keine Group-ID): ${c.skipped || 0}  ❌ Fehler: ${c.errors || 0}`, c.errors > 0 ? 'error' : 'success');
-        cleverreachLog(`\n  Verteilung pro Gruppe:`, 'info');
-        for (const g of (data.perGroup || [])) {
-            cleverreachLog(`   ${g.group.padEnd(14)} ${String(g.total).padStart(5)} Adressen` + (g.skipped ? `  (⏭ ${g.skipped} ohne Group-ID)` : ''), g.skipped ? 'warn' : 'success');
+async function pollCleverReachLangStatus() {
+    try {
+        const resp = await fetch(`${SCRAPER_URL}/api/cleverreach-language-status`);
+        const j = await resp.json();
+        const done = (j.synced || 0) + (j.skipped || 0) + (j.errors || 0);
+        const pct = j.total ? Math.round((done / j.total) * 100) : 0;
+
+        if (j.running) {
+            cleverreachLog(`   … ${done}/${j.total} (${pct}%) — ✅ ${j.synced}  ⏭ ${j.skipped}  ❌ ${j.errors}`, 'info');
+            return;
         }
-        if (dryRun) cleverreachLog(`\n  ℹ️ Trockenlauf — nichts gesendet. Häkchen entfernen für echten Sync.`, 'warn');
+
+        // fertig
+        if (_crLangPollTimer) { clearInterval(_crLangPollTimer); _crLangPollTimer = null; }
+        const btn = document.getElementById('cleverreach-lang-btn');
+        if (btn) btn.disabled = false;
+
+        if (j.error) {
+            cleverreachLog(`❌ Job-Fehler: ${j.error}`, 'error');
+        } else {
+            cleverreachLog(`\n📊 ${j.dryRun ? 'Trockenlauf' : 'Sync'} fertig: ✅ ${j.synced}  ⏭ übersprungen ${j.skipped}  ❌ Fehler ${j.errors}`, j.errors > 0 ? 'warn' : 'success');
+            for (const g of (j.perGroup || [])) {
+                cleverreachLog(`   ${g.group.padEnd(14)} total ${String(g.total).padStart(4)}  (✅ ${g.synced}  ⏭ ${g.skipped}  ❌ ${g.errors})`, g.errors ? 'warn' : 'success');
+            }
+            if (j.dryRun) cleverreachLog(`\n  ℹ️ Trockenlauf — nichts gesendet. Häkchen entfernen für echten Sync.`, 'warn');
+            if (j.lastError) cleverreachLog(`   letzter Fehler: ${j.lastError}`, 'warn');
+        }
         loadCleverReachStats();
     } catch (err) {
-        cleverreachLog(`❌ Fehler: ${err.message}`, 'error');
-    } finally {
-        if (btn) btn.disabled = false;
+        // transienter Netzwerkfehler — weiter pollen
     }
 }
 window.startCleverReachLanguageSync = startCleverReachLanguageSync;
