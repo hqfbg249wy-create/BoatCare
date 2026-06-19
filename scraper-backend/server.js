@@ -3397,7 +3397,9 @@ async function cleverreachUpsertReceiver(groupId, provider) {
     const result = await new Promise((resolve, reject) => {
         const req = https.request({
             hostname: 'rest.cleverreach.com',
-            path: `/v3/groups.json/${encodeURIComponent(groupId)}/receivers/insert`,
+            // upsert (nicht insert): vorhandene Adressen werden aktualisiert statt
+            // mit 400 "duplicate address" abgelehnt → idempotent, Flag wird gesetzt.
+            path: `/v3/groups.json/${encodeURIComponent(groupId)}/receivers/upsert`,
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
