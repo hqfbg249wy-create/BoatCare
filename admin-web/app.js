@@ -11383,7 +11383,10 @@ async function loadShopOverview() {
                 }
                 if (prods.length < PAGE) break;
             }
-        } catch { /* metashop_products fehlt → alle 0 */ }
+            console.log('🛍️ [Diagnose] metashop_products gezählt:', productCounts.size, 'Provider mit Produkten →', JSON.stringify([...productCounts.entries()]));
+        } catch (e) {
+            console.error('🛍️ [Diagnose] metashop_products-Abfrage FEHLGESCHLAGEN:', e?.message || e, e);
+        }
 
         // Orders im Zeitraum
         let oQuery = supabaseClient
