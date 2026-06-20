@@ -24,6 +24,11 @@ COMMENT ON COLUMN public.provider_faqs.category IS
 CREATE INDEX IF NOT EXISTS idx_provider_faqs_sort
     ON public.provider_faqs (category, sort_order);
 
+-- Doppel-Seed verhindern: (Kategorie, Frage) eindeutig → erneutes Ausführen
+-- des Seeds dupliziert nicht (siehe ON CONFLICT unten).
+CREATE UNIQUE INDEX IF NOT EXISTS uq_provider_faqs_cat_q
+    ON public.provider_faqs (category, question);
+
 -- updated_at automatisch pflegen
 CREATE OR REPLACE FUNCTION public.touch_provider_faqs()
 RETURNS trigger LANGUAGE plpgsql AS $$
@@ -159,4 +164,6 @@ INSERT INTO public.provider_faqs (category, sort_order, question, answer) VALUES
  'Mit steigendem (bezahltem) Umsatz sinkt dein Provisionssatz automatisch in Stufen — sobald du eine Umsatzschwelle erreichst, gilt der niedrigere Satz für künftige Bestellungen. Du musst nichts tun; die Anpassung passiert automatisch.'),
 ('commission', 30,
  'Welche Pakete gibt es und lohnt sich ein höheres?',
- 'Neben dem Standard-Paket gibt es höhere Pakete (Professional/Enterprise) mit zusätzlichen Funktionen — z. B. die Orders-API und Webhooks — und einer niedrigeren Provision. Es gilt stets der günstigste für dich zutreffende Satz aus Paket, Umsatzstaffel und Early-Bird. Individuelle Sonderkonditionen vereinbarst du mit dem Skipily-Team.');
+ 'Neben dem Standard-Paket gibt es höhere Pakete (Professional/Enterprise) mit zusätzlichen Funktionen — z. B. die Orders-API und Webhooks — und einer niedrigeren Provision. Es gilt stets der günstigste für dich zutreffende Satz aus Paket, Umsatzstaffel und Early-Bird. Individuelle Sonderkonditionen vereinbarst du mit dem Skipily-Team.')
+
+ON CONFLICT (category, question) DO NOTHING;
