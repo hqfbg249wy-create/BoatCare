@@ -3747,13 +3747,13 @@ async function cleverreachDeleteReceiver(groupId, email) {
 
 let _crCleanJob = {
     running: false, dryRun: false, startedAt: null, finishedAt: null,
-    total: 0, deleted: 0, notFound: 0, errors: 0, perGroup: {}, error: null,
+    total: 0, deleted: 0, notFound: 0, marked: 0, errors: 0, perGroup: {}, error: null,
 };
 
 async function runCleverReachCleanupNonEU({ dryRun = false } = {}) {
     _crCleanJob = {
         running: true, dryRun, startedAt: new Date().toISOString(), finishedAt: null,
-        total: 0, deleted: 0, notFound: 0, errors: 0, perGroup: {}, error: null,
+        total: 0, deleted: 0, notFound: 0, marked: 0, errors: 0, perGroup: {}, error: null,
     };
     try {
         const providers = await loadAllProvidersForLanguageSync({ onlyVerified: true, includeSynced: true });
@@ -3776,6 +3776,10 @@ async function runCleverReachCleanupNonEU({ dryRun = false } = {}) {
                 else if (st === 404) { _crCleanJob.notFound++; g.notFound++; }
                 else { _crCleanJob.errors++; g.errors++; }
             } catch (e) { _crCleanJob.errors++; g.errors++; }
+            // In der DB NUR markieren (Zeile bleibt erhalten): status=excluded_non_eu,
+            // synced_at wird genullt. Kein Loeschen aus der DB.
+            try { await persistCleverReachResult(p.id, null, 'excluded_non_eu', null); _crCleanJob.marked++; }
+            catch (e) { /* Markierung fehlgeschlagen — unkritisch */ }
         }
     } catch (err) {
         _crCleanJob.error = err.message;
