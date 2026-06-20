@@ -31,10 +31,9 @@ WAS DIE ANBINDUNG IHREM SHOP BRINGT
    Empfehlungen erscheinen kontextbezogen — bei Wartungs-Erinnerungen,
    im KI-Chat, in der Equipment-Uebersicht. Kein Banner-Spam.
 
-💳 Apple-Pay-Checkout — Bezahlanbieter-Gebuehren tragen wir
+💳 Apple-Pay-Checkout
    Kaeufer bezahlt mit einem Tap in der App. Auszahlung direkt auf
-   Ihr Konto. Die Transaktionsgebuehren der Zahlungsabwicklung
-   uebernimmt Skipily.
+   Ihr Konto.
 
 📦 Ihr Sortiment auf der Boot-Profil-Seite
    Wenn ein User "neuer Schalter fuer die Bilgenpumpe" sucht, sieht er

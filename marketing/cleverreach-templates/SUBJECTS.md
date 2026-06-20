@@ -53,6 +53,86 @@ No more wasted spend: qualified buyers for your marine shop
 Skipily uses AI to match boat, engine and equipment with your catalog — your shop shows up as a recommendation at the right moment, with Apple Pay checkout and payouts straight to your account.
 ```
 
+### 🇫🇷 Français (Shop)
+
+**Subject A:**
+```
+{$company} : vos {$category} là où les plaisanciers les cherchent
+```
+**Subject B:**
+```
+6 mois gratuits + 7 % au lieu de 10 % — pour les 100 premières boutiques
+```
+**Subject C:**
+```
+Fini la déperdition : des acheteurs qualifiés pour votre boutique nautique
+```
+
+**Preheader:**
+```
+Skipily fait correspondre par IA bateau, moteur et équipement avec votre assortiment — votre boutique apparaît comme recommandation au bon moment, avec paiement Apple Pay et versement direct sur votre compte.
+```
+
+### 🇮🇹 Italiano (Shop)
+
+**Subject A:**
+```
+{$company}: i vostri {$category} dove i diportisti li cercano
+```
+**Subject B:**
+```
+6 mesi gratis + 7 % invece del 10 % — solo i primi 100 shop
+```
+**Subject C:**
+```
+Basta dispersione: acquirenti qualificati per il vostro shop nautico
+```
+
+**Preheader:**
+```
+Skipily abbina con l'IA barca, motore ed equipaggiamento al vostro assortimento — il vostro shop compare come consiglio al momento giusto, con pagamento Apple Pay e accredito diretto sul vostro conto.
+```
+
+### 🇪🇸 Español (Shop)
+
+**Subject A:**
+```
+{$company}: vuestros {$category} donde los navegantes los buscan
+```
+**Subject B:**
+```
+6 meses gratis + 7 % en lugar del 10 % — solo las primeras 100 tiendas
+```
+**Subject C:**
+```
+Sin dispersión: compradores cualificados para vuestra tienda náutica
+```
+
+**Preheader:**
+```
+Skipily empareja con IA barco, motor y equipamiento con vuestro surtido — vuestra tienda aparece como recomendación en el momento justo, con pago Apple Pay y abono directo a vuestra cuenta.
+```
+
+### 🇳🇱 Nederlands (Shop)
+
+**Subject A:**
+```
+{$company}: uw {$category} waar booteigenaren zoeken
+```
+**Subject B:**
+```
+6 maanden gratis + 7 % i.p.v. 10 % — alleen de eerste 100 shops
+```
+**Subject C:**
+```
+Geen verspilling meer: gekwalificeerde kopers voor uw botenshop
+```
+
+**Preheader:**
+```
+Skipily matcht met AI boot, motor en uitrusting met uw assortiment — uw shop verschijnt als aanbeveling op het juiste moment, met Apple Pay-checkout en uitbetaling rechtstreeks op uw rekening.
+```
+
 ---
 
 # Launch-Kampagne (Service-Anbieter)
