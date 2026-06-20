@@ -153,10 +153,10 @@ INSERT INTO public.provider_faqs (category, sort_order, question, answer) VALUES
 -- ── Provisions-Staffelung & Pakete ──
 ('commission', 10,
  'Wie hoch ist die Marktplatz-Provision?',
- 'Die Provision ist nach Paket gestaffelt: Im höheren Paket zahlst du einen niedrigeren Prozentsatz auf den Umsatz. Deine aktuelle Provider-Rate siehst du jederzeit im Portal. Die genauen Sätze nennen wir dir transparent vor der Aktivierung.'),
+ 'Die Standard-Provision beträgt 10 % vom Umsatz. Es gibt vergünstigte Sätze über drei Wege: einen Early-Bird-Satz für früh angebundene Betriebe, niedrigere Sätze in höheren Paketen (Professional/Enterprise) und eine Umsatzstaffel. Es gilt automatisch der für dich günstigste zutreffende Satz. Deine aktuelle Provider-Rate siehst du jederzeit im Portal.'),
 ('commission', 20,
- 'Welche Pakete gibt es und was unterscheidet sie?',
- 'Es gibt ein Standard-Paket sowie höhere Pakete (Pro/Enterprise). Höhere Pakete bieten zusätzliche Funktionen — z. B. die Orders-API/Webhooks — und eine niedrigere Provision. So wächst dein Paket mit deinem Volumen mit.'),
+ 'Wie funktioniert die Umsatzstaffel?',
+ 'Mit steigendem (bezahltem) Umsatz sinkt dein Provisionssatz automatisch in Stufen — sobald du eine Umsatzschwelle erreichst, gilt der niedrigere Satz für künftige Bestellungen. Du musst nichts tun; die Anpassung passiert automatisch.'),
 ('commission', 30,
- 'Lohnt sich ein höheres Paket ab welchem Umsatz?',
- 'Faustregel: Sobald die Ersparnis durch die niedrigere Provision die Paketkosten übersteigt, lohnt sich der Wechsel — bei API-Anbindung kommt der Automatisierungsvorteil hinzu. Wir rechnen das gern gemeinsam für dein erwartetes Volumen durch.');
+ 'Welche Pakete gibt es und lohnt sich ein höheres?',
+ 'Neben dem Standard-Paket gibt es höhere Pakete (Professional/Enterprise) mit zusätzlichen Funktionen — z. B. die Orders-API und Webhooks — und einer niedrigeren Provision. Es gilt stets der günstigste für dich zutreffende Satz aus Paket, Umsatzstaffel und Early-Bird. Individuelle Sonderkonditionen vereinbarst du mit dem Skipily-Team.');

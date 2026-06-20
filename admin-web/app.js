@@ -6944,19 +6944,22 @@ window._genPassword = function() {
 };
 
 window.updateCommissionRate = async function(providerId, rate) {
-    const numRate = parseFloat(rate);
-    if (isNaN(numRate) || numRate < 0 || numRate > 30) {
-        alert('Provision muss zwischen 0% und 30% liegen.');
+    // Schnellbearbeitung = individueller Override (leer = automatisch aus Modell).
+    const raw = (rate ?? '').toString().trim();
+    const override = raw === '' ? null : parseFloat(raw);
+    if (override !== null && (isNaN(override) || override < 0 || override > 30)) {
+        alert('Provision muss zwischen 0% und 30% liegen (oder leer = automatisch).');
         return;
     }
     try {
         const { error } = await supabaseClient
             .from('service_providers')
-            .update({ commission_rate: numRate })
+            .update({ commission_override: override })
             .eq('id', providerId);
-
         if (error) throw error;
-        console.log('Provision aktualisiert: ' + numRate + '% für ' + providerId);
+        // Effektiven Satz neu berechnen
+        await supabaseClient.rpc('recompute_commission_rate', { p_id: providerId });
+        console.log('Provision-Override aktualisiert: ' + (override ?? 'auto') + ' für ' + providerId);
     } catch (err) {
         alert('Fehler: ' + err.message);
     }
@@ -8717,7 +8720,7 @@ async function loadCustomers() {
                 .from('service_providers')
                 .select(`
                     id, name, category, city, country, email, user_id,
-                    is_shop_active, commission_rate,
+                    is_shop_active, commission_rate, commission_override, early_bird,
                     subscription_tier, subscription_status, subscription_plan, free_until,
                     subscription_period_end, stripe_account_id,
                     stripe_charges_enabled, stripe_payouts_enabled
@@ -8895,7 +8898,10 @@ async function openProviderModal(providerId) {
     document.getElementById('edit-modal-title').textContent    = cached.name || 'Provider bearbeiten';
     document.getElementById('edit-modal-subtitle').textContent = `${cached.category || ''} · ${cached.city || ''}`;
     document.getElementById('edit-shop-active').checked = !!cached.is_shop_active;
-    document.getElementById('edit-commission').value    = cached.commission_rate ?? 10;
+    document.getElementById('edit-commission').value    = cached.commission_override ?? '';
+    const _eb = document.getElementById('edit-early-bird'); if (_eb) _eb.checked = !!cached.early_bird;
+    const _eff = document.getElementById('edit-effective-rate');
+    if (_eff) _eff.textContent = `Effektiver Satz aktuell: ${cached.commission_rate ?? 10}%` + (cached.commission_override != null ? ' (per Override)' : ' (aus Modell)');
     document.getElementById('edit-name').value          = cached.name || '';
     document.getElementById('edit-category').value      = cached.category || '';
     document.getElementById('edit-city').value          = cached.city || '';
@@ -9533,14 +9539,21 @@ async function saveProviderModal() {
             brands:         parseCsv(document.getElementById('edit-brands').value),
             services:       parseCsv(document.getElementById('edit-services').value),
             is_shop_active: document.getElementById('edit-shop-active').checked,
-            commission_rate: parseFloat(document.getElementById('edit-commission').value) || 0,
         };
+        // Provision: leeres Feld = kein Override (Modell greift). Sonst Override.
+        const _ovRaw = document.getElementById('edit-commission').value.trim();
+        payload.commission_override = _ovRaw === '' ? null : (parseFloat(_ovRaw) || 0);
+        const _ebEl = document.getElementById('edit-early-bird');
+        if (_ebEl) payload.early_bird = _ebEl.checked;
 
         const { error } = await supabaseClient
             .from('service_providers')
             .update(payload)
             .eq('id', _editingProvider.id);
         if (error) throw error;
+
+        // Effektiven Satz (commission_rate) nach dem Speichern neu berechnen
+        await supabaseClient.rpc('recompute_commission_rate', { p_id: _editingProvider.id });
 
         await reloadProviderInCache(_editingProvider.id);
         refreshCustomers();
@@ -9879,6 +9892,7 @@ function buildDatevCsv(buchungen) {
         if (page === 'shop-overview')     loadShopOverview();
         if (page === 'sales-reps')        loadSalesReps();
         if (page === 'provider-faqs')     loadProviderFaqs();
+        if (page === 'commission-model')  loadCommissionModel();
         // Alte Pages auf die neue umleiten falls noch Direct-Links existieren
         if (page === 'providers' || page === 'shop-management') {
             setTimeout(() => origNav('customers'), 0);
@@ -12487,3 +12501,119 @@ async function faqTranslateAllMissing() {
   await loadProviderFaqs();
 }
 window.faqTranslateAllMissing = faqTranslateAllMissing;
+
+// ============================================
+// PROVISIONS-MODELL (generische Sätze + Neuberechnung)
+// ============================================
+let _commSettings = null;
+let _commTiers = [];
+
+async function loadCommissionModel() {
+  const box = document.getElementById('commission-model-form');
+  if (box) box.innerHTML = '<p style="color:#94a3b8;">Lade …</p>';
+  const { data, error } = await supabaseClient.from('commission_settings').select('*').eq('id', 1).single();
+  if (error) { if (box) box.innerHTML = `<p style="color:#ef4444;">Fehler: ${escapeHtml_v(error.message)} — ist Migration 086 ausgeführt?</p>`; return; }
+  _commSettings = data;
+  _commTiers = Array.isArray(data.revenue_tiers) ? [...data.revenue_tiers].sort((a,b)=> (a.min_revenue||0)-(b.min_revenue||0)) : [];
+  renderCommissionForm();
+}
+window.loadCommissionModel = loadCommissionModel;
+
+function renderCommissionTiersHtml() {
+  let rows = _commTiers.map((t, i) => `
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+      <span style="color:#64748b; font-size:13px;">ab Umsatz</span>
+      <input type="number" value="${t.min_revenue ?? 0}" min="0" step="500" onchange="window.commTierSet(${i},'min_revenue',this.value)" style="width:120px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px;"> €
+      <span style="color:#64748b; font-size:13px; margin-left:8px;">→ Satz</span>
+      <input type="number" value="${t.rate ?? 0}" min="0" max="100" step="0.5" onchange="window.commTierSet(${i},'rate',this.value)" style="width:80px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px;"> %
+      <button class="btn-secondary" style="padding:4px 8px; color:#ef4444;" onclick="window.commTierRemove(${i})">✕</button>
+    </div>`).join('');
+  return rows + `<button class="btn-secondary" style="font-size:13px; margin-top:4px;" onclick="window.commTierAdd()">+ Stufe</button>`;
+}
+
+function renderCommissionForm() {
+  const s = _commSettings; const box = document.getElementById('commission-model-form');
+  if (!box || !s) return;
+  const pr = s.package_rates || {};
+  box.innerHTML = `
+    <div style="display:grid; gap:18px; max-width:760px;">
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px;">
+        <h3 style="margin:0 0 12px;">Grundsätze</h3>
+        <div class="form-row">
+          <div class="form-group" style="flex:1;">
+            <label>Standard-Provision (Default) %</label>
+            <input type="number" id="comm-default" value="${s.default_rate}" min="0" max="100" step="0.5">
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label>Early-Bird-Satz %</label>
+            <input type="number" id="comm-earlybird" value="${s.early_bird_rate}" min="0" max="100" step="0.5">
+          </div>
+        </div>
+        <label style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+          <input type="checkbox" id="comm-earlybird-active" ${s.early_bird_active ? 'checked' : ''}>
+          <span>Early-Bird aktiv (gilt für als „Early-Bird" markierte Anbieter)</span>
+        </label>
+      </div>
+
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px;">
+        <h3 style="margin:0 0 12px;">Paket-Sätze %</h3>
+        <div class="form-row">
+          <div class="form-group" style="flex:1;"><label>Standard</label><input type="number" id="comm-pkg-standard" value="${pr.standard ?? 10}" min="0" max="100" step="0.5"></div>
+          <div class="form-group" style="flex:1;"><label>Professional</label><input type="number" id="comm-pkg-professional" value="${pr.professional ?? 8}" min="0" max="100" step="0.5"></div>
+          <div class="form-group" style="flex:1;"><label>Enterprise</label><input type="number" id="comm-pkg-enterprise" value="${pr.enterprise ?? 6}" min="0" max="100" step="0.5"></div>
+        </div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px;">
+        <h3 style="margin:0 0 8px;">Umsatzstaffel</h3>
+        <p style="color:#64748b; font-size:13px; margin:0 0 10px;">Ab dem erreichten Umsatz gilt der jeweilige Satz (bezahlter Lebenszeit-Umsatz).</p>
+        <div id="comm-tiers">${renderCommissionTiersHtml()}</div>
+      </div>
+
+      <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:14px; font-size:13px; color:#1e40af;">
+        ℹ️ <strong>Effektiver Satz</strong> = individueller Override (falls gesetzt), sonst der <strong>niedrigste</strong> zutreffende Satz aus Default, Paket, Umsatzstaffel und Early-Bird. Die Umsatzstaffel greift automatisch bei jeder bezahlten Bestellung.
+      </div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn-primary" onclick="window.saveCommissionSettings()">💾 Speichern</button>
+        <button class="btn-primary" style="background:#0891b2;" onclick="window.recomputeAllCommissions()">🔄 Alle Anbieter neu berechnen</button>
+        <span id="comm-status" style="align-self:center; font-size:13px;"></span>
+      </div>
+    </div>`;
+}
+
+window.commTierSet = (i, key, val) => { if (_commTiers[i]) _commTiers[i][key] = parseFloat(val) || 0; };
+window.commTierAdd = () => { _commTiers.push({ min_revenue: 0, rate: 10 }); document.getElementById('comm-tiers').innerHTML = renderCommissionTiersHtml(); };
+window.commTierRemove = (i) => { _commTiers.splice(i, 1); document.getElementById('comm-tiers').innerHTML = renderCommissionTiersHtml(); };
+
+function commStatus(msg, color) { const s = document.getElementById('comm-status'); if (s) s.innerHTML = `<span style="color:${color||'#475569'}">${escapeHtml_v(msg)}</span>`; }
+
+async function saveCommissionSettings() {
+  const payload = {
+    default_rate: parseFloat(document.getElementById('comm-default').value) || 0,
+    early_bird_rate: parseFloat(document.getElementById('comm-earlybird').value) || 0,
+    early_bird_active: document.getElementById('comm-earlybird-active').checked,
+    package_rates: {
+      standard: parseFloat(document.getElementById('comm-pkg-standard').value) || 0,
+      professional: parseFloat(document.getElementById('comm-pkg-professional').value) || 0,
+      enterprise: parseFloat(document.getElementById('comm-pkg-enterprise').value) || 0,
+    },
+    revenue_tiers: _commTiers.map(t => ({ min_revenue: t.min_revenue || 0, rate: t.rate || 0 })).sort((a,b)=>a.min_revenue-b.min_revenue),
+    updated_at: new Date().toISOString(),
+  };
+  commStatus('💾 Speichere …');
+  const { error } = await supabaseClient.from('commission_settings').update(payload).eq('id', 1);
+  if (error) { commStatus('Fehler: ' + error.message, '#ef4444'); return; }
+  commStatus('✓ Gespeichert. Tipp: „Alle neu berechnen", damit die Sätze sofort greifen.', '#166534');
+  _commSettings = { ...(_commSettings||{}), ...payload };
+}
+window.saveCommissionSettings = saveCommissionSettings;
+
+async function recomputeAllCommissions() {
+  if (!confirm('Effektive Provisionssätze für ALLE Anbieter neu berechnen?\n(Individuelle Overrides bleiben erhalten.)')) return;
+  commStatus('🔄 Berechne …');
+  const { data, error } = await supabaseClient.rpc('recompute_all_commission_rates');
+  if (error) { commStatus('Fehler: ' + error.message, '#ef4444'); return; }
+  commStatus(`✓ ${data} Anbieter neu berechnet.`, '#166534');
+}
+window.recomputeAllCommissions = recomputeAllCommissions;

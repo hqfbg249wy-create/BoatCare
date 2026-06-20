@@ -125,6 +125,10 @@
                     <span class="icon">📖</span>
                     FAQ-Pflege
                 </button>
+                <button class="nav-item" data-page="commission-model" onclick="window.navigateToPage('commission-model')">
+                    <span class="icon">💶</span>
+                    Provisions-Modell
+                </button>
                 <button class="nav-item" data-page="duplicates" onclick="window.navigateToPage('duplicates')">
                     <span class="icon">🧹</span>
                     Duplikate
@@ -407,11 +411,16 @@
                                 🛒 Shop aktivieren
                             </label>
                             <label style="font-size:14px; color:#334155;">
-                                Provision:
-                                <input type="number" id="edit-commission" min="0" max="100" step="0.5"
+                                Provision (Override):
+                                <input type="number" id="edit-commission" min="0" max="100" step="0.5" placeholder="auto"
                                        style="width:70px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; margin-left:6px;">%
+                                <span style="color:#94a3b8; font-size:12px;">leer = automatisch</span>
+                            </label>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:14px; color:#334155;">
+                                <input type="checkbox" id="edit-early-bird"> ⭐ Early-Bird-Partner
                             </label>
                         </div>
+                        <div id="edit-effective-rate" style="font-size:12px; color:#64748b; margin:-4px 0 4px;"></div>
 
                         <!-- Abo-Status anzeigen -->
                         <div id="edit-sub-current" style="padding:10px 12px; background:#fff; border:1px solid #fde68a; border-radius:8px; font-size:13px; color:#475569; margin-bottom:14px;"></div>
@@ -1213,6 +1222,13 @@
                 </div>
 
                 <div id="shop-ov-list">Lade …</div>
+            </div>
+
+            <!-- Provisions-Modell -->
+            <div id="commission-model-page" class="page">
+                <h1>💶 Provisions-Modell</h1>
+                <p class="subtitle">Generische Provisionssätze zentral festlegen: <strong>Early-Bird</strong>, <strong>Paket</strong> (Standard/Professional/Enterprise) und <strong>Umsatzstaffel</strong>. Pro Anbieter kannst du unter <strong>Kunden → Bearbeiten</strong> zusätzlich einen <strong>individuellen Satz (Override)</strong> hinterlegen. Effektiver Satz = Override, sonst der <strong>günstigste</strong> zutreffende generische Satz.</p>
+                <div id="commission-model-form"><p style="color:#94a3b8;">Lade …</p></div>
             </div>
 
             <!-- FAQ-Pflege (Provider-Portal) -->
@@ -2161,7 +2177,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260620-faqs"></script>
+    <script src="app.js?v=20260620-commission"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;
