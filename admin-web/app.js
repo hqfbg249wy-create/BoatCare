@@ -11310,6 +11310,7 @@ let _salesRepsCache = [];
  * aggregierten Umsatz im gewaehlten Zeitraum. Cached fuer schnelles
  * Re-Rendern bei Filter-Aenderungen.
  */
+let _shopOvDiag = '';
 async function loadShopOverview() {
     const container = document.getElementById('shop-ov-list');
     if (container) container.innerHTML = '<div style="padding:30px; text-align:center; color:#64748b;">Lade Daten …</div>';
@@ -11383,9 +11384,12 @@ async function loadShopOverview() {
                 }
                 if (prods.length < PAGE) break;
             }
-            console.log('🛍️ [Diagnose] metashop_products gezählt:', productCounts.size, 'Provider mit Produkten →', JSON.stringify([...productCounts.entries()]));
+            const total = [...productCounts.values()].reduce((a, b) => a + b, 0);
+            _shopOvDiag = `✅ Diagnose: ${productCounts.size} Shop(s) mit Produkten, ${total} Produkte gesamt gezählt. Beispiel: ${JSON.stringify([...productCounts.entries()].slice(0, 3))}`;
+            console.log('🛍️ [Diagnose]', _shopOvDiag);
         } catch (e) {
-            console.error('🛍️ [Diagnose] metashop_products-Abfrage FEHLGESCHLAGEN:', e?.message || e, e);
+            _shopOvDiag = `❌ Diagnose: metashop_products-Abfrage FEHLGESCHLAGEN — ${e?.code || ''} ${e?.message || e}`;
+            console.error('🛍️ [Diagnose]', _shopOvDiag, e);
         }
 
         // Orders im Zeitraum
@@ -11545,8 +11549,12 @@ function renderShopOverview() {
     document.getElementById('shop-ov-stat-revenue').textContent    = totalRevenue.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €';
     document.getElementById('shop-ov-stat-commission').textContent = totalCommission.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €';
 
+    const diagBanner = _shopOvDiag
+        ? `<div style="margin-bottom:12px; padding:10px 12px; border-radius:8px; font-size:13px; font-family:monospace; ${_shopOvDiag.startsWith('❌') ? 'background:#fee2e2; color:#991b1b; border:1px solid #ef4444;' : 'background:#dcfce7; color:#166534; border:1px solid #10b981;'}">${escapeHtml_v(_shopOvDiag)}</div>`
+        : '';
+
     if (rows.length === 0) {
-        container.innerHTML = '<div style="padding:30px; text-align:center; color:#94a3b8;">Keine Shops im aktuellen Filter.</div>';
+        container.innerHTML = diagBanner + '<div style="padding:30px; text-align:center; color:#94a3b8;">Keine Shops im aktuellen Filter.</div>';
         return;
     }
 
@@ -11558,7 +11566,7 @@ function renderShopOverview() {
     }
     const repOptHtml = repOpts.join('');
 
-    container.innerHTML = `
+    container.innerHTML = diagBanner + `
         <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; overflow-x:auto;">
             <table style="width:100%; border-collapse:collapse; font-size:13px; min-width:900px;">
                 <thead style="background:#f8fafc;">
