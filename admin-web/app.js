@@ -8753,14 +8753,21 @@ window.loadCustomers = loadCustomers;
 
 async function loadProductCountsBackground() {
     try {
-        const { data, error } = await supabaseClient
-            .from('products')
-            .select('provider_id')
-            .eq('is_active', true)
-            .limit(50000);
-        if (error) { console.warn('Produkt-Counts:', error); return; }
+        // Echte Shop-Produkte liegen in "metashop_products", nicht in "products".
+        // Paginiert, da PostgREST bei 1000 Zeilen deckelt.
         const counts = {};
-        (data || []).forEach(p => { counts[p.provider_id] = (counts[p.provider_id] || 0) + 1; });
+        const PAGE = 1000;
+        for (let from = 0; ; from += PAGE) {
+            const { data, error } = await supabaseClient
+                .from('metashop_products')
+                .select('provider_id')
+                .eq('is_active', true)
+                .range(from, from + PAGE - 1);
+            if (error) { console.warn('Produkt-Counts:', error); return; }
+            if (!data || data.length === 0) break;
+            data.forEach(p => { if (p.provider_id) counts[p.provider_id] = (counts[p.provider_id] || 0) + 1; });
+            if (data.length < PAGE) break;
+        }
         _customersAll.forEach(p => { p.product_count = counts[p.id] || 0; });
         refreshCustomers();
     } catch (e) {
@@ -11356,21 +11363,27 @@ async function loadShopOverview() {
         if (pErr) throw pErr;
         if (!providers) providers = [];
 
-        // Produktanzahl pro Provider (Tabelle "products" — falls leer/nicht vorhanden, alle 0)
+        // Produktanzahl pro Provider. Die echten Shop-Produkte liegen in
+        // "metashop_products" (dorthin importieren wir z.B. Busse per CSV) —
+        // NICHT in "products". Supabase bietet kein GROUP BY, daher gruppieren
+        // wir client-side. Paginiert, da PostgREST bei 1000 Zeilen deckelt.
         const productCounts = new Map();
         try {
-            // Wir versuchen den COUNT pro Provider zu holen. Da Supabase
-            // kein GROUP BY direkt anbietet, gruppieren wir client-side.
-            const { data: prods } = await supabaseClient
-                .from('products')
-                .select('provider_id')
-                .limit(50000);
-            if (prods) {
+            const PAGE = 1000;
+            for (let from = 0; ; from += PAGE) {
+                const { data: prods, error } = await supabaseClient
+                    .from('metashop_products')
+                    .select('provider_id')
+                    .range(from, from + PAGE - 1);
+                if (error) throw error;
+                if (!prods || prods.length === 0) break;
                 for (const p of prods) {
+                    if (!p.provider_id) continue;
                     productCounts.set(p.provider_id, (productCounts.get(p.provider_id) || 0) + 1);
                 }
+                if (prods.length < PAGE) break;
             }
-        } catch { /* products-Tabelle fehlt → alle 0 */ }
+        } catch { /* metashop_products fehlt → alle 0 */ }
 
         // Orders im Zeitraum
         let oQuery = supabaseClient
