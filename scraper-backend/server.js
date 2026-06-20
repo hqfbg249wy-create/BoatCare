@@ -3689,11 +3689,12 @@ async function runCleverReachLangJob({ onlyVerified = true, dryRun = false, incl
             try {
                 await cleverreachUpsertReceiver(groupId, p);
                 _crLangJob.synced++; g.synced++;
-                await persistCleverReachResult(p.id, groupId, 'subscribed', null);
+                // DB-Schreiben darf den Job NICHT killen → eigener Guard.
+                try { await persistCleverReachResult(p.id, groupId, 'subscribed', null); } catch (_) {}
             } catch (err) {
                 _crLangJob.errors++; g.errors++;
                 _crLangJob.lastError = err.message;
-                await persistCleverReachResult(p.id, null, 'error', err.message.substring(0, 500));
+                try { await persistCleverReachResult(p.id, null, 'error', err.message.substring(0, 500)); } catch (_) {}
             }
         }
     } catch (err) {
