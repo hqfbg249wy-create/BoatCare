@@ -5,6 +5,58 @@ einen Preheader-Text der unter dem Betreff in der Inbox erscheint.
 
 CleverReach erlaubt Subject-Line-A/B-Tests direkt im Mailing-Editor.
 
+Zwei Kampagnen:
+- **Launch** (Service-Anbieter: Werften, Segelmacher, Yachtservice) — alle 6 Sprachen, weiter unten.
+- **Shop-Anbindung** (Online-Händler für Bootszubehör) — DE + EN, direkt hier.
+
+---
+
+## 🛍️ Shop-Anbindung (Online-Händler)
+
+### 🇩🇪 Deutsch (Shop)
+
+**Subject A** (Nutzen + Zielgruppe):
+```
+{$company}: Ihre {$category} dort, wo Bootseigner sie suchen
+```
+**Subject B** (Angebot/Dringlichkeit):
+```
+6 Monate gratis + 7 % statt 10 % — für die ersten 100 Shops
+```
+**Subject C** (Problem + Lösung):
+```
+Schluss mit Streuverlust: qualifizierte Käufer für Ihren Boots-Shop
+```
+
+**Preheader:**
+```
+Skipily matcht per KI Boot, Motor und Equipment mit Ihrem Sortiment — Ihr Shop erscheint als Empfehlung im richtigen Moment, mit Apple-Pay-Checkout und Auszahlung direkt auf Ihr Konto.
+```
+
+### 🇬🇧 English (Shop)
+
+**Subject A:**
+```
+{$company}: your {$category} where boat owners are looking
+```
+**Subject B:**
+```
+6 months free + 7% instead of 10% — first 100 shops only
+```
+**Subject C:**
+```
+No more wasted spend: qualified buyers for your marine shop
+```
+
+**Preheader:**
+```
+Skipily uses AI to match boat, engine and equipment with your catalog — your shop shows up as a recommendation at the right moment, with Apple Pay checkout and payouts straight to your account.
+```
+
+---
+
+# Launch-Kampagne (Service-Anbieter)
+
 ---
 
 ## 🇩🇪 Deutsch
