@@ -3636,15 +3636,34 @@ app.post('/api/cleverreach-sync', async (req, res) => {
 // Klicken erzeugt EPIPE. Dieser Job antwortet sofort und läuft im
 // Hintergrund weiter; Fortschritt via GET /api/cleverreach-language-status.
 // ════════════════════════════════════════════════════════════════
+// ── Europa-Whitelist fürs Marketing (EU + europäische Nicht-EU + TR) ──
+// Wir bewerben aktuell nur Europa. Aussereuropaeische Betriebe (v.a. US) sind
+// fuer einen europaeischen Bootsservice-Marktplatz irrelevant und schaden bei
+// Cold-Mails der Absender-Reputation. TR ist bewusst dabei (Mittelmeer-Yacht).
+const EU_MARKETING_COUNTRIES = new Set([
+    // EU-27
+    'DE','AT','FR','BE','LU','IT','ES','NL','IE','DK','SE','FI','PT','GR',
+    'HR','SI','MT','CY','EE','LV','LT','PL','CZ','SK','HU','RO','BG',
+    // Europa, nicht-EU + Kleinstaaten/Gebiete
+    'GB','CH','NO','IS','LI','MC','AD','SM','VA','JE','GG','IM','GI','FO',
+    // Suedost-/Osteuropa
+    'RS','BA','ME','MK','AL','MD','UA','XK',
+    // Tuerkei (bewusst behalten)
+    'TR',
+]);
+function isEuropeanForMarketing(country) {
+    return EU_MARKETING_COUNTRIES.has(normalizeCountryCode(country));
+}
+
 let _crLangJob = {
     running: false, dryRun: false, startedAt: null, finishedAt: null,
-    total: 0, synced: 0, skipped: 0, errors: 0, perGroup: {}, error: null, lastError: null,
+    total: 0, synced: 0, skipped: 0, skippedNonEU: 0, errors: 0, perGroup: {}, error: null, lastError: null,
 };
 
 async function runCleverReachLangJob({ onlyVerified = true, dryRun = false, includeSynced = false } = {}) {
     _crLangJob = {
         running: true, dryRun, includeSynced, startedAt: new Date().toISOString(), finishedAt: null,
-        total: 0, synced: 0, skipped: 0, errors: 0, perGroup: {}, error: null, lastError: null,
+        total: 0, synced: 0, skipped: 0, skippedNonEU: 0, errors: 0, perGroup: {}, error: null, lastError: null,
     };
     try {
         // Default: nur noch NICHT synchronisierte (Delta) — schnell + schont die
@@ -3654,6 +3673,8 @@ async function runCleverReachLangJob({ onlyVerified = true, dryRun = false, incl
         console.log(`\n🌍 CleverReach Sprach-Job: ${providers.length} Provider, dryRun=${dryRun}`);
 
         for (const p of providers) {
+            // Nur Europa bewerben — aussereuropaeische ueberspringen.
+            if (!isEuropeanForMarketing(p.country)) { _crLangJob.skippedNonEU++; continue; }
             const lang = countryToLanguage(p.country);
             const type = p.shop_check_status === 'online_shop' ? 'shop' : 'provider';
             const key = `${type}:${lang}`;
@@ -3699,6 +3720,83 @@ app.get('/api/cleverreach-language-status', (req, res) => {
         ..._crLangJob,
         perGroup: Object.values(_crLangJob.perGroup).sort((a, b) => b.total - a.total),
     });
+});
+
+// ════════════════════════════════════════════════════════════════
+// CLEANUP: aussereuropaeische Empfaenger aus CleverReach entfernen
+//
+// Nicht-europaeische Provider landeten ueber den 'en'-Fallback in den
+// EN-Gruppen. Das Laender-Attribut wird in CleverReach nicht gespeichert,
+// daher loeschen wir DB-basiert: alle verifizierten Nicht-EU-Provider per
+// E-Mail aus ihrer EN-Gruppe (provider_EN / shop_EN) entfernen.
+// ════════════════════════════════════════════════════════════════
+async function cleverreachDeleteReceiver(groupId, email) {
+    const token = await cleverreachToken();
+    return new Promise((resolve) => {
+        const req = https.request({
+            hostname: 'rest.cleverreach.com',
+            path: `/v3/groups.json/${encodeURIComponent(groupId)}/receivers/${encodeURIComponent(email)}`,
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` },
+        }, (res) => { let d = ''; res.on('data', c => d += c); res.on('end', () => resolve(res.statusCode)); });
+        req.on('error', () => resolve(0));
+        req.setTimeout(15000, () => req.destroy());
+        req.end();
+    });
+}
+
+let _crCleanJob = {
+    running: false, dryRun: false, startedAt: null, finishedAt: null,
+    total: 0, deleted: 0, notFound: 0, errors: 0, perGroup: {}, error: null,
+};
+
+async function runCleverReachCleanupNonEU({ dryRun = false } = {}) {
+    _crCleanJob = {
+        running: true, dryRun, startedAt: new Date().toISOString(), finishedAt: null,
+        total: 0, deleted: 0, notFound: 0, errors: 0, perGroup: {}, error: null,
+    };
+    try {
+        const providers = await loadAllProvidersForLanguageSync({ onlyVerified: true, includeSynced: true });
+        const nonEU = providers.filter(p => p.email && !isEuropeanForMarketing(p.country));
+        _crCleanJob.total = nonEU.length;
+        console.log(`\n🧹 Cleanup nicht-EU: ${nonEU.length} Empfaenger, dryRun=${dryRun}`);
+
+        for (const p of nonEU) {
+            const type = p.shop_check_status === 'online_shop' ? 'shop' : 'provider';
+            const groupId = (CLEVERREACH_CONFIG.LANG_GROUPS[type] || {}).en || '';
+            const key = `${type}:en`;
+            const g = _crCleanJob.perGroup[key]
+                || (_crCleanJob.perGroup[key] = { group: key, total: 0, deleted: 0, notFound: 0, errors: 0 });
+            g.total++;
+            if (!groupId) { _crCleanJob.errors++; g.errors++; continue; }
+            if (dryRun) { continue; }
+            try {
+                const st = await cleverreachDeleteReceiver(groupId, p.email);
+                if (st >= 200 && st < 300) { _crCleanJob.deleted++; g.deleted++; }
+                else if (st === 404) { _crCleanJob.notFound++; g.notFound++; }
+                else { _crCleanJob.errors++; g.errors++; }
+            } catch (e) { _crCleanJob.errors++; g.errors++; }
+        }
+    } catch (err) {
+        _crCleanJob.error = err.message;
+        console.error('CleverReach Cleanup-Error:', err);
+    } finally {
+        _crCleanJob.running = false;
+        _crCleanJob.finishedAt = new Date().toISOString();
+        console.log(`🧹 Cleanup fertig: deleted=${_crCleanJob.deleted} notFound=${_crCleanJob.notFound} errors=${_crCleanJob.errors}`);
+    }
+}
+
+app.post('/api/cleverreach-cleanup-noneu', (req, res) => {
+    if (!CONFIG.SUPABASE_SERVICE_KEY) return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY fehlt.' });
+    if (_crCleanJob.running) return res.status(409).json({ error: 'Cleanup läuft bereits.', status: _crCleanJob });
+    const { dryRun = false } = req.body || {};
+    setImmediate(() => runCleverReachCleanupNonEU({ dryRun }));
+    res.json({ started: true });
+});
+
+app.get('/api/cleverreach-cleanup-status', (req, res) => {
+    res.json({ ..._crCleanJob, perGroup: Object.values(_crCleanJob.perGroup) });
 });
 
 /**
