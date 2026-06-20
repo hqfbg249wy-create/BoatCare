@@ -9878,6 +9878,7 @@ function buildDatevCsv(buchungen) {
         if (page === 'shop-check')        loadShopStats();
         if (page === 'shop-overview')     loadShopOverview();
         if (page === 'sales-reps')        loadSalesReps();
+        if (page === 'provider-faqs')     loadProviderFaqs();
         // Alte Pages auf die neue umleiten falls noch Direct-Links existieren
         if (page === 'providers' || page === 'shop-management') {
             setTimeout(() => origNav('customers'), 0);
@@ -12234,3 +12235,255 @@ function escapeHtml_v(s) {
 window.startEmailVerify = startEmailVerify;
 window.loadVerifyStats = loadVerifyStats;
 
+
+// ============================================
+// FAQ-PFLEGE (Provider-Portal) — CRUD + KI + Übersetzung
+// ============================================
+const FAQ_CATS = [
+  ['offering', 'Was wir bieten'],
+  ['csv', 'CSV-Produktimport'],
+  ['api', 'API / Schnittstelle / Webhook'],
+  ['team', 'Teammitglieder'],
+  ['payment', 'Zahlungen, Rechnung & Abrechnung'],
+  ['orders_shipping', 'Bestellung & Versand'],
+  ['market_analysis', 'Marktanalyse nutzen'],
+  ['commission', 'Provision & Pakete'],
+  ['advantages', 'Marktvorteile Skipily'],
+];
+const FAQ_TARGET_LANGS = ['en', 'fr', 'it', 'es', 'nl'];
+let _faqs = [];
+let _faqEditing = null; // null | {} (neu) | bestehendes Objekt
+
+function faqCatLabel(slug) { return (FAQ_CATS.find(c => c[0] === slug) || [slug, slug])[1]; }
+
+async function faqInvoke(fn, payload) {
+  const session = (await supabaseClient.auth.getSession()).data.session;
+  if (!session) throw new Error('Keine aktive Session');
+  const resp = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/${fn}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'apikey': SUPABASE_CONFIG.anonKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+  return data;
+}
+
+async function loadProviderFaqs() {
+  const list = document.getElementById('faq-list');
+  if (list) list.innerHTML = '<p style="color:#94a3b8;">Lade …</p>';
+  const { data, error } = await supabaseClient
+    .from('provider_faqs')
+    .select('*')
+    .order('category', { ascending: true })
+    .order('sort_order', { ascending: true });
+  if (error) { if (list) list.innerHTML = `<p style="color:#ef4444;">Fehler: ${escapeHtml_v(error.message)}</p>`; return; }
+  _faqs = data || [];
+  renderFaqList();
+}
+window.loadProviderFaqs = loadProviderFaqs;
+
+function faqTransStatus(f) {
+  const t = f.translations || {};
+  const done = FAQ_TARGET_LANGS.filter(l => t[l] && t[l].question && t[l].answer).length;
+  return done;
+}
+
+function renderFaqList() {
+  const box = document.getElementById('faq-list');
+  if (!box) return;
+  if (_faqs.length === 0) { box.innerHTML = '<p style="color:#94a3b8;">Noch keine FAQ-Einträge. Mit „+ Neue FAQ" anlegen.</p>'; return; }
+  let html = '';
+  for (const [slug, label] of FAQ_CATS) {
+    const items = _faqs.filter(f => f.category === slug);
+    if (!items.length) continue;
+    html += `<h3 style="margin:18px 0 8px;">${escapeHtml_v(label)} <span style="color:#94a3b8; font-weight:400; font-size:13px;">(${items.length})</span></h3>`;
+    html += '<div style="display:flex; flex-direction:column; gap:6px;">';
+    items.forEach((f, i) => {
+      const td = faqTransStatus(f);
+      const tBadge = td === 5
+        ? '<span style="background:#dcfce7; color:#166534; padding:1px 7px; border-radius:10px; font-size:11px;">🌐 6/6</span>'
+        : `<span style="background:#fef3c7; color:#854d0e; padding:1px 7px; border-radius:10px; font-size:11px;">🌐 ${td + 1}/6</span>`;
+      const pBadge = f.is_published
+        ? '<span style="background:#e0f2fe; color:#075985; padding:1px 7px; border-radius:10px; font-size:11px;">sichtbar</span>'
+        : '<span style="background:#f1f5f9; color:#64748b; padding:1px 7px; border-radius:10px; font-size:11px;">versteckt</span>';
+      html += `
+        <div style="border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; background:#fff; display:flex; gap:10px; align-items:center;">
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:600; font-size:14px;">${escapeHtml_v(f.question)}</div>
+            <div style="color:#64748b; font-size:12px; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml_v(f.answer)}</div>
+            <div style="display:flex; gap:6px; margin-top:6px;">${pBadge} ${tBadge}</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0;">
+            <span style="display:flex; gap:4px;">
+              <button class="btn-secondary" style="padding:4px 8px; font-size:12px;" onclick="window.faqReorder('${f.id}',-1)" ${i === 0 ? 'disabled' : ''}>↑</button>
+              <button class="btn-secondary" style="padding:4px 8px; font-size:12px;" onclick="window.faqReorder('${f.id}',1)" ${i === items.length - 1 ? 'disabled' : ''}>↓</button>
+            </span>
+            <button class="btn-secondary" style="padding:4px 8px; font-size:12px;" onclick="window.faqEdit('${f.id}')">Bearbeiten</button>
+          </div>
+        </div>`;
+    });
+    html += '</div>';
+  }
+  box.innerHTML = html;
+}
+
+function faqEditorHtml(f) {
+  const catOpts = FAQ_CATS.map(([s, l]) => `<option value="${s}" ${f.category === s ? 'selected' : ''}>${escapeHtml_v(l)}</option>`).join('');
+  return `
+    <div style="border:1px solid #6366f1; border-radius:10px; padding:16px; margin-bottom:16px; background:#f5f3ff;">
+      <h3 style="margin:0 0 10px;">${f.id ? 'FAQ bearbeiten' : 'Neue FAQ'}</h3>
+      <div class="form-row" style="margin-bottom:10px;">
+        <div class="form-group" style="flex:1;">
+          <label>Kategorie</label>
+          <select id="faq-f-category">${catOpts}</select>
+        </div>
+        <div class="form-group" style="width:120px;">
+          <label>Reihenfolge</label>
+          <input type="number" id="faq-f-sort" value="${f.sort_order ?? 100}">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label>Frage (Deutsch)</label>
+        <input type="text" id="faq-f-question" value="${escapeHtml_v(f.question || '')}">
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label>Antwort (Deutsch)</label>
+        <textarea id="faq-f-answer" rows="4" style="width:100%;">${escapeHtml_v(f.answer || '')}</textarea>
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label>✨ KI-Stichpunkte / Kunden-Rückmeldung (optional)</label>
+        <textarea id="faq-f-notes" rows="2" style="width:100%;" placeholder="z.B. 'Kunden fragen oft, ob der API-Key pro Betrieb gilt – ja, x-api-key im Header, nur eigene Bestellungen sichtbar'"></textarea>
+        <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
+          <button class="btn-secondary" style="font-size:12px;" onclick="window.faqAi('answer')">✨ Antwort entwerfen/verbessern</button>
+          <button class="btn-secondary" style="font-size:12px;" onclick="window.faqAi('question')">✨ Frage formulieren</button>
+        </div>
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+        <input type="checkbox" id="faq-f-published" ${f.is_published === false ? '' : 'checked'}>
+        <span>Im Provider-Portal sichtbar</span>
+      </label>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn-primary" onclick="window.faqSave(false)">💾 Speichern</button>
+        <button class="btn-primary" style="background:#0891b2;" onclick="window.faqSave(true)">🌐 Speichern + in alle Sprachen übersetzen</button>
+        ${f.id ? `<button class="btn-secondary" style="color:#ef4444;" onclick="window.faqDelete('${f.id}')">Löschen</button>` : ''}
+        <button class="btn-secondary" onclick="window.faqCancel()">Abbrechen</button>
+      </div>
+      <div id="faq-editor-status" style="margin-top:8px; font-size:13px;"></div>
+    </div>`;
+}
+
+function faqShowEditor() {
+  const ed = document.getElementById('faq-editor');
+  if (ed) { ed.innerHTML = faqEditorHtml(_faqEditing || {}); ed.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+}
+function faqNew() { _faqEditing = { category: 'offering', is_published: true, sort_order: 100, translations: {} }; faqShowEditor(); }
+function faqEdit(id) { _faqEditing = { ..._faqs.find(f => f.id === id) }; faqShowEditor(); }
+function faqCancel() { _faqEditing = null; const ed = document.getElementById('faq-editor'); if (ed) ed.innerHTML = ''; }
+window.faqNew = faqNew; window.faqEdit = faqEdit; window.faqCancel = faqCancel;
+
+function faqReadForm() {
+  return {
+    category: document.getElementById('faq-f-category').value,
+    sort_order: parseInt(document.getElementById('faq-f-sort').value || '100'),
+    question: document.getElementById('faq-f-question').value.trim(),
+    answer: document.getElementById('faq-f-answer').value.trim(),
+    is_published: document.getElementById('faq-f-published').checked,
+  };
+}
+function faqStatus(msg, color) { const s = document.getElementById('faq-editor-status'); if (s) s.innerHTML = `<span style="color:${color || '#475569'}">${escapeHtml_v(msg)}</span>`; }
+
+async function faqAi(mode) {
+  const category = document.getElementById('faq-f-category').value;
+  const question = document.getElementById('faq-f-question').value.trim();
+  const notes = document.getElementById('faq-f-notes').value.trim();
+  const current = document.getElementById('faq-f-answer').value.trim();
+  if (!notes && !current && !question) { faqStatus('Bitte Stichpunkte, Frage oder Antwort eingeben.', '#ef4444'); return; }
+  faqStatus('✨ KI denkt nach …');
+  try {
+    const data = await faqInvoke('faq-assist', { category, question, notes, current_answer: current, mode });
+    if (mode === 'question') document.getElementById('faq-f-question').value = data.text || question;
+    else document.getElementById('faq-f-answer').value = data.text || current;
+    faqStatus('✓ KI-Vorschlag eingefügt. Prüfen und speichern.', '#166534');
+  } catch (e) { faqStatus('KI-Fehler: ' + e.message, '#ef4444'); }
+}
+window.faqAi = faqAi;
+
+async function faqTranslateFields(question, answer) {
+  // pro Zielsprache Frage+Antwort übersetzen → translations jsonb
+  const out = {};
+  await Promise.all(FAQ_TARGET_LANGS.map(async (lang) => {
+    const data = await faqInvoke('translate-text', { texts: [{ id: 'q', text: question }, { id: 'a', text: answer }], target_lang: lang });
+    const tr = data.translations || {};
+    out[lang] = { question: tr.q || question, answer: tr.a || answer };
+  }));
+  return out;
+}
+
+async function faqSave(withTranslate) {
+  const form = faqReadForm();
+  if (!form.question || !form.answer) { faqStatus('Frage und Antwort sind Pflicht.', '#ef4444'); return; }
+  try {
+    let translations = (_faqEditing && _faqEditing.translations) || {};
+    if (withTranslate) { faqStatus('🌐 Übersetze in alle Sprachen …'); translations = await faqTranslateFields(form.question, form.answer); }
+    faqStatus('💾 Speichere …');
+    const row = { ...form, translations };
+    let error;
+    if (_faqEditing && _faqEditing.id) {
+      ({ error } = await supabaseClient.from('provider_faqs').update(row).eq('id', _faqEditing.id));
+    } else {
+      ({ error } = await supabaseClient.from('provider_faqs').insert(row));
+    }
+    if (error) throw error;
+    _faqEditing = null;
+    const ed = document.getElementById('faq-editor'); if (ed) ed.innerHTML = '';
+    await loadProviderFaqs();
+  } catch (e) { faqStatus('Fehler beim Speichern: ' + e.message, '#ef4444'); }
+}
+window.faqSave = faqSave;
+
+async function faqDelete(id) {
+  if (!confirm('Diese FAQ wirklich löschen?')) return;
+  const { error } = await supabaseClient.from('provider_faqs').delete().eq('id', id);
+  if (error) { alert('Fehler: ' + error.message); return; }
+  _faqEditing = null; const ed = document.getElementById('faq-editor'); if (ed) ed.innerHTML = '';
+  await loadProviderFaqs();
+}
+window.faqDelete = faqDelete;
+
+async function faqReorder(id, dir) {
+  const f = _faqs.find(x => x.id === id);
+  if (!f) return;
+  const sibs = _faqs.filter(x => x.category === f.category);
+  const idx = sibs.findIndex(x => x.id === id);
+  const swap = sibs[idx + dir];
+  if (!swap) return;
+  // sort_order tauschen
+  const a = f.sort_order, b = swap.sort_order;
+  await supabaseClient.from('provider_faqs').update({ sort_order: b }).eq('id', f.id);
+  await supabaseClient.from('provider_faqs').update({ sort_order: a }).eq('id', swap.id);
+  await loadProviderFaqs();
+}
+window.faqReorder = faqReorder;
+
+async function faqTranslateAllMissing() {
+  const todo = _faqs.filter(f => faqTransStatus(f) < 5);
+  if (todo.length === 0) { alert('Alle FAQs sind bereits vollständig übersetzt.'); return; }
+  if (!confirm(`${todo.length} FAQ(s) in fehlende Sprachen übersetzen? Das kann einen Moment dauern.`)) return;
+  const list = document.getElementById('faq-list');
+  for (let i = 0; i < todo.length; i++) {
+    const f = todo[i];
+    if (list) list.insertAdjacentHTML('afterbegin', `<p style="color:#0891b2;" id="faq-prog">🌐 Übersetze ${i + 1}/${todo.length} …</p>`);
+    try {
+      const translations = await faqTranslateFields(f.question, f.answer);
+      await supabaseClient.from('provider_faqs').update({ translations }).eq('id', f.id);
+    } catch (e) { console.warn('Übersetzung fehlgeschlagen für', f.id, e.message); }
+    const p = document.getElementById('faq-prog'); if (p) p.remove();
+  }
+  await loadProviderFaqs();
+}
+window.faqTranslateAllMissing = faqTranslateAllMissing;

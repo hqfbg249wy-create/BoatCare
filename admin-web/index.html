@@ -121,6 +121,10 @@
                     <span class="icon">👔</span>
                     Vertrieb
                 </button>
+                <button class="nav-item" data-page="provider-faqs" onclick="window.navigateToPage('provider-faqs')">
+                    <span class="icon">📖</span>
+                    FAQ-Pflege
+                </button>
                 <button class="nav-item" data-page="duplicates" onclick="window.navigateToPage('duplicates')">
                     <span class="icon">🧹</span>
                     Duplikate
@@ -1211,6 +1215,19 @@
                 <div id="shop-ov-list">Lade …</div>
             </div>
 
+            <!-- FAQ-Pflege (Provider-Portal) -->
+            <div id="provider-faqs-page" class="page">
+                <h1>📖 FAQ-Pflege</h1>
+                <p class="subtitle">FAQs für das <strong>Provider-Portal</strong> verwalten. Deutsch ist die Quelle. Mit <strong>✨ KI</strong> entwirfst/verbesserst du Antworten aus Stichpunkten/Rückmeldungen, mit <strong>🌐 Übersetzen</strong> füllst du automatisch alle 6 Sprachen.</p>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin:14px 0;">
+                    <button class="btn-primary" onclick="window.faqNew()">+ Neue FAQ</button>
+                    <button class="btn-secondary" onclick="window.loadProviderFaqs()">🔄 Aktualisieren</button>
+                    <button class="btn-secondary" onclick="window.faqTranslateAllMissing()">🌐 Alle fehlenden übersetzen</button>
+                </div>
+                <div id="faq-editor"></div>
+                <div id="faq-list"><p style="color:#94a3b8;">Lade …</p></div>
+            </div>
+
             <!-- Vertriebler-Verwaltung -->
             <div id="sales-reps-page" class="page">
                 <h1>👔 Vertrieb</h1>
@@ -2144,7 +2161,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260620-shopcounts"></script>
+    <script src="app.js?v=20260620-faqs"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;

@@ -15,6 +15,7 @@ import Orders from './pages/Orders'
 import Promotions from './pages/Promotions'
 import Messages from './pages/Messages'
 import MarketInsights from './pages/MarketInsights'
+import Help from './pages/Help'
 import Profile from './pages/Profile'
 import ProviderPublicProfile from './pages/ProviderPublicProfile'
 import ClaimProfile from './pages/ClaimProfile'
@@ -93,6 +94,7 @@ function ProtectedRoutes() {
         <Route path="promotions" element={<Promotions />} />
         <Route path="messages" element={<Messages />} />
         <Route path="insights" element={<MarketInsights />} />
+        <Route path="help" element={<Help />} />
         <Route path="profile" element={<Profile />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
