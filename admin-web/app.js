@@ -11602,18 +11602,20 @@ function populateRepFilters() {
 // shop_stage gesetzt ist):
 //   active    = nutzt den Shop wirklich (Produkte ODER Umsatz)
 //   lead      = hat seinen Account gesichert & sich angemeldet (beansprucht/
-//               eingeloggt) bzw. den Shop aktiviert — aber noch keine Nutzung.
-//               Eine bloße CleverReach-Mail macht noch KEINEN Lead.
+//               eingeloggt) bzw. den Shop aktiviert — ODER wir sprechen ihn
+//               aktiv an (Vertriebler zugewiesen). Aber noch keine Nutzung.
+//               Eine bloße CleverReach-Massenmail macht noch KEINEN Lead.
 //   potential = vom Shop-Check als Shop erkannt, aber Account noch nicht
-//               gesichert (auch wenn schon angeschrieben)
+//               gesichert und (noch) keine aktive Ansprache
 //   (null     = kein Shop-Signal → nicht im Funnel)
 function deriveShopStage(r) {
     const using = (r.product_count > 0) || (r.revenue > 0);
     if (using) return 'active';
-    // Account gesichert/angemeldet: claim_token eingelöst (user_id/claimed_at)
-    // oder Shop selbst aktiviert.
-    const securedAccount = !!r.claimed_at || !!r.user_id || !!r.is_shop_active;
-    if (securedAccount) return 'lead';
+    // Account gesichert/angemeldet (claim_token eingelöst / Shop aktiviert)
+    // ODER wir sprechen ihn aktiv an (Vertriebler zugewiesen).
+    const securedAccount  = !!r.claimed_at || !!r.user_id || !!r.is_shop_active;
+    const activeOutreach  = !!r.sales_rep_id;
+    if (securedAccount || activeOutreach) return 'lead';
     const isShop = r.shop_check_status === 'online_shop' || r.shop_check_status === 'maybe_shop';
     if (isShop) return 'potential';
     return null; // nicht im Funnel

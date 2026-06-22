@@ -1205,7 +1205,7 @@
                         </label>
                         <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
                             <input type="radio" name="shop-ov-mode" value="lead" checked onchange="window.renderShopOverview()">
-                            <span>🔵 <strong>Lead</strong> (Account gesichert &amp; angemeldet bzw. Shop aktiviert — aber noch keine Nutzung; niedrigste Schwelle für Maßnahmen)</span>
+                            <span>🔵 <strong>Lead</strong> (Account gesichert &amp; angemeldet/Shop aktiviert — <em>oder</em> von uns aktiv angesprochen (Vertriebler zugewiesen) — aber noch keine Nutzung; niedrigste Schwelle für Maßnahmen)</span>
                         </label>
                         <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
                             <input type="radio" name="shop-ov-mode" value="active" onchange="window.renderShopOverview()">
@@ -1215,7 +1215,7 @@
                             <input type="radio" name="shop-ov-mode" value="website" onchange="window.renderShopOverview()">
                             <span>Alle Provider mit Website (für Vertriebler-Vorzuweisung)</span>
                         </label>
-                        <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Stufe automatisch abgeleitet — pro Zeile per Dropdown manuell überschreibbar (✎). <strong>Lead</strong> entsteht erst, wenn der Shop seinen Account beansprucht/anmeldet — eine reine CleverReach-Mail genügt nicht.</div>
+                        <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Stufe automatisch abgeleitet — pro Zeile per Dropdown manuell überschreibbar (✎). <strong>Lead</strong> entsteht, wenn der Shop seinen Account beansprucht/anmeldet <em>oder</em> wir ihn aktiv ansprechen (Vertriebler zuweisen) — eine reine CleverReach-Massenmail genügt nicht.</div>
                     </div>
                 </div>
 
@@ -2198,7 +2198,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260622-funnel2"></script>
+    <script src="app.js?v=20260622-funnel3"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;
