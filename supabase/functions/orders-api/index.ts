@@ -62,10 +62,22 @@ Deno.serve(async (req) => {
       return json({ error: "API key required (header x-api-key)" }, 401);
     }
 
+    // API-Key liegt in der streng abgesicherten Tabelle provider_secrets
+    // (nicht mehr in service_providers — sonst öffentlich lesbar).
+    const { data: secret, error: secretErr } = await supabase
+      .from("provider_secrets")
+      .select("provider_id")
+      .eq("api_key", apiKey)
+      .maybeSingle();
+
+    if (secretErr || !secret) {
+      return json({ error: "Invalid API key" }, 401);
+    }
+
     const { data: provider, error: keyErr } = await supabase
       .from("service_providers")
       .select("id, subscription_tier, subscription_status, free_until")
-      .eq("api_key", apiKey)
+      .eq("id", secret.provider_id)
       .eq("is_shop_active", true)
       .single();
 

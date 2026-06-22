@@ -42,11 +42,22 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("authorization");
 
     if (apiKey) {
-      // Validate provider API key + Subscription-Tier prüfen (API ist Pro+)
+      // Validate provider API key + Subscription-Tier prüfen (API ist Pro+).
+      // Der API-Key liegt in der streng abgesicherten Tabelle provider_secrets.
+      const { data: secret, error: secretErr } = await supabase
+        .from("provider_secrets")
+        .select("provider_id")
+        .eq("api_key", apiKey)
+        .maybeSingle();
+
+      if (secretErr || !secret) {
+        return jsonResponse({ error: "Invalid API key" }, 401);
+      }
+
       const { data: providerData, error: keyErr } = await supabase
         .from("service_providers")
         .select("id, subscription_tier, subscription_status, free_until")
-        .eq("api_key", apiKey)
+        .eq("id", secret.provider_id)
         .eq("is_shop_active", true)
         .single();
 

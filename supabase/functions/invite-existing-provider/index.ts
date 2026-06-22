@@ -70,10 +70,11 @@ Deno.serve(async (req) => {
     const mode: "cleverreach" | "mailto" =
       delivery === "cleverreach" ? "cleverreach" : "mailto";
 
-    // ── 3) Provider laden (inkl. claim_token + Account-Status)
+    // ── 3) Provider laden (Account-Status). claim_token liegt separat in
+    //       der streng abgesicherten Tabelle provider_secrets.
     const { data: provider, error: provErr } = await admin
       .from("service_providers")
-      .select("id, name, email, user_id, claim_token, claimed_at, category, city, country")
+      .select("id, name, email, user_id, claimed_at, category, city, country")
       .eq("id", provider_id)
       .single();
 
@@ -112,16 +113,24 @@ Deno.serve(async (req) => {
       }, 409);
     }
 
-    // ── 5) Claim-Token sicherstellen
-    //    Die DB legt beim Insert automatisch einen claim_token an
-    //    (siehe service_providers.claim_token DEFAULT). Falls aus alten
-    //    Datensätzen leer: jetzt nachholen.
-    let claimToken = provider.claim_token as string | null;
+    // ── 5) Claim-Token sicherstellen (aus provider_secrets)
+    //    Jeder Provider bekommt per DB-Trigger automatisch eine
+    //    provider_secrets-Zeile mit Default-claim_token. Falls aus alten
+    //    Datensätzen leer: jetzt nachholen (upsert).
+    const { data: existingSecret } = await admin
+      .from("provider_secrets")
+      .select("claim_token")
+      .eq("provider_id", provider_id)
+      .maybeSingle();
+
+    let claimToken = (existingSecret?.claim_token as string | null) ?? null;
     if (!claimToken) {
       const { data: regen, error: regenErr } = await admin
-        .from("service_providers")
-        .update({ claim_token: crypto.randomUUID() })
-        .eq("id", provider_id)
+        .from("provider_secrets")
+        .upsert(
+          { provider_id, claim_token: crypto.randomUUID() },
+          { onConflict: "provider_id" },
+        )
         .select("claim_token")
         .single();
       if (regenErr || !regen?.claim_token) {

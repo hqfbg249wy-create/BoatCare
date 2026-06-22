@@ -51,10 +51,25 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
     // ── 1) Provider per Token finden ──
+    //   claim_token liegt in der streng abgesicherten Tabelle provider_secrets
+    //   (nicht mehr in service_providers — sonst öffentlich lesbar).
+    const { data: secret, error: sErr } = await admin
+      .from("provider_secrets")
+      .select("provider_id")
+      .eq("claim_token", token)
+      .maybeSingle();
+
+    if (sErr) {
+      return json({ error: "DB-Fehler: " + sErr.message }, 500);
+    }
+    if (!secret) {
+      return json({ error: "Ungültiger oder abgelaufener Link." }, 404);
+    }
+
     const { data: provider, error: pErr } = await admin
       .from("service_providers")
-      .select("id, name, email, user_id, claimed_at, claim_token")
-      .eq("claim_token", token)
+      .select("id, name, email, user_id, claimed_at")
+      .eq("id", secret.provider_id)
       .maybeSingle();
 
     if (pErr) {

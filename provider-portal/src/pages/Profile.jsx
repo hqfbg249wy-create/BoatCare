@@ -185,12 +185,17 @@ export default function Profile() {
     }
   }, [provider?.stripe_account_id])
 
-  // Load API key
+  // Load API key — liegt in der streng abgesicherten Tabelle provider_secrets
+  // (nicht mehr in service_providers). Nur Owner/Admin dürfen lesen (RLS).
   useEffect(() => {
-    if (provider) {
-      setApiKey(provider.api_key || null)
-      setWebhookUrl(provider.webhook_url || '')
-    }
+    if (!provider?.id) return
+    setWebhookUrl(provider.webhook_url || '')
+    supabase
+      .from('provider_secrets')
+      .select('api_key')
+      .eq('provider_id', provider.id)
+      .maybeSingle()
+      .then(({ data }) => setApiKey(data?.api_key || null))
   }, [provider])
 
   // Versandregeln laden
@@ -632,10 +637,10 @@ export default function Profile() {
       }
       const newKey = `bc_${keyParts.join('_')}`
 
+      // API-Key in provider_secrets schreiben (streng RLS-geschützt).
       const { error } = await supabase
-        .from('service_providers')
-        .update({ api_key: newKey })
-        .eq('id', provider.id)
+        .from('provider_secrets')
+        .upsert({ provider_id: provider.id, api_key: newKey }, { onConflict: 'provider_id' })
 
       if (error) throw error
       setApiKey(newKey)

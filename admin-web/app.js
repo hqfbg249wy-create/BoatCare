@@ -7463,16 +7463,28 @@ window.searchAdminPromos = function() {
 // API MONITORING
 // ============================================
 
+// provider_secrets kommt aus PostgREST je nach Beziehung als Objekt ODER
+// als (ein-elementiges) Array zurück — beides robust auslesen.
+function secretField(embed, field) {
+    if (!embed) return null;
+    const row = Array.isArray(embed) ? embed[0] : embed;
+    return row ? (row[field] ?? null) : null;
+}
+
 async function loadApiMonitoring() {
     console.log('🔌 Loading API monitoring...');
 
-    // Load providers with API keys
+    // Load providers with API keys. api_key liegt jetzt in der streng
+    // abgesicherten Tabelle provider_secrets (Embed; nur Admin liest sie).
     const { data: providers } = await supabaseClient
         .from('service_providers')
-        .select('id, company_name, api_key, webhook_url, is_shop_active')
+        .select('id, company_name, webhook_url, is_shop_active, provider_secrets(api_key)')
         .order('company_name');
 
-    const allProviders = providers || [];
+    const allProviders = (providers || []).map(p => ({
+        ...p,
+        api_key: secretField(p.provider_secrets, 'api_key'),
+    }));
     const withApiKey = allProviders.filter(p => p.api_key);
     const withWebhook = allProviders.filter(p => p.webhook_url);
 
@@ -11903,15 +11915,16 @@ async function exportCleverReachCsv(countryCode) {
         // mit reinkommen (auch "Deutschland" statt "DE")
         let q = supabaseClient
             .from('service_providers')
-            .select('id, name, email, city, country, category, website, claim_token, user_id, phone, latitude, postal_code, street, shop_check_status')
+            .select('id, name, email, city, country, category, website, provider_secrets(claim_token), user_id, phone, latitude, postal_code, street, shop_check_status')
             .not('email', 'is', null)
             .neq('email', '')
             .limit(10000);
         if (onlyVerified) q = q.eq('email_check_status', 'valid');
         if (onlyShops)    q = q.eq('shop_check_status', 'online_shop');
 
-        const { data, error } = await q;
+        const { data: dataRaw, error } = await q;
         if (error) throw error;
+        const data = (dataRaw || []).map(p => ({ ...p, claim_token: secretField(p.provider_secrets, 'claim_token') }));
 
         // Country normalisierung im Browser
         const matchCountry = (raw) => {
@@ -12157,14 +12170,14 @@ async function exportAllCleverReachLanguages(mode = 'all') {
         for (let from = 0; ; from += PAGE) {
             const { data: page, error } = await supabaseClient
                 .from('service_providers')
-                .select('id, name, email, city, country, category, website, claim_token, user_id, phone, latitude, postal_code, street, shop_check_status, email_check_status')
+                .select('id, name, email, city, country, category, website, provider_secrets(claim_token), user_id, phone, latitude, postal_code, street, shop_check_status, email_check_status')
                 .eq('email_check_status', 'valid')
                 .not('email', 'is', null)
                 .neq('email', '')
                 .order('id', { ascending: true })
                 .range(from, from + PAGE - 1);
             if (error) throw error;
-            data = data.concat(page || []);
+            data = data.concat((page || []).map(p => ({ ...p, claim_token: secretField(p.provider_secrets, 'claim_token') })));
             langExportLog(`  … ${data.length} geladen`, 'info');
             if (!page || page.length < PAGE) break;
         }

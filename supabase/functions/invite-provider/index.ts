@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
         city:     city     || null,
         country:  "Deutschland",
       })
-      .select("id, claim_token")
+      .select("id")
       .single();
 
     if (insErr || !inserted) {
@@ -111,7 +111,18 @@ Deno.serve(async (req) => {
       return json({ error: "Anlegen des Provider-Eintrags fehlgeschlagen: " + (insErr?.message ?? "unbekannt") }, 400);
     }
 
-    const claimUrl = `https://provider.skipily.app/claim/${inserted.claim_token}`;
+    // claim_token wird per DB-Trigger automatisch in provider_secrets angelegt.
+    const { data: secret, error: secErr } = await admin
+      .from("provider_secrets")
+      .select("claim_token")
+      .eq("provider_id", inserted.id)
+      .single();
+
+    if (secErr || !secret?.claim_token) {
+      return json({ error: "Claim-Token konnte nicht erzeugt werden: " + (secErr?.message ?? "unbekannt") }, 500);
+    }
+
+    const claimUrl = `https://provider.skipily.app/claim/${secret.claim_token}`;
 
     return json({
       ok: true,
