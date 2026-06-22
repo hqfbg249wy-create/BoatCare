@@ -12290,6 +12290,7 @@ const FAQ_CATS = [
   ['csv', 'CSV-Produktimport'],
   ['api', 'API / Schnittstelle / Webhook'],
   ['team', 'Teammitglieder'],
+  ['security', 'Sicherheit & Login'],
   ['payment', 'Zahlungen, Rechnung & Abrechnung'],
   ['orders_shipping', 'Bestellung & Versand'],
   ['market_analysis', 'Marktanalyse nutzen'],

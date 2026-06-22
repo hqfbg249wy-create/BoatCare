@@ -14,7 +14,7 @@ const LANGS = [
 
 // Kategorie-Reihenfolge + Überschriften je Sprache (Fallback: DE)
 const CATEGORY_ORDER = [
-  'offering', 'csv', 'api', 'team', 'payment',
+  'offering', 'csv', 'api', 'team', 'security', 'payment',
   'orders_shipping', 'market_analysis', 'commission', 'advantages',
 ]
 const CATEGORY_LABELS = {
@@ -22,6 +22,7 @@ const CATEGORY_LABELS = {
   csv:             { de: 'CSV-Produktimport', en: 'CSV product import', fr: 'Import de produits CSV', it: 'Importazione prodotti CSV', es: 'Importación de productos CSV', nl: 'CSV-productimport' },
   api:             { de: 'API / Schnittstelle / Webhook', en: 'API / interface / webhook', fr: 'API / interface / webhook', it: 'API / interfaccia / webhook', es: 'API / interfaz / webhook', nl: 'API / koppeling / webhook' },
   team:            { de: 'Teammitglieder', en: 'Team members', fr: 'Membres de l’équipe', it: 'Membri del team', es: 'Miembros del equipo', nl: 'Teamleden' },
+  security:        { de: 'Sicherheit & Login', en: 'Security & login', fr: 'Sécurité & connexion', it: 'Sicurezza & accesso', es: 'Seguridad e inicio de sesión', nl: 'Beveiliging & inloggen' },
   payment:         { de: 'Zahlungen, Rechnung & Abrechnung', en: 'Payments, invoicing & payouts', fr: 'Paiements, facturation & règlements', it: 'Pagamenti, fatturazione & liquidazioni', es: 'Pagos, facturación y liquidación', nl: 'Betalingen, facturatie & uitbetaling' },
   orders_shipping: { de: 'Bestellung & Versand', en: 'Orders & shipping', fr: 'Commandes & expédition', it: 'Ordini & spedizione', es: 'Pedidos y envío', nl: 'Bestelling & verzending' },
   market_analysis: { de: 'Marktanalyse nutzen', en: 'Using market analysis', fr: 'Utiliser l’analyse de marché', it: 'Usare l’analisi di mercato', es: 'Usar el análisis de mercado', nl: 'Marktanalyse gebruiken' },
