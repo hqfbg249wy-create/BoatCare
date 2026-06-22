@@ -11451,8 +11451,8 @@ async function loadShopOverview() {
         // potenzielle Shops mit Buchstaben weit hinten im Alphabet. Daher
         // explizit limit(20000) UND auch IDs aus orders/products
         // hinzunehmen, damit kein Shop verloren geht.
-        const SELECT_COLS = 'id, name, city, country, website, is_shop_active, commission_rate, sales_rep_id, created_at, claimed_at';
-        const SELECT_COLS_WITH_SHOP = SELECT_COLS + ', shop_check_status';
+        const SELECT_COLS = 'id, name, city, country, website, email, is_shop_active, commission_rate, sales_rep_id, created_at, claimed_at, user_id';
+        const SELECT_COLS_WITH_SHOP = SELECT_COLS + ', shop_check_status, shop_stage';
 
         const tryWithShopStatus = async () => {
             const { data, error } = await supabaseClient
@@ -11473,7 +11473,7 @@ async function loadShopOverview() {
 
         let providers, pErr, hasShopCol;
         ({ data: providers, error: pErr, hasShopCol } = await tryWithShopStatus());
-        if (pErr && /shop_check_status/.test(pErr.message || '')) {
+        if (pErr && /shop_check_status|shop_stage/.test(pErr.message || '')) {
             ({ data: providers, error: pErr, hasShopCol } = await tryWithout());
         }
         if (pErr) throw pErr;
@@ -11597,16 +11597,57 @@ function populateRepFilters() {
     if (current) sel.value = current;
 }
 
-// Sichtbares Badge für den Shop-Check-Status.
-function shopStatusBadge(status) {
-    if (status === 'online_shop') {
-        return '<span style="background:#dcfce7; color:#166534; padding:1px 7px; border-radius:999px; font-size:11px; font-weight:700; white-space:nowrap;">🛒 Verifizierter Shop</span>';
-    }
-    if (status === 'maybe_shop') {
-        return '<span style="background:#fef9c3; color:#854d0e; padding:1px 7px; border-radius:999px; font-size:11px; font-weight:700; white-space:nowrap;">🔍 Möglicher Shop</span>';
-    }
-    return '';
+// ── Pipeline-Stufe (Lead / Potenziell / Aktiv) ─────────────────────────────
+// Abgeleitete Stufe aus den Signalen (gilt, solange kein manueller Override
+// shop_stage gesetzt ist).
+function deriveShopStage(r) {
+    if (r.is_shop_active || r.claimed_at || r.user_id || (r.product_count > 0) || (r.revenue > 0)) return 'active';
+    if (r.shop_check_status === 'online_shop' || r.shop_check_status === 'maybe_shop') return 'potential';
+    return 'lead';
 }
+// Effektive Stufe: manueller Override (shop_stage) schlägt Ableitung.
+function effectiveShopStage(r) {
+    return r.shop_stage || deriveShopStage(r);
+}
+const STAGE_META = {
+    active:    { label: 'Aktiver Shop',      bg:'#dcfce7', col:'#166534', icon:'🟢' },
+    potential: { label: 'Potenzieller Shop', bg:'#fef9c3', col:'#854d0e', icon:'🟡' },
+    lead:      { label: 'Lead',              bg:'#e0e7ff', col:'#3730a3', icon:'🔵' },
+};
+function stageBadge(r) {
+    const m = STAGE_META[effectiveShopStage(r)] || STAGE_META.lead;
+    const manual = r.shop_stage ? ' title="Manuell gesetzt"' : '';
+    const mark = r.shop_stage ? ' ✎' : '';
+    return `<span${manual} style="background:${m.bg}; color:${m.col}; padding:1px 7px; border-radius:999px; font-size:11px; font-weight:700; white-space:nowrap;">${m.icon} ${m.label}${mark}</span>`;
+}
+// Dropdown zum manuellen Umstufen (Auto = Override entfernen).
+function stageDropdown(r) {
+    const eff = effectiveShopStage(r);
+    const cur = r.shop_stage || '';
+    const opt = (v, l) => `<option value="${v}"${cur === v ? ' selected' : ''}>${l}</option>`;
+    return `<select onchange="window.setShopStage('${escapeHtml_v(r.id)}', this.value)" style="padding:4px 6px; border-radius:6px; font-size:11px; max-width:150px;">
+        ${opt('', 'Auto (' + (STAGE_META[eff]?.label || eff) + ')')}
+        ${opt('active', 'Aktiv')}
+        ${opt('potential', 'Potenziell')}
+        ${opt('lead', 'Lead')}
+    </select>`;
+}
+
+async function setShopStage(providerId, value) {
+    try {
+        const { error } = await supabaseClient
+            .from('service_providers')
+            .update({ shop_stage: value || null })
+            .eq('id', providerId);
+        if (error) throw error;
+        const entry = _shopOverviewCache?.find(r => r.id === providerId);
+        if (entry) entry.shop_stage = value || null;
+        renderShopOverview();
+    } catch (err) {
+        alert('Stufe konnte nicht gesetzt werden: ' + err.message);
+    }
+}
+window.setShopStage = setShopStage;
 
 function renderShopOverview() {
     const container = document.getElementById('shop-ov-list');
@@ -11628,26 +11669,13 @@ function renderShopOverview() {
     //   "website"   = alle Provider mit Website. Für Vertriebler-Vorzuweisung
     //                 bevor überhaupt klar ist ob jemand Shop wird.
     const mode = document.querySelector('input[name="shop-ov-mode"]:checked')?.value || 'active';
-    if (mode === 'verified') {
-        // Nur die vom Shop-Check als echter Online-Shop bestätigten.
-        rows = rows.filter(r => r.shop_check_status === 'online_shop');
-    } else if (mode === 'website') {
+    if (mode === 'website') {
+        // Sonderansicht für Vertriebler-Vorzuweisung: alle mit Website.
         rows = rows.filter(r => r.website && r.website.trim() !== '');
-    } else if (mode === 'potential') {
-        rows = rows.filter(r =>
-            r.is_shop_active ||
-            r.product_count > 0 ||
-            r.revenue > 0 ||
-            r.shop_check_status === 'online_shop' ||
-            r.shop_check_status === 'maybe_shop'
-        );
     } else {
-        // "active": die ehrliche Sicht — nur was wirklich live ist
-        rows = rows.filter(r =>
-            r.is_shop_active ||
-            r.product_count > 0 ||
-            r.revenue > 0
-        );
+        // Pipeline-Stufe: 'active' | 'potential' | 'lead' (manueller Override
+        // via shop_stage schlägt die Ableitung).
+        rows = rows.filter(r => effectiveShopStage(r) === mode);
     }
 
     if (repFilter === 'none') {
@@ -11694,6 +11722,7 @@ function renderShopOverview() {
                     <tr>
                         <th style="padding:10px; text-align:left;">Shop</th>
                         <th style="padding:10px; text-align:left;">Stadt</th>
+                        <th style="padding:10px; text-align:left;">Stufe</th>
                         <th style="padding:10px; text-align:right;">Produkte</th>
                         <th style="padding:10px; text-align:right;">Umsatz</th>
                         <th style="padding:10px; text-align:right;">Marketplace-Provision</th>
@@ -11704,8 +11733,9 @@ function renderShopOverview() {
                 <tbody>
                     ${rows.map(r => `
                         <tr style="border-top:1px solid #e2e8f0;">
-                            <td style="padding:10px; font-weight:600;">${escapeHtml_v(r.name || '?')} ${shopStatusBadge(r.shop_check_status)}</td>
+                            <td style="padding:10px; font-weight:600;">${escapeHtml_v(r.name || '?')} ${stageBadge(r)}</td>
                             <td style="padding:10px; color:#64748b;">${escapeHtml_v(r.city || '–')}</td>
+                            <td style="padding:10px;">${stageDropdown(r)}</td>
                             <td style="padding:10px; text-align:right;">${r.product_count.toLocaleString('de-DE')}</td>
                             <td style="padding:10px; text-align:right; font-weight:600; color:${r.revenue > 0 ? '#166534' : '#94a3b8'};">${r.revenue.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 })} €</td>
                             <td style="padding:10px; text-align:right; color:#854d0e;">${r.commission.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 })} €</td>

@@ -1198,22 +1198,24 @@
                         </div>
                     </div>
                     <div style="margin-top:12px; display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                        <div style="font-weight:700; color:#475569; margin-bottom:2px;">Pipeline-Stufe</div>
                         <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
                             <input type="radio" name="shop-ov-mode" value="active" checked onchange="window.renderShopOverview()">
-                            <span><strong>Nur selbst-aktivierte Shops</strong> (Provider hat <code>is_shop_active=true</code> oder bereits Produkte/Umsatz)</span>
-                        </label>
-                        <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
-                            <input type="radio" name="shop-ov-mode" value="verified" onchange="window.renderShopOverview()">
-                            <span><strong>🛒 Nur verifizierte Shops</strong> (vom Shop-Check als <code>online_shop</code> bestätigt — auch noch nicht selbst-aktivierte)</span>
+                            <span>🟢 <strong>Aktive Shops</strong> (aktiviert: <code>is_shop_active</code>, Account beansprucht oder Produkte/Umsatz)</span>
                         </label>
                         <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
                             <input type="radio" name="shop-ov-mode" value="potential" onchange="window.renderShopOverview()">
-                            <span><strong>+ Shop-Check-Treffer</strong> (zusätzlich Provider die der Shop-Check als <code>online_shop</code>/<code>maybe_shop</code> erkannt hat)</span>
+                            <span>🟡 <strong>Potenzielle Shops</strong> (vom Shop-Check als <code>online_shop</code>/<code>maybe_shop</code> erkannt, noch nicht aktiv)</span>
                         </label>
                         <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
-                            <input type="radio" name="shop-ov-mode" value="website" onchange="window.renderShopOverview()">
-                            <span><strong>Alle Provider mit Website</strong> (für Vertriebler-Vorzuweisung an noch nicht aktivierte Shops)</span>
+                            <input type="radio" name="shop-ov-mode" value="lead" onchange="window.renderShopOverview()">
+                            <span>🔵 <strong>Leads</strong> (kontaktierbare Provider ohne Shop-Treffer)</span>
                         </label>
+                        <label style="display:flex; gap:6px; align-items:center; cursor:pointer; margin-top:4px; color:#64748b;">
+                            <input type="radio" name="shop-ov-mode" value="website" onchange="window.renderShopOverview()">
+                            <span>Alle Provider mit Website (für Vertriebler-Vorzuweisung)</span>
+                        </label>
+                        <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Stufe automatisch abgeleitet — pro Zeile per Dropdown manuell überschreibbar (✎). Account-Aktivierung nach der CleverReach-Mail setzt automatisch auf „Aktiv".</div>
                     </div>
                 </div>
 
@@ -2193,7 +2195,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260622-invalidmail"></script>
+    <script src="app.js?v=20260622-shopstage"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;
