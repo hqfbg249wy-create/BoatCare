@@ -10369,6 +10369,9 @@ async function loadCleverReachStats() {
 
         // CSV-Export-Buttons pro Land rendern
         renderCsvExportButtons(data.perCountry);
+
+        // Fehlerhafte-E-Mails-Liste gleich mitladen
+        loadInvalidEmailProviders();
     } catch (err) {
         if (statusBox) {
             statusBox.style.background = '#fee2e2';
@@ -10498,7 +10501,8 @@ async function pollCleverReachLangStatus() {
         const pct = j.total ? Math.round((done / j.total) * 100) : 0;
 
         if (j.running) {
-            cleverreachLog(`   … ${done}/${j.total} (${pct}%) — ✅ ${j.synced}  ⏭ ${j.skipped}  ❌ ${j.errors}`, 'info');
+            const inv = j.invalidEmail ? `  ⚠️ ${j.invalidEmail}` : '';
+            cleverreachLog(`   … ${done}/${j.total} (${pct}%) — ✅ ${j.synced}  ⏭ ${j.skipped}${inv}  ❌ ${j.errors}`, 'info');
             return;
         }
 
@@ -10510,19 +10514,85 @@ async function pollCleverReachLangStatus() {
         if (j.error) {
             cleverreachLog(`❌ Job-Fehler: ${j.error}`, 'error');
         } else {
-            cleverreachLog(`\n📊 ${j.dryRun ? 'Trockenlauf' : 'Sync'} fertig: ✅ ${j.synced}  ⏭ übersprungen ${j.skipped}  ❌ Fehler ${j.errors}`, j.errors > 0 ? 'warn' : 'success');
+            const invTotal = j.invalidEmail || 0;
+            cleverreachLog(`\n📊 ${j.dryRun ? 'Trockenlauf' : 'Sync'} fertig: ✅ ${j.synced}  ⏭ übersprungen ${j.skipped}  ⚠️ ungültige Mail ${invTotal}  ❌ Fehler ${j.errors}`, (j.errors > 0) ? 'warn' : 'success');
             for (const g of (j.perGroup || [])) {
-                cleverreachLog(`   ${g.group.padEnd(14)} total ${String(g.total).padStart(4)}  (✅ ${g.synced}  ⏭ ${g.skipped}  ❌ ${g.errors})`, g.errors ? 'warn' : 'success');
+                const gi = g.invalidEmail ? `  ⚠️ ${g.invalidEmail}` : '';
+                cleverreachLog(`   ${g.group.padEnd(14)} total ${String(g.total).padStart(4)}  (✅ ${g.synced}  ⏭ ${g.skipped}${gi}  ❌ ${g.errors})`, g.errors ? 'warn' : 'success');
             }
+            if (invTotal > 0) cleverreachLog(`\n  ⚠️ ${invTotal} Adresse(n) mit ungültiger E-Mail übersprungen — unten unter „Fehlerhafte E-Mails" prüfen/korrigieren/löschen.`, 'warn');
             if (j.dryRun) cleverreachLog(`\n  ℹ️ Trockenlauf — nichts gesendet. Häkchen entfernen für echten Sync.`, 'warn');
-            if (j.lastError) cleverreachLog(`   letzter Fehler: ${j.lastError}`, 'warn');
+            if (j.lastError) cleverreachLog(`   letzter Hinweis: ${j.lastError}`, 'warn');
         }
         loadCleverReachStats();
+        loadInvalidEmailProviders();
     } catch (err) {
         // transienter Netzwerkfehler — weiter pollen
     }
 }
 window.startCleverReachLanguageSync = startCleverReachLanguageSync;
+
+// ── Fehlerhafte E-Mails (zur Prüfung) ──────────────────────────────────────
+// Listet Provider mit cleverreach_status='invalid_email' (beim Sync wegen
+// ungültiger E-Mail übersprungen). Bearbeiten/Löschen über die bestehenden
+// Provider-Funktionen.
+async function loadInvalidEmailProviders() {
+    const box = document.getElementById('cleverreach-invalid-list');
+    const cnt = document.getElementById('cleverreach-invalid-count');
+    if (!box) return;
+    box.innerHTML = '<p style="color:#94a3b8; font-size:13px;">Lädt …</p>';
+    try {
+        const { data, error } = await supabaseClient
+            .from('service_providers')
+            .select('id, name, email, country, city')
+            .eq('cleverreach_status', 'invalid_email')
+            .order('country', { ascending: true })
+            .limit(1000);
+        if (error) throw error;
+
+        const rows = data || [];
+        if (cnt) cnt.textContent = rows.length ? `(${rows.length})` : '';
+
+        if (rows.length === 0) {
+            box.innerHTML = '<p style="color:#16a34a; font-size:13px;">✅ Keine fehlerhaften E-Mails — alles sauber.</p>';
+            return;
+        }
+
+        box.innerHTML = `
+            <table style="width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden;">
+                <thead>
+                    <tr style="background:#fee2e2; text-align:left;">
+                        <th style="padding:8px 10px;">Anbieter</th>
+                        <th style="padding:8px 10px;">E-Mail</th>
+                        <th style="padding:8px 10px;">Land</th>
+                        <th style="padding:8px 10px; text-align:right;">Aktion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows.map(p => `
+                        <tr style="border-bottom:1px solid #fee2e2;">
+                            <td style="padding:8px 10px;"><strong>${escapeHtml(p.name || '—')}</strong><br><span style="color:#94a3b8; font-size:12px;">${escapeHtml(p.city || '')}</span></td>
+                            <td style="padding:8px 10px;"><code style="background:#fef2f2; color:#b91c1c; padding:2px 6px; border-radius:4px; font-size:12px;">${escapeHtml(p.email || '(leer)')}</code></td>
+                            <td style="padding:8px 10px;">${escapeHtml(p.country || '—')}</td>
+                            <td style="padding:8px 10px; text-align:right; white-space:nowrap;">
+                                <button class="btn-secondary" style="padding:4px 10px;" onclick="window.editProvider('${p.id}')">✏️ Bearbeiten</button>
+                                <button style="padding:4px 10px; background:#dc2626; color:#fff; border:none; border-radius:6px; cursor:pointer;" onclick="window.deleteInvalidEmailProvider('${p.id}')">🗑️ Löschen</button>
+                            </td>
+                        </tr>`).join('')}
+                </tbody>
+            </table>`;
+    } catch (err) {
+        box.innerHTML = `<p style="color:#b91c1c; font-size:13px;">Fehler beim Laden: ${escapeHtml(err.message)}</p>`;
+    }
+}
+window.loadInvalidEmailProviders = loadInvalidEmailProviders;
+
+// Löschen + Liste danach aktualisieren (nutzt die bestehende deleteProvider-Logik).
+async function deleteInvalidEmailProvider(providerId) {
+    await deleteProvider(providerId);
+    setTimeout(loadInvalidEmailProviders, 600);
+}
+window.deleteInvalidEmailProvider = deleteInvalidEmailProvider;
 
 // ── Geo-Korrektur: Hintergrund-Job starten + Fortschritt pollen ──
 let _geoPollTimer = null;

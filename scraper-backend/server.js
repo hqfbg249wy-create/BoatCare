@@ -3693,15 +3693,27 @@ function isEuropeanForMarketing(country) {
     return EU_MARKETING_COUNTRIES.has(normalizeCountryCode(country));
 }
 
+// Einfache, robuste E-Mail-Formatprüfung. Fängt die offensichtlich kaputten
+// Adressen ab, die CleverReach mit 400 "invalid email" ablehnt (Leerzeichen,
+// fehlendes @ oder TLD, doppelte Punkte etc.), bevor wir die API überhaupt
+// aufrufen — schneller und sauber als "zur Prüfung" markierbar.
+function isValidEmailFormat(email) {
+    if (!email || typeof email !== 'string') return false;
+    const e = email.trim();
+    if (e.length < 5 || e.length > 254) return false;
+    if (/\s/.test(e) || e.includes('..')) return false;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+}
+
 let _crLangJob = {
     running: false, dryRun: false, startedAt: null, finishedAt: null,
-    total: 0, synced: 0, skipped: 0, skippedNonEU: 0, errors: 0, perGroup: {}, error: null, lastError: null,
+    total: 0, synced: 0, skipped: 0, skippedNonEU: 0, invalidEmail: 0, errors: 0, perGroup: {}, error: null, lastError: null,
 };
 
 async function runCleverReachLangJob({ onlyVerified = true, dryRun = false, includeSynced = false } = {}) {
     _crLangJob = {
         running: true, dryRun, includeSynced, startedAt: new Date().toISOString(), finishedAt: null,
-        total: 0, synced: 0, skipped: 0, skippedNonEU: 0, errors: 0, perGroup: {}, error: null, lastError: null,
+        total: 0, synced: 0, skipped: 0, skippedNonEU: 0, invalidEmail: 0, errors: 0, perGroup: {}, error: null, lastError: null,
     };
     try {
         // Default: nur noch NICHT synchronisierte (Delta) — schnell + schont die
@@ -3719,10 +3731,22 @@ async function runCleverReachLangJob({ onlyVerified = true, dryRun = false, incl
             const groupId = (CLEVERREACH_CONFIG.LANG_GROUPS[type] || {})[lang] || '';
 
             const g = _crLangJob.perGroup[key]
-                || (_crLangJob.perGroup[key] = { group: key, type, lang, total: 0, synced: 0, errors: 0, skipped: 0 });
+                || (_crLangJob.perGroup[key] = { group: key, type, lang, total: 0, synced: 0, errors: 0, skipped: 0, invalidEmail: 0 });
             g.total++;
 
             if (!groupId) { _crLangJob.skipped++; g.skipped++; continue; }
+
+            // Ungültige E-Mail GAR NICHT erst an CleverReach schicken — als
+            // 'invalid_email' markieren (Status in der DB) und überspringen.
+            // So bricht ein einzelner Gammel-Datensatz nichts ab und ist im
+            // Admin unter „Fehlerhafte E-Mails" auffindbar/bearbeitbar/löschbar.
+            if (!isValidEmailFormat(p.email)) {
+                _crLangJob.invalidEmail++; g.invalidEmail = (g.invalidEmail || 0) + 1;
+                _crLangJob.lastError = `Ungültige E-Mail übersprungen: ${p.email || '(leer)'} (${p.name || p.id})`;
+                try { await persistCleverReachResult(p.id, null, 'invalid_email', null); } catch (_) {}
+                continue;
+            }
+
             if (dryRun) { _crLangJob.synced++; g.synced++; continue; }
             try {
                 await cleverreachUpsertReceiver(groupId, p);
@@ -3730,9 +3754,18 @@ async function runCleverReachLangJob({ onlyVerified = true, dryRun = false, incl
                 // DB-Schreiben darf den Job NICHT killen → eigener Guard.
                 try { await persistCleverReachResult(p.id, groupId, 'subscribed', null); } catch (_) {}
             } catch (err) {
-                _crLangJob.errors++; g.errors++;
-                _crLangJob.lastError = err.message;
-                try { await persistCleverReachResult(p.id, null, 'error', err.message.substring(0, 500)); } catch (_) {}
+                // CleverReach lehnt eine durchgerutschte Adresse als ungültig ab?
+                // → ebenfalls als 'invalid_email' zur Prüfung markieren, nicht als
+                //   harten Fehler werten.
+                if (/invalid email|invalid e-mail|bad request.*email/i.test(err.message || '')) {
+                    _crLangJob.invalidEmail++; g.invalidEmail = (g.invalidEmail || 0) + 1;
+                    _crLangJob.lastError = `Ungültige E-Mail (CleverReach): ${p.email || '(leer)'} (${p.name || p.id})`;
+                    try { await persistCleverReachResult(p.id, null, 'invalid_email', null); } catch (_) {}
+                } else {
+                    _crLangJob.errors++; g.errors++;
+                    _crLangJob.lastError = err.message;
+                    try { await persistCleverReachResult(p.id, null, 'error', err.message.substring(0, 500)); } catch (_) {}
+                }
             }
         }
     } catch (err) {
@@ -3741,7 +3774,7 @@ async function runCleverReachLangJob({ onlyVerified = true, dryRun = false, incl
     } finally {
         _crLangJob.running = false;
         _crLangJob.finishedAt = new Date().toISOString();
-        console.log(`🌍 Sprach-Job fertig: synced=${_crLangJob.synced} skipped=${_crLangJob.skipped} errors=${_crLangJob.errors}`);
+        console.log(`🌍 Sprach-Job fertig: synced=${_crLangJob.synced} skipped=${_crLangJob.skipped} invalidEmail=${_crLangJob.invalidEmail} errors=${_crLangJob.errors}`);
     }
 }
 

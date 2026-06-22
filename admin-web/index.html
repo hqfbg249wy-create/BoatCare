@@ -1110,6 +1110,18 @@
                     <div style="background:#1e293b; color:#e2e8f0; border-radius:8px; padding:15px; font-family:monospace; font-size:12px; max-height:300px; overflow-y:auto;" id="cleverreach-log"></div>
                 </div>
 
+                <!-- Fehlerhafte E-Mails zur Prüfung -->
+                <div style="margin-top:20px; border:1px solid #fecaca; background:#fef2f2; border-radius:10px; padding:16px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                        <div>
+                            <h3 style="margin:0;">⚠️ Fehlerhafte E-Mails <span id="cleverreach-invalid-count" style="color:#b91c1c;"></span></h3>
+                            <p style="margin:4px 0 0; font-size:13px; color:#7f1d1d;">Provider, deren E-Mail von CleverReach abgelehnt wurde (ungültiges Format). Sie werden beim Sync übersprungen — hier prüfen, korrigieren oder löschen.</p>
+                        </div>
+                        <button onclick="window.loadInvalidEmailProviders()" class="btn-secondary">🔄 Aktualisieren</button>
+                    </div>
+                    <div id="cleverreach-invalid-list" style="margin-top:12px;"></div>
+                </div>
+
                 <!-- Ergebnis pro Land -->
                 <div id="cleverreach-results" style="display:none; margin-top:20px;">
                     <h3>📊 Ergebnis nach Land</h3>
@@ -2177,7 +2189,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260622-faq2fa"></script>
+    <script src="app.js?v=20260622-invalidmail"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;
