@@ -1201,11 +1201,11 @@
                         <div style="font-weight:700; color:#475569; margin-bottom:2px;">Sales-Funnel-Stufe</div>
                         <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
                             <input type="radio" name="shop-ov-mode" value="potential" onchange="window.renderShopOverview()">
-                            <span>🟡 <strong>Potenziell</strong> (vom Shop-Check als Shop erkannt, aber noch nicht engagiert)</span>
+                            <span>🟡 <strong>Potenziell</strong> (vom Shop-Check als Shop erkannt — Account noch nicht gesichert, auch wenn schon angeschrieben)</span>
                         </label>
                         <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
                             <input type="radio" name="shop-ov-mode" value="lead" checked onchange="window.renderShopOverview()">
-                            <span>🔵 <strong>Lead</strong> (Account aktiviert/beansprucht <em>oder</em> direkt angesprochen — aber noch keine Shop-Nutzung; niedrigste Schwelle für Maßnahmen)</span>
+                            <span>🔵 <strong>Lead</strong> (Account gesichert &amp; angemeldet bzw. Shop aktiviert — aber noch keine Nutzung; niedrigste Schwelle für Maßnahmen)</span>
                         </label>
                         <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
                             <input type="radio" name="shop-ov-mode" value="active" onchange="window.renderShopOverview()">
@@ -1215,7 +1215,7 @@
                             <input type="radio" name="shop-ov-mode" value="website" onchange="window.renderShopOverview()">
                             <span>Alle Provider mit Website (für Vertriebler-Vorzuweisung)</span>
                         </label>
-                        <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Stufe automatisch abgeleitet — pro Zeile per Dropdown manuell überschreibbar (✎). „Direkt angesprochen" = per CleverReach kontaktiert oder Vertriebler zugewiesen.</div>
+                        <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Stufe automatisch abgeleitet — pro Zeile per Dropdown manuell überschreibbar (✎). <strong>Lead</strong> entsteht erst, wenn der Shop seinen Account beansprucht/anmeldet — eine reine CleverReach-Mail genügt nicht.</div>
                     </div>
                 </div>
 
@@ -2198,7 +2198,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260622-funnel"></script>
+    <script src="app.js?v=20260622-funnel2"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;
