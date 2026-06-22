@@ -10,6 +10,12 @@
 -- der Admin-FAQ-Liste (FAQ_CATS) ergänzt sein, damit sie angezeigt wird.
 -- ============================================================================
 
+-- Idempotent ohne Abhängigkeit von einem Unique-Constraint:
+-- vorhandenen Eintrag dieser Kategorie/Frage entfernen, dann neu einfügen.
+DELETE FROM public.provider_faqs
+WHERE category = 'security'
+  AND question = $q$Wie funktioniert die Zwei-Faktor-Anmeldung (2FA) und wie richte ich sie ein?$q$;
+
 INSERT INTO public.provider_faqs (category, sort_order, question, answer, translations) VALUES
 ('security', 10,
 $q$Wie funktioniert die Zwei-Faktor-Anmeldung (2FA) und wie richte ich sie ein?$q$,
@@ -49,9 +55,4 @@ $json${
     "question": "Hoe werkt het inloggen met twee factoren (2FA) en hoe stel ik het in?",
     "answer": "Tweefactorauthenticatie (2FA) beschermt je aanbiederaccount naast je wachtwoord: bij het inloggen voer je naast je wachtwoord een 6-cijferige eenmalige code in, die een authenticator-app op je telefoon elke 30 seconden opnieuw genereert. Zelfs wie je wachtwoord kent, komt er zonder je telefoon niet in.\n\nInstellen (eenmalig):\n1. Installeer een authenticator-app, bijv. Google Authenticator, 1Password of Authy.\n2. Is 2FA voor je account actief, dan leidt Skipily je bij de volgende login automatisch door het instellen.\n3. Scan de getoonde QR-code met de app – of voer de geheime sleutel handmatig in.\n4. Voer de 6-cijferige code uit de app in om te bevestigen.\n\nBij elke volgende login:\nEerst je e-mail en wachtwoord, daarna de actuele 6-cijferige code uit je app.\n\nGoed om te weten:\n• Skipily activeert de 2FA-plicht voor je account – er is momenteel geen schakelaar in je profiel. Wil je 2FA, neem dan contact op met Skipily-support.\n• Bewaar je authenticator veilig en zet hem op tijd over wanneer je van telefoon wisselt.\n• Heb je geen toegang meer tot de app, neem dan contact op met Skipily-support – we resetten 2FA zodat je het opnieuw kunt instellen."
   }
-}$json$::jsonb)
-ON CONFLICT (category, question) DO UPDATE
-  SET answer       = EXCLUDED.answer,
-      translations = EXCLUDED.translations,
-      sort_order   = EXCLUDED.sort_order,
-      is_published = true;
+}$json$::jsonb);
