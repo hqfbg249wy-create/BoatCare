@@ -109,6 +109,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         );
         console.log('✅ Supabase Client erstellt');
 
+        // Sicherheit: Der Scraper-Backend (Fly) verlangt jetzt einen Admin-Token.
+        // Wir kapseln fetch einmal zentral: jeder Aufruf an den Scraper-Host
+        // bekommt automatisch den Bearer-Token der aktuellen Admin-Session.
+        if (!window.__scraperFetchPatched) {
+            window.__scraperFetchPatched = true;
+            const _origFetch = window.fetch.bind(window);
+            window.fetch = async function (url, opts = {}) {
+                try {
+                    if (typeof url === 'string' && url.includes('skipily-scraper.fly.dev')) {
+                        const session = (await supabaseClient.auth.getSession()).data.session;
+                        if (session) {
+                            opts = { ...opts, headers: { ...(opts.headers || {}), 'Authorization': `Bearer ${session.access_token}` } };
+                        }
+                    }
+                } catch (_) { /* im Zweifel ohne Token weiter — Server antwortet dann 401 */ }
+                return _origFetch(url, opts);
+            };
+        }
+
         // Erkennt Recovery- / Invite-Token im URL-Hash. Supabase setzt darauf
         // automatisch eine Session — wir müssen den User dann durch den
         // Passwort-Setup-Flow schicken, bevor das Panel sichtbar wird.

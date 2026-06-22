@@ -27,10 +27,48 @@ app.use(cors({
 app.use(express.json());
 
 // ============================================================
+// AUTH — alle /api/*-Endpoints erfordern einen gültigen Admin-Token.
+// Vorher waren ALLE Endpoints öffentlich aufrufbar (Scrape/Sync/Geocode
+// per curl auslösbar, Daten lesbar). /health bleibt offen (Fly-Checks).
+// Der Admin-Token (Supabase-Session) wird gegen Supabase validiert und die
+// profiles.role='admin' geprüft.
+// ============================================================
+async function requireAdmin(req, res, next) {
+    if (req.method === 'OPTIONS') return next();
+    if (req.path === '/health' || req.path === '/') return next();
+    try {
+        const authH = req.headers['authorization'] || '';
+        const token = authH.startsWith('Bearer ') ? authH.slice(7) : '';
+        if (!token) return res.status(401).json({ error: 'Authentifizierung erforderlich' });
+
+        const ur = await fetch(`${CONFIG.SUPABASE_URL}/auth/v1/user`, {
+            headers: { apikey: CONFIG.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${token}` },
+        });
+        if (!ur.ok) return res.status(401).json({ error: 'Ungültiger Token' });
+        const user = await ur.json();
+        if (!user || !user.id) return res.status(401).json({ error: 'Ungültiger Token' });
+
+        const pr = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/profiles?select=role&id=eq.${user.id}`, {
+            headers: { apikey: CONFIG.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${CONFIG.SUPABASE_SERVICE_KEY}` },
+        });
+        const rows = await pr.json().catch(() => []);
+        const role = Array.isArray(rows) && rows[0] ? rows[0].role : null;
+        if (role !== 'admin') return res.status(403).json({ error: 'Admin-Rechte erforderlich' });
+
+        req.adminUserId = user.id;
+        return next();
+    } catch (e) {
+        return res.status(401).json({ error: 'Auth-Fehler' });
+    }
+}
+app.use(requireAdmin);
+
+// ============================================================
 // KONFIGURATION
 // ============================================================
 const CONFIG = {
-    GOOGLE_PLACES_API_KEY: process.env.GOOGLE_PLACES_API_KEY || 'AIzaSyDlH2R38FhvDJFdsQd-bk3pFt3CswgY5Yk',
+    // Kein Hardcode-Fallback mehr — Key muss als Env/Secret gesetzt sein.
+    GOOGLE_PLACES_API_KEY: process.env.GOOGLE_PLACES_API_KEY || '',
     SUPABASE_URL: process.env.SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co',
     SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY || '', // Service Role Key für direkten DB-Zugriff
     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjandseXFrZmtzenVtZHJmdnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMDQ4NTksImV4cCI6MjA4NDY4MDg1OX0.VOlhRdvShU325xG18SSSTWdFfGEdyeX-7CAovE2vesQ'
