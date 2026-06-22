@@ -11451,7 +11451,7 @@ async function loadShopOverview() {
         // potenzielle Shops mit Buchstaben weit hinten im Alphabet. Daher
         // explizit limit(20000) UND auch IDs aus orders/products
         // hinzunehmen, damit kein Shop verloren geht.
-        const SELECT_COLS = 'id, name, city, country, website, email, is_shop_active, commission_rate, sales_rep_id, created_at, claimed_at, user_id';
+        const SELECT_COLS = 'id, name, city, country, website, email, is_shop_active, commission_rate, sales_rep_id, created_at, claimed_at, user_id, cleverreach_status';
         const SELECT_COLS_WITH_SHOP = SELECT_COLS + ', shop_check_status, shop_stage';
 
         const tryWithShopStatus = async () => {
@@ -11597,22 +11597,33 @@ function populateRepFilters() {
     if (current) sel.value = current;
 }
 
-// ── Pipeline-Stufe (Lead / Potenziell / Aktiv) ─────────────────────────────
-// Abgeleitete Stufe aus den Signalen (gilt, solange kein manueller Override
-// shop_stage gesetzt ist).
+// ── Sales-Funnel-Stufe (Potenziell → Lead → Aktiv) ─────────────────────────
+// Abgeleitete Stufe aus dem VERHALTEN (gilt, solange kein manueller Override
+// shop_stage gesetzt ist):
+//   active    = nutzt den Shop wirklich (Produkte ODER Umsatz)
+//   lead      = niedrigste Schwelle: Account aktiviert/beansprucht ODER direkt
+//               angesprochen (CleverReach-Kontakt / Vertriebler), aber noch
+//               keine Nutzung
+//   potential = vom Shop-Check erkannt, aber noch nicht engagiert
+//   (null     = kein Shop-Signal & nicht angesprochen → nicht im Funnel)
 function deriveShopStage(r) {
-    if (r.is_shop_active || r.claimed_at || r.user_id || (r.product_count > 0) || (r.revenue > 0)) return 'active';
-    if (r.shop_check_status === 'online_shop' || r.shop_check_status === 'maybe_shop') return 'potential';
-    return 'lead';
+    const using     = (r.product_count > 0) || (r.revenue > 0);
+    if (using) return 'active';
+    const approached = !!r.sales_rep_id || (!!r.cleverreach_status && r.cleverreach_status !== 'invalid_email');
+    const activated  = !!r.is_shop_active || !!r.claimed_at || !!r.user_id;
+    if (activated || approached) return 'lead';
+    const isShop = r.shop_check_status === 'online_shop' || r.shop_check_status === 'maybe_shop';
+    if (isShop) return 'potential';
+    return null; // nicht im Funnel
 }
 // Effektive Stufe: manueller Override (shop_stage) schlägt Ableitung.
 function effectiveShopStage(r) {
     return r.shop_stage || deriveShopStage(r);
 }
 const STAGE_META = {
-    active:    { label: 'Aktiver Shop',      bg:'#dcfce7', col:'#166534', icon:'🟢' },
-    potential: { label: 'Potenzieller Shop', bg:'#fef9c3', col:'#854d0e', icon:'🟡' },
-    lead:      { label: 'Lead',              bg:'#e0e7ff', col:'#3730a3', icon:'🔵' },
+    potential: { label: 'Potenziell', bg:'#fef9c3', col:'#854d0e', icon:'🟡' },
+    lead:      { label: 'Lead',       bg:'#dbeafe', col:'#1e40af', icon:'🔵' },
+    active:    { label: 'Aktiv',      bg:'#dcfce7', col:'#166534', icon:'🟢' },
 };
 function stageBadge(r) {
     const m = STAGE_META[effectiveShopStage(r)] || STAGE_META.lead;
@@ -11649,9 +11660,56 @@ async function setShopStage(providerId, value) {
 }
 window.setShopStage = setShopStage;
 
+// Grafischer Sales-Funnel über dem Tabellen-Listing.
+function renderShopFunnel() {
+    const box = document.getElementById('shop-funnel-chart');
+    if (!box || !_shopOverviewCache) return;
+
+    const counts = { potential: 0, lead: 0, active: 0 };
+    for (const r of _shopOverviewCache) {
+        const s = effectiveShopStage(r);
+        if (s && counts[s] !== undefined) counts[s]++;
+    }
+    const order = ['potential', 'lead', 'active'];   // oben breit → unten schmal
+    const max = Math.max(1, counts.potential, counts.lead, counts.active);
+    const currentMode = document.querySelector('input[name="shop-ov-mode"]:checked')?.value;
+
+    box.innerHTML = `
+        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px;">
+            <div style="font-weight:700; color:#475569; margin-bottom:12px;">📉 Sales-Funnel <span style="font-weight:400; color:#94a3b8; font-size:12px;">— Stufe anklicken zum Filtern</span></div>
+            <div style="display:flex; flex-direction:column; gap:8px; align-items:center;">
+                ${order.map((st, i) => {
+                    const m = STAGE_META[st];
+                    const c = counts[st];
+                    const widthPct = Math.max(14, Math.round((c / max) * 100));
+                    const prev = i > 0 ? counts[order[i - 1]] : null;
+                    const conv = (prev && prev > 0) ? Math.round((c / prev) * 100) : null;
+                    const active = currentMode === st;
+                    return `
+                        <div onclick="window.selectShopStageFilter('${st}')" title="Filtern: ${m.label}"
+                             style="width:${widthPct}%; min-width:160px; cursor:pointer; background:${m.bg};
+                                    border:2px solid ${active ? m.col : 'transparent'}; border-radius:10px;
+                                    padding:12px 16px; text-align:center;">
+                            <div style="font-weight:800; color:${m.col}; font-size:15px;">${m.icon} ${m.label}: ${c.toLocaleString('de-DE')}</div>
+                            ${conv !== null ? `<div style="color:${m.col}; font-size:12px; opacity:.8;">▼ ${conv}% Übergang von „${STAGE_META[order[i - 1]].label}"</div>` : ''}
+                        </div>`;
+                }).join('')}
+            </div>
+        </div>`;
+}
+
+function selectShopStageFilter(stage) {
+    const radio = document.querySelector(`input[name="shop-ov-mode"][value="${stage}"]`);
+    if (radio) { radio.checked = true; renderShopOverview(); }
+}
+window.selectShopStageFilter = selectShopStageFilter;
+
 function renderShopOverview() {
     const container = document.getElementById('shop-ov-list');
     if (!container || !_shopOverviewCache) return;
+
+    // Funnel-Grafik (über alle Provider, unabhängig vom aktiven Filter)
+    renderShopFunnel();
 
     const repFilter = document.getElementById('shop-ov-rep-filter')?.value || '';
     const search = (document.getElementById('shop-ov-search')?.value || '').toLowerCase().trim();

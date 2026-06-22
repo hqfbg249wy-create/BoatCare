@@ -1198,31 +1198,31 @@
                         </div>
                     </div>
                     <div style="margin-top:12px; display:flex; flex-direction:column; gap:6px; font-size:13px;">
-                        <div style="font-weight:700; color:#475569; margin-bottom:2px;">Pipeline-Stufe</div>
-                        <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
-                            <input type="radio" name="shop-ov-mode" value="active" checked onchange="window.renderShopOverview()">
-                            <span>🟢 <strong>Aktive Shops</strong> (aktiviert: <code>is_shop_active</code>, Account beansprucht oder Produkte/Umsatz)</span>
-                        </label>
+                        <div style="font-weight:700; color:#475569; margin-bottom:2px;">Sales-Funnel-Stufe</div>
                         <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
                             <input type="radio" name="shop-ov-mode" value="potential" onchange="window.renderShopOverview()">
-                            <span>🟡 <strong>Potenzielle Shops</strong> (vom Shop-Check als <code>online_shop</code>/<code>maybe_shop</code> erkannt, noch nicht aktiv)</span>
+                            <span>🟡 <strong>Potenziell</strong> (vom Shop-Check als Shop erkannt, aber noch nicht engagiert)</span>
                         </label>
                         <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
-                            <input type="radio" name="shop-ov-mode" value="lead" onchange="window.renderShopOverview()">
-                            <span>🔵 <strong>Leads</strong> (kontaktierbare Provider ohne Shop-Treffer)</span>
+                            <input type="radio" name="shop-ov-mode" value="lead" checked onchange="window.renderShopOverview()">
+                            <span>🔵 <strong>Lead</strong> (Account aktiviert/beansprucht <em>oder</em> direkt angesprochen — aber noch keine Shop-Nutzung; niedrigste Schwelle für Maßnahmen)</span>
+                        </label>
+                        <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
+                            <input type="radio" name="shop-ov-mode" value="active" onchange="window.renderShopOverview()">
+                            <span>🟢 <strong>Aktiv</strong> (nutzt den Shop wirklich: Produkte oder Umsatz)</span>
                         </label>
                         <label style="display:flex; gap:6px; align-items:center; cursor:pointer; margin-top:4px; color:#64748b;">
                             <input type="radio" name="shop-ov-mode" value="website" onchange="window.renderShopOverview()">
                             <span>Alle Provider mit Website (für Vertriebler-Vorzuweisung)</span>
                         </label>
-                        <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Stufe automatisch abgeleitet — pro Zeile per Dropdown manuell überschreibbar (✎). Account-Aktivierung nach der CleverReach-Mail setzt automatisch auf „Aktiv".</div>
+                        <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Stufe automatisch abgeleitet — pro Zeile per Dropdown manuell überschreibbar (✎). „Direkt angesprochen" = per CleverReach kontaktiert oder Vertriebler zugewiesen.</div>
                     </div>
                 </div>
 
                 <!-- Stats -->
                 <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;">
                     <div style="background:#dcfce7; border-radius:8px; padding:14px;">
-                        <div style="font-size:11px; color:#166534;">🛍️ Shops mit Produkten</div>
+                        <div style="font-size:11px; color:#166534;">🛍️ Einträge im Filter</div>
                         <div style="font-size:22px; font-weight:700; color:#166534;" id="shop-ov-stat-active">–</div>
                     </div>
                     <div style="background:#dbeafe; border-radius:8px; padding:14px;">
@@ -1238,6 +1238,9 @@
                         <div style="font-size:22px; font-weight:700; color:#854d0e;" id="shop-ov-stat-commission">–</div>
                     </div>
                 </div>
+
+                <!-- Sales-Funnel-Grafik -->
+                <div id="shop-funnel-chart" style="margin-bottom:20px;"></div>
 
                 <div id="shop-ov-list">Lade …</div>
             </div>
@@ -2195,7 +2198,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260622-shopstage"></script>
+    <script src="app.js?v=20260622-funnel"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;
