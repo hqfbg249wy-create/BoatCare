@@ -11597,6 +11597,17 @@ function populateRepFilters() {
     if (current) sel.value = current;
 }
 
+// Sichtbares Badge für den Shop-Check-Status.
+function shopStatusBadge(status) {
+    if (status === 'online_shop') {
+        return '<span style="background:#dcfce7; color:#166534; padding:1px 7px; border-radius:999px; font-size:11px; font-weight:700; white-space:nowrap;">🛒 Verifizierter Shop</span>';
+    }
+    if (status === 'maybe_shop') {
+        return '<span style="background:#fef9c3; color:#854d0e; padding:1px 7px; border-radius:999px; font-size:11px; font-weight:700; white-space:nowrap;">🔍 Möglicher Shop</span>';
+    }
+    return '';
+}
+
 function renderShopOverview() {
     const container = document.getElementById('shop-ov-list');
     if (!container || !_shopOverviewCache) return;
@@ -11617,7 +11628,10 @@ function renderShopOverview() {
     //   "website"   = alle Provider mit Website. Für Vertriebler-Vorzuweisung
     //                 bevor überhaupt klar ist ob jemand Shop wird.
     const mode = document.querySelector('input[name="shop-ov-mode"]:checked')?.value || 'active';
-    if (mode === 'website') {
+    if (mode === 'verified') {
+        // Nur die vom Shop-Check als echter Online-Shop bestätigten.
+        rows = rows.filter(r => r.shop_check_status === 'online_shop');
+    } else if (mode === 'website') {
         rows = rows.filter(r => r.website && r.website.trim() !== '');
     } else if (mode === 'potential') {
         rows = rows.filter(r =>
@@ -11690,7 +11704,7 @@ function renderShopOverview() {
                 <tbody>
                     ${rows.map(r => `
                         <tr style="border-top:1px solid #e2e8f0;">
-                            <td style="padding:10px; font-weight:600;">${escapeHtml_v(r.name || '?')}</td>
+                            <td style="padding:10px; font-weight:600;">${escapeHtml_v(r.name || '?')} ${shopStatusBadge(r.shop_check_status)}</td>
                             <td style="padding:10px; color:#64748b;">${escapeHtml_v(r.city || '–')}</td>
                             <td style="padding:10px; text-align:right;">${r.product_count.toLocaleString('de-DE')}</td>
                             <td style="padding:10px; text-align:right; font-weight:600; color:${r.revenue > 0 ? '#166534' : '#94a3b8'};">${r.revenue.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 })} €</td>

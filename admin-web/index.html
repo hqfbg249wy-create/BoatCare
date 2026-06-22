@@ -1203,6 +1203,10 @@
                             <span><strong>Nur selbst-aktivierte Shops</strong> (Provider hat <code>is_shop_active=true</code> oder bereits Produkte/Umsatz)</span>
                         </label>
                         <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
+                            <input type="radio" name="shop-ov-mode" value="verified" onchange="window.renderShopOverview()">
+                            <span><strong>🛒 Nur verifizierte Shops</strong> (vom Shop-Check als <code>online_shop</code> bestätigt — auch noch nicht selbst-aktivierte)</span>
+                        </label>
+                        <label style="display:flex; gap:6px; align-items:center; cursor:pointer;">
                             <input type="radio" name="shop-ov-mode" value="potential" onchange="window.renderShopOverview()">
                             <span><strong>+ Shop-Check-Treffer</strong> (zusätzlich Provider die der Shop-Check als <code>online_shop</code>/<code>maybe_shop</code> erkannt hat)</span>
                         </label>
