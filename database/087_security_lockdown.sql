@@ -34,39 +34,13 @@ CREATE POLICY "service_providers_delete_owner_admin" ON public.service_providers
   FOR DELETE TO authenticated
   USING (public.provider_is_member(id) OR public.is_admin());
 
--- =====================================================================
--- 2) Sensible Spalten verbergen (Spalten-Privilegien)
---    Lesen der Tabelle bleibt erlaubt (öffentliche Anbieter-Liste), aber:
---      • claim_token + api_key  : NIEMAND per API (nur server-seitig via
---        service_role). Claim/Key-Handling läuft über Edge Functions.
---      • Stripe-/Provisions-/Webhook-Daten: NICHT öffentlich (anon).
---        Eingeloggte Apps (Admin/Provider) behalten Zugriff.
--- =====================================================================
-REVOKE SELECT ON public.service_providers FROM anon;
-REVOKE SELECT ON public.service_providers FROM authenticated;
-
-DO $$
-DECLARE auth_cols text; anon_cols text;
-BEGIN
-  -- authenticated: alle Spalten AUSSER claim_token + api_key
-  SELECT string_agg(quote_ident(column_name), ', ') INTO auth_cols
-  FROM information_schema.columns
-  WHERE table_schema = 'public' AND table_name = 'service_providers'
-    AND column_name NOT IN ('claim_token', 'api_key');
-  EXECUTE format('GRANT SELECT (%s) ON public.service_providers TO authenticated', auth_cols);
-
-  -- anon: zusätzlich keine Wirtschafts-/Konfigurationsdaten
-  SELECT string_agg(quote_ident(column_name), ', ') INTO anon_cols
-  FROM information_schema.columns
-  WHERE table_schema = 'public' AND table_name = 'service_providers'
-    AND column_name NOT IN ('claim_token', 'api_key', 'webhook_url',
-                            'stripe_account_id', 'stripe_customer_id',
-                            'commission_rate', 'commission_override');
-  EXECUTE format('GRANT SELECT (%s) ON public.service_providers TO anon', anon_cols);
-END $$;
+-- HINWEIS: Das Verbergen sensibler Spalten (api_key, claim_token) erfolgt
+-- NICHT hier per Spalten-REVOKE — die Apps nutzen flächendeckend
+-- service_providers.select('*'), das würde brechen. Diese Spalten werden in
+-- Migration 088 in eine separate, streng abgesicherte Tabelle ausgelagert.
 
 -- =====================================================================
--- 3) profiles.role-Eskalation verhindern
+-- 2) profiles.role-Eskalation verhindern
 --    Ein Nutzer darf seine Stammdaten ändern, aber NICHT seine Rolle.
 --    Rollen ändern nur Admins oder der Service-Role (Edge Functions).
 -- =====================================================================
