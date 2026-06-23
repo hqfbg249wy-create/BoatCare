@@ -2,17 +2,20 @@ import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { FileText, Truck, CheckCircle, DollarSign, Package, Clock, XCircle, MessageSquare } from 'lucide-react'
+import { useT } from '../i18n'
 
+// Label kommt zur Laufzeit aus order.status.<value>
 const STATUS_OPTIONS = [
-  { value: 'pending', label: 'Offen', color: '#f59e0b' },
-  { value: 'confirmed', label: 'Bestätigt', color: '#3b82f6' },
-  { value: 'shipped', label: 'Versendet', color: '#8b5cf6' },
-  { value: 'delivered', label: 'Geliefert', color: '#10b981' },
-  { value: 'cancelled', label: 'Storniert', color: '#ef4444' },
+  { value: 'pending', color: '#f59e0b' },
+  { value: 'confirmed', color: '#3b82f6' },
+  { value: 'shipped', color: '#8b5cf6' },
+  { value: 'delivered', color: '#10b981' },
+  { value: 'cancelled', color: '#ef4444' },
 ]
 
 export default function Orders() {
   const { provider } = useAuth()
+  const { t } = useT()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -78,7 +81,7 @@ export default function Orders() {
         (payload) => {
           console.log('Order update:', payload)
           if (payload.eventType === 'INSERT') {
-            setMessage({ type: 'success', text: 'Neue Bestellung eingegangen!' })
+            setMessage({ type: 'success', text: t('orders.newOrder') })
           }
           loadOrders()
         }
@@ -98,10 +101,10 @@ export default function Orders() {
 
       const { error } = await supabase.from('orders').update(update).eq('id', orderId)
       if (error) throw error
-      setMessage({ type: 'success', text: 'Status aktualisiert.' })
+      setMessage({ type: 'success', text: t('orders.statusUpdated') })
       loadOrders()
     } catch (err) {
-      setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+      setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     }
   }
 
@@ -118,11 +121,11 @@ export default function Orders() {
         .eq('id', orderId)
 
       if (error) throw error
-      setMessage({ type: 'success', text: 'Versand bestätigt & Tracking gespeichert.' })
+      setMessage({ type: 'success', text: t('orders.shipConfirmedMsg') })
       setSelected(null)
       loadOrders()
     } catch (err) {
-      setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+      setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     }
   }
 
@@ -134,16 +137,16 @@ export default function Orders() {
         .eq('id', orderId)
 
       if (error) throw error
-      setMessage({ type: 'success', text: 'Notiz gespeichert.' })
+      setMessage({ type: 'success', text: t('orders.noteSaved') })
       setDetailOrder(null)
       loadOrders()
     } catch (err) {
-      setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+      setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     }
   }
 
   async function cancelOrder(orderId) {
-    if (!confirm('Bestellung wirklich stornieren?')) return
+    if (!confirm(t('orders.cancelConfirm'))) return
     try {
       const { error } = await supabase
         .from('orders')
@@ -151,10 +154,10 @@ export default function Orders() {
         .eq('id', orderId)
 
       if (error) throw error
-      setMessage({ type: 'success', text: 'Bestellung storniert.' })
+      setMessage({ type: 'success', text: t('orders.cancelledMsg') })
       loadOrders()
     } catch (err) {
-      setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+      setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     }
   }
 
@@ -183,8 +186,8 @@ export default function Orders() {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>Bestellungen</h1>
-          <p className="subtitle">Bestellungen verwalten und Versand abwickeln</p>
+          <h1>{t('nav.orders')}</h1>
+          <p className="subtitle">{t('orders.subtitle')}</p>
         </div>
       </div>
 
@@ -196,48 +199,48 @@ export default function Orders() {
           <div className="stat-icon" style={{ color: '#3b82f6' }}><Package /></div>
           <div className="stat-info">
             <span className="stat-value">{stats.total}</span>
-            <span className="stat-label">Gesamt</span>
+            <span className="stat-label">{t('orders.statTotal')}</span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon" style={{ color: '#f59e0b' }}><Clock /></div>
           <div className="stat-info">
             <span className="stat-value">{stats.pending}</span>
-            <span className="stat-label">Offen</span>
+            <span className="stat-label">{t('orders.statPending')}</span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon" style={{ color: '#10b981' }}><DollarSign /></div>
           <div className="stat-info">
             <span className="stat-value">{stats.revenue.toFixed(2)} €</span>
-            <span className="stat-label">Umsatz</span>
+            <span className="stat-label">{t('orders.statRevenue')}</span>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon" style={{ color: '#f97316' }}><DollarSign /></div>
           <div className="stat-info">
             <span className="stat-value">{(stats.revenue - stats.commission).toFixed(2)} €</span>
-            <span className="stat-label">Netto (nach Provision)</span>
+            <span className="stat-label">{t('orders.statNet')}</span>
           </div>
         </div>
       </div>
 
       {/* Filters */}
       <div className="filter-bar">
-        <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>Alle</button>
+        <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>{t('common.all')}</button>
         {STATUS_OPTIONS.map(s => (
           <button key={s.value} className={`filter-btn ${filter === s.value ? 'active' : ''}`} onClick={() => setFilter(s.value)}>
-            {s.label}
+            {t('order.status.' + s.value)}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="loading">Laden...</div>
+        <div className="loading">{t('common.loading')}</div>
       ) : orders.length === 0 ? (
         <div className="empty-state">
           <FileText size={48} />
-          <p>Keine Bestellungen{filter !== 'all' ? ' mit diesem Status' : ''}.</p>
+          <p>{filter !== 'all' ? t('orders.emptyWithStatus') : t('orders.empty')}</p>
         </div>
       ) : (
         <div className="orders-list">
@@ -250,13 +253,13 @@ export default function Orders() {
                 </div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   {order.payment_status === 'paid' && (
-                    <span className="badge" style={{ background: '#d1fae5', color: '#065f46' }}>Bezahlt</span>
+                    <span className="badge" style={{ background: '#d1fae5', color: '#065f46' }}>{t('orders.paid')}</span>
                   )}
                   {order.payment_status === 'failed' && (
-                    <span className="badge" style={{ background: '#fee2e2', color: '#991b1b' }}>Zahlung fehlg.</span>
+                    <span className="badge" style={{ background: '#fee2e2', color: '#991b1b' }}>{t('orders.paymentFailed')}</span>
                   )}
                   <span className={`badge badge-${order.status}`}>
-                    {STATUS_OPTIONS.find(s => s.value === order.status)?.label || order.status}
+                    {t('order.status.' + order.status)}
                   </span>
                 </div>
               </div>
@@ -268,7 +271,7 @@ export default function Orders() {
               {order.order_items?.length > 0 && (
                 <table className="table table-compact">
                   <thead>
-                    <tr><th>Produkt</th><th>Menge</th><th>Preis</th></tr>
+                    <tr><th>{t('orders.colProduct')}</th><th>{t('orders.colQty')}</th><th>{t('orders.colPrice')}</th></tr>
                   </thead>
                   <tbody>
                     {order.order_items.map(item => (
@@ -283,50 +286,50 @@ export default function Orders() {
               )}
 
               {order.buyer_note && (
-                <div className="order-note">Kundennotiz: {order.buyer_note}</div>
+                <div className="order-note">{t('orders.buyerNote')} {order.buyer_note}</div>
               )}
               {order.provider_note && (
-                <div className="order-note" style={{ background: '#dbeafe' }}>Ihre Notiz: {order.provider_note}</div>
+                <div className="order-note" style={{ background: '#dbeafe' }}>{t('orders.yourNote')} {order.provider_note}</div>
               )}
               {order.tracking_number && (
                 <div style={{ fontSize: '0.85rem', color: '#8b5cf6', marginTop: 8 }}>
-                  Tracking: {order.tracking_number}
-                  {order.tracking_url && <> &middot; <a href={order.tracking_url} target="_blank" rel="noreferrer" style={{ color: '#8b5cf6' }}>Verfolgen</a></>}
+                  {t('orders.tracking')} {order.tracking_number}
+                  {order.tracking_url && <> &middot; <a href={order.tracking_url} target="_blank" rel="noreferrer" style={{ color: '#8b5cf6' }}>{t('orders.track')}</a></>}
                 </div>
               )}
 
               <div className="order-footer">
                 <div className="order-total">
-                  Gesamt: <strong>{Number(order.total).toFixed(2)} €</strong>
+                  {t('orders.total')} <strong>{Number(order.total).toFixed(2)} €</strong>
                   <span className="commission-info">
-                    (Provision: {Number(order.commission_amount).toFixed(2)} € &middot; Netto: {(Number(order.total) - Number(order.commission_amount)).toFixed(2)} €)
+                    {t('orders.commissionInfo', { c: Number(order.commission_amount).toFixed(2), n: (Number(order.total) - Number(order.commission_amount)).toFixed(2) })}
                   </span>
                 </div>
                 <div className="order-actions">
-                  <button className="btn-icon" title="Kunde kontaktieren" onClick={() => openContactBuyer(order)}>
+                  <button className="btn-icon" title={t('orders.contactCustomer')} onClick={() => openContactBuyer(order)}>
                     <MessageSquare size={16} />
                   </button>
-                  <button className="btn-icon" title="Details & Notiz" onClick={() => { setDetailOrder(order); setProviderNote(order.provider_note || '') }}>
+                  <button className="btn-icon" title={t('orders.detailsNote')} onClick={() => { setDetailOrder(order); setProviderNote(order.provider_note || '') }}>
                     <FileText size={16} />
                   </button>
                   {order.status === 'pending' && (
                     <>
                       <button className="btn-small btn-confirm" onClick={() => updateStatus(order.id, 'confirmed')}>
-                        <CheckCircle size={14} /> Bestätigen
+                        <CheckCircle size={14} /> {t('orders.confirm')}
                       </button>
                       <button className="btn-small" style={{ background: '#ef4444' }} onClick={() => cancelOrder(order.id)}>
-                        <XCircle size={14} /> Stornieren
+                        <XCircle size={14} /> {t('orders.cancelOrder')}
                       </button>
                     </>
                   )}
                   {order.status === 'confirmed' && (
                     <button className="btn-small btn-ship" onClick={() => { setSelected(order); setTrackingForm({ tracking_number: order.tracking_number || '', tracking_url: order.tracking_url || '' }) }}>
-                      <Truck size={14} /> Versenden
+                      <Truck size={14} /> {t('orders.ship')}
                     </button>
                   )}
                   {order.status === 'shipped' && (
                     <button className="btn-small btn-deliver" onClick={() => updateStatus(order.id, 'delivered')}>
-                      <CheckCircle size={14} /> Zugestellt
+                      <CheckCircle size={14} /> {t('orders.delivered')}
                     </button>
                   )}
                 </div>
@@ -340,19 +343,19 @@ export default function Orders() {
       {selected && (
         <div className="modal-overlay" onClick={() => setSelected(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Versand: {selected.order_number}</h2>
+            <h2>{t('orders.shipTitle', { nr: selected.order_number })}</h2>
             <div className="form-group">
-              <label>Sendungsnummer</label>
-              <input value={trackingForm.tracking_number} onChange={e => setTrackingForm(prev => ({ ...prev, tracking_number: e.target.value }))} placeholder="z.B. 123456789" />
+              <label>{t('orders.trackingNumber')}</label>
+              <input value={trackingForm.tracking_number} onChange={e => setTrackingForm(prev => ({ ...prev, tracking_number: e.target.value }))} placeholder={t('orders.trackingNumPlaceholder')} />
             </div>
             <div className="form-group">
-              <label>Tracking-URL</label>
+              <label>{t('orders.trackingUrl')}</label>
               <input value={trackingForm.tracking_url} onChange={e => setTrackingForm(prev => ({ ...prev, tracking_url: e.target.value }))} placeholder="https://tracking.dhl.de/..." />
             </div>
             <div className="form-actions">
-              <button className="btn-secondary" onClick={() => setSelected(null)}>Abbrechen</button>
+              <button className="btn-secondary" onClick={() => setSelected(null)}>{t('common.cancel')}</button>
               <button className="btn-primary" onClick={() => saveTracking(selected.id)}>
-                <Truck size={16} /> Versand bestätigen
+                <Truck size={16} /> {t('orders.confirmShip')}
               </button>
             </div>
           </div>
@@ -363,9 +366,9 @@ export default function Orders() {
       {detailOrder && (
         <div className="modal-overlay" onClick={() => setDetailOrder(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Bestellung {detailOrder.order_number}</h2>
+            <h2>{t('orders.orderTitle', { nr: detailOrder.order_number })}</h2>
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 4 }}>Lieferadresse</div>
+              <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 4 }}>{t('orders.shippingAddress')}</div>
               <div style={{ fontSize: '0.9rem' }}>
                 {detailOrder.shipping_name}<br />
                 {detailOrder.shipping_street}<br />
@@ -374,13 +377,13 @@ export default function Orders() {
               </div>
             </div>
             <div className="form-group">
-              <label>Ihre Notiz (intern)</label>
-              <textarea value={providerNote} onChange={e => setProviderNote(e.target.value)} rows={3} placeholder="Interne Notizen zu dieser Bestellung..." />
+              <label>{t('orders.yourNoteInternal')}</label>
+              <textarea value={providerNote} onChange={e => setProviderNote(e.target.value)} rows={3} placeholder={t('orders.notePlaceholder')} />
             </div>
             <div className="form-actions">
-              <button className="btn-secondary" onClick={() => setDetailOrder(null)}>Schließen</button>
+              <button className="btn-secondary" onClick={() => setDetailOrder(null)}>{t('common.close')}</button>
               <button className="btn-primary" onClick={() => saveProviderNote(detailOrder.id)}>
-                Notiz speichern
+                {t('orders.saveNote')}
               </button>
             </div>
           </div>
