@@ -4,6 +4,7 @@ import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import FeatureLock from '../components/FeatureLock'
 import { supabase } from '../lib/supabase'
 import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe, Image as ImageIcon, Upload, Trash2, Tag, Wrench, Plus, X, Eye, Lock } from 'lucide-react'
+import { useT } from '../i18n'
 
 // Storage bucket created by database/038_provider_images_bucket.sql
 const PROVIDER_IMAGES_BUCKET = 'provider-images'
@@ -26,6 +27,7 @@ const CATEGORY_OPTIONS = [
 export default function Profile() {
   const { provider, loadProvider, user } = useAuth()
   const access = useFeatureAccess()
+  const { t } = useT()
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
@@ -159,20 +161,20 @@ export default function Profile() {
       // Check Stripe URL params for return from onboarding / subscription
       const params = new URLSearchParams(window.location.search)
       if (params.get('stripe') === 'success') {
-        setStripeMessage({ type: 'success', text: 'Stripe-Einrichtung abgeschlossen! Ihr Konto wird geprüft.' })
+        setStripeMessage({ type: 'success', text: t('profile.msgStripeDone') })
         window.history.replaceState({}, '', '/profile')
         loadProvider(user.id)
       } else if (params.get('stripe') === 'refresh') {
-        setStripeMessage({ type: 'info', text: 'Bitte schließen Sie die Stripe-Einrichtung ab.' })
+        setStripeMessage({ type: 'info', text: t('profile.msgStripeIncomplete') })
         window.history.replaceState({}, '', '/profile')
       } else if (params.get('subscription') === 'success') {
-        setSubscriptionMessage({ type: 'success', text: 'Abo abgeschlossen! Wird mit Stripe synchronisiert…' })
+        setSubscriptionMessage({ type: 'success', text: t('profile.msgAboDone') })
         window.history.replaceState({}, '', '/profile')
         // Aktiv mit Stripe synchronisieren — unabhängig davon ob der
         // Webhook schon angekommen ist
         syncSubscriptionFromStripe(true)
       } else if (params.get('subscription') === 'cancelled') {
-        setSubscriptionMessage({ type: 'info', text: 'Abo-Abschluss abgebrochen.' })
+        setSubscriptionMessage({ type: 'info', text: t('profile.msgAboCancelled') })
         window.history.replaceState({}, '', '/profile')
       }
     }
@@ -232,9 +234,9 @@ export default function Profile() {
       const payload = { ...shipRule, provider_id: provider.id, updated_at: new Date().toISOString() }
       const { error } = await supabase.from('provider_shipping_rules').upsert(payload, { onConflict: 'provider_id' })
       if (error) throw error
-      setShipMsg({ type: 'success', text: 'Versandregeln gespeichert.' })
+      setShipMsg({ type: 'success', text: t('profile.msgShippingSaved') })
     } catch (err) {
-      setShipMsg({ type: 'error', text: 'Fehler: ' + err.message })
+      setShipMsg({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     }
   }
   const setShip = (k, v) => setShipRule(r => ({ ...r, [k]: v }))
@@ -335,7 +337,7 @@ export default function Profile() {
       if (!provider?.agb_accepted_at) {
         setStripeMessage({
           type: 'error',
-          text: 'Bitte zuerst die Provider-Nutzungsbedingungen akzeptieren — siehe Hinweis oben im Profil.'
+          text: t('profile.msgAcceptTermsFirst')
         })
         setStripeLoading(false)
         return
@@ -367,7 +369,7 @@ export default function Profile() {
         throw new Error('Keine Onboarding-URL erhalten')
       }
     } catch (err) {
-      setStripeMessage({ type: 'error', text: 'Fehler: ' + err.message })
+      setStripeMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     } finally {
       setStripeLoading(false)
     }
@@ -412,7 +414,7 @@ export default function Profile() {
         throw new Error('Keine Checkout-URL erhalten')
       }
     } catch (err) {
-      setSubscriptionMessage({ type: 'error', text: 'Fehler: ' + err.message })
+      setSubscriptionMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     } finally {
       setSubscriptionLoading(false)
     }
@@ -450,11 +452,11 @@ export default function Profile() {
           text: `Abo aktiv: ${planLabel}.`,
         })
       } else if (showSuccess && data.status === 'no_subscription') {
-        setSubscriptionMessage({ type: 'info', text: 'Kein aktives Abo bei Stripe gefunden.' })
+        setSubscriptionMessage({ type: 'info', text: t('profile.msgNoActiveAbo') })
       }
     } catch (err) {
       console.warn('Subscription-Sync:', err)
-      if (showSuccess) setSubscriptionMessage({ type: 'error', text: 'Sync fehlgeschlagen: ' + err.message })
+      if (showSuccess) setSubscriptionMessage({ type: 'error', text: t('profile.msgSyncFailed') + ' ' + err.message })
     }
   }
 
@@ -480,7 +482,7 @@ export default function Profile() {
   async function inviteTeamMember() {
     const email = teamInviteEmail.trim().toLowerCase()
     if (!email) {
-      setTeamMessage({ type: 'error', text: 'Bitte eine E-Mail-Adresse eingeben.' })
+      setTeamMessage({ type: 'error', text: t('profile.msgEnterEmail') })
       return
     }
     setTeamLoading(true)
@@ -507,7 +509,7 @@ export default function Profile() {
       setTeamInviteEmail('')
       await loadTeamMembers()
     } catch (err) {
-      setTeamMessage({ type: 'error', text: 'Fehler: ' + err.message })
+      setTeamMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     } finally {
       setTeamLoading(false)
     }
@@ -524,7 +526,7 @@ export default function Profile() {
       if (error) throw error
       await loadTeamMembers()
     } catch (err) {
-      setTeamMessage({ type: 'error', text: 'Fehler beim Entfernen: ' + err.message })
+      setTeamMessage({ type: 'error', text: t('profile.msgRemoveFailed') + ' ' + err.message })
     }
   }
 
@@ -541,7 +543,7 @@ export default function Profile() {
       setTeamMessage({ type: 'success', text: `Rolle für ${email} ist jetzt ${newRole === 'admin' ? 'Admin' : 'Mitglied'}.` })
       await loadTeamMembers()
     } catch (err) {
-      setTeamMessage({ type: 'error', text: 'Fehler beim Ändern: ' + err.message })
+      setTeamMessage({ type: 'error', text: t('profile.msgChangeFailed') + ' ' + err.message })
     }
   }
 
@@ -573,7 +575,7 @@ export default function Profile() {
         throw new Error('Keine Portal-URL erhalten')
       }
     } catch (err) {
-      setSubscriptionMessage({ type: 'error', text: 'Fehler: ' + err.message })
+      setSubscriptionMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     } finally {
       setSubscriptionLoading(false)
     }
@@ -613,10 +615,10 @@ export default function Profile() {
         .eq('id', provider.id)
 
       if (error) throw error
-      setMessage({ type: 'success', text: 'Stammdaten gespeichert.' })
+      setMessage({ type: 'success', text: t('profile.msgSaved') })
       loadProvider(user.id)
     } catch (err) {
-      setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+      setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     } finally {
       setSaving(false)
     }
@@ -645,10 +647,10 @@ export default function Profile() {
       if (error) throw error
       setApiKey(newKey)
       setApiKeyVisible(true)
-      setMessage({ type: 'success', text: 'API-Schlüssel generiert. Bitte sicher aufbewahren!' })
+      setMessage({ type: 'success', text: t('profile.msgApiKeyGenerated') })
       loadProvider(user.id)
     } catch (err) {
-      setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+      setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     } finally {
       setGeneratingKey(false)
     }
@@ -662,9 +664,9 @@ export default function Profile() {
         .eq('id', provider.id)
 
       if (error) throw error
-      setMessage({ type: 'success', text: 'Webhook-URL gespeichert.' })
+      setMessage({ type: 'success', text: t('profile.msgWebhookSaved') })
     } catch (err) {
-      setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+      setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     }
   }
 
@@ -676,13 +678,13 @@ export default function Profile() {
     setImageMessage(null)
     if (!file) return
     if (!provider?.id) {
-      setImageMessage({ type: 'error', text: 'Kein Provider-Profil gefunden.' })
+      setImageMessage({ type: 'error', text: t('profile.msgNoProfile') })
       return
     }
 
     // Basic validation
     if (!file.type.startsWith('image/')) {
-      setImageMessage({ type: 'error', text: 'Bitte eine Bilddatei auswählen.' })
+      setImageMessage({ type: 'error', text: t('profile.msgSelectImage') })
       return
     }
     if (file.size > MAX_IMAGE_BYTES) {
@@ -1103,7 +1105,7 @@ export default function Profile() {
                   <button
                     type="button"
                     onClick={() => syncSubscriptionFromStripe(true)}
-                    title="Status manuell mit Stripe abgleichen"
+                    title={t('profile.titleStripeSync')}
                     style={{
                       background: 'transparent', border: '1px solid var(--gray-200)',
                       color: 'var(--gray-500)', padding: '4px 10px', borderRadius: 6,
@@ -1182,7 +1184,7 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={() => syncSubscriptionFromStripe(true)}
-                  title="Status manuell mit Stripe abgleichen"
+                  title={t('profile.titleStripeSync')}
                   style={{
                     background: 'transparent', border: '1px solid var(--gray-200)',
                     color: 'var(--gray-500)', padding: '6px 12px', borderRadius: 6,
@@ -1207,7 +1209,7 @@ export default function Profile() {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <ImageIcon size={20} style={{ color: 'var(--primary)' }} />
-          <h2 style={{ margin: 0 }}>Bilder</h2>
+          <h2 style={{ margin: 0 }}>{t('profile.secImages')}</h2>
         </div>
         <p className="hint" style={{ marginBottom: 16 }}>
           Logo und Titelbild erscheinen auf Ihrem Profil in der Skipily App.
@@ -1222,7 +1224,7 @@ export default function Profile() {
 
         {/* Logo */}
         <div className="form-group">
-          <label>Logo</label>
+          <label>{t('profile.logo')}</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <div
               style={{
@@ -1274,7 +1276,7 @@ export default function Profile() {
                   className="btn-secondary"
                   onClick={() => handleImageRemove('logo')}
                   disabled={uploadingLogo}
-                  title="Logo entfernen"
+                  title={t('profile.titleRemoveLogo')}
                 >
                   <Trash2 size={14} /> Entfernen
                 </button>
@@ -1285,7 +1287,7 @@ export default function Profile() {
 
         {/* Cover / Titelbild */}
         <div className="form-group" style={{ marginTop: 20 }}>
-          <label>Titelbild</label>
+          <label>{t('profile.cover')}</label>
           <div
             style={{
               width: '100%',
@@ -1342,7 +1344,7 @@ export default function Profile() {
                 className="btn-secondary"
                 onClick={() => handleImageRemove('cover')}
                 disabled={uploadingCover}
-                title="Titelbild entfernen"
+                title={t('profile.titleRemoveCover')}
               >
                 <Trash2 size={14} /> Entfernen
               </button>
@@ -1353,28 +1355,28 @@ export default function Profile() {
 
       <form onSubmit={handleSubmit}>
         <div className="card">
-          <h2>Unternehmen</h2>
+          <h2>{t('profile.secCompany')}</h2>
           <div className="form-row">
             <div className="form-group">
-              <label>Firmenname *</label>
+              <label>{t('profile.company')} *</label>
               <input name="name" value={form.name} onChange={handleChange} required />
             </div>
             <div className="form-group">
-              <label>Slogan</label>
-              <input name="slogan" value={form.slogan} onChange={handleChange} placeholder="z.B. Ihr Bootsexperte seit 1990" />
+              <label>{t('profile.slogan')}</label>
+              <input name="slogan" value={form.slogan} onChange={handleChange} placeholder={t('profile.phSlogan')} />
             </div>
           </div>
           <div className="form-group">
-            <label>Beschreibung</label>
+            <label>{t('profile.description')}</label>
             <textarea name="description" value={form.description} onChange={handleChange} rows={4} />
           </div>
           <div className="form-group">
-            <label>Shop-Beschreibung</label>
-            <textarea name="shop_description" value={form.shop_description} onChange={handleChange} rows={3} placeholder="Text, der im Shop unter Ihrem Namen angezeigt wird" />
+            <label>{t('profile.shopDescription')}</label>
+            <textarea name="shop_description" value={form.shop_description} onChange={handleChange} rows={3} placeholder={t('profile.phDescription')} />
           </div>
 
           {/* Kategorien — bis zu 3 (z.B. Zubehör + Motorservice) */}
-          <h3 style={{ fontSize: '0.95rem', margin: '14px 0 6px' }}>Kategorien (bis zu 3)</h3>
+          <h3 style={{ fontSize: '0.95rem', margin: '14px 0 6px' }}>{t('profile.catTitle')}</h3>
           <p className="hint" style={{ marginTop: 0 }}>In welchen Bereichen ist Dein Betrieb aktiv? Die Hauptkategorie ist Pflicht, zwei weitere optional.</p>
           <div className="form-row">
             {['category', 'category2', 'category3'].map((field, idx) => (
@@ -1396,22 +1398,22 @@ export default function Profile() {
         </div>
 
         <div className="card">
-          <h2>Adresse</h2>
+          <h2>{t('profile.secAddress')}</h2>
           <div className="form-group">
-            <label>Straße + Hausnr.</label>
+            <label>{t('profile.street')}</label>
             <input name="street" value={form.street} onChange={handleChange} />
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label>PLZ</label>
+              <label>{t('profile.zip')}</label>
               <input name="postal_code" value={form.postal_code} onChange={handleChange} />
             </div>
             <div className="form-group">
-              <label>Stadt</label>
+              <label>{t('profile.city')}</label>
               <input name="city" value={form.city} onChange={handleChange} />
             </div>
             <div className="form-group">
-              <label>Land</label>
+              <label>{t('profile.country')}</label>
               <input name="country" value={form.country} onChange={handleChange} />
             </div>
           </div>
@@ -1421,7 +1423,7 @@ export default function Profile() {
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
             <Globe size={20} style={{ color: 'var(--primary)' }} />
-            <h2 style={{ margin: 0 }}>Lieferländer</h2>
+            <h2 style={{ margin: 0 }}>{t('profile.secCountries')}</h2>
           </div>
           <p className="hint" style={{ marginBottom: 12 }}>
             Wähle die Länder, in die du versendest. Hintergrund: Die <strong>EU-Verpackungsverordnung (PPWR)</strong> und nationale Pflichten wie <em>LUCID</em> (Deutschland), <em>Triman</em> (Frankreich) oder <em>RAEE</em> (Italien) verlangen, dass Händler in jedem Empfängerland registriert sind und die Verpackungs-Recycling-Gebühren entrichten. Wer hier ein Land nicht freischaltet, bekommt aus diesem Land keine Bestellungen.
@@ -1532,7 +1534,7 @@ export default function Profile() {
         {/* ── Versandkosten-Engine ── */}
         {shipRule && (
         <div className="card">
-          <h2 style={{ display:'flex', alignItems:'center', gap:8 }}>📦 Versandkosten</h2>
+          <h2 style={{ display:'flex', alignItems:'center', gap:8 }}>{t('profile.secShipping')}</h2>
           <p style={{ fontSize:'0.85rem', color:'#64748b', marginTop:0 }}>
             Frei ab Betrag + gewichtsbasierte Staffel pro Zone. Ist die Engine
             aus, gilt der höchste Produkt-Versand wie bisher.
@@ -1545,7 +1547,7 @@ export default function Profile() {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Heimatland</label>
+              <label>{t('profile.homeCountry')}</label>
               <select value={shipRule.domestic_country || 'DE'}
                       onChange={e => setShip('domestic_country', e.target.value)}>
                 {[
@@ -1559,18 +1561,18 @@ export default function Profile() {
               </select>
             </div>
             <div className="form-group">
-              <label>Kostenlos ab (€, Heimatland)</label>
+              <label>{t('profile.freeFromHome')}</label>
               <input type="number" step="0.01" value={shipRule.free_threshold_domestic ?? ''}
                      onChange={e => setShip('free_threshold_domestic', e.target.value === '' ? null : parseFloat(e.target.value))} placeholder="85.00" />
             </div>
             <div className="form-group">
-              <label>Kostenlos ab (€, EU)</label>
+              <label>{t('profile.freeFromEu')}</label>
               <input type="number" step="0.01" value={shipRule.free_threshold_eu ?? ''}
-                     onChange={e => setShip('free_threshold_eu', e.target.value === '' ? null : parseFloat(e.target.value))} placeholder="optional" />
+                     onChange={e => setShip('free_threshold_eu', e.target.value === '' ? null : parseFloat(e.target.value))} placeholder={t('profile.phOptional')} />
             </div>
           </div>
 
-          <h3 style={{ fontSize:'0.95rem', margin:'10px 0 6px' }}>Tarife (Grundpreis + €/kg)</h3>
+          <h3 style={{ fontSize:'0.95rem', margin:'10px 0 6px' }}>{t('profile.tariffsTitle')}</h3>
           {[['domestic','Heimatland'],['eu','EU'],['world','Welt']].map(([z, label]) => (
             <div className="form-row" key={z}>
               <div className="form-group"><label>{label} — Grundpreis €</label>
@@ -1581,9 +1583,9 @@ export default function Profile() {
           ))}
 
           <div className="form-row">
-            <div className="form-group"><label>Max. Versand (€, optional)</label>
-              <input type="number" step="0.01" value={shipRule.max_shipping ?? ''} onChange={e => setShip('max_shipping', e.target.value === '' ? null : parseFloat(e.target.value))} placeholder="Deckel" /></div>
-            <div className="form-group"><label>Standard-Gewicht/Artikel (kg)</label>
+            <div className="form-group"><label>{t('profile.maxShipping')}</label>
+              <input type="number" step="0.01" value={shipRule.max_shipping ?? ''} onChange={e => setShip('max_shipping', e.target.value === '' ? null : parseFloat(e.target.value))} placeholder={t('profile.phCap')} /></div>
+            <div className="form-group"><label>{t('profile.defaultWeight')}</label>
               <input type="number" step="0.01" value={shipRule.default_item_weight ?? ''} onChange={e => setShip('default_item_weight', parseFloat(e.target.value) || 0.5)} /></div>
           </div>
 
@@ -1593,25 +1595,25 @@ export default function Profile() {
         )}
 
         <div className="card">
-          <h2>Kontakt</h2>
+          <h2>{t('profile.secContact')}</h2>
           <div className="form-row">
             <div className="form-group">
-              <label>Telefon</label>
+              <label>{t('profile.phone')}</label>
               <input name="phone" value={form.phone} onChange={handleChange} />
             </div>
             <div className="form-group">
-              <label>E-Mail</label>
+              <label>{t('profile.email')}</label>
               <input name="email" type="email" value={form.email} onChange={handleChange} />
             </div>
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label>Website</label>
-              <input name="website" value={form.website} onChange={handleChange} placeholder="https://" />
+              <label>{t('profile.website')}</label>
+              <input name="website" value={form.website} onChange={handleChange} placeholder={t('profile.website')} />
             </div>
             <div className="form-group">
-              <label>Öffnungszeiten</label>
-              <input name="opening_hours" value={form.opening_hours} onChange={handleChange} placeholder="Mo-Fr 8-17 Uhr" />
+              <label>{t('profile.hours')}</label>
+              <input name="opening_hours" value={form.opening_hours} onChange={handleChange} placeholder={t('profile.phMo')} />
             </div>
           </div>
         </div>
@@ -1620,7 +1622,7 @@ export default function Profile() {
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
             <Wrench size={20} style={{ color: 'var(--primary)' }} />
-            <h2 style={{ margin: 0 }}>Leistungen</h2>
+            <h2 style={{ margin: 0 }}>{t('profile.secServices')}</h2>
           </div>
           <p className="hint" style={{ marginBottom: 16 }}>
             Welche Services bietest du an? Diese erscheinen als anklickbare Tags auf deinem Profil. Klickt ein Kunde in der App auf eine Leistung, wird automatisch nach passenden Produkten in deinem Shop gesucht.
@@ -1657,7 +1659,7 @@ export default function Profile() {
                       border: 'none', background: 'transparent', cursor: 'pointer',
                       color: '#166534', padding: 0, display: 'flex', alignItems: 'center',
                     }}
-                    title="Entfernen">
+                    title={t('profile.titleRemove')}>
                     <X size={14} />
                   </button>
                 </span>
@@ -1678,7 +1680,7 @@ export default function Profile() {
                   setServiceInput('')
                 }
               }}
-              placeholder="z.B. Antifouling, Motorservice, Winterlager…"
+              placeholder={t('profile.phServices')}
               style={{ flex: 1 }}
             />
             <button type="button" className="btn-secondary"
@@ -1714,7 +1716,7 @@ export default function Profile() {
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
             <Tag size={20} style={{ color: 'var(--primary)' }} />
-            <h2 style={{ margin: 0 }}>Marken</h2>
+            <h2 style={{ margin: 0 }}>{t('profile.secBrands')}</h2>
           </div>
           <p className="hint" style={{ marginBottom: 16 }}>
             Welche Marken/Hersteller führst oder servicierst du? Klickt ein Kunde in der App eine Marke an, werden passende Produkte aus deinem Shop angezeigt.
@@ -1751,7 +1753,7 @@ export default function Profile() {
                       border: 'none', background: 'transparent', cursor: 'pointer',
                       color: '#c2410c', padding: 0, display: 'flex', alignItems: 'center',
                     }}
-                    title="Entfernen">
+                    title={t('profile.titleRemove')}>
                     <X size={14} />
                   </button>
                 </span>
@@ -1772,7 +1774,7 @@ export default function Profile() {
                   setBrandInput('')
                 }
               }}
-              placeholder="z.B. Volvo Penta, Yamaha, Raymarine…"
+              placeholder={t('profile.phBrands')}
               style={{ flex: 1 }}
             />
             <button type="button" className="btn-secondary"
@@ -1812,10 +1814,10 @@ export default function Profile() {
         </div>
 
         <div className="card">
-          <h2>Geschäftsdaten</h2>
+          <h2>{t('profile.secBusiness')}</h2>
           <div className="form-row">
             <div className="form-group">
-              <label>USt-IdNr.</label>
+              <label>{t('profile.vatId')}</label>
               <input name="tax_id" value={form.tax_id} onChange={handleChange} placeholder="DE123456789" />
             </div>
           </div>
@@ -1825,7 +1827,7 @@ export default function Profile() {
         <div className="card" style={{ borderLeft: '4px solid #7e22ce' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
             <span style={{ fontSize: 22 }}>👥</span>
-            <h2 style={{ margin: 0 }}>Team</h2>
+            <h2 style={{ margin: 0 }}>{t('profile.secTeam')}</h2>
             <span style={{
               background: access.isEnterprise ? '#f3e8ff' : '#f1f5f9',
               color:      access.isEnterprise ? '#7e22ce' : '#475569',
@@ -1900,7 +1902,7 @@ export default function Profile() {
                           value={m.role}
                           onChange={e => changeTeamRole(m.email, e.target.value)}
                           disabled={!canAdmin}
-                          title="Rolle ändern"
+                          title={t('profile.titleChangeRole')}
                           style={{
                             padding: '5px 8px', border: '1px solid var(--gray-200)', borderRadius: 6,
                             fontSize: 12, background: '#fff', cursor: canAdmin ? 'pointer' : 'not-allowed',
@@ -1948,7 +1950,7 @@ export default function Profile() {
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 <input
                   type="email"
-                  placeholder="mitarbeiter@firma.de"
+                  placeholder={t('profile.phMemberEmail')}
                   value={teamInviteEmail}
                   onChange={e => setTeamInviteEmail(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); inviteTeamMember() } }}
@@ -1986,7 +1988,7 @@ export default function Profile() {
         <div className="card" style={{ borderLeft: '4px solid var(--primary)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
             <Key size={20} style={{ color: 'var(--primary)' }} />
-            <h2 style={{ margin: 0 }}>API & Integration</h2>
+            <h2 style={{ margin: 0 }}>{t('profile.secApi')}</h2>
             {!access.canApiAccess && (
               <span style={{
                 background: '#d1fae5', color: '#15803d',
@@ -2010,7 +2012,7 @@ export default function Profile() {
 
           {/* API Key */}
           <div className="form-group">
-            <label>API-Schlüssel</label>
+            <label>{t('profile.apiKey')}</label>
             {apiKey ? (
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <input
@@ -2020,10 +2022,10 @@ export default function Profile() {
                   style={{ flex: 1, fontFamily: 'monospace', fontSize: '0.85rem' }}
                   onClick={() => setApiKeyVisible(!apiKeyVisible)}
                 />
-                <button type="button" className="btn-icon" onClick={copyApiKey} title="Kopieren">
+                <button type="button" className="btn-icon" onClick={copyApiKey} title={t('profile.titleCopy')}>
                   {apiKeyCopied ? <CheckCircle size={16} style={{ color: 'var(--green)' }} /> : <Copy size={16} />}
                 </button>
-                <button type="button" className="btn-icon" onClick={generateApiKey} title="Neu generieren" disabled={generatingKey || !canAdmin}>
+                <button type="button" className="btn-icon" onClick={generateApiKey} title={t('profile.titleRegenerate')} disabled={generatingKey || !canAdmin}>
                   <RefreshCw size={16} className={generatingKey ? 'spin' : ''} />
                 </button>
               </div>
@@ -2046,7 +2048,7 @@ export default function Profile() {
                 type="url"
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
-                placeholder="https://dein-server.de/webhooks/boatcare"
+                placeholder={t('profile.phWebhook')}
                 style={{ flex: 1 }}
               />
               <button type="button" className="btn-secondary" onClick={saveWebhookUrl} disabled={!canAdmin} style={{ whiteSpace: 'nowrap' }}>
