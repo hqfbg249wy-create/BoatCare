@@ -26,13 +26,35 @@ async function importDefault(file) {
   return mod.default
 }
 
-async function translateBatch(items, lang) {
+const THROTTLE_MS = 13000 // ≤ 5 Requests/Minute (Claude-API-Org-Limit)
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+// Globaler Pacer: mind. THROTTLE_MS Abstand zwischen ALLEN Requests
+// (über alle Sprachen/Chunks hinweg).
+let _lastCall = 0
+async function pace() {
+  const wait = _lastCall + THROTTLE_MS - Date.now()
+  if (wait > 0) await sleep(wait)
+  _lastCall = Date.now()
+}
+
+async function translateBatch(items, lang, attempt = 1) {
+  await pace()
   const res = await fetch(`${SUPABASE_URL}/functions/v1/translate-text`, {
     method: 'POST',
     headers: { 'apikey': ANON, 'Authorization': `Bearer ${ANON}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ target_lang: lang, texts: items }),
   })
-  if (!res.ok) throw new Error(`translate-text HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`)
+  if (!res.ok) {
+    const body = (await res.text()).slice(0, 200)
+    if ((res.status >= 500 || res.status === 429 || /rate/i.test(body)) && attempt <= 4) {
+      const wait = THROTTLE_MS * attempt
+      console.log(`    ⏳ Limit/Fehler — warte ${wait / 1000}s, Versuch ${attempt}/4`)
+      await sleep(wait)
+      return translateBatch(items, lang, attempt + 1)
+    }
+    throw new Error(`translate-text HTTP ${res.status}: ${body}`)
+  }
   const data = await res.json()
   return data.translations || {}
 }
