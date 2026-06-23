@@ -21,7 +21,9 @@ import { recordAiUsage } from "../_shared/aiQuota.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-6";
-const MAX_TOKENS = 4096;
+// Großzügig: lange FAQ-Antworten (mehrere Absätze) dürfen nicht abgeschnitten
+// werden — sonst fehlt ein Feld in der Modell-Antwort.
+const MAX_TOKENS = 8192;
 
 const SUPPORTED_LANGS = ["de", "en", "es", "fr", "it", "nl"] as const;
 type Lang = typeof SUPPORTED_LANGS[number];

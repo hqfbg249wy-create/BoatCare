@@ -12636,13 +12636,34 @@ async function faqAi(mode) {
 }
 window.faqAi = faqAi;
 
+// Übersetzt genau die übergebenen Felder in EINE Sprache. Gibt nur zurück,
+// was das Modell tatsächlich geliefert hat (kein Quelltext-Fallback).
+async function faqTranslateOne(question, answer, lang) {
+  const texts = [];
+  if (question) texts.push({ id: 'q', text: question });
+  if (answer)   texts.push({ id: 'a', text: answer });
+  if (texts.length === 0) return {};
+  const data = await faqInvoke('translate-text', { texts, target_lang: lang });
+  const tr = data.translations || {};
+  return { q: tr.q, a: tr.a };
+}
+
 async function faqTranslateFields(question, answer) {
-  // pro Zielsprache Frage+Antwort übersetzen → translations jsonb
+  // Pro Zielsprache Frage UND Antwort übersetzen. WICHTIG: niemals still auf
+  // den deutschen Quelltext zurückfallen — sonst entsteht eine übersetzte
+  // Überschrift mit deutschem Body. Fehlt ein Feld, wird es gezielt einzeln
+  // nachübersetzt; bleibt es unvollständig, wird die Sprache NICHT gespeichert
+  // (Badge zeigt dann ehrlich „unvollständig", statt halb-deutsch zu tun).
   const out = {};
   await Promise.all(FAQ_TARGET_LANGS.map(async (lang) => {
-    const data = await faqInvoke('translate-text', { texts: [{ id: 'q', text: question }, { id: 'a', text: answer }], target_lang: lang });
-    const tr = data.translations || {};
-    out[lang] = { question: tr.q || question, answer: tr.a || answer };
+    try {
+      let { q, a } = await faqTranslateOne(question, answer, lang);
+      if (!q) q = (await faqTranslateOne(question, '', lang)).q;
+      if (!a) a = (await faqTranslateOne('', answer, lang)).a;
+      if (q && a) out[lang] = { question: q, answer: a };
+    } catch (e) {
+      console.warn('Übersetzung fehlgeschlagen für', lang, e?.message || e);
+    }
   }));
   return out;
 }
