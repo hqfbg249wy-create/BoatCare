@@ -5,10 +5,12 @@ import FeatureLock from '../components/FeatureLock'
 import { supabase } from '../lib/supabase'
 import { useLocation } from 'react-router-dom'
 import { Plus, Pencil, Trash2, Tag, X, Save, Loader, BarChart3, TrendingUp, Users, ShoppingCart } from 'lucide-react'
+import { useT } from '../i18n'
 
 export default function Promotions() {
   const { provider } = useAuth()
   const access = useFeatureAccess()
+  const { t } = useT()
   const location = useLocation()
   const [promotions, setPromotions] = useState([])
   const [categories, setCategories] = useState([])
@@ -147,20 +149,20 @@ export default function Promotions() {
         const { error } = await supabase.from('provider_promotions').update(payload).eq('id', editing.id)
         if (error) throw error
       }
-      setMessage({ type: 'success', text: 'Angebot gespeichert.' })
+      setMessage({ type: 'success', text: t('promo.savedMsg') })
       setEditing(null)
       setForm(emptyForm())
       loadPromotions()
       loadAnalytics()
     } catch (err) {
-      setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+      setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     } finally {
       setSaving(false)
     }
   }
 
   async function handleDelete(promo) {
-    if (!confirm(`"${promo.name}" wirklich löschen?`)) return
+    if (!confirm(t('promo.deleteConfirm', { name: promo.name }))) return
     await supabase.from('provider_promotions').delete().eq('id', promo.id)
     loadPromotions()
     loadAnalytics()
@@ -194,21 +196,21 @@ export default function Promotions() {
   }
 
   function getPromoStatus(promo) {
-    if (!promo.is_active) return { label: 'Inaktiv', className: 'badge-pending' }
+    if (!promo.is_active) return { label: t('promo.statusInactive'), className: 'badge-pending' }
     const now = new Date().toISOString().split('T')[0]
-    if (promo.valid_from && now < promo.valid_from) return { label: 'Geplant', className: 'badge-pending' }
-    if (promo.valid_until && now > promo.valid_until) return { label: 'Abgelaufen', className: 'badge-cancelled' }
-    if (promo.max_uses && (promo.current_uses || 0) >= promo.max_uses) return { label: 'Aufgebraucht', className: 'badge-cancelled' }
-    return { label: 'Aktiv', className: 'badge-confirmed' }
+    if (promo.valid_from && now < promo.valid_from) return { label: t('promo.statusPlanned'), className: 'badge-pending' }
+    if (promo.valid_until && now > promo.valid_until) return { label: t('promo.statusExpired'), className: 'badge-cancelled' }
+    if (promo.max_uses && (promo.current_uses || 0) >= promo.max_uses) return { label: t('promo.statusUsedUp'), className: 'badge-cancelled' }
+    return { label: t('promo.statusActive'), className: 'badge-confirmed' }
   }
 
   if (editing !== null) {
     return (
       <div className="page">
         <div className="page-header">
-          <h1>{editing === 'new' ? 'Neues Angebot' : 'Angebot bearbeiten'}</h1>
+          <h1>{editing === 'new' ? t('promo.new') : t('promo.edit')}</h1>
           <button className="btn-secondary" onClick={() => { setEditing(null); setForm(emptyForm()) }}>
-            <X size={16} /> Abbrechen
+            <X size={16} /> {t('common.cancel')}
           </button>
         </div>
 
@@ -216,79 +218,79 @@ export default function Promotions() {
 
         <form onSubmit={handleSubmit}>
           <div className="card">
-            <h2>Angebot</h2>
+            <h2>{t('promo.sectionOffer')}</h2>
             <div className="form-group">
-              <label>Name *</label>
-              <input name="name" value={form.name} onChange={handleChange} required placeholder="z.B. Frühlings-Rabatt Antifouling" />
+              <label>{t('promo.nameLabel')} *</label>
+              <input name="name" value={form.name} onChange={handleChange} required placeholder={t('promo.namePlaceholder')} />
             </div>
             <div className="form-group">
-              <label>Beschreibung</label>
+              <label>{t('promo.description')}</label>
               <textarea name="description" value={form.description} onChange={handleChange} rows={2} />
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label>Rabatt-Typ</label>
+                <label>{t('promo.discountType')}</label>
                 <select name="discount_type" value={form.discount_type} onChange={handleChange}>
-                  <option value="percent">Prozent (%)</option>
-                  <option value="fixed">Festbetrag (EUR)</option>
+                  <option value="percent">{t('promo.percent')}</option>
+                  <option value="fixed">{t('promo.fixed')}</option>
                 </select>
               </div>
               <div className="form-group">
-                <label>Rabatt-Wert *</label>
+                <label>{t('promo.discountValue')} *</label>
                 <input name="discount_value" type="number" step="0.01" min="0" value={form.discount_value} onChange={handleChange} required
-                  placeholder={form.discount_type === 'percent' ? 'z.B. 5' : 'z.B. 10.00'} />
+                  placeholder={form.discount_type === 'percent' ? t('promo.phPercent') : t('promo.phFixed')} />
               </div>
             </div>
           </div>
 
           <div className="card">
-            <h2>Filter (optional)</h2>
-            <p className="hint">Nur Kunden, die diese Kriterien erfüllen, sehen das Angebot. Leer = für alle.</p>
+            <h2>{t('promo.filterSection')}</h2>
+            <p className="hint">{t('promo.filterHint')}</p>
             <div className="form-group">
-              <label>Produktkategorien (kommagetrennt)</label>
-              <input name="filter_categories" value={form.filter_categories} onChange={handleChange} placeholder="z.B. Antifouling, Motoröl" />
+              <label>{t('promo.categories')}</label>
+              <input name="filter_categories" value={form.filter_categories} onChange={handleChange} placeholder={t('promo.categoriesPh')} />
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label>Bootstypen</label>
-                <input name="filter_boat_types" value={form.filter_boat_types} onChange={handleChange} placeholder="z.B. Segelboot, Motorboot" />
+                <label>{t('promo.boatTypes')}</label>
+                <input name="filter_boat_types" value={form.filter_boat_types} onChange={handleChange} placeholder={t('promo.boatTypesPh')} />
               </div>
               <div className="form-group">
-                <label>Bootshersteller</label>
-                <input name="filter_manufacturers" value={form.filter_manufacturers} onChange={handleChange} placeholder="z.B. Bavaria, Jeanneau" />
+                <label>{t('promo.manufacturers')}</label>
+                <input name="filter_manufacturers" value={form.filter_manufacturers} onChange={handleChange} placeholder={t('promo.manufacturersPh')} />
               </div>
             </div>
             <div className="form-group">
-              <label>Mindestbestellwert (EUR)</label>
+              <label>{t('promo.minOrder')}</label>
               <input name="filter_min_order" type="number" step="0.01" min="0" value={form.filter_min_order} onChange={handleChange} />
             </div>
           </div>
 
           <div className="card">
-            <h2>Gültigkeit</h2>
+            <h2>{t('promo.validity')}</h2>
             <div className="form-row">
               <div className="form-group">
-                <label>Gültig ab</label>
+                <label>{t('promo.validFrom')}</label>
                 <input name="valid_from" type="date" value={form.valid_from} onChange={handleChange} />
               </div>
               <div className="form-group">
-                <label>Gültig bis</label>
+                <label>{t('promo.validUntil')}</label>
                 <input name="valid_until" type="date" value={form.valid_until} onChange={handleChange} />
               </div>
               <div className="form-group">
-                <label>Max. Einlösungen</label>
-                <input name="max_uses" type="number" min="0" value={form.max_uses} onChange={handleChange} placeholder="leer = unbegrenzt" />
+                <label>{t('promo.maxUses')}</label>
+                <input name="max_uses" type="number" min="0" value={form.max_uses} onChange={handleChange} placeholder={t('promo.unlimitedPh')} />
               </div>
             </div>
             <label className="checkbox-label">
               <input type="checkbox" name="is_active" checked={form.is_active} onChange={handleChange} />
-              Angebot aktiv
+              {t('promo.active')}
             </label>
           </div>
 
           <div className="form-actions">
             <button type="submit" className="btn-primary" disabled={saving}>
-              {saving ? <><Loader size={16} className="spin" /> Speichern...</> : <><Save size={16} /> Speichern</>}
+              {saving ? <><Loader size={16} className="spin" /> {t('common.saving')}</> : <><Save size={16} /> {t('common.save')}</>}
             </button>
           </div>
         </form>
@@ -300,11 +302,9 @@ export default function Promotions() {
   if (!access.canPromotions) {
     return (
       <div className="page">
-        <h1>🏷️ Angebote & Rabatte</h1>
-        <FeatureLock requiredTier="Enterprise" feature="Promotions & Werbeplätze" icon="🏷️">
-          Mit gezielten Angeboten erreichst du genau die Bootseigner, die zu deinen
-          Produkten und Dienstleistungen passen — gefiltert nach Bootstyp, Hersteller
-          oder Region. Verfügbar im <strong>Enterprise</strong>-Tarif.
+        <h1>🏷️ {t('promo.title')}</h1>
+        <FeatureLock requiredTier="Enterprise" feature={t('promo.featureName')} icon="🏷️">
+          {t('promo.lockText')}
         </FeatureLock>
       </div>
     )
@@ -313,9 +313,9 @@ export default function Promotions() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1>Angebote & Rabatte</h1>
+        <h1>{t('promo.title')}</h1>
         <button className="btn-primary" onClick={() => { setEditing('new'); setForm(emptyForm()) }}>
-          <Plus size={16} /> Neues Angebot
+          <Plus size={16} /> {t('promo.new')}
         </button>
       </div>
 
@@ -328,7 +328,7 @@ export default function Promotions() {
             </div>
             <div>
               <div className="stat-value">{promotions.filter(p => p.is_active).length}</div>
-              <div className="stat-label">Aktive Angebote</div>
+              <div className="stat-label">{t('dash.statActivePromos')}</div>
             </div>
           </div>
           <div className="stat-card">
@@ -337,7 +337,7 @@ export default function Promotions() {
             </div>
             <div>
               <div className="stat-value">{analytics.ordersWithPromo}</div>
-              <div className="stat-label">Bestellungen mit Rabatt</div>
+              <div className="stat-label">{t('promo.ordersWithDiscount')}</div>
             </div>
           </div>
           <div className="stat-card">
@@ -346,7 +346,7 @@ export default function Promotions() {
             </div>
             <div>
               <div className="stat-value">{analytics.conversionRate}%</div>
-              <div className="stat-label">Promo-Konversion</div>
+              <div className="stat-label">{t('promo.conversion')}</div>
             </div>
           </div>
           <div className="stat-card">
@@ -355,20 +355,20 @@ export default function Promotions() {
             </div>
             <div>
               <div className="stat-value">{analytics.totalDiscounts.toFixed(2)} €</div>
-              <div className="stat-label">Gewährte Rabatte</div>
+              <div className="stat-label">{t('promo.discountsGranted')}</div>
             </div>
           </div>
         </div>
       )}
 
       {loading ? (
-        <div className="loading">Laden...</div>
+        <div className="loading">{t('common.loading')}</div>
       ) : promotions.length === 0 ? (
         <div className="empty-state">
           <Tag size={48} />
-          <p>Noch keine Angebote erstellt.</p>
+          <p>{t('promo.empty')}</p>
           <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>
-            Erstelle Rabatte, die Kunden basierend auf Bootstyp, Kategorie oder Mindestbestellwert filtern.
+            {t('promo.emptyHint')}
           </p>
         </div>
       ) : (
@@ -389,9 +389,9 @@ export default function Promotions() {
                 </div>
                 {promo.description && <p>{promo.description}</p>}
                 <div className="promo-meta">
-                  {promo.valid_from && <span>Ab: {promo.valid_from}</span>}
-                  {promo.valid_until && <span>Bis: {promo.valid_until}</span>}
-                  <span>Einlösungen: {promo.current_uses || 0}{promo.max_uses ? `/${promo.max_uses}` : ' (unbegrenzt)'}</span>
+                  {promo.valid_from && <span>{t('promo.from')} {promo.valid_from}</span>}
+                  {promo.valid_until && <span>{t('promo.until')} {promo.valid_until}</span>}
+                  <span>{t('promo.uses')} {promo.current_uses || 0}{promo.max_uses ? `/${promo.max_uses}` : ' ' + t('promo.unlimited')}</span>
                 </div>
                 {(promo.filter_categories?.length > 0 || promo.filter_boat_types?.length > 0 || promo.filter_manufacturers?.length > 0) && (
                   <div className="promo-filters">
@@ -408,15 +408,15 @@ export default function Promotions() {
                     background: 'var(--gray-50)', borderRadius: '8px', fontSize: '0.85rem'
                   }}>
                     <div>
-                      <span style={{ color: 'var(--gray-500)' }}>Bestellungen:</span>{' '}
+                      <span style={{ color: 'var(--gray-500)' }}>{t('promo.aOrders')}</span>{' '}
                       <strong>{stats.orders}</strong>
                     </div>
                     <div>
-                      <span style={{ color: 'var(--gray-500)' }}>Umsatz:</span>{' '}
+                      <span style={{ color: 'var(--gray-500)' }}>{t('promo.aRevenue')}</span>{' '}
                       <strong>{stats.revenue.toFixed(2)} €</strong>
                     </div>
                     <div>
-                      <span style={{ color: 'var(--gray-500)' }}>Rabatte:</span>{' '}
+                      <span style={{ color: 'var(--gray-500)' }}>{t('promo.aDiscounts')}</span>{' '}
                       <strong style={{ color: 'var(--primary)' }}>{stats.discounts.toFixed(2)} €</strong>
                     </div>
                   </div>
@@ -426,10 +426,10 @@ export default function Promotions() {
                   <button
                     className={`btn-icon ${promo.is_active ? '' : 'btn-success'}`}
                     onClick={() => toggleActive(promo)}
-                    title={promo.is_active ? 'Deaktivieren' : 'Aktivieren'}
+                    title={promo.is_active ? t('promo.deactivate') : t('promo.activateT')}
                     style={{ fontSize: '0.8rem', padding: '6px 10px', borderRadius: '6px' }}
                   >
-                    {promo.is_active ? '⏸ Pause' : '▶ Aktivieren'}
+                    {promo.is_active ? t('promo.pause') : t('promo.activateBtn')}
                   </button>
                   <button className="btn-icon" onClick={() => startEdit(promo)}><Pencil size={16} /></button>
                   <button className="btn-icon btn-danger" onClick={() => handleDelete(promo)}><Trash2 size={16} /></button>

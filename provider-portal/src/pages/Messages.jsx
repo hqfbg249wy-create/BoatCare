@@ -3,10 +3,12 @@ import { useAuth } from '../hooks/useAuth'
 import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import { supabase } from '../lib/supabase'
 import { MessageSquare, Send, Search, Sparkles, Loader } from 'lucide-react'
+import { useT } from '../i18n'
 
 export default function Messages() {
   const { provider, user } = useAuth()
   const access = useFeatureAccess()
+  const { t } = useT()
   const [conversations, setConversations] = useState([])
   const [selected, setSelected] = useState(null)
   const [messages, setMessages] = useState([])
@@ -25,7 +27,7 @@ export default function Messages() {
     setSuggestError(null)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Nicht angemeldet')
+      if (!session) throw new Error(t('msg.notLoggedIn'))
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
       const res = await fetch(`${supabaseUrl}/functions/v1/suggest-reply`, {
         method: 'POST',
@@ -38,9 +40,9 @@ export default function Messages() {
       const data = await res.json()
       if (!res.ok) {
         if (data.quota_exhausted) {
-          setSuggestError(data.upgrade_hint || data.error || 'KI-Kontingent aufgebraucht')
+          setSuggestError(data.upgrade_hint || data.error || t('msg.quotaExhausted'))
         } else {
-          setSuggestError(data.error || 'Fehler beim Generieren')
+          setSuggestError(data.error || t('msg.genError'))
         }
         return
       }
@@ -48,7 +50,7 @@ export default function Messages() {
         setNewMsg(prev => prev ? `${prev}\n\n${data.reply}` : data.reply)
       }
     } catch (err) {
-      setSuggestError('Fehler: ' + err.message)
+      setSuggestError(t('common.errorPrefix') + ' ' + err.message)
     } finally {
       setSuggestingReply(false)
     }
@@ -202,7 +204,7 @@ export default function Messages() {
   function getUserName(conv) {
     if (conv.profiles?.full_name) return conv.profiles.full_name
     if (conv.profiles?.username) return conv.profiles.username
-    return conv.profiles?.email || 'Unbekannt'
+    return conv.profiles?.email || t('msg.unknownUser')
   }
 
   const filteredConversations = conversations.filter(conv => {
@@ -216,7 +218,7 @@ export default function Messages() {
   return (
     <div className="page">
       <h1>
-        Nachrichten
+        {t('nav.messages')}
         {totalUnread > 0 && (
           <span style={{
             background: '#ef4444', color: 'white', borderRadius: 12,
@@ -237,16 +239,16 @@ export default function Messages() {
               <input
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                placeholder="Suchen..."
+                placeholder={t('msg.searchPlaceholder')}
                 style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '0.85rem', width: '100%' }}
               />
             </div>
           </div>
 
           {loading ? (
-            <div className="loading">Laden...</div>
+            <div className="loading">{t('common.loading')}</div>
           ) : filteredConversations.length === 0 ? (
-            <div className="empty-text">Keine Konversationen</div>
+            <div className="empty-text">{t('msg.noConversations')}</div>
           ) : (
             filteredConversations.map(conv => (
               <div
@@ -279,7 +281,7 @@ export default function Messages() {
           {!selected ? (
             <div className="empty-state">
               <MessageSquare size={48} />
-              <p>Wählen Sie eine Konversation</p>
+              <p>{t('msg.selectConversation')}</p>
             </div>
           ) : (
             <>
@@ -288,7 +290,7 @@ export default function Messages() {
               </div>
               <div className="chat-messages">
                 {messages.length === 0 ? (
-                  <div className="empty-text" style={{ padding: 40 }}>Noch keine Nachrichten</div>
+                  <div className="empty-text" style={{ padding: 40 }}>{t('msg.noMessages')}</div>
                 ) : (
                   messages.map(msg => (
                     <div key={msg.id} className={`chat-bubble ${msg.sender_type === 'provider' ? 'sent' : 'received'}`}>
@@ -321,7 +323,7 @@ export default function Messages() {
                     type="button"
                     onClick={suggestReply}
                     disabled={suggestingReply || sending}
-                    title="KI-Antwort vorschlagen (verbraucht 1 Call aus deinem Pro-/Enterprise-Kontingent)"
+                    title={t('msg.aiSuggestTitle')}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 4,
                       padding: '8px 12px',
@@ -334,14 +336,14 @@ export default function Messages() {
                       whiteSpace: 'nowrap',
                     }}>
                     {suggestingReply
-                      ? <><Loader size={14} className="spin" /> Generiere…</>
-                      : <><Sparkles size={14} /> KI-Antwort</>}
+                      ? <><Loader size={14} className="spin" /> {t('msg.generating')}</>
+                      : <><Sparkles size={14} /> {t('msg.aiReply')}</>}
                   </button>
                 )}
                 <input
                   value={newMsg}
                   onChange={e => setNewMsg(e.target.value)}
-                  placeholder={access.isPro ? 'Nachricht schreiben oder KI-Antwort generieren…' : 'Nachricht schreiben...'}
+                  placeholder={access.isPro ? t('msg.inputPlaceholderPro') : t('msg.inputPlaceholder')}
                   disabled={sending}
                   style={{ flex: 1 }}
                 />
