@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
+import { LanguageProvider } from './i18n'
 import Layout from './components/Layout'
 import MFAChallenge from './components/MFAChallenge'
 import Login from './pages/Login'
@@ -65,6 +66,7 @@ function ProtectedRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
+      <LanguageProvider>
       <AuthProvider>
         <Routes>
           {/* Public route — Recovery-Link aus Reset-Mail trifft hier auf,
@@ -75,6 +77,7 @@ export default function App() {
           <Route path="/*" element={<ProtectedRoutes />} />
         </Routes>
       </AuthProvider>
+      </LanguageProvider>
     </BrowserRouter>
   )
 }

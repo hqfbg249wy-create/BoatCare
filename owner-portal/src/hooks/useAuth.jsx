@@ -162,10 +162,19 @@ export function AuthProvider({ children }) {
   }
 
   async function signUp(email, password, fullName) {
+    // emailRedirectTo ueberschreibt den globalen Supabase-Site-URL —
+    // wichtig weil dort https://provider.skipily.app eingetragen ist
+    // (fuer Service-Provider-Signups). Boot-Eigner sollen nach der
+    // E-Mail-Bestaetigung im Owner-Portal landen, nicht auf der
+    // Provider-Seite. Die URL muss in der Supabase-Console unter
+    // "Additional Redirect URLs" allowlisted sein.
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } }
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
     })
     if (error) throw error
     return data

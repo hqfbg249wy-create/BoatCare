@@ -6,6 +6,8 @@
 import { Capacitor } from '@capacitor/core'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useT } from '../i18n'
+import LanguageSwitcher from './LanguageSwitcher'
 import {
   LayoutDashboard, Ship, Wrench, ShoppingBag, ShoppingCart,
   Heart, User, LogOut, Menu, X, Package, Map, Search, MessageSquare, Mail
@@ -14,30 +16,31 @@ import { useState } from 'react'
 import LayoutMobile from './LayoutMobile'
 
 const navItems = [
-  { to: '/map', icon: Map, label: 'Karte' },
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/boats', icon: Ship, label: 'Meine Boote' },
-  { to: '/equipment', icon: Package, label: 'Ausrüstung' },
-  { to: '/maintenance', icon: Wrench, label: 'Wartung' },
-  { to: '/shop', icon: ShoppingCart, label: 'Shop' },
-  { to: '/services', icon: Search, label: 'Service-Suche' },
-  { to: '/orders', icon: ShoppingBag, label: 'Bestellungen' },
-  { to: '/favorites', icon: Heart, label: 'Favoriten' },
-  { to: '/inquiries', icon: Mail, label: 'Anfragen' },
-  { to: '/chat', icon: MessageSquare, label: 'KI-Assistent' },
-  { to: '/profile', icon: User, label: 'Mein Profil' },
+  { to: '/map', icon: Map, key: 'nav.map' },
+  { to: '/dashboard', icon: LayoutDashboard, key: 'nav.dashboard' },
+  { to: '/boats', icon: Ship, key: 'nav.boats' },
+  { to: '/equipment', icon: Package, key: 'nav.equipment' },
+  { to: '/maintenance', icon: Wrench, key: 'nav.maintenance' },
+  { to: '/shop', icon: ShoppingCart, key: 'nav.shop' },
+  { to: '/services', icon: Search, key: 'nav.services' },
+  { to: '/orders', icon: ShoppingBag, key: 'nav.orders' },
+  { to: '/favorites', icon: Heart, key: 'nav.favorites' },
+  { to: '/inquiries', icon: Mail, key: 'nav.inquiries' },
+  { to: '/chat', icon: MessageSquare, key: 'nav.chat' },
+  { to: '/profile', icon: User, key: 'nav.profile' },
 ]
 
 const bottomTabs = [
-  { to: '/map', icon: Map, label: 'Karte' },
-  { to: '/boats', icon: Ship, label: 'Boote' },
-  { to: '/maintenance', icon: Wrench, label: 'Wartung' },
-  { to: '/inquiries', icon: Mail, label: 'Anfragen' },
-  { to: '/favorites', icon: Heart, label: 'Favoriten' },
+  { to: '/map', icon: Map, key: 'nav.map' },
+  { to: '/boats', icon: Ship, key: 'nav.boatsShort' },
+  { to: '/maintenance', icon: Wrench, key: 'nav.maintenance' },
+  { to: '/inquiries', icon: Mail, key: 'nav.inquiries' },
+  { to: '/favorites', icon: Heart, key: 'nav.favorites' },
 ]
 
 function LayoutDesktop() {
   const { profile, signOut } = useAuth()
+  const { t } = useT()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
@@ -60,19 +63,22 @@ function LayoutDesktop() {
               onClick={() => setSidebarOpen(false)}
             >
               <item.icon size={18} />
-              <span>{item.label}</span>
+              <span>{t(item.key)}</span>
             </NavLink>
           ))}
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-name">{profile?.full_name || 'Bootseigner'}</div>
+          <div className="user-name">{profile?.full_name || t('layout.ownerFallback')}</div>
+          <div style={{ margin: '8px 0' }}>
+            <LanguageSwitcher style={{ fontSize: 12 }} />
+          </div>
           <button className="btn-logout" onClick={signOut}>
             <LogOut size={16} />
-            <span>Abmelden</span>
+            <span>{t('common.logout')}</span>
           </button>
           <div className="sidebar-legal">
-            <a href="/datenschutz.html" target="_blank" rel="noopener noreferrer">Datenschutz</a>
+            <a href="/datenschutz.html" target="_blank" rel="noopener noreferrer">{t('common.privacyShort')}</a>
           </div>
         </div>
       </aside>
@@ -82,7 +88,7 @@ function LayoutDesktop() {
           <button className="hamburger" onClick={() => setSidebarOpen(true)}>
             <Menu size={24} />
           </button>
-          <span className="topbar-title">Mein Skipily</span>
+          <span className="topbar-title">{t('layout.topbarTitle')}</span>
         </header>
         <div className="content">
           <Outlet />
@@ -98,7 +104,7 @@ function LayoutDesktop() {
             className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
           >
             <tab.icon size={22} />
-            <span>{tab.label}</span>
+            <span>{t(tab.key)}</span>
           </NavLink>
         ))}
       </nav>

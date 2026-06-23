@@ -5,6 +5,8 @@
  */
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useT } from '../i18n'
+import LanguageSwitcher from './LanguageSwitcher'
 import {
   Ship, Wrench, ShoppingCart, Heart, User, LogOut, Map, Mail,
   LayoutDashboard, ShoppingBag, MessageSquare, ChevronDown,
@@ -12,22 +14,23 @@ import {
 import { useState, useEffect, useRef } from 'react'
 
 const bottomTabs = [
-  { to: '/map',         icon: Map,          label: 'Karte' },
-  { to: '/boats',       icon: Ship,         label: 'Boote' },
-  { to: '/maintenance', icon: Wrench,       label: 'Wartung' },
-  { to: '/shop',        icon: ShoppingCart, label: 'Shop' },
-  { to: '/favorites',   icon: Heart,        label: 'Favoriten' },
+  { to: '/map',         icon: Map,          key: 'nav.map' },
+  { to: '/boats',       icon: Ship,         key: 'nav.boatsShort' },
+  { to: '/maintenance', icon: Wrench,       key: 'nav.maintenance' },
+  { to: '/shop',        icon: ShoppingCart, key: 'nav.shop' },
+  { to: '/favorites',   icon: Heart,        key: 'nav.favorites' },
 ]
 
 const profileMenu = [
-  { to: '/profile',   icon: User,            label: 'Mein Profil' },
-  { to: '/orders',    icon: ShoppingBag,     label: 'Bestellungen' },
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/chat',      icon: MessageSquare,   label: 'KI-Assistent' },
+  { to: '/profile',   icon: User,            key: 'nav.profile' },
+  { to: '/orders',    icon: ShoppingBag,     key: 'nav.orders' },
+  { to: '/dashboard', icon: LayoutDashboard, key: 'nav.dashboard' },
+  { to: '/chat',      icon: MessageSquare,   key: 'nav.chat' },
 ]
 
 export default function LayoutMobile() {
   const { profile, signOut } = useAuth()
+  const { t } = useT()
   const navigate = useNavigate()
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef(null)
@@ -58,14 +61,14 @@ export default function LayoutMobile() {
           <span>Skipily</span>
         </div>
         <div className="topbar-actions">
-          <NavLink to="/inquiries" className="topbar-icon-btn" aria-label="Anfragen">
+          <NavLink to="/inquiries" className="topbar-icon-btn" aria-label={t('nav.inquiries')}>
             <Mail size={20} />
           </NavLink>
           <div className="profile-wrap" ref={profileRef}>
             <button
               className="profile-trigger"
               onClick={() => setProfileOpen(o => !o)}
-              aria-label="Profilmenü"
+              aria-label={t('nav.profile')}
             >
               <span className="profile-avatar">{initials}</span>
               <ChevronDown size={14} />
@@ -75,7 +78,7 @@ export default function LayoutMobile() {
                 <div className="profile-dropdown-header">
                   <div className="profile-avatar-lg">{initials}</div>
                   <div>
-                    <div className="profile-name">{profile?.full_name || 'Bootseigner'}</div>
+                    <div className="profile-name">{profile?.full_name || t('layout.ownerFallback')}</div>
                     <div className="profile-email">{profile?.email || ''}</div>
                   </div>
                 </div>
@@ -87,16 +90,20 @@ export default function LayoutMobile() {
                     onClick={() => goTo(item.to)}
                   >
                     <item.icon size={18} />
-                    <span>{item.label}</span>
+                    <span>{t(item.key)}</span>
                   </button>
                 ))}
+                <div className="profile-dropdown-divider" />
+                <div className="profile-dropdown-item" style={{ cursor: 'default' }}>
+                  <LanguageSwitcher style={{ fontSize: 13 }} />
+                </div>
                 <div className="profile-dropdown-divider" />
                 <button
                   className="profile-dropdown-item danger"
                   onClick={() => { setProfileOpen(false); signOut() }}
                 >
                   <LogOut size={18} />
-                  <span>Abmelden</span>
+                  <span>{t('common.logout')}</span>
                 </button>
                 <div className="profile-dropdown-divider" />
                 <a
@@ -107,7 +114,7 @@ export default function LayoutMobile() {
                   style={{ fontSize: '0.78rem', color: '#94a3b8' }}
                   onClick={() => setProfileOpen(false)}
                 >
-                  Datenschutz
+                  {t('common.privacyShort')}
                 </a>
               </div>
             )}
@@ -127,7 +134,7 @@ export default function LayoutMobile() {
             className={({ isActive }) => `bottom-nav-item-ios ${isActive ? 'active' : ''}`}
           >
             <tab.icon size={22} strokeWidth={2} />
-            <span>{tab.label}</span>
+            <span>{t(tab.key)}</span>
           </NavLink>
         ))}
       </nav>

@@ -1,0 +1,55 @@
+// Deutsche Quell-Strings (Single Source of Truth) für das owner-portal
+// (app.skipily.app + Android). Neue Texte NUR hier ergänzen, dann
+// `node scripts/i18n-autotranslate.mjs owner-portal` laufen lassen.
+export default {
+  // Allgemein
+  'common.email': 'E-Mail',
+  'common.password': 'Passwort',
+  'common.emailPlaceholder': 'ihre@email.de',
+  'common.privacy': 'Datenschutzerklärung',
+  'common.privacyShort': 'Datenschutz',
+  'common.logout': 'Abmelden',
+  'common.backToLogin': 'Zurück zum Login',
+
+  // Navigation (Desktop-Sidebar + Mobile-Tabs)
+  'nav.map': 'Karte',
+  'nav.dashboard': 'Dashboard',
+  'nav.boats': 'Meine Boote',
+  'nav.boatsShort': 'Boote',
+  'nav.equipment': 'Ausrüstung',
+  'nav.maintenance': 'Wartung',
+  'nav.shop': 'Shop',
+  'nav.services': 'Service-Suche',
+  'nav.orders': 'Bestellungen',
+  'nav.favorites': 'Favoriten',
+  'nav.inquiries': 'Anfragen',
+  'nav.chat': 'KI-Assistent',
+  'nav.profile': 'Mein Profil',
+  'layout.ownerFallback': 'Bootseigner',
+  'layout.topbarTitle': 'Mein Skipily',
+
+  // Login / Registrierung / Passwort vergessen
+  'login.subtitleOwner': 'Bootseigner-Portal',
+  'login.subtitleRegister': 'Konto erstellen',
+  'login.subtitleForgot': 'Passwort zurücksetzen',
+  'login.appleFailed': 'Apple-Anmeldung fehlgeschlagen.',
+  'login.regOkRefOk': 'Registrierung erfolgreich! Empfehlungs-Code eingelöst — Bonus nach 7 Tagen.',
+  'login.regOkRefRejected': 'Registrierung erfolgreich! Empfehlungs-Code wurde abgelehnt: {msg}',
+  'login.regOkCheckEmail': 'Registrierung erfolgreich! Bitte prüfen Sie Ihre E-Mail.',
+  'login.forgotSendError': 'Fehler beim Senden des Reset-Links.',
+  'login.forgotSentBody': 'Wir haben Dir einen Link an {email} geschickt. Klick darauf, um ein neues Passwort zu setzen.',
+  'login.forgotIntro': 'Gib Deine E-Mail ein — wir schicken Dir einen Link zum Zurücksetzen des Passworts.',
+  'login.sending': 'Wird gesendet…',
+  'login.sendResetLink': 'Reset-Link senden',
+  'login.name': 'Name',
+  'login.namePlaceholder': 'Ihr vollständiger Name',
+  'login.passwordPlaceholder': 'Passwort',
+  'login.referralLabel': 'Empfehlungs-Code (optional)',
+  'login.referralHint': 'Wurdest Du eingeladen? Trag den Code ein — Du und der Werber bekommen je 1 Monat Skipily Plus, sobald Du 7 Tage dabei bist.',
+  'login.loading': 'Laden…',
+  'login.register': 'Registrieren',
+  'login.signIn': 'Anmelden',
+  'login.forgotLink': 'Passwort vergessen?',
+  'login.haveAccount': 'Bereits ein Konto?',
+  'login.noAccount': 'Noch kein Konto?',
+}

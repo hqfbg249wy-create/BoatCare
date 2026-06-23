@@ -11,7 +11,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const I18N = resolve(__dirname, '../provider-portal/src/i18n')
+// Portal als Argument: node scripts/i18n-autotranslate.mjs [provider-portal|owner-portal]
+const PORTAL = process.argv[2] || 'provider-portal'
+const I18N = resolve(__dirname, `../${PORTAL}/src/i18n`)
+console.log(`→ Portal: ${PORTAL}`)
 
 const SUPABASE_URL = 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
 const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjandseXFrZmtzenVtZHJmdnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMDQ4NTksImV4cCI6MjA4NDY4MDg1OX0.VOlhRdvShU325xG18SSSTWdFfGEdyeX-7CAovE2vesQ'

@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Anchor, Mail, Lock, User, Gift } from 'lucide-react'
+import { Mail, Lock, User, Gift } from 'lucide-react'
+import { useT } from '../i18n'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 
 export default function Login() {
   const { signIn, signUp, signInWithApple, applyReferralCode } = useAuth()
+  const { t } = useT()
   const [appleLoading, setAppleLoading] = useState(false)
 
   async function handleAppleSignIn() {
@@ -16,7 +19,7 @@ export default function Login() {
       // mehr auf false — die Page wird neu geladen.
       await signInWithApple()
     } catch (err) {
-      setError(err.message || 'Apple-Anmeldung fehlgeschlagen.')
+      setError(err.message || t('login.appleFailed'))
       setAppleLoading(false)
     }
   }
@@ -47,7 +50,7 @@ export default function Login() {
       if (error) throw error
       setForgotSent(true)
     } catch (err) {
-      setError(err.message || 'Fehler beim Senden des Reset-Links.')
+      setError(err.message || t('login.forgotSendError'))
     } finally {
       setLoading(false)
     }
@@ -68,12 +71,12 @@ export default function Login() {
         if (trimmed) {
           try {
             await applyReferralCode(trimmed)
-            setSuccess('Registrierung erfolgreich! Empfehlungs-Code eingeloest — Bonus nach 7 Tagen.')
+            setSuccess(t('login.regOkRefOk'))
           } catch (codeErr) {
-            setSuccess(`Registrierung erfolgreich! Empfehlungs-Code wurde abgelehnt: ${codeErr.message}`)
+            setSuccess(t('login.regOkRefRejected', { msg: codeErr.message }))
           }
         } else {
-          setSuccess('Registrierung erfolgreich! Bitte pruefen Sie Ihre E-Mail.')
+          setSuccess(t('login.regOkCheckEmail'))
         }
       } else {
         await signIn(email, password)
@@ -88,10 +91,13 @@ export default function Login() {
   return (
     <div className="login-screen">
       <div className="login-card">
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <LanguageSwitcher />
+        </div>
         <div className="login-logo">
           <img src="/icon-192.png" alt="Skipily" style={{ width: 64, height: 64, borderRadius: 14 }} />
           <h1>Skipily</h1>
-          <p>{isForgot ? 'Passwort zurücksetzen' : isRegister ? 'Konto erstellen' : 'Bootseigner-Portal'}</p>
+          <p>{isForgot ? t('login.subtitleForgot') : isRegister ? t('login.subtitleRegister') : t('login.subtitleOwner')}</p>
         </div>
 
         {/* ─── Passwort-vergessen-Modus ─── */}
@@ -99,36 +105,33 @@ export default function Login() {
           forgotSent ? (
             <>
               <p style={{ textAlign: 'center', margin: '20px 0', lineHeight: 1.6, color: '#334155' }}>
-                Wir haben Dir einen Link an<br />
-                <strong>{email}</strong><br />
-                geschickt. Klick darauf, um ein neues Passwort zu setzen.
+                {t('login.forgotSentBody', { email })}
               </p>
               <button className="btn-primary btn-full"
                       onClick={() => { setIsForgot(false); setForgotSent(false) }}>
-                Zurück zum Login
+                {t('common.backToLogin')}
               </button>
             </>
           ) : (
             <form onSubmit={handleForgotSubmit}>
               <p style={{ margin: '0 0 16px', fontSize: '0.9rem', lineHeight: 1.5, color: '#64748b' }}>
-                Gib Deine E-Mail ein — wir schicken Dir einen Link zum
-                Zurücksetzen des Passworts.
+                {t('login.forgotIntro')}
               </p>
               <div className="form-group">
-                <label><Mail size={14} /> E-Mail</label>
+                <label><Mail size={14} /> {t('common.email')}</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="ihre@email.de" required />
+                  placeholder={t('common.emailPlaceholder')} required />
               </div>
 
               {error && <div className="alert alert-error">{error}</div>}
 
               <button type="submit" className="btn-primary btn-full" disabled={loading}>
-                {loading ? 'Wird gesendet…' : 'Reset-Link senden'}
+                {loading ? t('login.sending') : t('login.sendResetLink')}
               </button>
 
               <div className="login-toggle">
                 <p><button type="button" onClick={() => { setIsForgot(false); setError('') }}>
-                  Zurück zum Login
+                  {t('common.backToLogin')}
                 </button></p>
               </div>
             </form>
@@ -137,24 +140,24 @@ export default function Login() {
         <form onSubmit={handleSubmit}>
           {isRegister && (
             <div className="form-group">
-              <label><User size={14} /> Name</label>
+              <label><User size={14} /> {t('login.name')}</label>
               <input type="text" value={fullName} onChange={e => setFullName(e.target.value)}
-                placeholder="Ihr vollstaendiger Name" required />
+                placeholder={t('login.namePlaceholder')} required />
             </div>
           )}
           <div className="form-group">
-            <label><Mail size={14} /> E-Mail</label>
+            <label><Mail size={14} /> {t('common.email')}</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="ihre@email.de" required />
+              placeholder={t('common.emailPlaceholder')} required />
           </div>
           <div className="form-group">
-            <label><Lock size={14} /> Passwort</label>
+            <label><Lock size={14} /> {t('common.password')}</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-              placeholder="Passwort" required minLength={6} />
+              placeholder={t('login.passwordPlaceholder')} required minLength={6} />
           </div>
           {isRegister && (
             <div className="form-group">
-              <label><Gift size={14} /> Empfehlungs-Code (optional)</label>
+              <label><Gift size={14} /> {t('login.referralLabel')}</label>
               <input
                 type="text"
                 value={referralCode}
@@ -164,8 +167,7 @@ export default function Login() {
                 autoComplete="off"
               />
               <small style={{ color: '#94a3b8', fontSize: '0.8rem' }}>
-                Wurdest Du eingeladen? Trag den Code ein — Du und der Werber bekommen
-                je 1 Monat Skipily Plus, sobald Du 7 Tage dabei bist.
+                {t('login.referralHint')}
               </small>
             </div>
           )}
@@ -174,7 +176,7 @@ export default function Login() {
           {success && <div className="alert alert-success">{success}</div>}
 
           <button type="submit" className="btn-primary btn-full" disabled={loading}>
-            {loading ? 'Laden...' : isRegister ? 'Registrieren' : 'Anmelden'}
+            {loading ? t('login.loading') : isRegister ? t('login.register') : t('login.signIn')}
           </button>
 
           {!isRegister && (
@@ -183,7 +185,7 @@ export default function Login() {
                       onClick={() => { setIsForgot(true); setError(''); setSuccess('') }}
                       style={{ background: 'none', border: 'none', color: '#f97316',
                                cursor: 'pointer', fontSize: '0.88rem', textDecoration: 'underline' }}>
-                Passwort vergessen?
+                {t('login.forgotLink')}
               </button>
             </p>
           )}
@@ -202,9 +204,9 @@ export default function Login() {
         {!isForgot && (
           <div className="login-toggle">
             {isRegister ? (
-              <p>Bereits ein Konto? <button onClick={() => setIsRegister(false)}>Anmelden</button></p>
+              <p>{t('login.haveAccount')} <button onClick={() => setIsRegister(false)}>{t('login.signIn')}</button></p>
             ) : (
-              <p>Noch kein Konto? <button onClick={() => setIsRegister(true)}>Registrieren</button></p>
+              <p>{t('login.noAccount')} <button onClick={() => setIsRegister(true)}>{t('login.register')}</button></p>
             )}
           </div>
         )}
@@ -212,7 +214,7 @@ export default function Login() {
         <p style={{ marginTop: 16, fontSize: '0.78rem', color: '#94a3b8', textAlign: 'center' }}>
           <a href="/datenschutz.html" target="_blank" rel="noopener noreferrer"
              style={{ color: '#94a3b8', textDecoration: 'underline' }}>
-            Datenschutzerklärung
+            {t('common.privacy')}
           </a>
         </p>
       </div>
