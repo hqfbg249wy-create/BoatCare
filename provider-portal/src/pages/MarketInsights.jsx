@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 
 export default function MarketInsights() {
+  const { t } = useT()
   const { provider } = useAuth()
   const access = useFeatureAccess()
   const navigate = useNavigate()
@@ -170,7 +171,7 @@ export default function MarketInsights() {
   if (!access.canAnalytics) {
     return (
       <div className="page">
-        <h1>📈 Marktanalyse</h1>
+        <h1>{t('mi.k0')}</h1>
         <FeatureLock requiredTier="Enterprise" feature="Markt-Analytics" icon="📈">
           Sieh genau, welche Ausrüstung in deiner Region nachgefragt wird, welche
           Hersteller dominieren und welche Bootstypen wachsen. Inklusive
@@ -181,15 +182,15 @@ export default function MarketInsights() {
     )
   }
 
-  if (loading) return <div className="loading">Laden...</div>
+  if (loading) return <div className="loading">{t('mi.k3')}</div>
 
   if (error) {
     return (
       <div className="page">
-        <h1>Marktanalyse</h1>
+        <h1>{t('mi.k2')}</h1>
         <div className="message message-error">{error}</div>
         <button className="btn-primary" onClick={loadInsights}>
-          <RefreshCw size={16} /> Erneut versuchen
+          <RefreshCw size={16} /> {t('mi.k4')}
         </button>
       </div>
     )
@@ -216,12 +217,12 @@ export default function MarketInsights() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1>📊 Marktanalyse</h1>
+        <h1>{t('mi.k1')}</h1>
         <button className="btn-secondary" onClick={loadInsights}>
-          <RefreshCw size={16} /> Aktualisieren
+          <RefreshCw size={16} /> {t('mi.k5')}
         </button>
       </div>
-      <p className="subtitle">Anonymisierte Einblicke in die Skipily-Nutzerflotte — nutzen Sie diese Daten für gezielte Angebote.</p>
+      <p className="subtitle">{t('mi.k6')}</p>
 
       {/* Breadcrumb Navigation */}
       {drillPath.length > 1 && (
@@ -245,8 +246,8 @@ export default function MarketInsights() {
         <>
           {/* Overview Stat Cards - clickable */}
           <div className="stats-grid">
-            <StatCard icon={<Sailboat />} label="Boote gesamt" value={overview.total_boats || 0} color="#3b82f6" />
-            <StatCard icon={<Wrench />} label="Ausrüstung gesamt" value={overview.total_equipment || 0} color="#f97316" />
+            <StatCard icon={<Sailboat />} label={t('mi.k59')} value={overview.total_boats || 0} color="#3b82f6" />
+            <StatCard icon={<Wrench />} label={t('mi.k60')} value={overview.total_equipment || 0} color="#f97316" />
             <div className="stat-card stat-card-clickable" onClick={() => drillInto({
               type: 'filtered', label: '🚨 Wartung überfällig',
               filter: { overdueOnly: true }
@@ -254,7 +255,7 @@ export default function MarketInsights() {
               <div className="stat-icon" style={{ color: '#ef4444' }}><AlertTriangle /></div>
               <div className="stat-info">
                 <span className="stat-value">{equipmentData?.maintenanceSummary?.overdue || 0}</span>
-                <span className="stat-label">Wartung fällig</span>
+                <span className="stat-label">{t('mi.k7')}</span>
               </div>
               <ChevronRight size={16} className="stat-drill-icon" />
             </div>
@@ -265,7 +266,7 @@ export default function MarketInsights() {
               <div className="stat-icon" style={{ color: '#eab308' }}><Clock /></div>
               <div className="stat-info">
                 <span className="stat-value">{equipmentData?.maintenanceSummary?.dueSoon || 0}</span>
-                <span className="stat-label">Wartung bald fällig</span>
+                <span className="stat-label">{t('mi.k8')}</span>
               </div>
               <ChevronRight size={16} className="stat-drill-icon" />
             </div>
@@ -274,7 +275,7 @@ export default function MarketInsights() {
           {/* Recommendations - clickable */}
           {allRecommendations.length > 0 && (
             <div className="card insights-recommendations">
-              <h2><Lightbulb size={20} /> Empfehlungen für Ihr Angebot</h2>
+              <h2><Lightbulb size={20} /> {t('mi.k9')}</h2>
               <div className="recommendation-list">
                 {allRecommendations.map((rec, i) => (
                   <div
@@ -291,7 +292,7 @@ export default function MarketInsights() {
                       <strong>{rec.title}</strong>
                       <p>{rec.text}</p>
                     </div>
-                    {rec.priority === 'high' && <span className="rec-badge">Hohe Priorität</span>}
+                    {rec.priority === 'high' && <span className="rec-badge">{t('mi.k10')}</span>}
                     {rec.drillFilter && <ChevronRight size={18} className="rec-drill-arrow" />}
                   </div>
                 ))}
@@ -316,26 +317,26 @@ export default function MarketInsights() {
           {activeTab === 'overview' && (
             <div className="insights-grid">
               <div className="card">
-                <h2><Sailboat size={18} /> Bootstypen-Verteilung</h2>
-                {boatTypes.length === 0 ? <p className="empty-text">Keine Daten verfügbar</p> :
+                <h2><Sailboat size={18} /> {t('mi.k11')}</h2>
+                {boatTypes.length === 0 ? <p className="empty-text">{t('mi.k12')}</p> :
                   <BarList data={boatTypes} labelKey="boat_type" valueKey="count" color="#3b82f6"
                     onClick={(item) => drillInto({ type: 'boatType', label: `Bootstyp: ${item.boat_type}`, filter: { boatType: item.boat_type } })} />}
               </div>
               <div className="card">
-                <h2><Anchor size={18} /> Top Boots-Hersteller</h2>
-                {boatManufacturers.length === 0 ? <p className="empty-text">Keine Daten verfügbar</p> :
+                <h2><Anchor size={18} /> {t('mi.k13')}</h2>
+                {boatManufacturers.length === 0 ? <p className="empty-text">{t('mi.k12')}</p> :
                   <BarList data={boatManufacturers} labelKey="manufacturer" valueKey="count" color="#10b981"
                     onClick={(item) => drillInto({ type: 'boatMfr', label: `Bootshersteller: ${item.manufacturer}`, filter: { boatManufacturer: item.manufacturer } })} />}
               </div>
               <div className="card">
-                <h2><Wrench size={18} /> Ausrüstungs-Kategorien</h2>
-                {equipmentCategories.length === 0 ? <p className="empty-text">Keine Daten verfügbar</p> :
+                <h2><Wrench size={18} /> {t('mi.k14')}</h2>
+                {equipmentCategories.length === 0 ? <p className="empty-text">{t('mi.k12')}</p> :
                   <BarList data={equipmentCategories} labelKey="category" valueKey="count" color="#f97316" labelMap={equipmentCategoryLabels}
                     onClick={(item) => drillInto({ type: 'category', label: equipmentCategoryLabels[item.category] || item.category, filter: { category: item.category } })} />}
               </div>
               <div className="card">
-                <h2><Factory size={18} /> Top Ausrüstungs-Hersteller</h2>
-                {equipmentManufacturers.length === 0 ? <p className="empty-text">Keine Daten verfügbar</p> :
+                <h2><Factory size={18} /> {t('mi.k15')}</h2>
+                {equipmentManufacturers.length === 0 ? <p className="empty-text">{t('mi.k12')}</p> :
                   <BarList data={equipmentManufacturers} labelKey="manufacturer" valueKey="count" color="#8b5cf6"
                     onClick={(item) => drillInto({ type: 'manufacturer', label: `Hersteller: ${item.manufacturer}`, filter: { manufacturer: item.manufacturer } })} />}
               </div>
@@ -355,10 +356,11 @@ export default function MarketInsights() {
 // Breadcrumb Navigation
 // ============================================================
 function Breadcrumb({ path, onNavigate, onBack }) {
+  const { t } = useT()
   return (
     <div className="drill-breadcrumb">
       <button className="drill-back-btn" onClick={onBack}>
-        <ChevronLeft size={18} /> Zurück
+        <ChevronLeft size={18} /> {t('mi.k16')}
       </button>
       <div className="drill-crumbs">
         {path.map((level, i) => (
@@ -381,6 +383,7 @@ function Breadcrumb({ path, onNavigate, onBack }) {
 // Drilldown Detail View
 // ============================================================
 function DrilldownView({ level, filteredEquipment, rawEquipment, providerProducts, findMatchingProducts, onDrill, onCreateOffer, navigate, provider }) {
+  const { t } = useT()
   const filter = level.filter || {}
   const aggregated = aggregateEquipmentData(filteredEquipment)
 
@@ -438,10 +441,10 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
     <div className="drilldown-view">
       {/* Summary Stats */}
       <div className="stats-grid">
-        <StatCard icon={<Package />} label="Geräte gefiltert" value={filteredEquipment.length} color="#3b82f6" />
-        <StatCard icon={<Factory />} label="Hersteller" value={mfrList.length} color="#8b5cf6" />
-        <StatCard icon={<AlertTriangle />} label="Überfällig" value={overdue} color="#ef4444" />
-        <StatCard icon={<Clock />} label="Bald fällig" value={dueSoon} color="#eab308" />
+        <StatCard icon={<Package />} label={t('mi.k61')} value={filteredEquipment.length} color="#3b82f6" />
+        <StatCard icon={<Factory />} label={t('mi.k22')} value={mfrList.length} color="#8b5cf6" />
+        <StatCard icon={<AlertTriangle />} label={t('mi.k47')} value={overdue} color="#ef4444" />
+        <StatCard icon={<Clock />} label={t('mi.k51')} value={dueSoon} color="#eab308" />
       </div>
 
       {/* Matching Provider Products - Portfolio Offer */}
@@ -459,10 +462,10 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
                 filter_manufacturers: filterMfrs.join(', '),
               }}})
             }}>
-              <Tag size={16} /> Angebot erstellen
+              <Tag size={16} /> {t('mi.k17')}
             </button>
           </div>
-          <p className="card-subtitle">Diese aktiven Produkte aus Ihrem Shop passen zum aktuellen Marktfilter. Erstellen Sie ein gezieltes Angebot!</p>
+          <p className="card-subtitle">{t('mi.k18')}</p>
           <div className="portfolio-products-grid">
             {matchingProducts.slice(0, 6).map(p => (
               <div key={p.id} className="portfolio-product-card" onClick={() => navigate('/products')}>
@@ -489,11 +492,11 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
           <div className="portfolio-empty-content">
             <Zap size={24} />
             <div>
-              <strong>Marktchance!</strong>
+              <strong>{t('mi.k19')}</strong>
               <p>{filteredEquipment.length} Geräte in der Flotte — aber noch keine passenden Produkte in Ihrem Shop. Legen Sie jetzt Produkte an!</p>
             </div>
             <button className="btn-primary" onClick={() => navigate('/products')}>
-              <Package size={16} /> Produkt anlegen
+              <Package size={16} /> {t('mi.k20')}
             </button>
           </div>
         </div>
@@ -503,7 +506,7 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
         {/* Category Breakdown (if not already filtered by category) */}
         {!filter.category && catList.length > 1 && (
           <div className="card">
-            <h2><Wrench size={18} /> Kategorien</h2>
+            <h2><Wrench size={18} /> {t('mi.k21')}</h2>
             <BarList data={catList} labelKey="category" valueKey="count" color="#f97316" labelMap={equipmentCategoryLabels}
               onClick={(item) => onDrill({ type: 'category', label: equipmentCategoryLabels[item.category] || item.category, filter: { ...filter, category: item.category } })} />
           </div>
@@ -512,7 +515,7 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
         {/* Manufacturer Breakdown (if not already filtered by manufacturer) */}
         {!filter.manufacturer && mfrList.length > 1 && (
           <div className="card">
-            <h2><Factory size={18} /> Hersteller</h2>
+            <h2><Factory size={18} /> {t('mi.k22')}</h2>
             <BarList data={mfrList.slice(0, 15)} labelKey="manufacturer" valueKey="count" color="#8b5cf6"
               onClick={(item) => onDrill({ type: 'manufacturer', label: `Hersteller: ${item.manufacturer}`, filter: { ...filter, manufacturer: item.manufacturer } })} />
           </div>
@@ -526,11 +529,11 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
               <table>
                 <thead>
                   <tr>
-                    <th>Gerät</th>
-                    <th>Hersteller</th>
-                    <th>Modell</th>
-                    <th>Kategorie</th>
-                    <th className="text-right">Anzahl</th>
+                    <th>{t('mi.k23')}</th>
+                    <th>{t('mi.k22')}</th>
+                    <th>{t('mi.k24')}</th>
+                    <th>{t('mi.k25')}</th>
+                    <th className="text-right">{t('mi.k26')}</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -563,14 +566,14 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
               <table>
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Hersteller</th>
-                    <th>Modell</th>
-                    <th>Kategorie</th>
-                    <th>Installiert</th>
-                    <th>Letzte Wartung</th>
-                    <th>Nächste Wartung</th>
-                    <th>Status</th>
+                    <th>{t('mi.k27')}</th>
+                    <th>{t('mi.k22')}</th>
+                    <th>{t('mi.k24')}</th>
+                    <th>{t('mi.k25')}</th>
+                    <th>{t('mi.k28')}</th>
+                    <th>{t('mi.k29')}</th>
+                    <th>{t('mi.k30')}</th>
+                    <th>{t('mi.k31')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -616,24 +619,25 @@ function getMaintenanceStatus(equipment) {
 // Tab: Modelle & Geräte (with drilldown)
 // ============================================================
 function ModelsTab({ data, onDrill }) {
+  const { t } = useT()
   if (!data || data.models.length === 0) {
-    return <div className="card"><p className="empty-text">Keine Modell-Daten verfügbar</p></div>
+    return <div className="card"><p className="empty-text">{t('mi.k32')}</p></div>
   }
 
   return (
     <div className="insights-grid">
       <div className="card card-full">
-        <h2><Settings size={18} /> Häufigste Geräte-Modelle</h2>
-        <p className="card-subtitle">Klicken Sie auf ein Modell für Details und Angebotsmöglichkeiten</p>
+        <h2><Settings size={18} /> {t('mi.k33')}</h2>
+        <p className="card-subtitle">{t('mi.k34')}</p>
         <div className="model-table">
           <table>
             <thead>
               <tr>
-                <th>Gerät</th>
-                <th>Hersteller</th>
-                <th>Modell</th>
-                <th>Kategorie</th>
-                <th className="text-right">Anzahl</th>
+                <th>{t('mi.k23')}</th>
+                <th>{t('mi.k22')}</th>
+                <th>{t('mi.k24')}</th>
+                <th>{t('mi.k25')}</th>
+                <th className="text-right">{t('mi.k26')}</th>
                 <th></th>
               </tr>
             </thead>
@@ -658,13 +662,13 @@ function ModelsTab({ data, onDrill }) {
       </div>
 
       <div className="card">
-        <h2><Factory size={18} /> Modelle pro Hersteller</h2>
+        <h2><Factory size={18} /> {t('mi.k35')}</h2>
         <BarList data={data.manufacturerModelCounts.slice(0, 10)} labelKey="manufacturer" valueKey="modelCount" color="#6366f1"
           onClick={(item) => onDrill({ type: 'manufacturer', label: `Hersteller: ${item.manufacturer}`, filter: { manufacturer: item.manufacturer } })} />
       </div>
 
       <div className="card">
-        <h2><Wrench size={18} /> Modelle pro Kategorie</h2>
+        <h2><Wrench size={18} /> {t('mi.k36')}</h2>
         <BarList data={data.categoryModelCounts.slice(0, 10)} labelKey="category" valueKey="modelCount" color="#f97316" labelMap={equipmentCategoryLabels}
           onClick={(item) => onDrill({ type: 'category', label: equipmentCategoryLabels[item.category] || item.category, filter: { category: item.category } })} />
       </div>
@@ -676,8 +680,9 @@ function ModelsTab({ data, onDrill }) {
 // Tab: Installationsalter (with drilldown)
 // ============================================================
 function AgeTab({ data, onDrill }) {
+  const { t } = useT()
   if (!data || data.ageGroups.length === 0) {
-    return <div className="card"><p className="empty-text">Keine Installations-Daten verfügbar</p></div>
+    return <div className="card"><p className="empty-text">{t('mi.k37')}</p></div>
   }
 
   const ageColors = {
@@ -688,8 +693,8 @@ function AgeTab({ data, onDrill }) {
   return (
     <div className="insights-grid">
       <div className="card card-full">
-        <h2><Calendar size={18} /> Altersverteilung der Ausrüstung</h2>
-        <p className="card-subtitle">Klicken Sie auf eine Altersgruppe für Details. Ältere Geräte = höherer Wartungsbedarf.</p>
+        <h2><Calendar size={18} /> {t('mi.k38')}</h2>
+        <p className="card-subtitle">{t('mi.k39')}</p>
         <div className="age-chart">
           {data.ageGroups.map((ag, i) => {
             const pct = data.totalWithAge > 0 ? ((ag.count / data.totalWithAge) * 100) : 0
@@ -717,9 +722,9 @@ function AgeTab({ data, onDrill }) {
       </div>
 
       <div className="card">
-        <h2><Clock size={18} /> Durchschnittsalter pro Kategorie</h2>
-        <p className="card-subtitle">Klicken Sie auf eine Kategorie um Details zu sehen</p>
-        {data.avgAgeByCategory.length === 0 ? <p className="empty-text">Keine Daten</p> : (
+        <h2><Clock size={18} /> {t('mi.k40')}</h2>
+        <p className="card-subtitle">{t('mi.k41')}</p>
+        {data.avgAgeByCategory.length === 0 ? <p className="empty-text">{t('mi.k42')}</p> : (
           <div className="bar-list">
             {data.avgAgeByCategory.map((item, i) => {
               const maxAge = Math.max(...data.avgAgeByCategory.map(a => a.avgYears), 1)
@@ -745,8 +750,8 @@ function AgeTab({ data, onDrill }) {
       </div>
 
       <div className="card">
-        <h2><TrendingUp size={18} /> Installationsjahre</h2>
-        {data.installationYears.length === 0 ? <p className="empty-text">Keine Daten</p> :
+        <h2><TrendingUp size={18} /> {t('mi.k43')}</h2>
+        {data.installationYears.length === 0 ? <p className="empty-text">{t('mi.k42')}</p> :
           <BarList data={data.installationYears} labelKey="year" valueKey="count" color="#3b82f6" />}
       </div>
     </div>
@@ -757,8 +762,9 @@ function AgeTab({ data, onDrill }) {
 // Tab: Wartungsstatus (with drilldown)
 // ============================================================
 function MaintenanceTab({ data, onDrill }) {
+  const { t } = useT()
   if (!data) {
-    return <div className="card"><p className="empty-text">Keine Wartungs-Daten verfügbar</p></div>
+    return <div className="card"><p className="empty-text">{t('mi.k44')}</p></div>
   }
 
   const summary = data.maintenanceSummary
@@ -766,8 +772,8 @@ function MaintenanceTab({ data, onDrill }) {
   return (
     <div className="insights-grid">
       <div className="card card-full">
-        <h2><Wrench size={18} /> Wartungsstatus-Übersicht</h2>
-        <p className="card-subtitle">Klicken Sie auf einen Status für die Geräteliste</p>
+        <h2><Wrench size={18} /> {t('mi.k45')}</h2>
+        <p className="card-subtitle">{t('mi.k46')}</p>
         <div className="maintenance-overview">
           <div className="maint-stat maint-overdue maint-stat-clickable" onClick={() => onDrill({
             type: 'filtered', label: '🚨 Überfällige Wartungen', filter: { overdueOnly: true }
@@ -775,7 +781,7 @@ function MaintenanceTab({ data, onDrill }) {
             <AlertTriangle size={24} />
             <div>
               <span className="maint-value">{summary.overdue}</span>
-              <span className="maint-label">Überfällig</span>
+              <span className="maint-label">{t('mi.k47')}</span>
             </div>
             <ChevronRight size={16} style={{ marginLeft: 'auto', opacity: 0.5 }} />
           </div>
@@ -785,7 +791,7 @@ function MaintenanceTab({ data, onDrill }) {
             <Clock size={24} />
             <div>
               <span className="maint-value">{summary.dueSoon}</span>
-              <span className="maint-label">Innerhalb 90 Tagen</span>
+              <span className="maint-label">{t('mi.k48')}</span>
             </div>
             <ChevronRight size={16} style={{ marginLeft: 'auto', opacity: 0.5 }} />
           </div>
@@ -793,7 +799,7 @@ function MaintenanceTab({ data, onDrill }) {
             <CheckCircle size={24} />
             <div>
               <span className="maint-value">{summary.upToDate}</span>
-              <span className="maint-label">Aktuell</span>
+              <span className="maint-label">{t('mi.k49')}</span>
             </div>
           </div>
           <div className="maint-stat maint-unknown maint-stat-clickable" onClick={() => onDrill({
@@ -802,7 +808,7 @@ function MaintenanceTab({ data, onDrill }) {
             <BarChart3 size={24} />
             <div>
               <span className="maint-value">{summary.noMaintenance}</span>
-              <span className="maint-label">Nie gewartet</span>
+              <span className="maint-label">{t('mi.k50')}</span>
             </div>
             <ChevronRight size={16} style={{ marginLeft: 'auto', opacity: 0.5 }} />
           </div>
@@ -811,35 +817,35 @@ function MaintenanceTab({ data, onDrill }) {
         <div className="maint-progress">
           {summary.total > 0 && (
             <div className="maint-progress-bar">
-              <div className="maint-segment maint-seg-overdue" style={{ width: `${(summary.overdue / summary.total) * 100}%` }} title="Überfällig" />
-              <div className="maint-segment maint-seg-soon" style={{ width: `${(summary.dueSoon / summary.total) * 100}%` }} title="Bald fällig" />
-              <div className="maint-segment maint-seg-ok" style={{ width: `${(summary.upToDate / summary.total) * 100}%` }} title="Aktuell" />
-              <div className="maint-segment maint-seg-none" style={{ width: `${(summary.noMaintenance / summary.total) * 100}%` }} title="Nie gewartet" />
+              <div className="maint-segment maint-seg-overdue" style={{ width: `${(summary.overdue / summary.total) * 100}%` }} title={t('mi.k47')} />
+              <div className="maint-segment maint-seg-soon" style={{ width: `${(summary.dueSoon / summary.total) * 100}%` }} title={t('mi.k51')} />
+              <div className="maint-segment maint-seg-ok" style={{ width: `${(summary.upToDate / summary.total) * 100}%` }} title={t('mi.k49')} />
+              <div className="maint-segment maint-seg-none" style={{ width: `${(summary.noMaintenance / summary.total) * 100}%` }} title={t('mi.k50')} />
             </div>
           )}
           <div className="maint-legend">
-            <span><i style={{ background: '#ef4444' }} /> Überfällig</span>
-            <span><i style={{ background: '#eab308' }} /> Bald fällig</span>
-            <span><i style={{ background: '#22c55e' }} /> Aktuell</span>
-            <span><i style={{ background: '#94a3b8' }} /> Keine Wartung</span>
+            <span><i style={{ background: '#ef4444' }} /> {t('mi.k47')}</span>
+            <span><i style={{ background: '#eab308' }} /> {t('mi.k51')}</span>
+            <span><i style={{ background: '#22c55e' }} /> {t('mi.k49')}</span>
+            <span><i style={{ background: '#94a3b8' }} /> {t('mi.k52')}</span>
           </div>
         </div>
       </div>
 
       <div className="card card-full">
-        <h2><Settings size={18} /> Wartungsstatus pro Kategorie</h2>
-        <p className="card-subtitle">Klicken Sie auf eine Kategorie für Details</p>
-        {data.maintenanceByCategory.length === 0 ? <p className="empty-text">Keine Daten</p> : (
+        <h2><Settings size={18} /> {t('mi.k53')}</h2>
+        <p className="card-subtitle">{t('mi.k54')}</p>
+        {data.maintenanceByCategory.length === 0 ? <p className="empty-text">{t('mi.k42')}</p> : (
           <div className="model-table">
             <table>
               <thead>
                 <tr>
-                  <th>Kategorie</th>
-                  <th className="text-right">Gesamt</th>
-                  <th className="text-right text-red">Überfällig</th>
-                  <th className="text-right text-yellow">Bald fällig</th>
-                  <th className="text-right text-green">Aktuell</th>
-                  <th className="text-right">Nie gewartet</th>
+                  <th>{t('mi.k25')}</th>
+                  <th className="text-right">{t('mi.k55')}</th>
+                  <th className="text-right text-red">{t('mi.k47')}</th>
+                  <th className="text-right text-yellow">{t('mi.k51')}</th>
+                  <th className="text-right text-green">{t('mi.k49')}</th>
+                  <th className="text-right">{t('mi.k50')}</th>
                   <th className="text-right">Ø Tage seit Wartung</th>
                   <th></th>
                 </tr>
@@ -868,17 +874,17 @@ function MaintenanceTab({ data, onDrill }) {
 
       {data.overdueItems.length > 0 && (
         <div className="card card-full">
-          <h2><AlertTriangle size={18} /> Überfällige Wartungen — Ihr Marktpotenzial</h2>
-          <p className="card-subtitle">Klicken Sie auf ein Gerät um passende Angebote zu erstellen</p>
+          <h2><AlertTriangle size={18} /> {t('mi.k56')}</h2>
+          <p className="card-subtitle">{t('mi.k57')}</p>
           <div className="model-table">
             <table>
               <thead>
                 <tr>
-                  <th>Gerät</th>
-                  <th>Hersteller</th>
-                  <th>Modell</th>
-                  <th>Kategorie</th>
-                  <th className="text-right">Überfällig seit</th>
+                  <th>{t('mi.k23')}</th>
+                  <th>{t('mi.k22')}</th>
+                  <th>{t('mi.k24')}</th>
+                  <th>{t('mi.k25')}</th>
+                  <th className="text-right">{t('mi.k58')}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -1128,6 +1134,7 @@ function generateRecommendations(boatTypes, boatManufacturers, equipmentCategori
 // Shared Components
 // ============================================================
 function BarList({ data, labelKey, valueKey, color, labelMap, onClick }) {
+  const { t } = useT()
   const maxValue = Math.max(...data.map(d => d[valueKey]), 1)
   const total = data.reduce((sum, d) => sum + d[valueKey], 0)
 
