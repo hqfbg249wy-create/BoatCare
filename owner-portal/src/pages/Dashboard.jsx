@@ -3,9 +3,11 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Ship, Wrench, ShoppingBag, AlertTriangle, CheckCircle, MapPin, PlusCircle, Bot, ChevronRight } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useT } from '../i18n'
 
 export default function Dashboard() {
   const { user, profile } = useAuth()
+  const { t } = useT()
   const navigate = useNavigate()
   const [stats, setStats] = useState({ boats: 0, equipment: 0, overdue: 0, dueSoon: 0, orders: 0 })
   const [recentOrders, setRecentOrders] = useState([])
@@ -75,45 +77,45 @@ export default function Dashboard() {
 
   const greeting = () => {
     const h = new Date().getHours()
-    if (h < 12) return 'Guten Morgen'
-    if (h < 18) return 'Guten Tag'
-    return 'Guten Abend'
+    if (h < 12) return t('dash.greetMorning')
+    if (h < 18) return t('dash.greetDay')
+    return t('dash.greetEvening')
   }
 
   if (loading) return <div className="page"><div className="spinner" /></div>
 
   return (
     <div className="page">
-      <h1>Dashboard</h1>
-      <p className="subtitle">{greeting()}, {profile?.full_name || 'Kapitän'}!</p>
+      <h1>{t('dash.title')}</h1>
+      <p className="subtitle">{greeting()}, {profile?.full_name || t('dash.captain')}!</p>
 
       {/* Quick-Action Buttons */}
       <div className="dash-quick-actions">
         <button className="dash-qa-btn dash-qa-map" onClick={() => navigate('/map')}>
           <div className="dash-qa-icon"><MapPin size={28} /></div>
-          <span className="dash-qa-label">In der Nähe</span>
-          <span className="dash-qa-sub">Betriebe auf Karte</span>
+          <span className="dash-qa-label">{t('dash.qaNearTitle')}</span>
+          <span className="dash-qa-sub">{t('dash.qaNearSub')}</span>
         </button>
         <button className="dash-qa-btn dash-qa-add" onClick={() => navigate('/services')}>
           <div className="dash-qa-icon"><PlusCircle size={28} /></div>
-          <span className="dash-qa-label">Betrieb anlegen</span>
-          <span className="dash-qa-sub">Neuen Betrieb eintragen</span>
+          <span className="dash-qa-label">{t('dash.qaAddTitle')}</span>
+          <span className="dash-qa-sub">{t('dash.qaAddSub')}</span>
         </button>
         <button className="dash-qa-btn dash-qa-ai" onClick={() => navigate('/chat')}>
           <div className="dash-qa-icon"><Bot size={28} /></div>
-          <span className="dash-qa-label">KI-Assistent</span>
-          <span className="dash-qa-sub">Fragen & Empfehlungen</span>
+          <span className="dash-qa-label">{t('nav.chat')}</span>
+          <span className="dash-qa-sub">{t('dash.qaAiSub')}</span>
         </button>
       </div>
 
       <div className="stats-grid">
         <Link to="/boats" className="stat-card stat-card-link">
           <div className="stat-icon" style={{ background: '#eff6ff' }}><Ship size={22} color="#3b82f6" /></div>
-          <div><span className="stat-value">{stats.boats}</span><span className="stat-label">Boote</span></div>
+          <div><span className="stat-value">{stats.boats}</span><span className="stat-label">{t('dash.statBoats')}</span></div>
         </Link>
         <Link to="/equipment" className="stat-card stat-card-link">
           <div className="stat-icon" style={{ background: '#f0fdf4' }}><Wrench size={22} color="#10b981" /></div>
-          <div><span className="stat-value">{stats.equipment}</span><span className="stat-label">Geräte</span></div>
+          <div><span className="stat-value">{stats.equipment}</span><span className="stat-label">{t('dash.statDevices')}</span></div>
         </Link>
         <Link to="/maintenance" className="stat-card stat-card-link warning">
           <div className="stat-icon" style={{ background: stats.overdue ? '#fef2f2' : '#fffbeb' }}>
@@ -121,12 +123,12 @@ export default function Dashboard() {
           </div>
           <div>
             <span className="stat-value">{stats.overdue + stats.dueSoon}</span>
-            <span className="stat-label">Wartung fällig</span>
+            <span className="stat-label">{t('dash.statMaintDue')}</span>
           </div>
         </Link>
         <Link to="/orders" className="stat-card stat-card-link">
           <div className="stat-icon" style={{ background: '#fdf4ff' }}><ShoppingBag size={22} color="#8b5cf6" /></div>
-          <div><span className="stat-value">{stats.orders}</span><span className="stat-label">Offene Bestellungen</span></div>
+          <div><span className="stat-value">{stats.orders}</span><span className="stat-label">{t('dash.statOpenOrders')}</span></div>
         </Link>
       </div>
 
@@ -134,13 +136,13 @@ export default function Dashboard() {
         {/* Upcoming Maintenance */}
         <div className="card">
           <div className="card-header">
-            <h2>Wartung fällig</h2>
-            <Link to="/maintenance" className="card-link">Alle anzeigen <ChevronRight size={14} /></Link>
+            <h2>{t('dash.statMaintDue')}</h2>
+            <Link to="/maintenance" className="card-link">{t('dash.viewAll')} <ChevronRight size={14} /></Link>
           </div>
           {upcomingMaint.length === 0 ? (
             <div className="empty-hint">
               <CheckCircle size={32} color="#10b981" />
-              <p>Alles in Ordnung! Keine anstehende Wartung.</p>
+              <p>{t('dash.allGood')}</p>
             </div>
           ) : (
             <div className="maint-list">
@@ -152,8 +154,8 @@ export default function Dashboard() {
                   </div>
                   <div className={`maint-badge ${item.status}`}>
                     {item.status === 'overdue'
-                      ? `${Math.abs(item.daysLeft)} Tage überfällig`
-                      : `In ${item.daysLeft} Tagen`}
+                      ? t('dash.daysOverdue', { days: Math.abs(item.daysLeft) })
+                      : t('dash.inDays', { days: item.daysLeft })}
                   </div>
                 </div>
               ))}
@@ -164,13 +166,13 @@ export default function Dashboard() {
         {/* Recent Orders */}
         <div className="card">
           <div className="card-header">
-            <h2>Letzte Bestellungen</h2>
-            <Link to="/orders" className="card-link">Alle anzeigen <ChevronRight size={14} /></Link>
+            <h2>{t('dash.recentOrders')}</h2>
+            <Link to="/orders" className="card-link">{t('dash.viewAll')} <ChevronRight size={14} /></Link>
           </div>
           {recentOrders.length === 0 ? (
             <div className="empty-hint">
               <ShoppingBag size={32} color="#94a3b8" />
-              <p>Noch keine Bestellungen.</p>
+              <p>{t('dash.noOrders')}</p>
             </div>
           ) : (
             <div className="order-list">
@@ -182,7 +184,7 @@ export default function Dashboard() {
                   </div>
                   <div className="order-right">
                     <span className="order-total">{Number(order.total).toFixed(2).replace('.', ',')} EUR</span>
-                    <span className={`badge badge-${order.status}`}>{statusLabel(order.status)}</span>
+                    <span className={`badge badge-${order.status}`}>{t('order.status.' + order.status)}</span>
                   </div>
                 </div>
               ))}
@@ -192,9 +194,4 @@ export default function Dashboard() {
       </div>
     </div>
   )
-}
-
-function statusLabel(s) {
-  const map = { pending: 'Ausstehend', confirmed: 'Bestätigt', shipped: 'Versendet', delivered: 'Geliefert', cancelled: 'Storniert', refunded: 'Erstattet' }
-  return map[s] || s
 }
