@@ -4,9 +4,11 @@ import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Package, ShoppingCart, Tag, MessageSquare, Sparkles, ArrowUpRight } from 'lucide-react'
+import { useT } from '../i18n'
 
 export default function Dashboard() {
   const { provider } = useAuth()
+  const { t } = useT()
   const access = useFeatureAccess()
   const [stats, setStats] = useState({ products: 0, orders: 0, promotions: 0, messages: 0 })
   const [recentOrders, setRecentOrders] = useState([])
@@ -62,32 +64,23 @@ export default function Dashboard() {
     }
   }
 
-  if (loading) return <div className="loading">Laden...</div>
-
-  const statusLabels = {
-    pending: 'Offen',
-    confirmed: 'Bestätigt',
-    shipped: 'Versendet',
-    delivered: 'Geliefert',
-    cancelled: 'Storniert',
-    refunded: 'Erstattet',
-  }
+  if (loading) return <div className="loading">{t('common.loading')}</div>
 
   return (
     <div className="page">
-      <h1>Dashboard</h1>
-      <p className="subtitle">Willkommen, {provider?.name}</p>
+      <h1>{t('nav.dashboard')}</h1>
+      <p className="subtitle">{t('dash.welcome', { name: provider?.name || '' })}</p>
 
       <div className="stats-grid">
-        <StatCard icon={<Package />} label="Produkte" value={stats.products} color="#3b82f6" />
-        <StatCard icon={<ShoppingCart />} label="Bestellungen" value={stats.orders} color="#10b981" />
-        <StatCard icon={<Tag />} label="Aktive Angebote" value={stats.promotions} color="#f97316" />
-        <StatCard icon={<MessageSquare />} label="Konversationen" value={stats.messages} color="#8b5cf6" />
+        <StatCard icon={<Package />} label={t('dash.statProducts')} value={stats.products} color="#3b82f6" />
+        <StatCard icon={<ShoppingCart />} label={t('dash.statOrders')} value={stats.orders} color="#10b981" />
+        <StatCard icon={<Tag />} label={t('dash.statActivePromos')} value={stats.promotions} color="#f97316" />
+        <StatCard icon={<MessageSquare />} label={t('dash.statConversations')} value={stats.messages} color="#8b5cf6" />
       </div>
 
       {!provider.is_shop_active && (
         <div className="info-banner">
-          Ihr Shop ist noch nicht freigeschaltet. Bitte kontaktieren Sie das Skipily-Team.
+          {t('dash.shopNotActive')}
         </div>
       )}
 
@@ -112,10 +105,9 @@ export default function Dashboard() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 240 }}>
                 <Sparkles size={22} style={{ color: '#94a3b8' }} />
                 <div>
-                  <div style={{ fontWeight: 700, color: '#0f172a' }}>KI-Funktionen für deine Kunden</div>
+                  <div style={{ fontWeight: 700, color: '#0f172a' }}>{t('dash.aiTitle0')}</div>
                   <div style={{ fontSize: 13, color: 'var(--gray-500)' }}>
-                    Mit <strong>Pro</strong> bekommst du <strong>100 KI-Anfragen/Monat</strong>,
-                    mit <strong>Enterprise</strong> sogar <strong>1.000</strong>.
+                    {t('dash.aiPromo')}
                   </div>
                 </div>
               </div>
@@ -125,7 +117,7 @@ export default function Dashboard() {
                 padding: '8px 14px', borderRadius: 8,
                 fontSize: 13, fontWeight: 600, textDecoration: 'none',
               }}>
-                Jetzt upgraden <ArrowUpRight size={14} />
+                {t('dash.upgradeNow')} <ArrowUpRight size={14} />
               </Link>
             </div>
           )
@@ -135,11 +127,11 @@ export default function Dashboard() {
           <div className="card" style={{ borderLeft: `4px solid ${accent}`, background: bg }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
               <Sparkles size={20} style={{ color: accent }} />
-              <h2 style={{ margin: 0, fontSize: 17 }}>KI-Nutzung diesen Monat</h2>
+              <h2 style={{ margin: 0, fontSize: 17 }}>{t('dash.aiUsageTitle')}</h2>
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
               <span style={{ fontSize: 28, fontWeight: 700, color: '#0f172a' }}>{used.toLocaleString('de-DE')}</span>
-              <span style={{ fontSize: 14, color: 'var(--gray-500)' }}>von {limit.toLocaleString('de-DE')} Anfragen</span>
+              <span style={{ fontSize: 14, color: 'var(--gray-500)' }}>{t('dash.aiOf', { limit: limit.toLocaleString('de-DE') })}</span>
             </div>
             <div style={{
               height: 8, borderRadius: 4, background: '#e2e8f0',
@@ -154,13 +146,13 @@ export default function Dashboard() {
             <div style={{ fontSize: 12, color: 'var(--gray-500)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
               <span>
                 {full
-                  ? `🚨 Limit erreicht — neue Anfragen werden nicht beantwortet bis nächsten Monat.`
+                  ? t('dash.aiLimitReached')
                   : warn
-                  ? `⚠️ Noch ${limit - used} Anfragen frei. Upgrade auf höheren Tarif?`
-                  : `${limit - used} Anfragen frei in diesem Monat.`}
+                  ? t('dash.aiWarn', { n: limit - used })
+                  : t('dash.aiFree', { n: limit - used })}
               </span>
               {(full || warn) && (
-                <Link to="/profile" style={{ color: accent, fontWeight: 600 }}>Upgrade →</Link>
+                <Link to="/profile" style={{ color: accent, fontWeight: 600 }}>{t('dash.upgrade')} →</Link>
               )}
             </div>
           </div>
@@ -168,17 +160,17 @@ export default function Dashboard() {
       })()}
 
       <div className="card">
-        <h2>Letzte Bestellungen</h2>
+        <h2>{t('dash.recentOrders')}</h2>
         {recentOrders.length === 0 ? (
-          <p className="empty-text">Noch keine Bestellungen</p>
+          <p className="empty-text">{t('dash.noOrders')}</p>
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Bestellnr.</th>
-                <th>Datum</th>
-                <th>Status</th>
-                <th>Betrag</th>
+                <th>{t('dash.colOrderNr')}</th>
+                <th>{t('dash.colDate')}</th>
+                <th>{t('dash.colStatus')}</th>
+                <th>{t('dash.colAmount')}</th>
               </tr>
             </thead>
             <tbody>
@@ -186,7 +178,7 @@ export default function Dashboard() {
                 <tr key={order.id}>
                   <td>{order.order_number}</td>
                   <td>{new Date(order.created_at).toLocaleDateString('de-DE')}</td>
-                  <td><span className={`badge badge-${order.status}`}>{statusLabels[order.status] || order.status}</span></td>
+                  <td><span className={`badge badge-${order.status}`}>{t('order.status.' + order.status)}</span></td>
                   <td>{Number(order.total).toFixed(2)} {order.currency}</td>
                 </tr>
               ))}

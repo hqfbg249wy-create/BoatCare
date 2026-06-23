@@ -106,4 +106,38 @@ export default {
   'forgot.title': 'Passwort vergessen',
   'forgot.sending': 'Wird gesendet…',
   'forgot.sendLink': 'Reset-Link senden',
+
+  // Allgemein
+  'common.loading': 'Laden…',
+
+  // Bestellstatus (Dashboard + Bestellungen)
+  'order.status.pending': 'Offen',
+  'order.status.confirmed': 'Bestätigt',
+  'order.status.shipped': 'Versendet',
+  'order.status.delivered': 'Geliefert',
+  'order.status.cancelled': 'Storniert',
+  'order.status.refunded': 'Erstattet',
+
+  // Dashboard
+  'dash.welcome': 'Willkommen, {name}',
+  'dash.statProducts': 'Produkte',
+  'dash.statOrders': 'Bestellungen',
+  'dash.statActivePromos': 'Aktive Angebote',
+  'dash.statConversations': 'Konversationen',
+  'dash.shopNotActive': 'Ihr Shop ist noch nicht freigeschaltet. Bitte kontaktieren Sie das Skipily-Team.',
+  'dash.aiTitle0': 'KI-Funktionen für deine Kunden',
+  'dash.aiPromo': 'Mit Pro bekommst du 100 KI-Anfragen/Monat, mit Enterprise sogar 1.000.',
+  'dash.upgradeNow': 'Jetzt upgraden',
+  'dash.aiUsageTitle': 'KI-Nutzung diesen Monat',
+  'dash.aiOf': 'von {limit} Anfragen',
+  'dash.aiLimitReached': '🚨 Limit erreicht — neue Anfragen werden nicht beantwortet bis nächsten Monat.',
+  'dash.aiWarn': '⚠️ Noch {n} Anfragen frei. Upgrade auf höheren Tarif?',
+  'dash.aiFree': '{n} Anfragen frei in diesem Monat.',
+  'dash.upgrade': 'Upgrade',
+  'dash.recentOrders': 'Letzte Bestellungen',
+  'dash.noOrders': 'Noch keine Bestellungen',
+  'dash.colOrderNr': 'Bestellnr.',
+  'dash.colDate': 'Datum',
+  'dash.colStatus': 'Status',
+  'dash.colAmount': 'Betrag',
 }
