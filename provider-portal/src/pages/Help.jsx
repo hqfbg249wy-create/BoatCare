@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useT } from '../i18n'
 import { HelpCircle, ChevronDown } from 'lucide-react'
 
 const LANGS = [
@@ -48,24 +49,11 @@ function localized(faq, lang) {
 }
 
 export default function Help() {
-  const { provider } = useAuth()
-  const [lang, setLang] = useState('de')
+  // Sprache folgt der GLOBALEN App-Sprache (ein Umschalter für UI + FAQ-Inhalte).
+  const { lang } = useT()
   const [faqs, setFaqs] = useState([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState({}) // id -> bool
-
-  // Startsprache aus Provider-Land ableiten
-  useEffect(() => {
-    const c = (provider?.country || '').toString().trim().toLowerCase()
-    const map = {
-      de: 'de', deutschland: 'de', germany: 'de', at: 'de', ch: 'de',
-      fr: 'fr', france: 'fr', frankreich: 'fr',
-      it: 'it', italy: 'it', italia: 'it', italien: 'it',
-      es: 'es', spain: 'es', spanien: 'es', espana: 'es',
-      nl: 'nl', netherlands: 'nl', niederlande: 'nl', nederland: 'nl',
-    }
-    if (map[c]) setLang(map[c])
-  }, [provider])
 
   useEffect(() => {
     let active = true
@@ -96,10 +84,6 @@ export default function Help() {
           <HelpCircle size={26} />
           <h1 style={{ margin: 0 }}>{pick(UI.title, lang)}</h1>
         </div>
-        <select value={lang} onChange={e => setLang(e.target.value)}
-          style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
-          {LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
-        </select>
       </div>
       <p style={{ color: '#64748b', marginTop: 0 }}>{pick(UI.subtitle, lang)}</p>
 
