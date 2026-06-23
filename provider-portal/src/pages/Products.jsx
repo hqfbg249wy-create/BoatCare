@@ -4,23 +4,25 @@ import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import { supabase } from '../lib/supabase'
 import { Link } from 'react-router-dom'
 import { Plus, Pencil, Trash2, Search, Upload, X, Save, Loader, Image as ImageIcon, Package, CheckSquare, Square, FileSpreadsheet, Download, Lock, Sparkles } from 'lucide-react'
+import { useT } from '../i18n'
 
 export default function Products() {
   const { provider } = useAuth()
   const access = useFeatureAccess()
+  const { t } = useT()
   const [generatingDesc, setGeneratingDesc] = useState(false)
   const [genDescError, setGenDescError] = useState(null)
 
   async function generateDescription() {
     if (!form.name?.trim()) {
-      setGenDescError('Bitte zuerst den Produkt-Namen eintragen.')
+      setGenDescError(t('products.namePrompt'))
       return
     }
     setGeneratingDesc(true)
     setGenDescError(null)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Nicht angemeldet')
+      if (!session) throw new Error(t('msg.notLoggedIn'))
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
       const res = await fetch(`${supabaseUrl}/functions/v1/generate-product-description`, {
         method: 'POST',
@@ -41,7 +43,7 @@ export default function Products() {
         if (data.quota_exhausted) {
           setGenDescError(data.upgrade_hint || data.error)
         } else {
-          setGenDescError(data.error || 'Fehler beim Generieren')
+          setGenDescError(data.error || t('msg.genError'))
         }
         return
       }
@@ -49,7 +51,7 @@ export default function Products() {
         setForm(prev => ({ ...prev, description: data.description }))
       }
     } catch (err) {
-      setGenDescError('Fehler: ' + err.message)
+      setGenDescError(t('common.errorPrefix') + ' ' + err.message)
     } finally {
       setGeneratingDesc(false)
     }
@@ -146,9 +148,9 @@ export default function Products() {
         .getPublicUrl(path)
 
       setForm(prev => ({ ...prev, image_url: publicUrl }))
-      setMessage({ type: 'success', text: 'Bild hochgeladen.' })
+      setMessage({ type: 'success', text: t('products.imageUploaded') })
     } catch (err) {
-      setMessage({ type: 'error', text: 'Bild-Upload fehlgeschlagen: ' + err.message })
+      setMessage({ type: 'error', text: t('products.imageUploadFailed') + ' ' + err.message })
     }
   }
 
@@ -160,7 +162,7 @@ export default function Products() {
         && products.length >= access.limits.maxProducts) {
       setMessage({
         type: 'error',
-        text: `Standard-Tarif erlaubt max. ${access.limits.maxProducts} Produkte. Bitte upgrade auf Pro für unbegrenzte Produkte.`,
+        text: t('products.limitMsg', { n: access.limits.maxProducts }),
       })
       return
     }
@@ -195,32 +197,32 @@ export default function Products() {
       if (editing === 'new') {
         const { error } = await supabase.from('metashop_products').insert(payload)
         if (error) throw error
-        setMessage({ type: 'success', text: 'Produkt angelegt.' })
+        setMessage({ type: 'success', text: t('products.created') })
       } else {
         const { error } = await supabase.from('metashop_products').update(payload).eq('id', editing.id)
         if (error) throw error
-        setMessage({ type: 'success', text: 'Produkt aktualisiert.' })
+        setMessage({ type: 'success', text: t('products.updated') })
       }
       setEditing(null)
       setForm(emptyForm())
       loadProducts()
     } catch (err) {
-      setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+      setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     } finally {
       setSaving(false)
     }
   }
 
   async function handleDelete(product) {
-    if (!confirm(`"${product.name}" wirklich löschen?`)) return
+    if (!confirm(t('products.deleteConfirm', { name: product.name }))) return
 
     try {
       const { error } = await supabase.from('metashop_products').delete().eq('id', product.id)
       if (error) throw error
       loadProducts()
-      setMessage({ type: 'success', text: 'Produkt gelöscht.' })
+      setMessage({ type: 'success', text: t('products.deleted') })
     } catch (err) {
-      setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+      setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     }
   }
 
@@ -379,7 +381,7 @@ export default function Products() {
       const { rows, headers } = parseCsv(text)
 
       if (rows.length === 0) {
-        setMessage({ type: 'error', text: 'Die CSV-Datei enthält keine Daten.' })
+        setMessage({ type: 'error', text: t('products.csvNoData') })
         return
       }
 
@@ -428,7 +430,7 @@ export default function Products() {
       setCsvResult({ ok: imported, failed })
       await loadProducts()
     } catch (err) {
-      setMessage({ type: 'error', text: 'Fehler: ' + err.message })
+      setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     } finally {
       setCsvImporting(false)
       if (csvInputRef.current) csvInputRef.current.value = ''
@@ -438,7 +440,7 @@ export default function Products() {
   async function handleBulkDelete() {
     const ids = Array.from(selected)
     if (ids.length === 0) return
-    if (!confirm(`${ids.length} Produkt(e) wirklich löschen? Das kann nicht rückgängig gemacht werden.`)) return
+    if (!confirm(t('products.bulkDeleteConfirm', { n: ids.length }))) return
 
     setBulkDeleting(true)
     try {
@@ -448,7 +450,7 @@ export default function Products() {
       await loadProducts()
       setMessage({ type: 'success', text: `${ids.length} Produkt(e) gelöscht.` })
     } catch (err) {
-      setMessage({ type: 'error', text: 'Fehler beim Löschen: ' + err.message })
+      setMessage({ type: 'error', text: t('products.deleteFailed') + ' ' + err.message })
     } finally {
       setBulkDeleting(false)
     }
@@ -492,9 +494,9 @@ export default function Products() {
     return (
       <div className="page">
         <div className="page-header">
-          <h1>{editing === 'new' ? 'Neues Produkt' : 'Produkt bearbeiten'}</h1>
+          <h1>{editing === 'new' ? t('products.newProduct') : t('products.editProduct')}</h1>
           <button className="btn-secondary" onClick={() => { setEditing(null); setForm(emptyForm()); setMessage(null) }}>
-            <X size={16} /> Abbrechen
+            <X size={16} /> {t('common.cancel')}
           </button>
         </div>
 
@@ -502,24 +504,24 @@ export default function Products() {
 
         <form onSubmit={handleSubmit}>
           <div className="card">
-            <h2>Grunddaten</h2>
+            <h2>{t('products.basics')}</h2>
             <div className="form-row">
               <div className="form-group">
-                <label>Produktname *</label>
-                <input name="name" value={form.name} onChange={handleChange} required placeholder="z.B. Impeller Jabsco 1210-0001" />
+                <label>{t('products.name')} *</label>
+                <input name="name" value={form.name} onChange={handleChange} required placeholder={t('products.namePh')} />
               </div>
               <div className="form-group">
-                <label>Hersteller</label>
-                <input name="manufacturer" value={form.manufacturer} onChange={handleChange} placeholder="z.B. Jabsco" />
+                <label>{t('products.manufacturer')}</label>
+                <input name="manufacturer" value={form.manufacturer} onChange={handleChange} placeholder={t('products.manufacturerPh')} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label>Artikelnr. (Hersteller)</label>
+                <label>{t('products.partNumber')}</label>
                 <input name="part_number" value={form.part_number} onChange={handleChange} />
               </div>
               <div className="form-group">
-                <label>SKU (intern)</label>
+                <label>{t('products.sku')}</label>
                 <input name="sku" value={form.sku} onChange={handleChange} />
               </div>
               <div className="form-group">
@@ -535,7 +537,7 @@ export default function Products() {
                     type="button"
                     onClick={generateDescription}
                     disabled={generatingDesc}
-                    title="Beschreibung per KI generieren (verbraucht 1 Call aus dem Pro-/Enterprise-Kontingent)"
+                    title={t('products.aiGenTitle')}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 4,
                       padding: '4px 10px',
@@ -545,8 +547,8 @@ export default function Products() {
                       cursor: generatingDesc ? 'wait' : 'pointer',
                     }}>
                     {generatingDesc
-                      ? <><Loader size={12} className="spin" /> Generiere…</>
-                      : <><Sparkles size={12} /> KI generieren</>}
+                      ? <><Loader size={12} className="spin" /> {t('products.generating')}</>
+                      : <><Sparkles size={12} /> {t('products.aiGenerate')}</>}
                   </button>
                 )}
               </div>
@@ -563,12 +565,12 @@ export default function Products() {
           </div>
 
           <div className="card">
-            <h2>Kategorie & Preis</h2>
+            <h2>{t('products.categoryPrice')}</h2>
             <div className="form-row">
               <div className="form-group">
-                <label>Kategorie</label>
+                <label>{t('products.category')}</label>
                 <select name="category_id" value={form.category_id} onChange={handleChange}>
-                  <option value="">-- Wählen --</option>
+                  <option value="">{t('products.chooseCat')}</option>
                   {parentCategories.map(parent => (
                     <optgroup key={parent.id} label={parent.name_de}>
                       {categories.filter(c => c.parent_id === parent.id).map(sub => (
@@ -579,52 +581,52 @@ export default function Products() {
                 </select>
               </div>
               <div className="form-group">
-                <label>Preis (EUR) *</label>
+                <label>{t('products.price')} *</label>
                 <input name="price" type="number" step="0.01" min="0" value={form.price} onChange={handleChange} required />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label>Versandkosten (EUR)</label>
+                <label>{t('products.shippingCost')}</label>
                 <input name="shipping_cost" type="number" step="0.01" min="0" value={form.shipping_cost} onChange={handleChange} />
               </div>
               <div className="form-group">
-                <label>Lieferzeit (Tage)</label>
+                <label>{t('products.deliveryDays')}</label>
                 <input name="delivery_days" type="number" min="0" value={form.delivery_days} onChange={handleChange} />
               </div>
               <div className="form-group">
-                <label>Gewicht (kg)</label>
+                <label>{t('products.weight')}</label>
                 <input name="weight_kg" type="number" step="0.01" min="0" value={form.weight_kg} onChange={handleChange} />
               </div>
             </div>
           </div>
 
           <div className="card">
-            <h2>Bestand</h2>
+            <h2>{t('products.stockSection')}</h2>
             <div className="form-row">
               <div className="form-group">
-                <label>Lagerbestand</label>
+                <label>{t('products.stockQty')}</label>
                 <input name="stock_quantity" type="number" min="0" value={form.stock_quantity} onChange={handleChange} />
               </div>
               <div className="form-group">
-                <label>Mindestbestellmenge</label>
+                <label>{t('products.minOrderQty')}</label>
                 <input name="min_order_quantity" type="number" min="1" value={form.min_order_quantity} onChange={handleChange} />
               </div>
             </div>
             <div className="form-row">
               <label className="checkbox-label">
                 <input type="checkbox" name="in_stock" checked={form.in_stock} onChange={handleChange} />
-                Auf Lager
+                {t('products.inStockLabel')}
               </label>
               <label className="checkbox-label">
                 <input type="checkbox" name="is_active" checked={form.is_active} onChange={handleChange} />
-                Aktiv (im Shop sichtbar)
+                {t('products.activeVisible')}
               </label>
             </div>
           </div>
 
           <div className="card">
-            <h2>Produktbild</h2>
+            <h2>{t('products.image')}</h2>
             {form.image_url && (
               <div className="image-preview">
                 <img src={form.image_url} alt="Vorschau" />
@@ -634,18 +636,18 @@ export default function Products() {
               </div>
             )}
             <div className="form-group">
-              <label>Bild-URL</label>
+              <label>{t('products.imageUrl')}</label>
               <input name="image_url" value={form.image_url} onChange={handleChange} placeholder="https://..." />
             </div>
             <input type="file" ref={fileInputRef} accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
             <button type="button" className="btn-secondary" onClick={() => fileInputRef.current?.click()}>
-              <Upload size={16} /> Bild hochladen
+              <Upload size={16} /> {t('products.uploadImage')}
             </button>
           </div>
 
           <div className="form-actions">
             <button type="submit" className="btn-primary" disabled={saving}>
-              {saving ? <><Loader size={16} className="spin" /> Speichern...</> : <><Save size={16} /> Speichern</>}
+              {saving ? <><Loader size={16} className="spin" /> {t('common.saving')}</> : <><Save size={16} /> {t('common.save')}</>}
             </button>
           </div>
         </form>
@@ -661,29 +663,29 @@ export default function Products() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1>Produkte ({products.length}{selected.size > 0 ? `, ${selected.size} ausgewählt` : ''})</h1>
+        <h1>{t('products.titleCount')} ({products.length}{selected.size > 0 ? ', ' + t('products.selectedSuffix', { n: selected.size }) : ''})</h1>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {selected.size > 0 && (
             <>
               <button className="btn-secondary" onClick={clearSelection}>
-                <X size={16} /> Auswahl aufheben
+                <X size={16} /> {t('products.deselectAll')}
               </button>
               <button className="btn-danger" onClick={handleBulkDelete} disabled={bulkDeleting}>
-                {bulkDeleting ? <><Loader size={16} className="spin" /> Lösche…</> : <><Trash2 size={16} /> {selected.size} löschen</>}
+                {bulkDeleting ? <><Loader size={16} className="spin" /> {t('products.deleting')}</> : <><Trash2 size={16} /> {t('products.deleteN', { n: selected.size })}</>}
               </button>
             </>
           )}
-          <button className="btn-secondary" onClick={downloadCsvTemplate} title="CSV-Vorlage herunterladen">
-            <Download size={16} /> CSV-Vorlage
+          <button className="btn-secondary" onClick={downloadCsvTemplate} title={t('products.csvTemplateTitle')}>
+            <Download size={16} /> {t('products.csvTemplate')}
           </button>
           <button
             className="btn-secondary"
             onClick={() => csvInputRef.current?.click()}
             disabled={csvImporting || limitReached}
-            title={limitReached ? 'Produkt-Limit erreicht — auf Pro upgraden' : 'Produkte aus CSV-Datei importieren'}
+            title={limitReached ? t('products.limitReachedImportTitle') : t('products.csvImportTitle')}
           >
             {csvImporting
-              ? <><Loader size={16} className="spin" /> Importiere…</>
+              ? <><Loader size={16} className="spin" /> {t('products.importing')}</>
               : <><FileSpreadsheet size={16} /> CSV-Import</>}
           </button>
           <input
@@ -698,13 +700,13 @@ export default function Products() {
               to="/profile"
               className="btn-primary"
               style={{ background: '#15803d', display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
-              title={`Standard-Tarif: max. ${productLimit} Produkte`}
+              title={t('products.standardMaxTitle', { n: productLimit })}
             >
-              <Lock size={16} /> Limit erreicht — auf Pro upgraden
+              <Lock size={16} /> {t('products.limitReachedBtn')}
             </Link>
           ) : (
             <button className="btn-primary" onClick={() => { setEditing('new'); setForm(emptyForm()); setMessage(null) }}>
-              <Plus size={16} /> Neues Produkt
+              <Plus size={16} /> {t('products.newProduct')}
             </button>
           )}
         </div>
@@ -724,12 +726,12 @@ export default function Products() {
         }}>
           <span>
             {limitReached
-              ? <>Produkt-Limit erreicht ({products.length} / {productLimit}). Mit <strong>Pro</strong> hast du keine Begrenzung.</>
-              : <>Standard-Tarif: noch <strong>{remaining}</strong> von <strong>{productLimit}</strong> Produkten frei. Mit <strong>Pro</strong> unbegrenzt.</>
+              ? t('products.limitBannerReached', { a: products.length, b: productLimit })
+              : t('products.limitBannerFree', { r: remaining, b: productLimit })
             }
           </span>
           <Link to="/profile" style={{ color: limitReached ? '#92400e' : '#166534', fontWeight: 600, textDecoration: 'underline' }}>
-            ⭐ Jetzt upgraden
+            {t('products.upgradeNow')}
           </Link>
         </div>
       )}
@@ -740,21 +742,21 @@ export default function Products() {
         <div className={`message message-${csvResult.failed.length === 0 ? 'success' : 'warning'}`} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <strong>
-              CSV-Import: {csvResult.ok} erfolgreich
-              {csvResult.failed.length > 0 && `, ${csvResult.failed.length} fehlgeschlagen`}
+              {t('products.csvResultOk', { n: csvResult.ok })}
+              {csvResult.failed.length > 0 && t('products.csvResultFailed', { n: csvResult.failed.length })}
             </strong>
-            <button className="btn-icon" onClick={() => setCsvResult(null)} title="Schließen">
+            <button className="btn-icon" onClick={() => setCsvResult(null)} title={t('common.close')}>
               <X size={16} />
             </button>
           </div>
           {csvResult.failed.length > 0 && (
             <details>
-              <summary style={{ cursor: 'pointer' }}>Fehlerdetails anzeigen</summary>
+              <summary style={{ cursor: 'pointer' }}>{t('products.errorDetails')}</summary>
               <ul style={{ margin: '8px 0 0 16px', fontSize: 13, maxHeight: 200, overflowY: 'auto' }}>
                 {csvResult.failed.slice(0, 50).map((f, i) => (
-                  <li key={i}>Zeile {f.row}: {f.error}</li>
+                  <li key={i}>{t('products.row')} {f.row}: {f.error}</li>
                 ))}
-                {csvResult.failed.length > 50 && <li>… und {csvResult.failed.length - 50} weitere</li>}
+                {csvResult.failed.length > 50 && <li>{t('products.moreErrors', { n: csvResult.failed.length - 50 })}</li>}
               </ul>
             </details>
           )}
@@ -764,7 +766,7 @@ export default function Products() {
       <div className="search-bar">
         <Search size={18} />
         <input
-          placeholder="Suchen nach Name, Hersteller, Artikelnr..."
+          placeholder={t('products.searchPh')}
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
@@ -784,21 +786,21 @@ export default function Products() {
             }}
           >
             {filteredProducts.every(p => selected.has(p.id)) && filteredProducts.length > 0
-              ? <><CheckSquare size={16} /> Alle abwählen</>
-              : <><Square size={16} /> Alle auswählen ({filteredProducts.length})</>}
+              ? <><CheckSquare size={16} /> {t('products.unselectAll')}</>
+              : <><Square size={16} /> {t('products.selectAll')} ({filteredProducts.length})</>}
           </button>
         </div>
       )}
 
       {loading ? (
-        <div className="loading">Laden...</div>
+        <div className="loading">{t('common.loading')}</div>
       ) : filteredProducts.length === 0 ? (
         <div className="empty-state">
           <Package size={48} />
-          <p>{search ? 'Keine Produkte gefunden.' : 'Noch keine Produkte angelegt.'}</p>
+          <p>{search ? t('products.noneFound') : t('products.emptyList')}</p>
           {!search && (
             <button className="btn-primary" onClick={() => { setEditing('new'); setForm(emptyForm()) }}>
-              <Plus size={16} /> Erstes Produkt anlegen
+              <Plus size={16} /> {t('products.firstProduct')}
             </button>
           )}
         </div>
@@ -812,7 +814,7 @@ export default function Products() {
                 type="button"
                 className="btn-icon"
                 onClick={() => toggleSelect(product.id)}
-                title={isSel ? 'Abwählen' : 'Auswählen'}
+                title={isSel ? t('products.deselect') : t('products.select')}
                 style={{ position: 'absolute', top: 8, left: 8, zIndex: 2, background: 'white', border: '1px solid #e2e8f0' }}
               >
                 {isSel ? <CheckSquare size={18} color="#f97316" /> : <Square size={18} />}
@@ -830,16 +832,16 @@ export default function Products() {
                 <div className="product-meta">
                   <span className="product-price">{product.price ? `${Number(product.price).toFixed(2)} €` : '–'}</span>
                   <span className={`badge ${product.in_stock ? 'badge-confirmed' : 'badge-cancelled'}`}>
-                    {product.in_stock ? `${product.stock_quantity || '?'} Stk.` : 'Nicht lieferbar'}
+                    {product.in_stock ? `${product.stock_quantity || '?'} ` + t('products.pcs') : t('products.notDeliverable')}
                   </span>
                 </div>
-                {!product.is_active && <span className="badge badge-pending">Inaktiv</span>}
+                {!product.is_active && <span className="badge badge-pending">{t('products.inactive')}</span>}
               </div>
               <div className="product-actions">
-                <button className="btn-icon" title="Bearbeiten" onClick={() => startEdit(product)}>
+                <button className="btn-icon" title={t('products.editTitle')} onClick={() => startEdit(product)}>
                   <Pencil size={16} />
                 </button>
-                <button className="btn-icon btn-danger" title="Löschen" onClick={() => handleDelete(product)}>
+                <button className="btn-icon btn-danger" title={t('products.deleteTitle')} onClick={() => handleDelete(product)}>
                   <Trash2 size={16} />
                 </button>
               </div>
