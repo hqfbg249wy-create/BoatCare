@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useT } from '../i18n'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 
 /**
  * Öffentliche Claim-Seite: /claim/:token
@@ -14,6 +16,7 @@ import { supabase } from '../lib/supabase'
 export default function ClaimProfile() {
   const { token } = useParams()
   const navigate = useNavigate()
+  const { t, setLangFromCountry } = useT()
 
   const [loading, setLoading] = useState(true)
   const [provider, setProvider] = useState(null)
@@ -37,13 +40,15 @@ export default function ClaimProfile() {
         if (error) throw error
         const row = Array.isArray(data) ? data[0] : data
         if (!row) {
-          setError('Dieser Link ist ungültig oder abgelaufen.')
+          setError(t('claim.invalidLink'))
         } else if (row.is_claimed) {
           setProvider(row)
           setAlreadyClaimed(true)
         } else {
           setProvider(row)
         }
+        // Sprache aus dem hinterlegten Provider-Land vorbelegen.
+        if (row?.country) setLangFromCountry(row.country)
       } catch (err) {
         if (!cancelled) setError(err.message)
       } finally {
@@ -57,8 +62,8 @@ export default function ClaimProfile() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
-    if (pw1.length < 8) { setError('Passwort muss mindestens 8 Zeichen haben.'); return }
-    if (pw1 !== pw2)   { setError('Die Passwörter stimmen nicht überein.'); return }
+    if (pw1.length < 8) { setError(t('claim.pwTooShort')); return }
+    if (pw1 !== pw2)   { setError(t('claim.pwMismatch')); return }
 
     setSubmitting(true)
     try {
@@ -77,7 +82,7 @@ export default function ClaimProfile() {
       const result = await resp.json().catch(() => ({}))
       if (!resp.ok) {
         if (result.already_claimed) setAlreadyClaimed(true)
-        throw new Error(result.error || `Fehler ${resp.status}`)
+        throw new Error(result.error || `${t('common.error')} ${resp.status}`)
       }
 
       // 2) Direkt einloggen (außer der Account existierte schon mit
@@ -119,7 +124,7 @@ export default function ClaimProfile() {
 
   if (loading) {
     return <div style={wrap}><div style={card}>
-      <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Lade Profil …</div>
+      <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>{t('claim.loading')}</div>
     </div></div>
   }
 
@@ -127,9 +132,9 @@ export default function ClaimProfile() {
     return <div style={wrap}><div style={card}>
       <div style={{ padding: 40, textAlign: 'center' }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>🚫</div>
-        <h2 style={{ margin: '0 0 8px', color: '#0B1D3A' }}>Link ungültig</h2>
+        <h2 style={{ margin: '0 0 8px', color: '#0B1D3A' }}>{t('claim.linkInvalidTitle')}</h2>
         <p style={{ color: '#64748b' }}>{error}</p>
-        <a href="/" style={{ color: '#f97316', fontWeight: 600 }}>Zur Anmeldung</a>
+        <a href="/" style={{ color: '#f97316', fontWeight: 600 }}>{t('claim.toLogin')}</a>
       </div>
     </div></div>
   }
@@ -138,8 +143,8 @@ export default function ClaimProfile() {
     return <div style={wrap}><div style={card}>
       <div style={{ padding: 40, textAlign: 'center' }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
-        <h2 style={{ margin: '0 0 8px', color: '#0B1D3A' }}>Profil verknüpft</h2>
-        <p style={{ color: '#64748b' }}>Du wirst zur Anmeldung weitergeleitet …</p>
+        <h2 style={{ margin: '0 0 8px', color: '#0B1D3A' }}>{t('claim.linkedTitle')}</h2>
+        <p style={{ color: '#64748b' }}>{t('claim.linkedBody')}</p>
       </div>
     </div></div>
   }
@@ -150,11 +155,14 @@ export default function ClaimProfile() {
         {/* Hero */}
         <div style={{
           background: 'linear-gradient(135deg,#0B1D3A 0%,#1B3866 100%)',
-          padding: '28px 30px', textAlign: 'center',
+          padding: '28px 30px', textAlign: 'center', position: 'relative',
         }}>
+          <div style={{ position: 'absolute', top: 12, right: 12 }}>
+            <LanguageSwitcher style={{ color: '#cbd5e1' }} />
+          </div>
           <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, letterSpacing: 2 }}>SKIPILY</div>
           <div style={{ color: '#f97316', fontSize: 12, fontWeight: 600, marginTop: 4 }}>
-            PROFIL BEANSPRUCHEN
+            {t('claim.heroBadge')}
           </div>
         </div>
 
@@ -163,17 +171,16 @@ export default function ClaimProfile() {
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 36, marginBottom: 10 }}>🔒</div>
               <h2 style={{ margin: '0 0 8px', color: '#0B1D3A', fontSize: 20 }}>
-                Bereits beansprucht
+                {t('claim.alreadyTitle')}
               </h2>
               <p style={{ color: '#64748b', fontSize: 14 }}>
-                Das Profil <strong>{provider?.name}</strong> wurde schon übernommen.
-                Bitte über die normale Anmeldung einloggen.
+                {t('claim.alreadyBody', { name: provider?.name || '' })}
               </p>
               <a href="/" style={{
                 display: 'inline-block', marginTop: 16, background: '#f97316',
                 color: '#fff', padding: '12px 24px', borderRadius: 8,
                 textDecoration: 'none', fontWeight: 600,
-              }}>Zur Anmeldung</a>
+              }}>{t('claim.toLogin')}</a>
             </div>
           ) : (
             <>
@@ -185,19 +192,16 @@ export default function ClaimProfile() {
                 fontSize: 13, color: '#9a3412',
               }}>
                 <div style={{ fontWeight: 700, marginBottom: 4 }}>
-                  🎁 Frühstarter-Bonus aktiv
+                  {t('claim.bonusTitle')}
                 </div>
                 <div style={{ lineHeight: 1.5 }}>
-                  Beim Beanspruchen erhalten Sie automatisch <strong>6 Monate Pro gratis</strong>{' '}
-                  und — solange Sie unter den ersten 100 Shops sind —{' '}
-                  <strong>dauerhaft 7 % Marketplace-Provision</strong> statt 10 %.
+                  {t('claim.bonusBody')}
                 </div>
               </div>
 
               {/* Profil-Vorschau */}
               <p style={{ color: '#334155', fontSize: 15, margin: '0 0 16px' }}>
-                Ist das Ihr Betrieb? Setzen Sie ein Passwort und Sie übernehmen
-                Ihr bereits vorbereitetes Skipily-Profil.
+                {t('claim.intro')}
               </p>
               <div style={{
                 background: '#f8fafc', border: '1px solid #e2e8f0',
@@ -219,26 +223,26 @@ export default function ClaimProfile() {
                 )}
                 {provider?.email && (
                   <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>
-                    Anmeldung erfolgt mit: <strong>{provider.email}</strong>
+                    {t('claim.loginWith')} <strong>{provider.email}</strong>
                   </div>
                 )}
               </div>
 
               <form onSubmit={handleSubmit}>
                 <label style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>
-                  Passwort wählen
+                  {t('claim.choosePw')}
                 </label>
                 <input
                   type="password" value={pw1} onChange={e => setPw1(e.target.value)}
-                  placeholder="Mindestens 8 Zeichen" autoComplete="new-password" required
+                  placeholder={t('claim.min8')} autoComplete="new-password" required
                   style={inputStyle}
                 />
                 <label style={{ fontSize: 13, fontWeight: 600, color: '#334155', marginTop: 12, display: 'block' }}>
-                  Passwort bestätigen
+                  {t('claim.confirmPw')}
                 </label>
                 <input
                   type="password" value={pw2} onChange={e => setPw2(e.target.value)}
-                  placeholder="Passwort wiederholen" autoComplete="new-password" required
+                  placeholder={t('claim.repeatPw')} autoComplete="new-password" required
                   style={inputStyle}
                 />
 
@@ -255,14 +259,14 @@ export default function ClaimProfile() {
                   fontWeight: 600, cursor: submitting ? 'wait' : 'pointer',
                   opacity: submitting ? 0.7 : 1,
                 }}>
-                  {submitting ? 'Wird übernommen …' : '⚓ Profil jetzt übernehmen'}
+                  {submitting ? t('claim.submitting') : t('claim.submit')}
                 </button>
               </form>
 
               <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 16, textAlign: 'center' }}>
-                Mit der Übernahme akzeptieren Sie die{' '}
-                <a href="https://skipily.app/agb" style={{ color: '#94a3b8' }}>AGB</a> und{' '}
-                <a href="https://skipily.app/datenschutz" style={{ color: '#94a3b8' }}>Datenschutz</a>.
+                {t('claim.acceptPre')}{' '}
+                <a href="https://skipily.app/agb" style={{ color: '#94a3b8' }}>{t('claim.terms')}</a> {t('claim.and')}{' '}
+                <a href="https://skipily.app/datenschutz" style={{ color: '#94a3b8' }}>{t('layout.privacyShort')}</a>.
               </p>
             </>
           )}
