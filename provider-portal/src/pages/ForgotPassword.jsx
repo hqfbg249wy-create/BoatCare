@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useT } from '../i18n'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 
 export default function ForgotPassword() {
+  const { t } = useT()
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
@@ -22,7 +25,7 @@ export default function ForgotPassword() {
       if (error) throw error
       setSent(true)
     } catch (err) {
-      setError(err.message || 'Fehler beim Senden.')
+      setError(err.message || t('forgot.sendError'))
     } finally {
       setLoading(false)
     }
@@ -35,15 +38,13 @@ export default function ForgotPassword() {
           <div className="login-header">
             <img src="/icon-192.png" alt="Skipily" style={{ width: 64, height: 64, borderRadius: 14 }} />
             <h1>Skipily</h1>
-            <p>E-Mail gesendet</p>
+            <p>{t('forgot.sentTitle')}</p>
           </div>
           <p style={{ textAlign: 'center', margin: '20px 0', lineHeight: 1.6 }}>
-            Wir haben Dir einen Link an<br />
-            <strong>{email}</strong><br />
-            geschickt. Bitte klicke darauf, um ein neues Passwort zu setzen.
+            {t('forgot.sentBody', { email })}
           </p>
           <Link to="/" className="btn-primary" style={{ textAlign: 'center', textDecoration: 'none' }}>
-            Zurück zum Login
+            {t('signup.backToLogin')}
           </Link>
         </div>
       </div>
@@ -53,29 +54,32 @@ export default function ForgotPassword() {
   return (
     <div className="login-page">
       <div className="login-card">
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <LanguageSwitcher />
+        </div>
         <div className="login-header">
           <img src="/icon-192.png" alt="Skipily" style={{ width: 64, height: 64, borderRadius: 14 }} />
           <h1>Skipily</h1>
-          <p>Passwort vergessen</p>
+          <p>{t('forgot.title')}</p>
         </div>
 
         <form onSubmit={handleSubmit}>
           {error && <div className="error-msg">{error}</div>}
 
           <div className="form-group">
-            <label>E-Mail</label>
+            <label>{t('common.email')}</label>
             <input type="email" required value={email}
                    onChange={e => setEmail(e.target.value)}
-                   placeholder="ihre@email.de" />
+                   placeholder={t('common.emailPlaceholder')} />
           </div>
 
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Wird gesendet…' : 'Reset-Link senden'}
+            {loading ? t('forgot.sending') : t('forgot.sendLink')}
           </button>
         </form>
 
         <p className="login-hint">
-          <Link to="/">Zurück zum Login</Link>
+          <Link to="/">{t('signup.backToLogin')}</Link>
         </p>
       </div>
     </div>

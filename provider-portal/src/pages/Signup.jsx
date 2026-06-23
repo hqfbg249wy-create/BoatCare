@@ -1,19 +1,20 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { Anchor } from 'lucide-react'
+import { useT } from '../i18n'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 
 const CATEGORIES = [
-  { value: 'motorservice', label: 'Motorservice' },
-  { value: 'bootsbauer',   label: 'Bootsbauer' },
-  { value: 'zubehör',      label: 'Zubehör' },
-  { value: 'segelmacher',  label: 'Segelmacher' },
-  { value: 'rigg',         label: 'Rigg' },
-  { value: 'instrumente',  label: 'Instrumente / Elektronik' },
-  { value: 'lackiererei',  label: 'Lackiererei' },
-  { value: 'kran',         label: 'Kran / Travel Lift' },
-  { value: 'heizung/klima',label: 'Heizung / Klima' },
-  { value: 'sonstige',     label: 'Sonstige' },
+  { value: 'motorservice', key: 'signup.cat.motorservice' },
+  { value: 'bootsbauer',   key: 'signup.cat.bootsbauer' },
+  { value: 'zubehör',      key: 'signup.cat.zubehoer' },
+  { value: 'segelmacher',  key: 'signup.cat.segelmacher' },
+  { value: 'rigg',         key: 'signup.cat.rigg' },
+  { value: 'instrumente',  key: 'signup.cat.instrumente' },
+  { value: 'lackiererei',  key: 'signup.cat.lackiererei' },
+  { value: 'kran',         key: 'signup.cat.kran' },
+  { value: 'heizung/klima',key: 'signup.cat.heizungklima' },
+  { value: 'sonstige',     key: 'signup.cat.sonstige' },
 ]
 
 // Aktuelle AGB-Version — bei Anpassung der AGB hochzählen, damit Audit-Trail
@@ -22,6 +23,7 @@ const PROVIDER_AGB_VERSION = '2026-05'
 
 export default function Signup() {
   const { signUp } = useAuth()
+  const { t } = useT()
   const [form, setForm] = useState({
     email: '', password: '', companyName: '', category: 'repair', city: '',
     agbAccepted: false,
@@ -36,11 +38,11 @@ export default function Signup() {
     e.preventDefault()
     setError('')
     if (form.password.length < 8) {
-      setError('Passwort muss mindestens 8 Zeichen lang sein.')
+      setError(t('signup.pwTooShort'))
       return
     }
     if (!form.agbAccepted) {
-      setError('Bitte die Provider-Nutzungsbedingungen lesen und bestätigen.')
+      setError(t('signup.acceptTerms'))
       return
     }
     setLoading(true)
@@ -48,7 +50,7 @@ export default function Signup() {
       await signUp({ ...form, agbVersion: PROVIDER_AGB_VERSION })
       setSuccess(true)
     } catch (err) {
-      setError(err.message || 'Registrierung fehlgeschlagen.')
+      setError(err.message || t('signup.failed'))
     } finally {
       setLoading(false)
     }
@@ -61,15 +63,13 @@ export default function Signup() {
           <div className="login-header">
             <img src="/icon-192.png" alt="Skipily" style={{ width: 64, height: 64, borderRadius: 14 }} />
             <h1>Skipily</h1>
-            <p>Registrierung erfolgreich</p>
+            <p>{t('signup.successTitle')}</p>
           </div>
           <p style={{ textAlign: 'center', margin: '20px 0', lineHeight: 1.6 }}>
-            Wir haben Dir eine Bestätigungs-E-Mail an<br />
-            <strong>{form.email}</strong><br />
-            geschickt. Bitte klicke den Link, um Dein Konto zu aktivieren.
+            {t('signup.successBody', { email: form.email })}
           </p>
           <Link to="/" className="btn-primary" style={{ textAlign: 'center', textDecoration: 'none' }}>
-            Zurück zum Login
+            {t('signup.backToLogin')}
           </Link>
         </div>
       </div>
@@ -79,42 +79,45 @@ export default function Signup() {
   return (
     <div className="login-page">
       <div className="login-card">
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <LanguageSwitcher />
+        </div>
         <div className="login-header">
           <img src="/icon-192.png" alt="Skipily" style={{ width: 64, height: 64, borderRadius: 14 }} />
           <h1>Skipily</h1>
-          <p>Provider-Registrierung</p>
+          <p>{t('signup.title')}</p>
         </div>
 
         <form onSubmit={handleSubmit}>
           {error && <div className="error-msg">{error}</div>}
 
           <div className="form-group">
-            <label>Firmenname</label>
+            <label>{t('signup.company')}</label>
             <input type="text" required value={form.companyName}
-                   onChange={set('companyName')} placeholder="Musterwerft GmbH" />
+                   onChange={set('companyName')} placeholder={t('signup.companyPlaceholder')} />
           </div>
 
           <div className="form-group">
-            <label>Kategorie</label>
+            <label>{t('signup.category')}</label>
             <select value={form.category} onChange={set('category')}>
-              {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              {CATEGORIES.map(c => <option key={c.value} value={c.value}>{t(c.key)}</option>)}
             </select>
           </div>
 
           <div className="form-group">
-            <label>Stadt</label>
+            <label>{t('signup.city')}</label>
             <input type="text" value={form.city} onChange={set('city')}
-                   placeholder="Hamburg" />
+                   placeholder={t('signup.cityPlaceholder')} />
           </div>
 
           <div className="form-group">
-            <label>E-Mail</label>
+            <label>{t('common.email')}</label>
             <input type="email" required value={form.email}
-                   onChange={set('email')} placeholder="kontakt@muster-werft.de" />
+                   onChange={set('email')} placeholder={t('signup.emailPlaceholder')} />
           </div>
 
           <div className="form-group">
-            <label>Passwort (min. 8 Zeichen)</label>
+            <label>{t('signup.passwordLabel')}</label>
             <input type="password" required value={form.password}
                    onChange={set('password')} placeholder="••••••••" />
           </div>
@@ -129,30 +132,27 @@ export default function Signup() {
               style={{ marginTop: 3, flexShrink: 0 }}
             />
             <span>
-              Ich habe die{' '}
+              {t('signup.termsPre')}{' '}
               <a href="/provider-agb.html" target="_blank" rel="noopener noreferrer"
                  style={{ color: '#f97316', fontWeight: 600 }}>
-                Provider-Nutzungsbedingungen
+                {t('signup.termsLink')}
               </a>
-              {' '}gelesen und akzeptiere sie. Insbesondere bestätige ich, dass ich
-              für die Erfüllung der Verträge mit Endkunden, die Qualität meiner Produkte/
-              Dienstleistungen sowie deren rechtmäßige Bewerbung und Abrechnung selbst
-              verantwortlich bin.
+              {' '}{t('signup.termsPost')}
             </span>
           </label>
 
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Wird erstellt…' : 'Konto erstellen'}
+            {loading ? t('signup.creating') : t('signup.createAccount')}
           </button>
         </form>
 
         <p className="login-hint" style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: 12 }}>
-          Mit dem Klick auf „Konto erstellen" akzeptierst du außerdem unsere{' '}
-          <a href="/datenschutz.html" target="_blank" rel="noopener noreferrer">Datenschutzerklärung</a>.
+          {t('signup.privacyNotePre')}{' '}
+          <a href="/datenschutz.html" target="_blank" rel="noopener noreferrer">{t('login.privacy')}</a>.
         </p>
 
         <p className="login-hint">
-          Schon registriert? <Link to="/">Anmelden</Link>
+          {t('signup.alreadyRegistered')} <Link to="/">{t('signup.signInLink')}</Link>
         </p>
       </div>
     </div>
