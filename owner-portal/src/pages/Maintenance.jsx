@@ -5,9 +5,11 @@ import { Wrench, CheckCircle, AlertTriangle, Clock, Filter, Check, ShoppingCart,
 import { useNavigate } from 'react-router-dom'
 import { buildShopQuery, buildServiceQuery, buildMaintenanceAIQuestion } from '../lib/equipmentSearch'
 import { buildSparePartsParams } from '../lib/sparePartsSearch'
+import { useT } from '../i18n'
 
 export default function Maintenance() {
   const { user } = useAuth()
+  const { t } = useT()
   const navigate = useNavigate()
   const [items, setItems] = useState([])
   const [boats, setBoats] = useState([])
@@ -40,11 +42,11 @@ export default function Maintenance() {
   }
 
   function getStatus(item) {
-    if (!item.next_maintenance_date) return { label: 'Kein Datum', cls: 'unknown', days: 9999 }
+    if (!item.next_maintenance_date) return { label: t('maint.noDate'), cls: 'unknown', days: 9999 }
     const days = Math.ceil((new Date(item.next_maintenance_date) - new Date()) / 86400000)
-    if (days < 0) return { label: `${Math.abs(days)} Tage ueberfaellig`, cls: 'overdue', days }
-    if (days <= 30) return { label: `In ${days} Tagen`, cls: 'due_soon', days }
-    return { label: `In ${days} Tagen`, cls: 'ok', days }
+    if (days < 0) return { label: t('dash.daysOverdue', { days: Math.abs(days) }), cls: 'overdue', days }
+    if (days <= 30) return { label: t('dash.inDays', { days }), cls: 'due_soon', days }
+    return { label: t('dash.inDays', { days }), cls: 'ok', days }
   }
 
   const enriched = items.map(i => ({ ...i, _status: getStatus(i) }))
@@ -74,28 +76,28 @@ export default function Maintenance() {
 
   return (
     <div className="page">
-      <h1>Wartungsuebersicht</h1>
-      <p className="subtitle">Geplante Wartungen Ihrer Ausruestung</p>
+      <h1>{t('maint.title')}</h1>
+      <p className="subtitle">{t('maint.subtitle')}</p>
 
       <div className="stats-grid stats-grid-3">
         <div className={`stat-card clickable ${filterStatus === 'overdue' ? 'active-filter' : ''}`} onClick={() => setFilterStatus(filterStatus === 'overdue' ? 'all' : 'overdue')}>
           <div className="stat-icon" style={{ background: '#fef2f2' }}><AlertTriangle size={22} color="#ef4444" /></div>
-          <div><span className="stat-value">{counts.overdue}</span><span className="stat-label">Ueberfaellig</span></div>
+          <div><span className="stat-value">{counts.overdue}</span><span className="stat-label">{t('maint.overdue')}</span></div>
         </div>
         <div className={`stat-card clickable ${filterStatus === 'due_soon' ? 'active-filter' : ''}`} onClick={() => setFilterStatus(filterStatus === 'due_soon' ? 'all' : 'due_soon')}>
           <div className="stat-icon" style={{ background: '#fffbeb' }}><Clock size={22} color="#f59e0b" /></div>
-          <div><span className="stat-value">{counts.due_soon}</span><span className="stat-label">Bald faellig</span></div>
+          <div><span className="stat-value">{counts.due_soon}</span><span className="stat-label">{t('maint.dueSoon')}</span></div>
         </div>
         <div className={`stat-card clickable ${filterStatus === 'ok' ? 'active-filter' : ''}`} onClick={() => setFilterStatus(filterStatus === 'ok' ? 'all' : 'ok')}>
           <div className="stat-icon" style={{ background: '#f0fdf4' }}><CheckCircle size={22} color="#10b981" /></div>
-          <div><span className="stat-value">{counts.ok}</span><span className="stat-label">In Ordnung</span></div>
+          <div><span className="stat-value">{counts.ok}</span><span className="stat-label">{t('maint.ok')}</span></div>
         </div>
       </div>
 
       <div className="filter-bar">
         <Filter size={16} />
         <select value={selectedBoat} onChange={e => setSelectedBoat(e.target.value)}>
-          <option value="">Alle Boote</option>
+          <option value="">{t('maint.allBoats')}</option>
           {boats.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
       </div>
@@ -103,8 +105,8 @@ export default function Maintenance() {
       {filtered.length === 0 ? (
         <div className="empty-state">
           <CheckCircle size={64} color="#10b981" />
-          <h2>{filterStatus === 'all' ? 'Keine Wartungseintraege' : 'Keine Eintraege in dieser Kategorie'}</h2>
-          <p>Erfassen Sie Wartungsintervalle bei Ihren Geraeten unter Ausruestung.</p>
+          <h2>{filterStatus === 'all' ? t('maint.emptyAll') : t('maint.emptyCat')}</h2>
+          <p>{t('maint.emptyHint')}</p>
         </div>
       ) : (
         <div className="equipment-grid">
@@ -115,29 +117,29 @@ export default function Maintenance() {
                   {item._status.cls === 'overdue' || item._status.cls === 'due_soon' ? <AlertTriangle size={14} /> : <CheckCircle size={14} />}
                   {item._status.label}
                 </span>
-                <button className="btn-small btn-deliver" title="Als erledigt markieren" onClick={() => markDone(item)}>
-                  <Check size={14} /> Erledigt
+                <button className="btn-small btn-deliver" title={t('maint.markDone')} onClick={() => markDone(item)}>
+                  <Check size={14} /> {t('maint.done')}
                 </button>
               </div>
               <h3 className="eq-name">{item.name}</h3>
               <p className="eq-detail">{item.manufacturer} {item.model}</p>
               <p className="eq-boat-label">{boatName(item.boat_id)}</p>
               <div className="maint-dates">
-                <span><Clock size={12} /> Letzte: {item.last_maintenance_date ? new Date(item.last_maintenance_date).toLocaleDateString('de-DE') : '—'}</span>
-                <span><Wrench size={12} /> Nächste: {item.next_maintenance_date ? new Date(item.next_maintenance_date).toLocaleDateString('de-DE') : '—'}</span>
+                <span><Clock size={12} /> {t('maint.last')} {item.last_maintenance_date ? new Date(item.last_maintenance_date).toLocaleDateString('de-DE') : '—'}</span>
+                <span><Wrench size={12} /> {t('maint.next')} {item.next_maintenance_date ? new Date(item.next_maintenance_date).toLocaleDateString('de-DE') : '—'}</span>
               </div>
               <div className="eq-quick-actions">
-                <button className="eq-action-btn eq-action-shop" title="Passende Artikel im Shop suchen"
+                <button className="eq-action-btn eq-action-shop" title={t('maint.findArticles')}
                   onClick={() => navigate(`/shop?${buildSparePartsParams(item)}`)}>
-                  <ShoppingCart size={13} /> Shop
+                  <ShoppingCart size={13} /> {t('nav.shop')}
                 </button>
-                <button className="eq-action-btn eq-action-service" title="Passenden Service finden"
+                <button className="eq-action-btn eq-action-service" title={t('maint.findService')}
                   onClick={() => navigate(`/services?search=${encodeURIComponent(buildServiceQuery(item))}`)}>
-                  <MapPin size={13} /> Service
+                  <MapPin size={13} /> {t('maint.service')}
                 </button>
-                <button className="eq-action-btn eq-action-ai" title="KI zur Wartung fragen"
+                <button className="eq-action-btn eq-action-ai" title={t('maint.askAiTitle')}
                   onClick={() => navigate(`/chat?question=${encodeURIComponent(buildMaintenanceAIQuestion(item, boatName(item.boat_id)))}`)}>
-                  <Bot size={13} /> KI fragen
+                  <Bot size={13} /> {t('maint.askAi')}
                 </button>
               </div>
             </div>
