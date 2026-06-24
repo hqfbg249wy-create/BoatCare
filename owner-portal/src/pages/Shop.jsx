@@ -6,6 +6,7 @@ import { Search, X, ShoppingCart, Tag, Filter, ChevronRight, Plus, Minus, Check,
 import {
   classifyProducts, parseSparePartsParams, hasSparePartsContext, BUCKET_META,
 } from '../lib/sparePartsSearch'
+import { translateProducts, isTranslatableLang } from '../lib/dbTranslate'
 import { useT } from '../i18n'
 
 // Map SF Symbol names from DB to emojis
@@ -56,6 +57,24 @@ export default function Shop() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isSparePartsMode, searchParams.toString()])
   useEffect(() => { localStorage.setItem('boatcare_cart', JSON.stringify(cart)) }, [cart])
+
+  // DB-Freitext (Produktnamen) on-demand in die aktive Sprache übersetzen.
+  // Sofort aus row.translations[lang] seeden, Rest via Edge-Function (DeepL+Cache).
+  const [prodTr, setProdTr] = useState({})
+  useEffect(() => {
+    if (!isTranslatableLang(lang)) { setProdTr({}); return }
+    const all = [...products, ...equipmentRecommendations]
+    if (!all.length) return
+    const seed = {}
+    for (const p of all) { const c = p.translations?.[lang]; if (c?.name) seed[p.id] = c }
+    setProdTr(prev => ({ ...prev, ...seed }))
+    let cancelled = false
+    translateProducts(all.map(p => p.id), lang).then(map => {
+      if (!cancelled && map && Object.keys(map).length) setProdTr(prev => ({ ...prev, ...map }))
+    })
+    return () => { cancelled = true }
+  }, [products, equipmentRecommendations, lang])
+  const nameOf = (p) => prodTr[p.id]?.name || p.name
   // Reload products when search, category, or provider filter changes (Shop-Modus only)
   useEffect(() => {
     if (!loading && !isSparePartsMode) loadProducts(0)
@@ -271,10 +290,10 @@ export default function Shop() {
       <div className="page-header">
         <div>
           <h1>{t('shop.k0')}</h1>
-          <p className="subtitle">{products.length} Produkte</p>
+          <p className="subtitle">{t('shop.productsCount', { n: products.length })}</p>
         </div>
         {cartCount > 0 && (
-          <Link to="/orders" className="shop-cart-badge">
+          <Link to="/checkout" className="shop-cart-badge">
             <ShoppingCart size={20} />
             <span>{cartCount}</span>
             <span className="cart-total">{cartTotal.toFixed(2).replace('.', ',')} €</span>
@@ -342,7 +361,7 @@ export default function Shop() {
                     )}
                     <div className="shop-rec-info">
                       {product.manufacturer && <span className="shop-rec-mfr">{product.manufacturer}</span>}
-                      <span className="shop-rec-name">{product.name}</span>
+                      <span className="shop-rec-name">{nameOf(product)}</span>
                       <span className="shop-rec-price">{Number(product.price).toFixed(2).replace('.', ',')} €</span>
                     </div>
                   </Link>
@@ -421,7 +440,7 @@ export default function Shop() {
                       {product.service_providers?.name && (
                         <span className="shop-product-provider">{product.service_providers.name}</span>
                       )}
-                      <span className="shop-product-name">{product.name}</span>
+                      <span className="shop-product-name">{nameOf(product)}</span>
                       {product.manufacturer && <span className="shop-product-mfr">{product.manufacturer}</span>}
                       <div className="shop-product-price-row">
                         {discountedPrice !== null ? (
@@ -459,18 +478,20 @@ export default function Shop() {
       {/* Cart sidebar / mini-cart */}
       {cart.length > 0 && (
         <div className="shop-mini-cart">
-          <h3><ShoppingCart size={18} /> Warenkorb ({cartCount})</h3>
+          <h3><ShoppingCart size={18} /> {t('shop.cart', { n: cartCount })}</h3>
           <div className="mini-cart-items">
             {cart.map(item => (
               <div key={item.id} className="mini-cart-item">
                 <div className="mini-cart-item-info">
-                  <span className="mini-cart-name">{item.name}</span>
+                  <span className="mini-cart-name">{nameOf(item)}</span>
                   <span className="mini-cart-price">{(item.price * item.quantity).toFixed(2).replace('.', ',')} €</span>
                 </div>
                 <div className="mini-cart-qty">
                   <button onClick={() => updateQuantity(item.id, -1)}><Minus size={14} /></button>
                   <span>{item.quantity}</span>
                   <button onClick={() => updateQuantity(item.id, 1)}><Plus size={14} /></button>
+                  <button className="mini-cart-remove" title={t('shop.remove')} aria-label={t('shop.remove')}
+                          onClick={() => removeFromCart(item.id)}><X size={14} /></button>
                 </div>
               </div>
             ))}
@@ -479,7 +500,7 @@ export default function Shop() {
             <span>{t('shop.k12')}</span>
             <strong>{cartTotal.toFixed(2).replace('.', ',')} €</strong>
           </div>
-          <button className="btn-primary btn-full" onClick={() => window.location.href = '/checkout'}>
+          <button className="btn-primary btn-full" onClick={() => navigate('/checkout')}>
             {t('shop.k13')}
           </button>
         </div>
@@ -488,7 +509,7 @@ export default function Shop() {
       {/* Toast */}
       {cartToast && (
         <div className="cart-toast">
-          <Check size={16} /> {cartToast} zum Warenkorb hinzugefügt
+          <Check size={16} /> {t('shop.addedToCart', { name: cartToast })}
         </div>
       )}
     </div>

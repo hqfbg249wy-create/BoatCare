@@ -646,4 +646,8 @@ export default {
   "ssvc.motor": "Motor",
   "ssvc.sail": "Segel",
   "ssvc.painting": "Lackierung",
+  "shop.cart": "Warenkorb ({n})",
+  "shop.remove": "Entfernen",
+  "shop.productsCount": "{n} Produkte",
+  "shop.addedToCart": "{name} zum Warenkorb hinzugefügt",
 }

@@ -3,6 +3,10 @@
 // zur Laufzeit automatisch auf Deutsch zurück.
 export default {
   "en": {
+    "shop.cart": "Cart ({n})",
+    "shop.remove": "Remove",
+    "shop.productsCount": "{n} products",
+    "shop.addedToCart": "{name} added to cart",
     "ssvc.all": "All",
     "ssvc.motor": "Engine",
     "ssvc.sail": "Sails",
@@ -598,6 +602,10 @@ export default {
     "sail.position": "Position"
   },
   "fr": {
+    "shop.cart": "Panier ({n})",
+    "shop.remove": "Retirer",
+    "shop.productsCount": "{n} produits",
+    "shop.addedToCart": "{name} ajouté au panier",
     "ssvc.all": "Tous",
     "ssvc.motor": "Moteur",
     "ssvc.sail": "Voiles",
@@ -1193,6 +1201,10 @@ export default {
     "sail.position": "Position"
   },
   "it": {
+    "shop.cart": "Carrello ({n})",
+    "shop.remove": "Rimuovi",
+    "shop.productsCount": "{n} prodotti",
+    "shop.addedToCart": "{name} aggiunto al carrello",
     "ssvc.all": "Tutti",
     "ssvc.motor": "Motore",
     "ssvc.sail": "Vele",
@@ -1788,6 +1800,10 @@ export default {
     "sail.position": "Posizione"
   },
   "es": {
+    "shop.cart": "Carrito ({n})",
+    "shop.remove": "Eliminar",
+    "shop.productsCount": "{n} productos",
+    "shop.addedToCart": "{name} añadido al carrito",
     "ssvc.all": "Todos",
     "ssvc.motor": "Motor",
     "ssvc.sail": "Velas",
@@ -2383,6 +2399,10 @@ export default {
     "sail.position": "Posición"
   },
   "nl": {
+    "shop.cart": "Winkelwagen ({n})",
+    "shop.remove": "Verwijderen",
+    "shop.productsCount": "{n} producten",
+    "shop.addedToCart": "{name} toegevoegd aan winkelwagen",
     "ssvc.all": "Alle",
     "ssvc.motor": "Motor",
     "ssvc.sail": "Zeilen",
