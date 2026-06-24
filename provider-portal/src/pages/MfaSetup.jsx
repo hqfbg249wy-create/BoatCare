@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useT } from '../i18n'
 
 /**
  * Erzwingt die Einrichtung eines TOTP-Faktors (z.B. Google Authenticator,
@@ -13,6 +14,7 @@ import { supabase } from '../lib/supabase'
  *   4) Reload → Dashboard
  */
 export default function MfaSetup({ onDone }) {
+  const { t } = useT()
   const [factorId, setFactorId] = useState(null)
   const [qrSvg,   setQrSvg]   = useState(null)
   const [secret,  setSecret]  = useState(null)
@@ -69,7 +71,7 @@ export default function MfaSetup({ onDone }) {
     return (
       <div className="loading-screen">
         <div className="spinner" />
-        <p>Sicherheitssetup wird vorbereitet…</p>
+        <p>{t('mfa.setupPrepare')}</p>
       </div>
     )
   }
@@ -80,17 +82,17 @@ export default function MfaSetup({ onDone }) {
         <div className="login-header">
           <img src="/icon-192.png" alt="Skipily" style={{ width: 64, height: 64, borderRadius: 14 }} />
           <h1>Skipily</h1>
-          <p>2-Faktor-Authentifizierung einrichten</p>
+          <p>{t('mfa.setupTitle')}</p>
         </div>
 
         <p style={{ fontSize: 14, color: '#475569', marginBottom: 16 }}>
-          Dein Account ist auf 2FA-Pflicht gesetzt. Bitte richte einen Authenticator (z.B. <strong>Google Authenticator</strong>, <strong>1Password</strong>, <strong>Authy</strong>) einmalig ein.
+          {t('mfa.setupIntro')}
         </p>
 
         <ol style={{ paddingLeft: 18, fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>
-          <li>Authenticator-App auf dem Smartphone öffnen</li>
-          <li>QR-Code unten scannen <em>oder</em> Geheimcode manuell eintragen</li>
-          <li>Den 6-stelligen Code aus der App unten eingeben</li>
+          <li>{t('mfa.step1')}</li>
+          <li>{t('mfa.step2pre')} <em>{t('mfa.step2or')}</em> {t('mfa.step2post')}</li>
+          <li>{t('mfa.step3')}</li>
         </ol>
 
         {qrSvg && (
@@ -108,7 +110,7 @@ export default function MfaSetup({ onDone }) {
           {error && <div className="error-msg">{error}</div>}
 
           <div className="form-group">
-            <label>6-stelliger Code aus der App</label>
+            <label>{t('mfa.codeLabel')}</label>
             <input
               type="text"
               inputMode="numeric"
@@ -124,12 +126,12 @@ export default function MfaSetup({ onDone }) {
           </div>
 
           <button type="submit" className="btn-primary" disabled={verifying || code.length !== 6}>
-            {verifying ? 'Wird geprüft…' : 'Aktivieren'}
+            {verifying ? t('mfa.checking') : t('mfa.activate')}
           </button>
         </form>
 
         <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 16, textAlign: 'center' }}>
-          Probleme? Admin kann die 2FA-Pflicht im Admin-Panel deaktivieren.
+          {t('mfa.troubles')}
         </p>
       </div>
     </div>

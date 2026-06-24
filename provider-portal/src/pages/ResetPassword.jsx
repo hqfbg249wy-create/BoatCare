@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useT } from '../i18n'
 
 /**
  * Dedizierte Reset-Password-Landing für das Provider-Portal.
@@ -23,6 +24,7 @@ import { supabase } from '../lib/supabase'
  */
 export default function ResetPassword() {
   const navigate = useNavigate()
+  const { t } = useT()
   const [pw1, setPw1] = useState('')
   const [pw2, setPw2] = useState('')
   const [error, setError] = useState('')
@@ -51,11 +53,11 @@ export default function ResetPassword() {
     e.preventDefault()
     setError('')
     if (pw1.length < 8) {
-      setError('Passwort muss mindestens 8 Zeichen haben.')
+      setError(t('claim.pwTooShort'))
       return
     }
     if (pw1 !== pw2) {
-      setError('Die Passwörter stimmen nicht überein.')
+      setError(t('claim.pwMismatch'))
       return
     }
     setSubmitting(true)
@@ -70,7 +72,7 @@ export default function ResetPassword() {
         navigate('/', { replace: true })
       }, 2000)
     } catch (err) {
-      setError(err.message || 'Passwort konnte nicht gesetzt werden.')
+      setError(err.message || t('auth.pwNotSet'))
     } finally {
       setSubmitting(false)
     }
@@ -82,47 +84,46 @@ export default function ResetPassword() {
         <div className="login-header">
           <img src="/icon-192.png" alt="Skipily" style={{ width: 64, height: 64, borderRadius: 14 }} />
           <h1>Skipily</h1>
-          <p>Neues Passwort setzen</p>
+          <p>{t('auth.newPwSetTitle')}</p>
         </div>
 
         {success ? (
           <p style={{ textAlign: 'center', color: '#16a34a', margin: '20px 0', lineHeight: 1.6 }}>
-            Passwort wurde aktualisiert.<br />Du wirst gleich zur Anmeldung weitergeleitet.
+            {t('auth.pwUpdated')}<br />{t('auth.redirecting')}
           </p>
         ) : !recoveryReady ? (
           <p style={{ textAlign: 'center', color: '#64748b', margin: '20px 0', lineHeight: 1.6 }}>
-            Recovery-Link wird verarbeitet …<br />
-            Falls hier nichts passiert, ist der Link evtl. abgelaufen —
-            fordere bitte einen neuen an.
+            {t('auth.recoveryProcessing')}<br />
+            {t('auth.recoveryExpired')}
           </p>
         ) : (
           <form onSubmit={handleSubmit}>
             {error && <div className="error-msg">{error}</div>}
 
             <div className="form-group">
-              <label>Neues Passwort</label>
+              <label>{t('auth.newPw')}</label>
               <input type="password" required value={pw1}
                      onChange={e => setPw1(e.target.value)}
                      autoComplete="new-password"
-                     placeholder="mindestens 8 Zeichen" />
+                     placeholder={t('auth.min8Ph')} />
             </div>
 
             <div className="form-group">
-              <label>Passwort wiederholen</label>
+              <label>{t('auth.repeatPw')}</label>
               <input type="password" required value={pw2}
                      onChange={e => setPw2(e.target.value)}
                      autoComplete="new-password"
-                     placeholder="erneut eingeben" />
+                     placeholder={t('auth.repeatPh')} />
             </div>
 
             <button type="submit" className="btn-primary" disabled={submitting}>
-              {submitting ? 'Speichere …' : 'Passwort speichern'}
+              {submitting ? t('auth.savingShort') : t('auth.savePw')}
             </button>
           </form>
         )}
 
         <p className="login-hint">
-          <Link to="/">Zurück zum Login</Link>
+          <Link to="/">{t('signup.backToLogin')}</Link>
         </p>
       </div>
     </div>

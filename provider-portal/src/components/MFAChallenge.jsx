@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { ShieldCheck, LogOut } from 'lucide-react'
+import { useT } from '../i18n'
 
 export default function MFAChallenge() {
   const { verifyMFA, signOut } = useAuth()
+  const { t } = useT()
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -16,7 +18,7 @@ export default function MFAChallenge() {
     try {
       await verifyMFA(code)
     } catch {
-      setError('Code ungültig oder abgelaufen. Bitte erneut versuchen.')
+      setError(t('mfa.codeInvalid'))
       setCode('')
     } finally {
       setLoading(false)
@@ -27,8 +29,8 @@ export default function MFAChallenge() {
     <div className="mfa-screen">
       <div className="mfa-card">
         <div className="mfa-icon"><ShieldCheck size={40} color="#f97316" /></div>
-        <h2>Zwei-Faktor-Authentifizierung</h2>
-        <p>Gib den 6-stelligen Code aus deiner Authenticator-App ein.</p>
+        <h2>{t('mfa.title')}</h2>
+        <p>{t('mfa.enterCode')}</p>
 
         <form onSubmit={handleSubmit} className="mfa-form">
           <input
@@ -49,12 +51,12 @@ export default function MFAChallenge() {
             className="btn-primary btn-full"
             disabled={loading || code.length !== 6}
           >
-            {loading ? 'Wird geprüft…' : 'Bestätigen'}
+            {loading ? t('mfa.checking') : t('mfa.confirm')}
           </button>
         </form>
 
         <button className="mfa-logout" onClick={signOut}>
-          <LogOut size={14} /> Abmelden
+          <LogOut size={14} /> {t('layout.logout')}
         </button>
       </div>
     </div>

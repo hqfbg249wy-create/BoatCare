@@ -561,7 +561,7 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
         {(filter.model || filteredEquipment.length <= 10) && filteredEquipment.length > 0 && (
           <div className="card card-full">
             <h2><Eye size={18} /> Einzelne Geräte ({filteredEquipment.length})</h2>
-            <p className="card-subtitle">Detailansicht der gefilterten Ausrüstung</p>
+            <p className="card-subtitle">{t('mi.detailView')}</p>
             <div className="model-table">
               <table>
                 <thead>

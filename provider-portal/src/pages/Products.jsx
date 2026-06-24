@@ -531,7 +531,7 @@ export default function Products() {
             </div>
             <div className="form-group">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, gap: 8 }}>
-                <label style={{ margin: 0 }}>Beschreibung</label>
+                <label style={{ margin: 0 }}>{t('products.description')}</label>
                 {access.isPro && (
                   <button
                     type="button"

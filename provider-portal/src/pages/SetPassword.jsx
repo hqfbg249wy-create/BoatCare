@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useT } from '../i18n'
 
 /**
  * Wird angezeigt nach Klick auf einen Recovery- oder Invite-Link in der
@@ -8,6 +9,7 @@ import { supabase } from '../lib/supabase'
  * Session an, wir lassen den User dann ein neues Passwort setzen.
  */
 export default function SetPassword({ flowType = 'recovery', email = '' }) {
+  const { t } = useT()
   const [pw1, setPw1] = useState('')
   const [pw2, setPw2] = useState('')
   const [error, setError] = useState('')
@@ -25,11 +27,11 @@ export default function SetPassword({ flowType = 'recovery', email = '' }) {
     e.preventDefault()
     setError('')
     if (pw1.length < 8) {
-      setError('Passwort muss mindestens 8 Zeichen haben.')
+      setError(t('claim.pwTooShort'))
       return
     }
     if (pw1 !== pw2) {
-      setError('Die Passwörter stimmen nicht überein.')
+      setError(t('claim.pwMismatch'))
       return
     }
     setLoading(true)
@@ -40,13 +42,13 @@ export default function SetPassword({ flowType = 'recovery', email = '' }) {
       navigate('/', { replace: true })
       window.location.reload()
     } catch (err) {
-      setError(err.message || 'Fehler beim Speichern.')
+      setError(err.message || t('auth.saveError'))
     } finally {
       setLoading(false)
     }
   }
 
-  const title = flowType === 'invite' ? 'Passwort festlegen' : 'Passwort zurücksetzen'
+  const title = flowType === 'invite' ? t('auth.setPwTitle') : t('auth.resetPwTitle')
 
   return (
     <div className="login-page">
@@ -59,7 +61,7 @@ export default function SetPassword({ flowType = 'recovery', email = '' }) {
 
         {email && (
           <p style={{ textAlign: 'center', color: '#64748b', fontSize: 14, marginBottom: 16 }}>
-            für <strong>{email}</strong>
+            {t('auth.for')} <strong>{email}</strong>
           </p>
         )}
 
@@ -67,19 +69,19 @@ export default function SetPassword({ flowType = 'recovery', email = '' }) {
           {error && <div className="error-msg">{error}</div>}
 
           <div className="form-group">
-            <label>Neues Passwort (min. 8 Zeichen)</label>
+            <label>{t('auth.newPwLabel')}</label>
             <input type="password" required minLength={8} autoComplete="new-password"
                    value={pw1} onChange={e => setPw1(e.target.value)} placeholder="••••••••" />
           </div>
 
           <div className="form-group">
-            <label>Passwort wiederholen</label>
+            <label>{t('auth.repeatPw')}</label>
             <input type="password" required minLength={8} autoComplete="new-password"
                    value={pw2} onChange={e => setPw2(e.target.value)} placeholder="••••••••" />
           </div>
 
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Wird gespeichert…' : 'Passwort speichern und einloggen'}
+            {loading ? t('auth.saving') : t('auth.savePwLogin')}
           </button>
         </form>
       </div>

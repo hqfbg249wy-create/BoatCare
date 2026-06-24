@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useT } from '../i18n'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -67,6 +68,7 @@ function formatDate(iso) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function ProviderPublicProfile() {
+  const { t } = useT()
   const { id } = useParams()
   const [provider, setProvider] = useState(null)
   const [reviews, setReviews]   = useState([])
@@ -83,7 +85,7 @@ export default function ProviderPublicProfile() {
         .eq('service_provider_id', id)
         .order('created_at', { ascending: false }),
     ]).then(([pRes, rRes]) => {
-      if (pRes.error) { setError('Provider nicht gefunden.'); setLoading(false); return }
+      if (pRes.error) { setError(t('pub.notFoundMsg')); setLoading(false); return }
       setProvider(pRes.data)
       setReviews(rRes.data || [])
       setLoading(false)
@@ -93,14 +95,14 @@ export default function ProviderPublicProfile() {
   if (loading) return (
     <div style={s.center}>
       <div style={s.spinner} />
-      <p style={{ color: '#64748b', marginTop: 12 }}>Lade Profil…</p>
+      <p style={{ color: '#64748b', marginTop: 12 }}>{t('pub.loading')}</p>
     </div>
   )
 
   if (error || !provider) return (
     <div style={s.center}>
       <p style={{ fontSize: 48 }}>😕</p>
-      <h2 style={{ marginTop: 8 }}>Provider nicht gefunden</h2>
+      <h2 style={{ marginTop: 8 }}>{t('pub.notFound')}</h2>
       <p style={{ color: '#64748b', marginTop: 4 }}>{error}</p>
     </div>
   )
@@ -190,18 +192,18 @@ export default function ProviderPublicProfile() {
 
         {/* Kontakt-Details */}
         {(provider.opening_hours || provider.phone || provider.email || website) && (
-          <Section title="Kontakt">
+          <Section title={t('pub.contact')}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {provider.opening_hours && (
                 <div style={s.infoRow}>
                   <span style={s.infoIcon}>🕐</span>
-                  <div><div style={s.infoLabel}>Öffnungszeiten</div>{provider.opening_hours}</div>
+                  <div><div style={s.infoLabel}>{t('profile.hours')}</div>{provider.opening_hours}</div>
                 </div>
               )}
               {provider.phone && (
                 <div style={s.infoRow}>
                   <span style={s.infoIcon}>📞</span>
-                  <div><div style={s.infoLabel}>Telefon</div>
+                  <div><div style={s.infoLabel}>{t('profile.phone')}</div>
                     <a href={`tel:${provider.phone}`} style={{ color: '#3b82f6' }}>{provider.phone}</a>
                   </div>
                 </div>
@@ -209,7 +211,7 @@ export default function ProviderPublicProfile() {
               {provider.email && (
                 <div style={s.infoRow}>
                   <span style={s.infoIcon}>✉️</span>
-                  <div><div style={s.infoLabel}>E-Mail</div>
+                  <div><div style={s.infoLabel}>{t('profile.email')}</div>
                     <a href={`mailto:${provider.email}`} style={{ color: '#3b82f6', wordBreak: 'break-all' }}>{provider.email}</a>
                   </div>
                 </div>
@@ -217,7 +219,7 @@ export default function ProviderPublicProfile() {
               {website && (
                 <div style={s.infoRow}>
                   <span style={s.infoIcon}>🌐</span>
-                  <div><div style={s.infoLabel}>Website</div>
+                  <div><div style={s.infoLabel}>{t('profile.website')}</div>
                     <a href={website} target="_blank" rel="noopener noreferrer"
                        style={{ color: '#3b82f6', wordBreak: 'break-all' }}>{provider.website}</a>
                   </div>
@@ -229,7 +231,7 @@ export default function ProviderPublicProfile() {
 
         {/* Leistungen */}
         {services.length > 0 && (
-          <Section title="🔑 Leistungen">
+          <Section title={t('pub.services')}>
             <div style={s.tagRow}>
               {services.map(s2 => <Tag key={s2}>{s2}</Tag>)}
             </div>
@@ -238,7 +240,7 @@ export default function ProviderPublicProfile() {
 
         {/* Marken */}
         {brands.length > 0 && (
-          <Section title="🏷 Marken">
+          <Section title={t('pub.brands')}>
             <div style={s.tagRow}>
               {brands.map(b => <Tag key={b} bg="#fff7ed" color="#c2410c" border="#fed7aa">{b}</Tag>)}
             </div>
@@ -248,7 +250,7 @@ export default function ProviderPublicProfile() {
         {/* Bewertungen */}
         <Section title={`⭐ Bewertungen${avgRating ? `  ·  ∅ ${avgRating}` : ''}`}>
           {reviews.length === 0 ? (
-            <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>Noch keine Bewertungen.</p>
+            <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>{t('pub.noReviews')}</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {reviews.map(r => (
