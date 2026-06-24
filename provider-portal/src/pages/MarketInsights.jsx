@@ -154,7 +154,7 @@ export default function MarketInsights() {
     if (!filter) return []
     return providerProducts.filter(p => {
       if (filter.category) {
-        const catLabel = equipmentCategoryLabels[filter.category]
+        const catLabel = categoryLabel(t, filter.category)
         const catName = catLabel ? catLabel.replace(/^[^\s]+\s/, '') : filter.category
         if (p.category && p.category.toLowerCase().includes(catName.toLowerCase())) return true
         if (p.name && p.name.toLowerCase().includes(filter.category.toLowerCase())) return true
@@ -202,7 +202,7 @@ export default function MarketInsights() {
   const equipmentCategories = insights?.equipment_categories || []
   const equipmentManufacturers = insights?.equipment_manufacturers || []
 
-  const allRecommendations = generateRecommendations(boatTypes, boatManufacturers, equipmentCategories, overview, equipmentData)
+  const allRecommendations = generateRecommendations(boatTypes, boatManufacturers, equipmentCategories, overview, equipmentData, t)
 
   const currentLevel = drillPath[drillPath.length - 1]
   const isOverview = currentLevel.type === 'overview'
@@ -332,7 +332,7 @@ export default function MarketInsights() {
                 <h2><Wrench size={18} /> {t('mi.k14')}</h2>
                 {equipmentCategories.length === 0 ? <p className="empty-text">{t('mi.k12')}</p> :
                   <BarList data={equipmentCategories} labelKey="category" valueKey="count" color="#f97316" labelMap={equipmentCategoryLabels}
-                    onClick={(item) => drillInto({ type: 'category', label: equipmentCategoryLabels[item.category] || item.category, filter: { category: item.category } })} />}
+                    onClick={(item) => drillInto({ type: 'category', label: categoryLabel(t, item.category) || item.category, filter: { category: item.category } })} />}
               </div>
               <div className="card">
                 <h2><Factory size={18} /> {t('mi.k15')}</h2>
@@ -453,7 +453,7 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
           <div className="portfolio-match-header">
             <h2><ShoppingCart size={18} /> Passende Produkte aus Ihrem Portfolio ({matchingProducts.length})</h2>
             <button className="btn-primary btn-offer" onClick={() => {
-              const filterCategories = filter.category ? [equipmentCategoryLabels[filter.category]?.replace(/^[^\s]+\s/, '') || filter.category] : []
+              const filterCategories = filter.category ? [categoryLabel(t, filter.category)?.replace(/^[^\s]+\s/, '') || filter.category] : []
               const filterMfrs = filter.manufacturer ? [filter.manufacturer] : []
               navigate('/promotions', { state: { prefill: {
                 name: `Aktion: ${level.label}`,
@@ -508,7 +508,7 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
           <div className="card">
             <h2><Wrench size={18} /> {t('mi.k21')}</h2>
             <BarList data={catList} labelKey="category" valueKey="count" color="#f97316" labelMap={equipmentCategoryLabels}
-              onClick={(item) => onDrill({ type: 'category', label: equipmentCategoryLabels[item.category] || item.category, filter: { ...filter, category: item.category } })} />
+              onClick={(item) => onDrill({ type: 'category', label: categoryLabel(t, item.category) || item.category, filter: { ...filter, category: item.category } })} />
           </div>
         )}
 
@@ -546,7 +546,7 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
                       <td><strong>{m.name}</strong></td>
                       <td>{m.manufacturer}</td>
                       <td><code>{m.model}</code></td>
-                      <td><span className="cat-badge">{equipmentCategoryLabels[m.category] || m.category}</span></td>
+                      <td><span className="cat-badge">{categoryLabel(t, m.category) || m.category}</span></td>
                       <td className="text-right"><strong>{m.count}</strong></td>
                       <td className="text-right"><ChevronRight size={14} style={{ color: 'var(--gray-400)' }} /></td>
                     </tr>
@@ -584,7 +584,7 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
                         <td><strong>{(e.name || '').trim() || '—'}</strong></td>
                         <td>{(e.manufacturer || '').trim() || '—'}</td>
                         <td>{e.model ? <code>{e.model}</code> : '—'}</td>
-                        <td><span className="cat-badge">{equipmentCategoryLabels[(e.category || '').toLowerCase()] || e.category}</span></td>
+                        <td><span className="cat-badge">{categoryLabel(t, (e.category || '').toLowerCase()) || e.category}</span></td>
                         <td>{e.installation_date ? new Date(e.installation_date).toLocaleDateString('de-DE') : '—'}</td>
                         <td>{e.last_maintenance_date ? new Date(e.last_maintenance_date).toLocaleDateString('de-DE') : '—'}</td>
                         <td>{e.next_maintenance_date ? new Date(e.next_maintenance_date).toLocaleDateString('de-DE') : '—'}</td>
@@ -651,7 +651,7 @@ function ModelsTab({ data, onDrill }) {
                   <td><strong>{m.name}</strong></td>
                   <td>{m.manufacturer}</td>
                   <td><code>{m.model}</code></td>
-                  <td><span className="cat-badge">{equipmentCategoryLabels[m.category] || m.category}</span></td>
+                  <td><span className="cat-badge">{categoryLabel(t, m.category) || m.category}</span></td>
                   <td className="text-right"><strong>{m.count}</strong></td>
                   <td className="text-right"><ChevronRight size={14} style={{ color: 'var(--gray-400)' }} /></td>
                 </tr>
@@ -670,7 +670,7 @@ function ModelsTab({ data, onDrill }) {
       <div className="card">
         <h2><Wrench size={18} /> {t('mi.k36')}</h2>
         <BarList data={data.categoryModelCounts.slice(0, 10)} labelKey="category" valueKey="modelCount" color="#f97316" labelMap={equipmentCategoryLabels}
-          onClick={(item) => onDrill({ type: 'category', label: equipmentCategoryLabels[item.category] || item.category, filter: { category: item.category } })} />
+          onClick={(item) => onDrill({ type: 'category', label: categoryLabel(t, item.category) || item.category, filter: { category: item.category } })} />
       </div>
     </div>
   )
@@ -732,11 +732,11 @@ function AgeTab({ data, onDrill }) {
               const color = item.avgYears > 8 ? '#ef4444' : item.avgYears > 5 ? '#f97316' : item.avgYears > 3 ? '#eab308' : '#22c55e'
               return (
                 <div key={i} className="bar-item bar-item-clickable" onClick={() => onDrill({
-                  type: 'category', label: equipmentCategoryLabels[item.category] || item.category,
+                  type: 'category', label: categoryLabel(t, item.category) || item.category,
                   filter: { category: item.category }
                 })}>
                   <div className="bar-header">
-                    <span className="bar-label">{equipmentCategoryLabels[item.category] || item.category}</span>
+                    <span className="bar-label">{categoryLabel(t, item.category) || item.category}</span>
                     <span className="bar-value">{item.avgYears.toFixed(1)} Jahre <ChevronRight size={12} style={{ color: 'var(--gray-400)' }} /></span>
                   </div>
                   <div className="bar-track">
@@ -853,10 +853,10 @@ function MaintenanceTab({ data, onDrill }) {
               <tbody>
                 {data.maintenanceByCategory.map((cat, i) => (
                   <tr key={i} className="drill-row" onClick={() => onDrill({
-                    type: 'category', label: equipmentCategoryLabels[cat.category] || cat.category,
+                    type: 'category', label: categoryLabel(t, cat.category) || cat.category,
                     filter: { category: cat.category }
                   })}>
-                    <td><strong>{equipmentCategoryLabels[cat.category] || cat.category}</strong></td>
+                    <td><strong>{categoryLabel(t, cat.category) || cat.category}</strong></td>
                     <td className="text-right">{cat.total}</td>
                     <td className="text-right text-red">{cat.overdue > 0 ? cat.overdue : '—'}</td>
                     <td className="text-right text-yellow">{cat.dueSoon > 0 ? cat.dueSoon : '—'}</td>
@@ -897,7 +897,7 @@ function MaintenanceTab({ data, onDrill }) {
                     <td><strong>{item.name}</strong></td>
                     <td>{item.manufacturer || '—'}</td>
                     <td>{item.model ? <code>{item.model}</code> : '—'}</td>
-                    <td><span className="cat-badge">{equipmentCategoryLabels[item.category] || item.category}</span></td>
+                    <td><span className="cat-badge">{categoryLabel(t, item.category) || item.category}</span></td>
                     <td className="text-right text-red"><strong>{item.overdueDays} Tage</strong></td>
                     <td className="text-right"><ChevronRight size={14} style={{ color: 'var(--gray-400)' }} /></td>
                   </tr>
@@ -1043,7 +1043,7 @@ function aggregateEquipmentData(equipment) {
 // ============================================================
 // Empfehlungen generieren (with drillFilter for clickability)
 // ============================================================
-function generateRecommendations(boatTypes, boatManufacturers, equipmentCategories, overview, equipmentData) {
+function generateRecommendations(boatTypes, boatManufacturers, equipmentCategories, overview, equipmentData, t) {
   const recs = []
   const totalBoats = overview.total_boats || 0
 
@@ -1051,8 +1051,8 @@ function generateRecommendations(boatTypes, boatManufacturers, equipmentCategori
     const top = boatTypes[0]
     const pct = ((top.count / totalBoats) * 100).toFixed(0)
     recs.push({
-      icon: '⛵', title: `${pct}% der Nutzer haben ${top.boat_type === 'Segelboot' ? 'ein Segelboot' : top.boat_type === 'Motorboot' ? 'ein Motorboot' : 'den Typ "' + top.boat_type + '"'}`,
-      text: `Bieten Sie gezielt Produkte für ${top.boat_type}e an — das ist die größte Zielgruppe.`,
+      icon: '⛵', title: t('mi.rec.boatTypeTitle', { pct, type: top.boat_type }),
+      text: t('mi.rec.boatTypeText', { type: top.boat_type }),
       drillFilter: { boatType: top.boat_type },
     })
   }
@@ -1060,8 +1060,8 @@ function generateRecommendations(boatTypes, boatManufacturers, equipmentCategori
   if (boatManufacturers.length > 0) {
     const topMfrs = boatManufacturers.slice(0, 3).map(m => m.manufacturer)
     recs.push({
-      icon: '🏭', title: `Top Hersteller: ${topMfrs.join(', ')}`,
-      text: 'Stellen Sie sicher, dass Sie passende Ersatzteile und Zubehör für diese Marken führen.',
+      icon: '🏭', title: t('mi.rec.topMfrTitle', { names: topMfrs.join(', ') }),
+      text: t('mi.rec.topMfrText'),
       drillFilter: { boatManufacturer: topMfrs[0] },
     })
   }
@@ -1072,8 +1072,8 @@ function generateRecommendations(boatTypes, boatManufacturers, equipmentCategori
     if (maintenanceSummary.overdue > 0) {
       recs.push({
         icon: '🚨', priority: 'high',
-        title: `${maintenanceSummary.overdue} Geräte mit überfälliger Wartung`,
-        text: 'Es gibt akuten Wartungsbedarf in der Flotte! Bieten Sie Wartungs-Aktionen oder Express-Service an.',
+        title: t('mi.rec.overdueTitle', { n: maintenanceSummary.overdue }),
+        text: t('mi.rec.overdueText'),
         drillFilter: { overdueOnly: true },
       })
     }
@@ -1081,26 +1081,26 @@ function generateRecommendations(boatTypes, boatManufacturers, equipmentCategori
     if (maintenanceSummary.dueSoon > 0) {
       recs.push({
         icon: '⏰', priority: 'high',
-        title: `${maintenanceSummary.dueSoon} Wartungen in den nächsten 90 Tagen fällig`,
-        text: 'Platzieren Sie jetzt saisonale Wartungsangebote — diese Kunden suchen bald nach einem Servicepartner.',
+        title: t('mi.rec.dueSoonTitle', { n: maintenanceSummary.dueSoon }),
+        text: t('mi.rec.dueSoonText'),
         drillFilter: { dueSoonOnly: true },
       })
     }
 
     const oldCategories = avgAgeByCategory.filter(c => c.avgYears > 5)
     if (oldCategories.length > 0) {
-      const catNames = oldCategories.slice(0, 3).map(c => equipmentCategoryLabels[c.category] || c.category).join(', ')
+      const catNames = oldCategories.slice(0, 3).map(c => categoryLabel(t, c.category) || c.category).join(', ')
       recs.push({
-        icon: '📅', title: `Alternde Ausrüstung in: ${catNames}`,
-        text: 'Diese Kategorien haben ein Durchschnittsalter von über 5 Jahren. Hier lohnen sich Upgrade-Angebote und Ersatzteile.',
+        icon: '📅', title: t('mi.rec.agingTitle', { cats: catNames }),
+        text: t('mi.rec.agingText'),
         drillFilter: { oldOnly: true },
       })
     }
 
     if (maintenanceSummary.noMaintenance > 2) {
       recs.push({
-        icon: '🔧', title: `${maintenanceSummary.noMaintenance} Geräte wurden noch nie gewartet`,
-        text: 'Bieten Sie Erst-Inspektionen oder Wartungspakete für Neueinsteiger an.',
+        icon: '🔧', title: t('mi.rec.neverTitle', { n: maintenanceSummary.noMaintenance }),
+        text: t('mi.rec.neverText'),
         drillFilter: { noMaintenanceOnly: true },
       })
     }
@@ -1109,8 +1109,8 @@ function generateRecommendations(boatTypes, boatManufacturers, equipmentCategori
       const topOverdue = overdueItems[0]
       const mfr = topOverdue.manufacturer || topOverdue.name
       recs.push({
-        icon: '🎯', title: `Wartungsbedarf: ${mfr} ${topOverdue.model || ''}`.trim(),
-        text: `Dieses Gerät ist seit ${topOverdue.overdueDays} Tagen überfällig. Spezialisieren Sie sich auf diese Marke für gezielten Service.`,
+        icon: '🎯', title: t('mi.rec.needTitle', { mfr: `${mfr} ${topOverdue.model || ''}`.trim() }),
+        text: t('mi.rec.needText', { days: topOverdue.overdueDays }),
         drillFilter: { manufacturer: topOverdue.manufacturer, category: topOverdue.category },
       })
     }
@@ -1119,10 +1119,10 @@ function generateRecommendations(boatTypes, boatManufacturers, equipmentCategori
   const totalEquip = overview.total_equipment || 0
   if (totalEquip > 0 && equipmentCategories.length > 0) {
     const topCat = equipmentCategories[0]
-    const catLabel = equipmentCategoryLabels[topCat.category] || topCat.category
+    const catLabel = categoryLabel(t, topCat.category) || topCat.category
     recs.push({
-      icon: '🔧', title: `Meiste Ausrüstung: ${catLabel}`,
-      text: `${topCat.count} Geräte in dieser Kategorie — bieten Sie Wartungszubehör und Ersatzteile an.`,
+      icon: '🔧', title: t('mi.rec.mostTitle', { cat: catLabel }),
+      text: t('mi.rec.mostText', { n: topCat.count }),
       drillFilter: { category: topCat.category },
     })
   }
@@ -1143,7 +1143,7 @@ function BarList({ data, labelKey, valueKey, color, labelMap, onClick }) {
       {data.map((item, i) => {
         const pct = ((item[valueKey] / maxValue) * 100).toFixed(0)
         const share = ((item[valueKey] / total) * 100).toFixed(1)
-        const label = labelMap ? (labelMap[item[labelKey]] || item[labelKey]) : item[labelKey]
+        const label = labelMap ? categoryLabel(t, item[labelKey]) : item[labelKey]
 
         return (
           <div key={i} className={`bar-item ${onClick ? 'bar-item-clickable' : ''}`} onClick={() => onClick?.(item)}>
