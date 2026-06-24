@@ -95,11 +95,19 @@ export default function Shop() {
 
   async function loadInitial() {
     setLoading(true)
-    const [{ data: cats }, { data: promos }] = await Promise.all([
-      supabase.from('product_categories').select('*').is('parent_id', null).order('sort_order'),
+    const [{ data: allCats }, { data: prodCats }, { data: promos }] = await Promise.all([
+      supabase.from('product_categories').select('*').order('sort_order'),
+      supabase.from('metashop_products').select('category_id').eq('is_active', true),
       supabase.from('provider_promotions').select('*, service_providers(id, name)').eq('is_active', true)
     ])
-    setCategories(cats || [])
+    // Nur Kategorien mit tatsächlich vorhandenen Produkten anzeigen (leere ausblenden).
+    // Ein Produkt kann einer Unterkategorie zugeordnet sein → auf Elternkategorie hochrechnen.
+    const all = allCats || []
+    const parentOf = {}
+    for (const c of all) parentOf[c.id] = c.parent_id || c.id
+    const usedParents = new Set((prodCats || []).map(p => parentOf[p.category_id]).filter(Boolean))
+    const cats = all.filter(c => !c.parent_id && usedParents.has(c.id))
+    setCategories(cats)
     setPromotions((promos || []).filter(p => {
       const now = new Date().toISOString().slice(0, 10)
       if (p.valid_from && p.valid_from > now) return false
