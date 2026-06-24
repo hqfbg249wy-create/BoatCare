@@ -14,41 +14,65 @@ import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 
 // ── Category → Icon + Color mapping (matches iOS app) ──
+// tkey = i18n-Schlüssel; Aliase (deutsch/englisch/Groß-klein) zeigen auf denselben
+// tkey, damit Dubletten im Dropdown zusammenfallen und alles übersetzt wird.
 const categoryConfig = {
-  werkstatt:    { icon: '🔧', label: 'Werkstatt', color: '#f97316' },
-  repair:       { icon: '🔧', label: 'Reparatur', color: '#f97316' },
-  motor_service:{ icon: '⚙️', label: 'Motorservice', color: '#f97316' },
-  motorservice: { icon: '⚙️', label: 'Motorservice', color: '#f97316' },
-  segelmacher:  { icon: '⛵', label: 'Segelmacher', color: '#8b5cf6' },
-  sailmaker:    { icon: '⛵', label: 'Sailmaker', color: '#8b5cf6' },
-  versorgung:   { icon: '🛒', label: 'Versorgung', color: '#10b981' },
-  supplies:     { icon: '🛒', label: 'Supplies', color: '#10b981' },
-  marine_supplies: { icon: '🛒', label: 'Marine Supplies', color: '#10b981' },
-  shop:         { icon: '🛒', label: 'Shop', color: '#10b981' },
-  tankstelle:   { icon: '⛽', label: 'Tankstelle', color: '#ef4444' },
-  fuel:         { icon: '⛽', label: 'Fuel', color: '#ef4444' },
-  rigg:         { icon: '🔗', label: 'Rigg', color: '#92400e' },
-  rigging:      { icon: '🔗', label: 'Rigging', color: '#92400e' },
-  elektronik:   { icon: '📡', label: 'Elektronik', color: '#3b82f6' },
-  instruments:  { icon: '📡', label: 'Instrumente', color: '#3b82f6' },
-  marina:       { icon: '🌊', label: 'Marina', color: '#0ea5e9' },
-  werft:        { icon: '🚢', label: 'Werft', color: '#64748b' },
-  shipyard:     { icon: '🚢', label: 'Werft', color: '#64748b' },
-  bootsbauer:   { icon: '🚢', label: 'Bootsbauer', color: '#64748b' },
-  gutachter:    { icon: '📋', label: 'Gutachter', color: '#6366f1' },
-  surveyor:     { icon: '📋', label: 'Surveyor', color: '#6366f1' },
-  lackiererei:  { icon: '🎨', label: 'Lackiererei', color: '#ec4899' },
-  painting:     { icon: '🎨', label: 'Lackierung', color: '#ec4899' },
-  winterlager:  { icon: '❄️', label: 'Winterlager', color: '#06b6d4' },
-  kran:         { icon: '🏗️', label: 'Kran', color: '#78716c' },
-  crane:        { icon: '🏗️', label: 'Crane', color: '#78716c' },
-  heizung_klima:{ icon: '🌡️', label: 'Heizung/Klima', color: '#f43f5e' },
+  werkstatt:    { icon: '🔧', tkey: 'mcat.workshop', color: '#f97316' },
+  repair:       { icon: '🔧', tkey: 'mcat.repair', color: '#f97316' },
+  reparatur:    { icon: '🔧', tkey: 'mcat.repair', color: '#f97316' },
+  motor_service:{ icon: '⚙️', tkey: 'mcat.motorService', color: '#f97316' },
+  motorservice: { icon: '⚙️', tkey: 'mcat.motorService', color: '#f97316' },
+  segelmacher:  { icon: '⛵', tkey: 'mcat.sailmaker', color: '#8b5cf6' },
+  sailmaker:    { icon: '⛵', tkey: 'mcat.sailmaker', color: '#8b5cf6' },
+  versorgung:   { icon: '🛒', tkey: 'mcat.supplies', color: '#10b981' },
+  supplies:     { icon: '🛒', tkey: 'mcat.supplies', color: '#10b981' },
+  marine_supplies: { icon: '🛒', tkey: 'mcat.supplies', color: '#10b981' },
+  shop:         { icon: '🛒', tkey: 'mcat.supplies', color: '#10b981' },
+  'zubehör':    { icon: '🛒', tkey: 'mcat.supplies', color: '#10b981' },
+  zubehoer:     { icon: '🛒', tkey: 'mcat.supplies', color: '#10b981' },
+  tankstelle:   { icon: '⛽', tkey: 'mcat.fuel', color: '#ef4444' },
+  fuel:         { icon: '⛽', tkey: 'mcat.fuel', color: '#ef4444' },
+  rigg:         { icon: '🔗', tkey: 'mcat.rigging', color: '#92400e' },
+  rigging:      { icon: '🔗', tkey: 'mcat.rigging', color: '#92400e' },
+  elektronik:   { icon: '📡', tkey: 'mcat.electronics', color: '#3b82f6' },
+  electronics:  { icon: '📡', tkey: 'mcat.electronics', color: '#3b82f6' },
+  instruments:  { icon: '📡', tkey: 'mcat.instruments', color: '#3b82f6' },
+  instrumente:  { icon: '📡', tkey: 'mcat.instruments', color: '#3b82f6' },
+  marina:       { icon: '🌊', tkey: 'mcat.marina', color: '#0ea5e9' },
+  werft:        { icon: '🚢', tkey: 'mcat.shipyard', color: '#64748b' },
+  shipyard:     { icon: '🚢', tkey: 'mcat.shipyard', color: '#64748b' },
+  bootsbauer:   { icon: '🚢', tkey: 'mcat.boatBuilder', color: '#64748b' },
+  gutachter:    { icon: '📋', tkey: 'mcat.surveyor', color: '#6366f1' },
+  surveyor:     { icon: '📋', tkey: 'mcat.surveyor', color: '#6366f1' },
+  lackiererei:  { icon: '🎨', tkey: 'mcat.painting', color: '#ec4899' },
+  painting:     { icon: '🎨', tkey: 'mcat.painting', color: '#ec4899' },
+  winterlager:  { icon: '❄️', tkey: 'mcat.winterStorage', color: '#06b6d4' },
+  kran:         { icon: '🏗️', tkey: 'mcat.crane', color: '#78716c' },
+  crane:        { icon: '🏗️', tkey: 'mcat.crane', color: '#78716c' },
+  heizung_klima:{ icon: '🌡️', tkey: 'mcat.heating', color: '#f43f5e' },
+  heating:      { icon: '🌡️', tkey: 'mcat.heating', color: '#f43f5e' },
+  diver:        { icon: '🤿', tkey: 'mcat.diver', color: '#0891b2' },
+  taucher:      { icon: '🤿', tkey: 'mcat.diver', color: '#0891b2' },
+  sonstige:     { icon: '⚓', tkey: 'mcat.other', color: '#3b82f6' },
+  sonstiges:    { icon: '⚓', tkey: 'mcat.other', color: '#3b82f6' },
+  other:        { icon: '⚓', tkey: 'mcat.other', color: '#3b82f6' },
 }
 
+function normCat(category) {
+  return (category || '').toLowerCase().replace(/[/ ]/g, '_')
+}
 function getCategoryConfig(category) {
-  if (!category) return { icon: '⚓', label: 'Service', color: '#3b82f6' }
-  const key = category.toLowerCase().replace(/[/ ]/g, '_')
-  return categoryConfig[key] || { icon: '⚓', label: category.replace(/_/g, ' '), color: '#3b82f6' }
+  if (!category) return { icon: '⚓', tkey: null, fallback: 'Service', color: '#3b82f6' }
+  return categoryConfig[normCat(category)] || { icon: '⚓', tkey: null, fallback: category.replace(/_/g, ' '), color: '#3b82f6' }
+}
+// Eindeutige Gruppen-ID (zum Dedupen + Filtern): tkey wenn bekannt, sonst normalisierter Rohwert
+function catGroupId(category) {
+  const c = getCategoryConfig(category)
+  return c.tkey || normCat(category)
+}
+// Übersetztes Label (tkey via t(), sonst Rohwert)
+function catLabel(t, cfg) {
+  return cfg.tkey ? t(cfg.tkey) : cfg.fallback
 }
 
 // ── Rating → Pin color (matches iOS: green=good, yellow=medium, red=bad, blue=none) ──
@@ -307,10 +331,22 @@ export default function MapView() {
     }
   }
 
-  const categories = [...new Set(providers.map(p => p.category).filter(Boolean))].sort()
+  // Kategorien aus den Anbieter-Daten, dedupliziert per Gruppen-ID (deutsch/englisch/
+  // Groß-klein fallen zusammen), sortiert nach übersetztem Label.
+  const categories = (() => {
+    const byGroup = new Map() // groupId -> sample raw category
+    for (const p of providers) {
+      if (!p.category) continue
+      const g = catGroupId(p.category)
+      if (!byGroup.has(g)) byGroup.set(g, p.category)
+    }
+    return [...byGroup.entries()]
+      .map(([id, sample]) => ({ id, cfg: getCategoryConfig(sample) }))
+      .sort((a, b) => catLabel(t, a.cfg).localeCompare(catLabel(t, b.cfg)))
+  })()
 
   const filtered = providers.filter(p => {
-    if (filterCat && p.category !== filterCat) return false
+    if (filterCat && catGroupId(p.category) !== filterCat) return false
     if (search) {
       const words = search.toLowerCase().trim().split(/\s+/).filter(w => w.length >= 2)
       if (words.length === 0) return true
@@ -412,10 +448,9 @@ export default function MapView() {
           </div>
           <select value={filterCat} onChange={e => setFilterCat(e.target.value)}>
             <option value="">{t('mapv.k2')}</option>
-            {categories.map(c => {
-              const cfg = getCategoryConfig(c)
-              return <option key={c} value={c}>{cfg.icon} {cfg.label}</option>
-            })}
+            {categories.map(c => (
+              <option key={c.id} value={c.id}>{c.cfg.icon} {catLabel(t, c.cfg)}</option>
+            ))}
           </select>
         </div>
         <div className="map-legend">
@@ -487,10 +522,9 @@ export default function MapView() {
           </div>
           <select className="map-mobile-filter" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
             <option value="">{t('mapv.k11')}</option>
-            {categories.map(c => {
-              const cfg = getCategoryConfig(c)
-              return <option key={c} value={c}>{cfg.icon} {cfg.label}</option>
-            })}
+            {categories.map(c => (
+              <option key={c.id} value={c.id}>{c.cfg.icon} {catLabel(t, c.cfg)}</option>
+            ))}
           </select>
         </div>
 
@@ -602,7 +636,7 @@ function ProviderDetailCard({ provider, isFavorite, onToggleFavorite, onClose })
           <div className="pdc-title">
             <h3>{provider.name}</h3>
             <span className="pdc-cat-badge" style={{ background: `${cat.color}15`, color: cat.color }}>
-              {cat.icon} {cat.label}
+              {cat.icon} {catLabel(t, cat)}
             </span>
             <StarRating rating={provider.rating} count={provider.review_count} />
           </div>
@@ -714,7 +748,7 @@ function ProviderCard({ provider, isFavorite, onToggleFavorite }) {
         <div className="prov-info">
           <h3>{provider.name}</h3>
           <span className="prov-category-badge" style={{ background: `${cat.color}15`, color: cat.color }}>
-            {cat.icon} {cat.label}
+            {cat.icon} {catLabel(t, cat)}
           </span>
           <StarRating rating={provider.rating} count={provider.review_count} />
         </div>
