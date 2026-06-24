@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import { ShoppingCart, Truck, MapPin, CreditCard, Check, ChevronLeft, ChevronRight, Package, AlertTriangle } from 'lucide-react'
+import { useT } from '../i18n'
 
 const COUNTRIES = [
   { code: 'DE', name: 'Deutschland' },
@@ -17,6 +18,7 @@ const COUNTRIES = [
 ]
 
 export default function Checkout() {
+  const { t } = useT()
   const { user, profile } = useAuth()
   const navigate = useNavigate()
   const [cart, setCart] = useState([])
@@ -297,8 +299,8 @@ export default function Checkout() {
       <div className="page">
         <div className="empty-state">
           <ShoppingCart size={64} color="#cbd5e1" />
-          <h2>Warenkorb ist leer</h2>
-          <button className="btn-primary" onClick={() => navigate('/shop')}>Zum Shop</button>
+          <h2>{t('chk.k0')}</h2>
+          <button className="btn-primary" onClick={() => navigate('/shop')}>{t('chk.k1')}</button>
         </div>
       </div>
     )
@@ -314,23 +316,23 @@ export default function Checkout() {
         <ChevronLeft size={20} /> {step === 0 ? 'Zurück zum Shop' : 'Zurück'}
       </button>
 
-      <h1>Bestellung aufgeben</h1>
+      <h1>{t('chk.k2')}</h1>
 
       {/* Progress steps */}
       <div className="checkout-steps">
         <div className={`checkout-step ${step >= 0 ? 'active' : ''} ${step > 0 ? 'done' : ''}`}>
           <div className="step-circle">{step > 0 ? <Check size={16} /> : '1'}</div>
-          <span>Lieferadresse</span>
+          <span>{t('chk.k3')}</span>
         </div>
         <div className="step-line" />
         <div className={`checkout-step ${step >= 1 ? 'active' : ''} ${step > 1 ? 'done' : ''}`}>
           <div className="step-circle">{step > 1 ? <Check size={16} /> : '2'}</div>
-          <span>Überprüfen</span>
+          <span>{t('chk.k4')}</span>
         </div>
         <div className="step-line" />
         <div className={`checkout-step ${step >= 2 ? 'active' : ''} ${step > 2 ? 'done' : ''}`}>
           <div className="step-circle">{step > 2 ? <Check size={16} /> : '3'}</div>
-          <span>Bezahlung</span>
+          <span>{t('chk.k5')}</span>
         </div>
       </div>
 
@@ -339,14 +341,14 @@ export default function Checkout() {
       {/* Step 0: Shipping address */}
       {step === 0 && (
         <div className="card">
-          <h2><MapPin size={18} /> Lieferadresse</h2>
+          <h2><MapPin size={18} /> {t('chk.k3')}</h2>
           <div className="form-group">
-            <label>Name *</label>
-            <input value={shipping.name} onChange={e => setShipping({ ...shipping, name: e.target.value })} placeholder="Vor- und Nachname" />
+            <label>{t('chk.k6')}</label>
+            <input value={shipping.name} onChange={e => setShipping({ ...shipping, name: e.target.value })} placeholder={t('chk.k27')} />
           </div>
           <div className="form-group">
-            <label>Straße und Hausnummer *</label>
-            <input value={shipping.street} onChange={e => setShipping({ ...shipping, street: e.target.value })} placeholder="Musterstraße 123" />
+            <label>{t('chk.k7')}</label>
+            <input value={shipping.street} onChange={e => setShipping({ ...shipping, street: e.target.value })} placeholder={t('chk.k28')} />
           </div>
           <div className="form-row">
             <div className="form-group">
@@ -354,22 +356,22 @@ export default function Checkout() {
               <input value={shipping.postalCode} onChange={e => setShipping({ ...shipping, postalCode: e.target.value })} placeholder="12345" />
             </div>
             <div className="form-group">
-              <label>Stadt *</label>
-              <input value={shipping.city} onChange={e => setShipping({ ...shipping, city: e.target.value })} placeholder="Musterstadt" />
+              <label>{t('chk.k8')}</label>
+              <input value={shipping.city} onChange={e => setShipping({ ...shipping, city: e.target.value })} placeholder={t('chk.k29')} />
             </div>
           </div>
           <div className="form-group">
-            <label>Land</label>
+            <label>{t('chk.k9')}</label>
             <select value={shipping.country} onChange={e => setShipping({ ...shipping, country: e.target.value })}>
               {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
             </select>
           </div>
           <div className="form-group">
-            <label>Hinweis zur Lieferung (optional)</label>
-            <textarea value={shipping.note} onChange={e => setShipping({ ...shipping, note: e.target.value })} rows={2} placeholder="z.B. Zugang über Hintereingang..." />
+            <label>{t('chk.k10')}</label>
+            <textarea value={shipping.note} onChange={e => setShipping({ ...shipping, note: e.target.value })} rows={2} placeholder={t('chk.k30')} />
           </div>
           <button className="btn-primary btn-full" onClick={() => validateAddress() && setStep(1)}>
-            Weiter zur Überprüfung <ChevronRight size={16} />
+            {t('chk.k11')} <ChevronRight size={16} />
           </button>
         </div>
       )}
@@ -377,7 +379,7 @@ export default function Checkout() {
       {/* Step 1: Review order */}
       {step === 1 && (
         <div className="card">
-          <h2><Package size={18} /> Bestellübersicht</h2>
+          <h2><Package size={18} /> {t('chk.k12')}</h2>
 
           <div className="checkout-address-preview">
             <strong>{shipping.name}</strong>
@@ -405,15 +407,15 @@ export default function Checkout() {
 
           <div className="checkout-totals">
             <div className="checkout-total-row">
-              <span>Zwischensumme</span>
+              <span>{t('chk.k13')}</span>
               <span>{cartTotal.toFixed(2).replace('.', ',')} €</span>
             </div>
             <div className="checkout-total-row">
-              <span>Versand</span>
-              <span>Kostenlos</span>
+              <span>{t('chk.k14')}</span>
+              <span>{t('chk.k15')}</span>
             </div>
             <div className="checkout-total-row checkout-grand-total">
-              <span>Gesamt</span>
+              <span>{t('chk.k16')}</span>
               <span>{cartTotal.toFixed(2).replace('.', ',')} €</span>
             </div>
           </div>
@@ -427,16 +429,16 @@ export default function Checkout() {
       {/* Step 2: Payment with embedded Stripe Element */}
       {step === 2 && (
         <div className="card">
-          <h2><CreditCard size={18} /> Bezahlung</h2>
+          <h2><CreditCard size={18} /> {t('chk.k5')}</h2>
 
           <div className="checkout-test-notice">
             <AlertTriangle size={16} />
-            <span>Testmodus: Verwenden Sie die Kartennummer <strong>4242 4242 4242 4242</strong> mit beliebigem Datum und CVC.</span>
+            <span>{t('chk.k17')} <strong>4242 4242 4242 4242</strong> mit beliebigem Datum und CVC.</span>
           </div>
 
           <div className="checkout-totals" style={{ marginBottom: 20 }}>
             <div className="checkout-total-row checkout-grand-total">
-              <span>Zu bezahlen</span>
+              <span>{t('chk.k18')}</span>
               <span>{cartTotal.toFixed(2).replace('.', ',')} €</span>
             </div>
           </div>
@@ -445,7 +447,7 @@ export default function Checkout() {
           <div id="stripe-payment-element" style={{ minHeight: 120, padding: '12px 0' }} />
 
           <button className="btn-primary btn-full" onClick={handlePayment} disabled={loading} style={{ marginTop: 20 }}>
-            {loading ? 'Zahlung wird verarbeitet...' : <><CreditCard size={16} /> Jetzt bezahlen</>}
+            {loading ? 'Zahlung wird verarbeitet...' : <><CreditCard size={16} /> {t('chk.k19')}</>}
           </button>
         </div>
       )}
@@ -456,25 +458,25 @@ export default function Checkout() {
           <div className="success-icon">
             <Check size={40} />
           </div>
-          <h2>Bestellung erfolgreich!</h2>
-          <p>Vielen Dank für Ihre Bestellung.</p>
+          <h2>{t('chk.k20')}</h2>
+          <p>{t('chk.k21')}</p>
           {orderNumbers.length > 0 && (
             <div className="success-orders">
-              <strong>Bestellnummern:</strong>
+              <strong>{t('chk.k22')}</strong>
               {orderNumbers.map((nr, i) => <span key={i} className="success-order-nr">{nr}</span>)}
             </div>
           )}
           <div className="success-details">
-            <p>Lieferung an: <strong>{shipping.name}</strong></p>
+            <p>{t('chk.k23')} <strong>{shipping.name}</strong></p>
             <p>{shipping.street}, {shipping.postalCode} {shipping.city}</p>
-            <p className="success-total">Bezahlt: <strong>{cartTotal.toFixed(2).replace('.', ',')} €</strong></p>
+            <p className="success-total">{t('chk.k24')} <strong>{cartTotal.toFixed(2).replace('.', ',')} €</strong></p>
           </div>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 20 }}>
             <button className="btn-primary" onClick={() => navigate('/orders')}>
-              Meine Bestellungen
+              {t('chk.k25')}
             </button>
             <button className="btn-secondary" onClick={() => navigate('/shop')}>
-              Weiter einkaufen
+              {t('chk.k26')}
             </button>
           </div>
         </div>

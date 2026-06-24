@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { User, MapPin, Save, CheckCircle, Shield, Gift, Copy, Share2, Fingerprint, Trash2 } from 'lucide-react'
 import MFASetup from '../components/MFASetup'
+import { useT } from '../i18n'
 
 export default function Profile() {
+  const { t } = useT()
   const { user, profile, updateProfile, loadReferralStats,
           listPasskeys, enrollPasskey, removePasskey } = useAuth()
   const [saving, setSaving] = useState(false)
@@ -43,7 +45,7 @@ export default function Profile() {
   }
 
   async function handleRemovePasskey(id) {
-    if (!confirm('Diesen Passkey wirklich entfernen?')) return
+    if (!confirm(t('prof.k31'))) return
     try {
       await removePasskey(id)
       await reloadPasskeys()
@@ -80,7 +82,7 @@ export default function Profile() {
     } else {
       // Fallback: in die Zwischenablage und Hinweis
       navigator.clipboard.writeText(text)
-      alert('Einladungstext in die Zwischenablage kopiert.')
+      alert(t('prof.k32'))
     }
   }
   const [form, setForm] = useState({
@@ -108,29 +110,29 @@ export default function Profile() {
 
   return (
     <div className="page">
-      <h1>Mein Profil</h1>
+      <h1>{t('prof.k0')}</h1>
       <p className="subtitle">{user?.email}</p>
 
       <form onSubmit={handleSave}>
         <div className="card">
-          <h2><User size={18} /> Persönliche Daten</h2>
+          <h2><User size={18} /> {t('prof.k1')}</h2>
           <div className="form-row">
             <div className="form-group">
-              <label>Name</label>
-              <input value={form.full_name} onChange={e => setForm({...form, full_name: e.target.value})} placeholder="Ihr Name" />
+              <label>{t('prof.k2')}</label>
+              <input value={form.full_name} onChange={e => setForm({...form, full_name: e.target.value})} placeholder={t('prof.k28')} />
             </div>
             <div className="form-group">
-              <label>Telefon</label>
+              <label>{t('prof.k3')}</label>
               <input value={form.phone_number} onChange={e => setForm({...form, phone_number: e.target.value})} placeholder="+49 ..." />
             </div>
           </div>
         </div>
 
         <div className="card">
-          <h2><MapPin size={18} /> Lieferadresse</h2>
+          <h2><MapPin size={18} /> {t('prof.k4')}</h2>
           <div className="form-group">
-            <label>Strasse & Hausnummer</label>
-            <input value={form.shipping_street} onChange={e => setForm({...form, shipping_street: e.target.value})} placeholder="Musterstrasse 1" />
+            <label>{t('prof.k5')}</label>
+            <input value={form.shipping_street} onChange={e => setForm({...form, shipping_street: e.target.value})} placeholder={t('prof.k29')} />
           </div>
           <div className="form-row">
             <div className="form-group">
@@ -138,21 +140,21 @@ export default function Profile() {
               <input value={form.shipping_postal_code} onChange={e => setForm({...form, shipping_postal_code: e.target.value})} placeholder="53129" />
             </div>
             <div className="form-group">
-              <label>Stadt</label>
-              <input value={form.shipping_city} onChange={e => setForm({...form, shipping_city: e.target.value})} placeholder="Bonn" />
+              <label>{t('prof.k6')}</label>
+              <input value={form.shipping_city} onChange={e => setForm({...form, shipping_city: e.target.value})} placeholder={t('prof.k30')} />
             </div>
             <div className="form-group">
-              <label>Land</label>
+              <label>{t('prof.k7')}</label>
               <select value={form.shipping_country} onChange={e => setForm({...form, shipping_country: e.target.value})}>
-                <option>Deutschland</option>
-                <option>Oesterreich</option>
-                <option>Schweiz</option>
-                <option>Niederlande</option>
-                <option>Frankreich</option>
-                <option>Italien</option>
-                <option>Spanien</option>
-                <option>Kroatien</option>
-                <option>Griechenland</option>
+                <option>{t('prof.k8')}</option>
+                <option>{t('prof.k9')}</option>
+                <option>{t('prof.k10')}</option>
+                <option>{t('prof.k11')}</option>
+                <option>{t('prof.k12')}</option>
+                <option>{t('prof.k13')}</option>
+                <option>{t('prof.k14')}</option>
+                <option>{t('prof.k15')}</option>
+                <option>{t('prof.k16')}</option>
               </select>
             </div>
           </div>
@@ -160,16 +162,15 @@ export default function Profile() {
 
         <div className="form-actions">
           <button type="submit" className="btn-primary" disabled={saving}>
-            {saved ? <><CheckCircle size={16} /> Gespeichert</> : <><Save size={16} /> {saving ? 'Speichern...' : 'Speichern'}</>}
+            {saved ? <><CheckCircle size={16} /> {t('prof.k17')}</> : <><Save size={16} /> {saving ? 'Speichern...' : 'Speichern'}</>}
           </button>
         </div>
       </form>
 
       <div className="card">
-        <h2><Gift size={18} /> Freunde einladen</h2>
+        <h2><Gift size={18} /> {t('prof.k18')}</h2>
         <p style={{ color: '#64748b', fontSize: '0.92rem', marginTop: 4 }}>
-          Lade Bootseigner zu Skipily ein. Sobald sie 7 Tage dabei sind, bekommt ihr
-          beide einen Monat Skipily Plus geschenkt.
+          {t('prof.k19')}
         </p>
 
         {referralStats?.my_code ? (
@@ -181,7 +182,7 @@ export default function Profile() {
             }}>
               <div style={{ flex: '1 1 auto' }}>
                 <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: 2 }}>
-                  Dein Empfehlungs-Code
+                  {t('prof.k20')}
                 </div>
                 <div style={{
                   fontFamily: 'ui-monospace, SF Mono, monospace',
@@ -198,7 +199,7 @@ export default function Profile() {
               <button type="button" onClick={shareCode}
                       className="btn-primary"
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <Share2 size={14} /> Teilen
+                <Share2 size={14} /> {t('prof.k21')}
               </button>
             </div>
 
@@ -213,7 +214,7 @@ export default function Profile() {
                 <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#16a34a' }}>
                   {referralStats.granted_count || 0}
                 </div>
-                <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Gutschrift</div>
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{t('prof.k22')}</div>
               </div>
               <div style={{
                 padding: '10px 8px', background: '#fff',
@@ -222,7 +223,7 @@ export default function Profile() {
                 <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#ea580c' }}>
                   {referralStats.pending_count || 0}
                 </div>
-                <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Offen</div>
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{t('prof.k23')}</div>
               </div>
               <div style={{
                 padding: '10px 8px', background: '#fff',
@@ -231,19 +232,18 @@ export default function Profile() {
                 <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0284c7' }}>
                   {referralStats.granted_this_year || 0}
                 </div>
-                <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Dieses Jahr</div>
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{t('prof.k24')}</div>
               </div>
             </div>
             {referralStats.granted_this_year >= 12 && (
               <p style={{ marginTop: 10, fontSize: '0.82rem', color: '#ea580c' }}>
-                Jahres-Cap erreicht (12 Empfehlungen). Neue Empfehlungen werden ab
-                Januar wieder gutgeschrieben.
+                {t('prof.k25')}
               </p>
             )}
           </>
         ) : (
           <p style={{ marginTop: 10, fontSize: '0.85rem', color: '#94a3b8' }}>
-            Empfehlungs-Code wird geladen …
+            {t('prof.k26')}
           </p>
         )}
       </div>
@@ -258,7 +258,7 @@ export default function Profile() {
       */}
 
       <div className="card">
-        <h2><Shield size={18} /> Sicherheit</h2>
+        <h2><Shield size={18} /> {t('prof.k27')}</h2>
         <MFASetup />
       </div>
     </div>

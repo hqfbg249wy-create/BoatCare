@@ -7,6 +7,7 @@ import {
   MailOpen, XCircle, ChevronRight, Pencil, Trash2,
   AlertCircle, RefreshCw, X, Ship
 } from 'lucide-react'
+import { useT } from '../i18n'
 
 const statusConfig = {
   draft:   { label: 'Entwurf',    color: '#94a3b8', bg: '#f1f5f9',   icon: Pencil },
@@ -17,6 +18,7 @@ const statusConfig = {
 }
 
 function StatusBadge({ status }) {
+  const { t } = useT()
   const cfg = statusConfig[status] || statusConfig.draft
   const Icon = cfg.icon
   return (
@@ -37,6 +39,7 @@ function timeAgo(dateStr) {
 }
 
 export default function Inquiries() {
+  const { t } = useT()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [inquiries, setInquiries] = useState([])
@@ -79,7 +82,7 @@ export default function Inquiries() {
   // ── Edit / Save draft ─────────────────────────────────────────────────────
   async function saveDraft() {
     if (!editing.subject?.trim() || !editing.message?.trim()) {
-      alert('Bitte Betreff und Nachricht ausfüllen.')
+      alert(t('inq.k23'))
       return
     }
     setSaving(true)
@@ -100,7 +103,7 @@ export default function Inquiries() {
 
   async function sendInquiry(inq) {
     if (!inq.subject?.trim() || !inq.message?.trim()) {
-      alert('Bitte Betreff und Nachricht ausfüllen.')
+      alert(t('inq.k23'))
       return
     }
     setSaving(true)
@@ -125,7 +128,7 @@ export default function Inquiries() {
   if (loading) return (
     <div className="page-loading">
       <div className="spinner" />
-      <p>Laden…</p>
+      <p>{t('inq.k0')}</p>
     </div>
   )
 
@@ -134,7 +137,7 @@ export default function Inquiries() {
       {/* Header */}
       <div className="inq-page-header">
         <div>
-          <h1>Anfragen</h1>
+          <h1>{t('inq.k1')}</h1>
           <p className="subtitle">
             {inquiries.length} Anfrage{inquiries.length !== 1 ? 'n' : ''}
             {draftCount > 0 && ` · ${draftCount} Entwurf${draftCount !== 1 ? 'e' : ''}`}
@@ -142,7 +145,7 @@ export default function Inquiries() {
           </p>
         </div>
         <button className="btn-primary btn-sm" onClick={() => navigate('/services')}>
-          <MessageSquarePlus size={16} /> Neue Anfrage
+          <MessageSquarePlus size={16} /> {t('inq.k2')}
         </button>
       </div>
 
@@ -172,7 +175,7 @@ export default function Inquiries() {
           </p>
           {filterStatus === 'all' && (
             <button className="btn-primary" onClick={() => navigate('/services')}>
-              Service-Partner suchen
+              {t('inq.k3')}
             </button>
           )}
         </div>
@@ -214,13 +217,13 @@ export default function Inquiries() {
             {expanded === inq.id && (
               <div className="inq-card-body">
                 <div className="inq-message-box">
-                  <div className="inq-message-label">Deine Nachricht</div>
+                  <div className="inq-message-label">{t('inq.k4')}</div>
                   <p>{inq.message}</p>
                 </div>
 
                 {inq.owner_notes && (
                   <div className="inq-notes-box">
-                    <div className="inq-message-label">Private Notizen</div>
+                    <div className="inq-message-label">{t('inq.k5')}</div>
                     <p>{inq.owner_notes}</p>
                   </div>
                 )}
@@ -240,28 +243,28 @@ export default function Inquiries() {
                   {inq.status === 'draft' && (
                     <>
                       <button className="btn-primary btn-sm" onClick={() => setEditing({ ...inq })}>
-                        <Pencil size={14} /> Bearbeiten
+                        <Pencil size={14} /> {t('inq.k6')}
                       </button>
                       <button className="btn-success btn-sm" onClick={() => {
                         if (confirm(`Anfrage an „${inq.provider?.name}" jetzt senden?`)) sendInquiry(inq)
                       }} disabled={saving}>
-                        <Send size={14} /> Senden
+                        <Send size={14} /> {t('inq.k7')}
                       </button>
                     </>
                   )}
                   {['sent', 'read'].includes(inq.status) && (
                     <button className="btn-ghost btn-sm" onClick={() => navigate(`/provider/${inq.provider_id}`)}>
-                      Zum Anbieter
+                      {t('inq.k8')}
                     </button>
                   )}
                   {inq.status === 'replied' && (
                     <button className="btn-primary btn-sm" onClick={() => navigate(`/provider/${inq.provider_id}`)}>
-                      <MessageSquarePlus size={14} /> Neue Anfrage
+                      <MessageSquarePlus size={14} /> {t('inq.k2')}
                     </button>
                   )}
                   {['draft', 'sent'].includes(inq.status) && (
                     <button className="btn-danger btn-sm" onClick={() => setDeleteConfirm(inq.id)}>
-                      <Trash2 size={14} /> Löschen
+                      <Trash2 size={14} /> {t('inq.k9')}
                     </button>
                   )}
                 </div>
@@ -274,7 +277,7 @@ export default function Inquiries() {
       {/* Refresh hint */}
       {inquiries.length > 0 && (
         <button className="inq-refresh-btn" onClick={loadInquiries}>
-          <RefreshCw size={14} /> Aktualisieren
+          <RefreshCw size={14} /> {t('inq.k10')}
         </button>
       )}
 
@@ -283,7 +286,7 @@ export default function Inquiries() {
         <div className="inq-modal-overlay" onClick={() => setEditing(null)}>
           <div className="inq-modal" onClick={e => e.stopPropagation()}>
             <div className="inq-modal-header">
-              <span>Anfrage bearbeiten</span>
+              <span>{t('inq.k11')}</span>
               <button className="btn-icon" onClick={() => setEditing(null)}><X size={18} /></button>
             </div>
             <div className="inq-modal-body">
@@ -293,47 +296,47 @@ export default function Inquiries() {
 
               {boats.length > 0 && (
                 <div className="form-group">
-                  <label>Boot (optional)</label>
+                  <label>{t('inq.k12')}</label>
                   <select value={editing.boat_id || ''} onChange={e => setEditing(prev => ({ ...prev, boat_id: e.target.value || null }))}>
-                    <option value="">— kein Boot angeben —</option>
+                    <option value="">{t('inq.k22')}</option>
                     {boats.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                 </div>
               )}
 
               <div className="form-group">
-                <label>Betreff *</label>
+                <label>{t('inq.k13')}</label>
                 <input
                   type="text"
                   value={editing.subject}
                   onChange={e => setEditing(prev => ({ ...prev, subject: e.target.value }))}
-                  placeholder="Worum geht es?"
+                  placeholder={t('inq.k19')}
                   maxLength={200}
                 />
               </div>
 
               <div className="form-group">
-                <label>Nachricht *</label>
+                <label>{t('inq.k14')}</label>
                 <textarea
                   rows={6}
                   value={editing.message}
                   onChange={e => setEditing(prev => ({ ...prev, message: e.target.value }))}
-                  placeholder="Beschreibe dein Anliegen…"
+                  placeholder={t('inq.k20')}
                 />
               </div>
 
               <div className="form-group">
-                <label>Private Notizen <span className="form-label-hint">(nur für dich)</span></label>
+                <label>{t('inq.k5')} <span className="form-label-hint">(nur für dich)</span></label>
                 <textarea
                   rows={2}
                   value={editing.owner_notes || ''}
                   onChange={e => setEditing(prev => ({ ...prev, owner_notes: e.target.value }))}
-                  placeholder="Deine internen Notizen zu dieser Anfrage…"
+                  placeholder={t('inq.k21')}
                 />
               </div>
             </div>
             <div className="inq-modal-actions">
-              <button className="btn-ghost" onClick={() => setEditing(null)}>Abbrechen</button>
+              <button className="btn-ghost" onClick={() => setEditing(null)}>{t('inq.k15')}</button>
               <button className="btn-secondary" onClick={saveDraft} disabled={saving}>
                 <Clock size={14} /> {saving ? 'Speichern…' : 'Als Entwurf speichern'}
               </button>
@@ -344,7 +347,7 @@ export default function Inquiries() {
                   }
                 })
               }} disabled={saving}>
-                <Send size={14} /> Jetzt senden
+                <Send size={14} /> {t('inq.k16')}
               </button>
             </div>
           </div>
@@ -357,16 +360,16 @@ export default function Inquiries() {
           <div className="inq-modal inq-modal-sm" onClick={e => e.stopPropagation()}>
             <div className="inq-modal-header">
               <AlertCircle size={18} color="#ef4444" />
-              <span>Anfrage löschen?</span>
+              <span>{t('inq.k17')}</span>
               <button className="btn-icon" onClick={() => setDeleteConfirm(null)}><X size={18} /></button>
             </div>
             <div className="inq-modal-body">
-              <p>Diese Anfrage wird unwiderruflich gelöscht.</p>
+              <p>{t('inq.k18')}</p>
             </div>
             <div className="inq-modal-actions">
-              <button className="btn-ghost" onClick={() => setDeleteConfirm(null)}>Abbrechen</button>
+              <button className="btn-ghost" onClick={() => setDeleteConfirm(null)}>{t('inq.k15')}</button>
               <button className="btn-danger" onClick={() => deleteInquiry(deleteConfirm)}>
-                <Trash2 size={14} /> Löschen
+                <Trash2 size={14} /> {t('inq.k9')}
               </button>
             </div>
           </div>

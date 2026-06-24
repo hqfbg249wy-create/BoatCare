@@ -3,8 +3,10 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { ChevronLeft, ShoppingCart, Check, Package, Truck, Star, Tag, Plus, Minus, MapPin } from 'lucide-react'
+import { useT } from '../i18n'
 
 export default function ProductDetail() {
+  const { t } = useT()
   const { id } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -72,7 +74,7 @@ export default function ProductDetail() {
   }
 
   if (loading) return <div className="page"><div className="spinner" /></div>
-  if (!product) return <div className="page"><div className="alert alert-error">Produkt nicht gefunden.</div></div>
+  if (!product) return <div className="page"><div className="alert alert-error">{t('prod.k0')}</div></div>
 
   const inCart = cart.some(i => i.id === product.id)
   const discountedPrice = promo
@@ -84,7 +86,7 @@ export default function ProductDetail() {
   return (
     <div className="page product-detail-page">
       <button className="btn-back" onClick={() => navigate(-1)}>
-        <ChevronLeft size={20} /> Zurück
+        <ChevronLeft size={20} /> {t('prod.k1')}
       </button>
 
       <div className="pd-layout">
@@ -159,7 +161,7 @@ export default function ProductDetail() {
             {product.in_stock ? (
               <span className="pd-stock-ok"><Check size={14} /> Auf Lager{product.stock_quantity && product.stock_quantity < 5 ? ` (nur noch ${product.stock_quantity})` : ''}</span>
             ) : (
-              <span className="pd-stock-out">Nicht verfügbar</span>
+              <span className="pd-stock-out">{t('prod.k2')}</span>
             )}
             {product.delivery_days && <span className="pd-delivery">Lieferzeit: {product.delivery_days} Tage</span>}
           </div>
@@ -172,14 +174,14 @@ export default function ProductDetail() {
               <button onClick={() => setQuantity(quantity + 1)}><Plus size={16} /></button>
             </div>
             <button className={`btn-primary pd-add-cart ${inCart ? 'in-cart' : ''}`} onClick={addToCart}>
-              {inCart ? <><Check size={18} /> Im Warenkorb</> : <><ShoppingCart size={18} /> In den Warenkorb</>}
+              {inCart ? <><Check size={18} /> {t('prod.k3')}</> : <><ShoppingCart size={18} /> {t('prod.k4')}</>}
             </button>
           </div>
 
           {/* Description */}
           {product.description && (
             <div className="pd-description">
-              <h3>Beschreibung</h3>
+              <h3>{t('prod.k5')}</h3>
               <p>{product.description}</p>
             </div>
           )}
@@ -187,7 +189,7 @@ export default function ProductDetail() {
           {/* Compatibility */}
           {(product.fits_boat_types?.length > 0 || product.fits_manufacturers?.length > 0) && (
             <div className="pd-compat">
-              <h3>Kompatibilität</h3>
+              <h3>{t('prod.k6')}</h3>
               <div className="pd-tag-list">
                 {product.fits_boat_types?.map((t, i) => <span key={`bt-${i}`} className="pd-tag pd-tag-blue">{t}</span>)}
                 {product.fits_manufacturers?.map((m, i) => <span key={`mf-${i}`} className="pd-tag pd-tag-orange">{m}</span>)}
@@ -200,7 +202,7 @@ export default function ProductDetail() {
       {/* Similar products */}
       {similar.length > 0 && (
         <div className="pd-section" style={{ marginTop: 32 }}>
-          <h3>Ähnliche Produkte</h3>
+          <h3>{t('prod.k7')}</h3>
           <div className="shop-product-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
             {similar.map(p => (
               <Link key={p.id} to={`/shop/product/${p.id}`} className="shop-product-card" style={{ textDecoration: 'none' }}>

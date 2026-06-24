@@ -6,6 +6,7 @@ import { Search, X, ShoppingCart, Tag, Filter, ChevronRight, Plus, Minus, Check,
 import {
   classifyProducts, parseSparePartsParams, hasSparePartsContext, BUCKET_META,
 } from '../lib/sparePartsSearch'
+import { useT } from '../i18n'
 
 // Map SF Symbol names from DB to emojis
 const sfSymbolToEmoji = {
@@ -18,6 +19,7 @@ const sfSymbolToEmoji = {
 function mapIcon(icon) { return sfSymbolToEmoji[icon] || '' }
 
 export default function Shop() {
+  const { t } = useT()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -260,7 +262,7 @@ export default function Shop() {
     <div className="page shop-page">
       <div className="page-header">
         <div>
-          <h1>Shop</h1>
+          <h1>{t('shop.k0')}</h1>
           <p className="subtitle">{products.length} Produkte</p>
         </div>
         {cartCount > 0 && (
@@ -280,12 +282,12 @@ export default function Shop() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            placeholder="Produkt, Marke oder Beschreibung..."
+            placeholder={t('shop.k20')}
           />
           {search && <button className="btn-icon" onClick={() => { setSearch(''); setTimeout(() => loadProducts(0), 0) }}><X size={14} /></button>}
         </div>
         <button className="btn-primary" onClick={handleSearch} style={{ padding: '8px 16px' }}>
-          <Search size={16} /> Suchen
+          <Search size={16} /> {t('shop.k1')}
         </button>
       </div>
 
@@ -313,8 +315,8 @@ export default function Shop() {
           <div className="shop-recommendations-header">
             <span className="shop-recommendations-icon">⚡</span>
             <div>
-              <h3>Passende Produkte für deine Ausrüstung</h3>
-              <p>Basierend auf den Marken in deinem Equipment</p>
+              <h3>{t('shop.k2')}</h3>
+              <p>{t('shop.k3')}</p>
             </div>
           </div>
           <div className="shop-recommendations-scroll">
@@ -351,7 +353,7 @@ export default function Shop() {
 
       {/* Category chips */}
       <div className="shop-categories">
-        <button className={`filter-btn ${!selectedCat ? 'active' : ''}`} onClick={() => handleCategorySelect('')}>Alle</button>
+        <button className={`filter-btn ${!selectedCat ? 'active' : ''}`} onClick={() => handleCategorySelect('')}>{t('shop.k4')}</button>
         {categories.map(c => (
           <button key={c.id} className={`filter-btn ${selectedCat === c.id ? 'active' : ''}`} onClick={() => handleCategorySelect(c.id)}>
             {mapIcon(c.icon)}{mapIcon(c.icon) ? ' ' : ''}{c.name_de || c.slug}
@@ -361,8 +363,8 @@ export default function Shop() {
 
       {providerFilter && (
         <div className="shop-filter-info">
-          <span>Gefiltert nach Anbieter</span>
-          <button className="btn-icon" onClick={() => { setProviderFilter(''); loadProducts(0) }}><X size={14} /> Filter entfernen</button>
+          <span>{t('shop.k5')}</span>
+          <button className="btn-icon" onClick={() => { setProviderFilter(''); loadProducts(0) }}><X size={14} /> {t('shop.k6')}</button>
         </div>
       )}
 
@@ -370,8 +372,8 @@ export default function Shop() {
       {products.length === 0 ? (
         <div className="empty-state">
           <Package size={64} color="#cbd5e1" />
-          <h2>Keine Produkte gefunden</h2>
-          <p>Versuchen Sie einen anderen Suchbegriff oder eine andere Kategorie.</p>
+          <h2>{t('shop.k7')}</h2>
+          <p>{t('shop.k8')}</p>
         </div>
       ) : (
         <>
@@ -429,7 +431,7 @@ export default function Shop() {
                     className={`shop-cart-btn ${inCart ? 'in-cart' : ''}`}
                     onClick={() => addToCart(product)}
                   >
-                    {inCart ? <><Check size={16} /> Im Warenkorb</> : <><ShoppingCart size={16} /> In den Warenkorb</>}
+                    {inCart ? <><Check size={16} /> {t('shop.k9')}</> : <><ShoppingCart size={16} /> {t('shop.k10')}</>}
                   </button>
                 </div>
               )
@@ -439,7 +441,7 @@ export default function Shop() {
           {hasMore && (
             <div style={{ textAlign: 'center', marginTop: 20 }}>
               <button className="btn-secondary" onClick={() => loadProducts(page + 1, true)}>
-                Mehr laden...
+                {t('shop.k11')}
               </button>
             </div>
           )}
@@ -466,11 +468,11 @@ export default function Shop() {
             ))}
           </div>
           <div className="mini-cart-total">
-            <span>Gesamt</span>
+            <span>{t('shop.k12')}</span>
             <strong>{cartTotal.toFixed(2).replace('.', ',')} €</strong>
           </div>
           <button className="btn-primary btn-full" onClick={() => window.location.href = '/checkout'}>
-            Zur Kasse
+            {t('shop.k13')}
           </button>
         </div>
       )}
@@ -489,6 +491,7 @@ export default function Shop() {
 // SparePartsView – iOS-Style 3-Bucket Layout
 // ─────────────────────────────────────────────────────────────────────────
 function SparePartsView({ eq, classified, bestPromo, isInCart, addToCart, onBack, onClearMode }) {
+  const { t } = useT()
   const { originals, derivates, related } = classified
   const totalCount = originals.length + derivates.length + related.length
   const contextChips = [eq.name, eq.manufacturer, eq.model, eq.partNumber].filter(Boolean)
@@ -497,23 +500,23 @@ function SparePartsView({ eq, classified, bestPromo, isInCart, addToCart, onBack
     <div className="page shop-page spare-parts-page">
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button className="btn-icon" onClick={onBack} aria-label="Zurück">
+          <button className="btn-icon" onClick={onBack} aria-label={t('shop.k21')}>
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 style={{ marginBottom: 2 }}>Ersatzteile</h1>
+            <h1 style={{ marginBottom: 2 }}>{t('shop.k14')}</h1>
             <p className="subtitle">{totalCount} Treffer · 1:1-Suche</p>
           </div>
         </div>
         <button className="btn-secondary" onClick={onClearMode} style={{ padding: '8px 12px' }}>
-          <X size={14} /> Modus beenden
+          <X size={14} /> {t('shop.k15')}
         </button>
       </div>
 
       {/* Context-Chips: zeigen wonach gesucht wurde */}
       {contextChips.length > 0 && (
         <div className="sp-context">
-          <span className="sp-context-label">Suche für:</span>
+          <span className="sp-context-label">{t('shop.k16')}</span>
           {contextChips.map((chip, i) => (
             <span key={i} className="sp-context-chip">{chip}</span>
           ))}
@@ -523,10 +526,10 @@ function SparePartsView({ eq, classified, bestPromo, isInCart, addToCart, onBack
       {totalCount === 0 ? (
         <div className="empty-state">
           <Package size={64} color="#cbd5e1" />
-          <h2>Keine passenden Artikel gefunden</h2>
-          <p>Versuche es im normalen Shop mit anderen Suchbegriffen.</p>
+          <h2>{t('shop.k17')}</h2>
+          <p>{t('shop.k18')}</p>
           <button className="btn-primary" onClick={onClearMode}>
-            <Search size={16} /> Zum Shop
+            <Search size={16} /> {t('shop.k19')}
           </button>
         </div>
       ) : (
@@ -550,6 +553,7 @@ function SparePartsView({ eq, classified, bestPromo, isInCart, addToCart, onBack
 }
 
 function SparePartsBucket({ bucket, items, bestPromo, isInCart, addToCart }) {
+  const { t } = useT()
   if (items.length === 0) return null
   const meta = BUCKET_META[bucket]
   return (
@@ -578,6 +582,7 @@ function SparePartsBucket({ bucket, items, bestPromo, isInCart, addToCart }) {
 }
 
 function SparePartsRow({ product, reason, bucket, promo, inCart, onAdd }) {
+  const { t } = useT()
   const meta = BUCKET_META[bucket]
   const inStock = product.in_stock ?? (product.stock_quantity > 0)
   return (
@@ -619,7 +624,7 @@ function SparePartsRow({ product, reason, bucket, promo, inCart, onAdd }) {
       <button
         className={`sp-row-cart-btn ${inCart ? 'in-cart' : ''}`}
         onClick={onAdd}
-        aria-label="In den Warenkorb"
+        aria-label={t('shop.k10')}
       >
         {inCart ? <Check size={16} /> : <ShoppingCart size={16} />}
       </button>

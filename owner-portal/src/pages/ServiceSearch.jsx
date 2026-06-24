@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Search, X, MapPin, Star, Phone, Mail, Globe, Navigation, Wrench, Heart, ShoppingBag, Tag, ChevronRight } from 'lucide-react'
 import { getCurrentLocation, calcDistance as geoCalcDistance, formatDistance } from '../lib/geo'
+import { useT } from '../i18n'
 
 const serviceCategories = [
   { key: '', label: 'Alle', icon: '🔍' },
@@ -23,6 +24,7 @@ const serviceCategories = [
 // calcDistance/formatDistance kommen aus ../lib/geo
 
 export default function ServiceSearch() {
+  const { t } = useT()
   const { user } = useAuth()
   const [searchParams] = useSearchParams()
   const [providers, setProviders] = useState([])
@@ -174,7 +176,7 @@ export default function ServiceSearch() {
 
   return (
     <div className="page">
-      <h1>Service-Suche</h1>
+      <h1>{t('svc.k0')}</h1>
       <p className="subtitle">{filtered.length} Service-Partner{productResults.length > 0 ? ` · ${productResults.length} Produkte` : ''}</p>
 
       {/* Inquiry-Modus Banner */}
@@ -182,8 +184,8 @@ export default function ServiceSearch() {
         <div className="inquiry-mode-banner">
           <div className="inquiry-mode-icon"><Mail size={18} /></div>
           <div className="inquiry-mode-text">
-            <strong>Anfrage senden</strong>
-            <span>Wähle einen Service-Partner für deine Anfrage – der Text ist bereits vorbereitet.</span>
+            <strong>{t('svc.k1')}</strong>
+            <span>{t('svc.k2')}</span>
           </div>
           <button className="btn-icon" onClick={() => {
             sessionStorage.removeItem('pending_inquiry')
@@ -198,7 +200,7 @@ export default function ServiceSearch() {
       <div className="filter-bar">
         <div className="search-input" style={{ maxWidth: 400 }}>
           <Search size={16} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Name, Ort, Service oder Produkt..." />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('svc.k5')} />
           {search && <button className="btn-icon" onClick={() => setSearch('')}><X size={14} /></button>}
         </div>
       </div>
@@ -253,8 +255,8 @@ export default function ServiceSearch() {
           {filtered.length === 0 ? (
             <div className="empty-state">
               <Wrench size={64} color="#cbd5e1" />
-              <h2>Keine Service-Partner gefunden</h2>
-              <p>Versuchen Sie einen anderen Suchbegriff oder eine andere Kategorie.</p>
+              <h2>{t('svc.k3')}</h2>
+              <p>{t('svc.k4')}</p>
             </div>
           ) : (
             <div className="service-list">

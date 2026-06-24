@@ -8,6 +8,7 @@ import AddBusinessModal from '../components/AddBusinessModal'
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-markercluster'
 import L from 'leaflet'
+import { useT } from '../i18n'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
@@ -127,6 +128,7 @@ function createClusterIcon(count) {
 }
 
 function MapController({ center, zoom, bounds, onMoveEnd }) {
+  const { t } = useT()
   const map = useMap()
   const isFirstRender = useRef(true)
   useEffect(() => {
@@ -166,6 +168,7 @@ function MapController({ center, zoom, bounds, onMoveEnd }) {
 }
 
 function StarRating({ rating, count }) {
+  const { t } = useT()
   if (!rating || rating <= 0) return null
   const full = Math.floor(rating)
   const half = rating - full >= 0.5
@@ -205,6 +208,7 @@ function addRecentLocation(name, lat, lng) {
 }
 
 export default function MapView() {
+  const { t } = useT()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [providers, setProviders] = useState([])
@@ -374,7 +378,7 @@ export default function MapView() {
     <div className="page map-page">
       {/* Desktop-only header */}
       <div className="map-desktop-header">
-        <h1>Service-Partner finden</h1>
+        <h1>{t('mapv.k0')}</h1>
         <p className="subtitle">{providers.length} Partner in deiner Nähe · {favorites.size} Favoriten</p>
         <div className="filter-bar">
           <div className="search-input" style={{ position: 'relative' }}>
@@ -384,12 +388,12 @@ export default function MapView() {
               onChange={e => { setSearch(e.target.value); setShowRecents(false) }}
               onFocus={() => { if (!search && recentLocations.length > 0) setShowRecents(true) }}
               onBlur={() => setTimeout(() => setShowRecents(false), 200)}
-              placeholder="Name, Ort oder Kategorie..."
+              placeholder={t('mapv.k23')}
             />
             {search && <button className="btn-icon" onClick={() => setSearch('')}><X size={14} /></button>}
             {showRecents && recentLocations.length > 0 && (
               <div className="search-recents-dropdown">
-                <span className="search-recents-title">Letzte Orte</span>
+                <span className="search-recents-title">{t('mapv.k1')}</span>
                 {recentLocations.map((loc, i) => (
                   <button key={i} className="search-recent-item" onMouseDown={(e) => {
                     e.preventDefault()
@@ -407,7 +411,7 @@ export default function MapView() {
             )}
           </div>
           <select value={filterCat} onChange={e => setFilterCat(e.target.value)}>
-            <option value="">Alle Kategorien</option>
+            <option value="">{t('mapv.k2')}</option>
             {categories.map(c => {
               const cfg = getCategoryConfig(c)
               return <option key={c} value={c}>{cfg.icon} {cfg.label}</option>
@@ -415,11 +419,11 @@ export default function MapView() {
           </select>
         </div>
         <div className="map-legend">
-          <span className="legend-title">Bewertung:</span>
-          <span className="legend-item"><span className="legend-dot" style={{background: '#10b981'}} /> Sehr gut (4+)</span>
-          <span className="legend-item"><span className="legend-dot" style={{background: '#f59e0b'}} /> Mittel (2-4)</span>
-          <span className="legend-item"><span className="legend-dot" style={{background: '#ef4444'}} /> Schlecht (&lt;2)</span>
-          <span className="legend-item"><span className="legend-dot" style={{background: '#3b82f6'}} /> Keine</span>
+          <span className="legend-title">{t('mapv.k3')}</span>
+          <span className="legend-item"><span className="legend-dot" style={{background: '#10b981'}} /> {t('mapv.k4')}</span>
+          <span className="legend-item"><span className="legend-dot" style={{background: '#f59e0b'}} /> {t('mapv.k5')}</span>
+          <span className="legend-item"><span className="legend-dot" style={{background: '#ef4444'}} /> {t('mapv.k6')}</span>
+          <span className="legend-item"><span className="legend-dot" style={{background: '#3b82f6'}} /> {t('mapv.k7')}</span>
           <span className="legend-item">❤️ = Favorit</span>
         </div>
       </div>
@@ -437,15 +441,15 @@ export default function MapView() {
           }
         }}>
           <Locate size={15} />
-          <span>Standort</span>
+          <span>{t('mapv.k8')}</span>
         </button>
         <button className="map-qa-btn map-qa-add" onClick={() => setShowAddBusiness(true)}>
           <PlusCircle size={15} />
-          <span>Betrieb anlegen</span>
+          <span>{t('mapv.k9')}</span>
         </button>
         <button className="map-qa-btn map-qa-ai" onClick={() => navigate('/chat')}>
           <Bot size={15} />
-          <span>KI-Assistent</span>
+          <span>{t('mapv.k10')}</span>
         </button>
       </div>
 
@@ -459,12 +463,12 @@ export default function MapView() {
               onChange={e => { setSearch(e.target.value); setShowRecents(false) }}
               onFocus={() => { if (!search && recentLocations.length > 0) setShowRecents(true) }}
               onBlur={() => setTimeout(() => setShowRecents(false), 200)}
-              placeholder="Ort oder Service suchen..."
+              placeholder={t('mapv.k24')}
             />
             {search && <button className="btn-icon" style={{padding:'2px'}} onClick={() => setSearch('')}><X size={13} /></button>}
             {showRecents && recentLocations.length > 0 && (
               <div className="search-recents-dropdown">
-                <span className="search-recents-title">Letzte Orte</span>
+                <span className="search-recents-title">{t('mapv.k1')}</span>
                 {recentLocations.map((loc, i) => (
                   <button key={i} className="search-recent-item" onMouseDown={(e) => {
                     e.preventDefault()
@@ -482,7 +486,7 @@ export default function MapView() {
             )}
           </div>
           <select className="map-mobile-filter" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
-            <option value="">Alle</option>
+            <option value="">{t('mapv.k11')}</option>
             {categories.map(c => {
               const cfg = getCategoryConfig(c)
               return <option key={c} value={c}>{cfg.icon} {cfg.label}</option>
@@ -543,7 +547,7 @@ export default function MapView() {
       <div className="provider-list-below">
         <h2>Favorisierte Partner ({favorites.size})</h2>
         {favorites.size === 0 ? (
-          <p className="subtitle">Klicken Sie auf ❤️ bei einem Service-Partner, um ihn als Favorit zu speichern.</p>
+          <p className="subtitle">{t('mapv.k13')}</p>
         ) : (
           <div className="provider-grid">
             {allProviders.filter(p => favorites.has(p.id)).map(p => (
@@ -565,6 +569,7 @@ export default function MapView() {
 
 // ── Provider Detail Card (floating, like iOS map card) ──
 function ProviderDetailCard({ provider, isFavorite, onToggleFavorite, onClose }) {
+  const { t } = useT()
   const navigate = useNavigate()
   const cat = getCategoryConfig(provider.category)
   const services = Array.isArray(provider.services) ? provider.services : provider.services ? [provider.services] : []
@@ -616,42 +621,42 @@ function ProviderDetailCard({ provider, isFavorite, onToggleFavorite, onClose })
           {provider.latitude && provider.longitude && (
             <a href={`https://maps.apple.com/?daddr=${provider.latitude},${provider.longitude}`} target="_blank" rel="noopener" className="pdc-btn pdc-btn-route">
               <Navigation size={18} />
-              <span>Route</span>
+              <span>{t('mapv.k14')}</span>
             </a>
           )}
           {provider.website && (
             <a href={provider.website.startsWith('http') ? provider.website : `https://${provider.website}`} target="_blank" rel="noopener" className="pdc-btn pdc-btn-web">
               <Globe size={18} />
-              <span>Website</span>
+              <span>{t('mapv.k15')}</span>
             </a>
           )}
           {provider.phone && (
             <a href={`tel:${provider.phone}`} className="pdc-btn pdc-btn-phone">
               <Phone size={18} />
-              <span>Anrufen</span>
+              <span>{t('mapv.k16')}</span>
             </a>
           )}
           {provider.email && (
             <a href={`mailto:${provider.email}`} className="pdc-btn pdc-btn-email">
               <Mail size={18} />
-              <span>E-Mail</span>
+              <span>{t('mapv.k17')}</span>
             </a>
           )}
           <button
             type="button"
             onClick={() => navigate(`/provider/${provider.id}?inquiry=1`)}
             className="pdc-btn pdc-btn-inquiry"
-            title="Anfrage senden"
+            title={t('mapv.k25')}
           >
             <MessageSquarePlus size={18} />
-            <span>Anfrage</span>
+            <span>{t('mapv.k18')}</span>
           </button>
         </div>
 
         {/* Services */}
         {services.length > 0 && (
           <div className="pdc-section">
-            <strong><Wrench size={14} /> Leistungen</strong>
+            <strong><Wrench size={14} /> {t('mapv.k19')}</strong>
             <div className="pdc-tags">
               {services.slice(0, 6).map((s, i) => (
                 <Link key={i} to={`/services?search=${encodeURIComponent(s)}`} className="pdc-tag pdc-tag-green">{s}</Link>
@@ -663,7 +668,7 @@ function ProviderDetailCard({ provider, isFavorite, onToggleFavorite, onClose })
         {/* Brands */}
         {brands.length > 0 && (
           <div className="pdc-section">
-            <strong><Tag size={14} /> Marken</strong>
+            <strong><Tag size={14} /> {t('mapv.k20')}</strong>
             <div className="pdc-tags">
               {brands.slice(0, 6).map((b, i) => (
                 <Link key={i} to={`/shop?q=${encodeURIComponent(b)}`} className="pdc-tag pdc-tag-orange">{b}</Link>
@@ -682,7 +687,7 @@ function ProviderDetailCard({ provider, isFavorite, onToggleFavorite, onClose })
 
         {/* More Details link */}
         <Link to={`/provider/${provider.id}`} className="pdc-detail-link">
-          Alle Details anzeigen <ChevronRight size={16} />
+          {t('mapv.k21')} <ChevronRight size={16} />
         </Link>
       </div>
     </div>
@@ -691,6 +696,7 @@ function ProviderDetailCard({ provider, isFavorite, onToggleFavorite, onClose })
 
 // ── Provider Card (grid item, like iOS FavoriteRow) ──
 function ProviderCard({ provider, isFavorite, onToggleFavorite }) {
+  const { t } = useT()
   const navigate = useNavigate()
   const cat = getCategoryConfig(provider.category)
 
@@ -724,16 +730,16 @@ function ProviderCard({ provider, isFavorite, onToggleFavorite }) {
       )}
 
       <div className="prov-actions" onClick={e => e.stopPropagation()}>
-        {provider.phone && <a href={`tel:${provider.phone}`} className="prov-action prov-action-phone"><Phone size={15} /> Anrufen</a>}
-        {provider.email && <a href={`mailto:${provider.email}`} className="prov-action prov-action-email"><Mail size={15} /> E-Mail</a>}
+        {provider.phone && <a href={`tel:${provider.phone}`} className="prov-action prov-action-phone"><Phone size={15} /> {t('mapv.k16')}</a>}
+        {provider.email && <a href={`mailto:${provider.email}`} className="prov-action prov-action-email"><Mail size={15} /> {t('mapv.k17')}</a>}
         {provider.website && (
-          <a href={provider.website.startsWith('http') ? provider.website : `https://${provider.website}`} target="_blank" rel="noopener" className="prov-action prov-action-web"><Globe size={15} /> Website</a>
+          <a href={provider.website.startsWith('http') ? provider.website : `https://${provider.website}`} target="_blank" rel="noopener" className="prov-action prov-action-web"><Globe size={15} /> {t('mapv.k15')}</a>
         )}
         {provider.latitude && provider.longitude && provider.latitude !== 0 && (
-          <a href={`https://maps.apple.com/?daddr=${provider.latitude},${provider.longitude}`} target="_blank" rel="noopener" className="prov-action prov-action-route"><Navigation size={15} /> Route</a>
+          <a href={`https://maps.apple.com/?daddr=${provider.latitude},${provider.longitude}`} target="_blank" rel="noopener" className="prov-action prov-action-route"><Navigation size={15} /> {t('mapv.k14')}</a>
         )}
         <button type="button" onClick={() => navigate(`/provider/${provider.id}?inquiry=1`)} className="prov-action prov-action-inquiry">
-          <MessageSquarePlus size={15} /> Anfrage
+          <MessageSquarePlus size={15} /> {t('mapv.k18')}
         </button>
       </div>
 
@@ -742,7 +748,7 @@ function ProviderCard({ provider, isFavorite, onToggleFavorite }) {
       )}
 
       <div className="prov-detail-hint">
-        Details anzeigen <ChevronRight size={14} />
+        {t('mapv.k22')} <ChevronRight size={14} />
       </div>
     </div>
   )

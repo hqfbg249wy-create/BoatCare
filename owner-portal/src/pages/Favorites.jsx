@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Heart, MapPin, Phone, Mail, Globe, Star, Navigation, Tag, RefreshCw, ChevronRight } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useT } from '../i18n'
 
 const categoryConfig = {
   werkstatt: { icon: '🔧', label: 'Werkstatt', color: '#f97316' },
@@ -24,6 +25,7 @@ function getCat(category) {
 }
 
 export default function Favorites() {
+  const { t } = useT()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [providers, setProviders] = useState([])
@@ -102,11 +104,11 @@ export default function Favorites() {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>Favoriten</h1>
-          <p className="subtitle">Ihre gespeicherten Service-Partner</p>
+          <h1>{t('fav.k0')}</h1>
+          <p className="subtitle">{t('fav.k1')}</p>
         </div>
         <button className="btn-secondary" onClick={loadFavorites}>
-          <RefreshCw size={16} /> Aktualisieren
+          <RefreshCw size={16} /> {t('fav.k2')}
         </button>
       </div>
 
@@ -117,10 +119,10 @@ export default function Favorites() {
       {providers.length === 0 && !error ? (
         <div className="empty-state">
           <Heart size={64} color="#cbd5e1" />
-          <h2>Keine Favoriten</h2>
-          <p>Markieren Sie Service-Partner auf der <Link to="/map">Karte</Link> mit einem Herz, um sie hier zu sehen.</p>
+          <h2>{t('fav.k3')}</h2>
+          <p>{t('fav.k4')} <Link to="/map">{t('fav.k5')}</Link> mit einem Herz, um sie hier zu sehen.</p>
           <Link to="/map" className="btn-primary" style={{ marginTop: 12 }}>
-            <MapPin size={16} /> Zur Karte
+            <MapPin size={16} /> {t('fav.k6')}
           </Link>
         </div>
       ) : (
@@ -151,7 +153,7 @@ export default function Favorites() {
                       </div>
                     )}
                   </div>
-                  <button className="btn-icon btn-danger" title="Favorit entfernen"
+                  <button className="btn-icon btn-danger" title={t('fav.k12')}
                     onClick={e => { e.stopPropagation(); removeFavorite(p.id) }}>
                     <Heart size={20} fill="#ef4444" color="#ef4444" />
                   </button>
@@ -162,16 +164,16 @@ export default function Favorites() {
                 )}
 
                 <div className="prov-actions" onClick={e => e.stopPropagation()}>
-                  {p.phone && <a href={`tel:${p.phone}`} className="prov-action prov-action-phone"><Phone size={15} /> Anrufen</a>}
-                  {p.email && <a href={`mailto:${p.email}`} className="prov-action prov-action-email"><Mail size={15} /> E-Mail</a>}
+                  {p.phone && <a href={`tel:${p.phone}`} className="prov-action prov-action-phone"><Phone size={15} /> {t('fav.k7')}</a>}
+                  {p.email && <a href={`mailto:${p.email}`} className="prov-action prov-action-email"><Mail size={15} /> {t('fav.k8')}</a>}
                   {p.website && (
                     <a href={p.website.startsWith('http') ? p.website : `https://${p.website}`} target="_blank" rel="noopener" className="prov-action prov-action-web">
-                      <Globe size={15} /> Website
+                      <Globe size={15} /> {t('fav.k9')}
                     </a>
                   )}
                   {p.latitude && p.longitude && p.latitude !== 0 && (
                     <a href={`https://maps.apple.com/?daddr=${p.latitude},${p.longitude}`} target="_blank" rel="noopener" className="prov-action prov-action-route">
-                      <Navigation size={15} /> Route
+                      <Navigation size={15} /> {t('fav.k10')}
                     </a>
                   )}
                 </div>
@@ -181,7 +183,7 @@ export default function Favorites() {
                 )}
 
                 <div className="prov-detail-hint">
-                  Details anzeigen <ChevronRight size={14} />
+                  {t('fav.k11')} <ChevronRight size={14} />
                 </div>
               </div>
             )

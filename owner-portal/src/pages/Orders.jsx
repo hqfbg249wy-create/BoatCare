@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { ShoppingBag, Package, Truck, CheckCircle, XCircle, ChevronDown, ChevronUp, ExternalLink, Trash2, RotateCcw, CheckSquare, Square, AlertTriangle, CreditCard, Lock } from 'lucide-react'
+import { useT } from '../i18n'
 
 const SUPABASE_URL = 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
 // anon key reused identisch wie in Checkout.jsx
@@ -17,6 +18,7 @@ const statusConfig = {
 }
 
 export default function Orders() {
+  const { t } = useT()
   const { user } = useAuth()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
@@ -55,7 +57,7 @@ export default function Orders() {
     order.status === 'cancelled' || order.status === 'pending'
 
   async function cancelOrder(orderId) {
-    if (!confirm('Bestellung wirklich stornieren?')) return
+    if (!confirm(t('ord.k19'))) return
     const { error } = await supabase.from('orders').update({ status: 'cancelled' }).eq('id', orderId)
     if (error) { console.error('Cancel error:', error); alert('Stornierung fehlgeschlagen: ' + error.message); return }
     await loadOrders()
@@ -75,7 +77,7 @@ export default function Orders() {
   }
 
   async function deleteSingle(orderId) {
-    if (!confirm('Bestellung endgültig löschen?')) return
+    if (!confirm(t('ord.k20'))) return
     if (await deleteOrder(orderId)) await loadOrders()
   }
 
@@ -231,13 +233,13 @@ export default function Orders() {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>Meine Bestellungen</h1>
+          <h1>{t('ord.k0')}</h1>
           <p className="subtitle">{orders.length} Bestellung{orders.length !== 1 ? 'en' : ''}</p>
         </div>
       </div>
 
       <div className="filter-bar">
-        <button className={`filter-btn ${filterStatus === 'all' ? 'active' : ''}`} onClick={() => setFilterStatus('all')}>Alle</button>
+        <button className={`filter-btn ${filterStatus === 'all' ? 'active' : ''}`} onClick={() => setFilterStatus('all')}>{t('ord.k1')}</button>
         {Object.entries(statusConfig).map(([key, cfg]) => {
           const count = orders.filter(o => o.status === key).length
           if (!count) return null
@@ -270,8 +272,8 @@ export default function Orders() {
       {filtered.length === 0 ? (
         <div className="empty-state">
           <ShoppingBag size={64} color="#cbd5e1" />
-          <h2>Keine Bestellungen</h2>
-          <p>Ihre Bestellungen aus dem Skipily-Shop erscheinen hier.</p>
+          <h2>{t('ord.k2')}</h2>
+          <p>{t('ord.k3')}</p>
         </div>
       ) : (
         <div className="orders-list">
@@ -312,7 +314,7 @@ export default function Orders() {
                     {order.payment_status === 'failed' && (
                       <div className="alert alert-error">
                         <AlertTriangle size={16} />
-                        Zahlung fehlgeschlagen. Sie können diese Bestellung löschen oder erneut versuchen.
+                        {t('ord.k4')}
                       </div>
                     )}
                     {needsPayment(order) && (
@@ -323,7 +325,7 @@ export default function Orders() {
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                           <AlertTriangle size={18} color="#ea580c" />
-                          <strong style={{ color: '#9a3412' }}>Zahlung ausstehend</strong>
+                          <strong style={{ color: '#9a3412' }}>{t('ord.k5')}</strong>
                         </div>
                         <div style={{ fontSize: '0.9rem', color: '#7c2d12', marginBottom: 10 }}>
                           Deine Bestellung ist angelegt, aber noch nicht bezahlt. Schliess die
@@ -341,7 +343,7 @@ export default function Orders() {
 
                     <table className="order-items-table">
                       <thead>
-                        <tr><th>Produkt</th><th>Menge</th><th>Preis</th><th>Gesamt</th></tr>
+                        <tr><th>{t('ord.k6')}</th><th>{t('ord.k7')}</th><th>{t('ord.k8')}</th><th>{t('ord.k9')}</th></tr>
                       </thead>
                       <tbody>
                         {(order.order_items || []).map(item => (
@@ -359,15 +361,15 @@ export default function Orders() {
                     </table>
 
                     <div className="order-summary">
-                      <div className="summary-row"><span>Zwischensumme</span><span>{Number(order.subtotal).toFixed(2).replace('.', ',')} €</span></div>
-                      <div className="summary-row"><span>Versand</span><span>{Number(order.shipping_cost || 0) === 0 ? 'Kostenlos' : Number(order.shipping_cost).toFixed(2).replace('.', ',') + ' €'}</span></div>
-                      <div className="summary-row total"><span>Gesamt</span><span>{Number(order.total).toFixed(2).replace('.', ',')} €</span></div>
+                      <div className="summary-row"><span>{t('ord.k10')}</span><span>{Number(order.subtotal).toFixed(2).replace('.', ',')} €</span></div>
+                      <div className="summary-row"><span>{t('ord.k11')}</span><span>{Number(order.shipping_cost || 0) === 0 ? 'Kostenlos' : Number(order.shipping_cost).toFixed(2).replace('.', ',') + ' €'}</span></div>
+                      <div className="summary-row total"><span>{t('ord.k9')}</span><span>{Number(order.total).toFixed(2).replace('.', ',')} €</span></div>
                     </div>
 
                     {order.tracking_number && (
                       <div className="order-tracking">
                         <Truck size={16} />
-                        <span>Sendungsverfolgung: </span>
+                        <span>{t('ord.k12')} </span>
                         {order.tracking_url ? (
                           <a href={order.tracking_url} target="_blank" rel="noopener">{order.tracking_number} <ExternalLink size={12} /></a>
                         ) : (
@@ -378,7 +380,7 @@ export default function Orders() {
 
                     {order.shipping_name && (
                       <div className="order-address">
-                        <strong>Lieferadresse:</strong><br />
+                        <strong>{t('ord.k13')}</strong><br />
                         {order.shipping_name}<br />
                         {order.shipping_street}<br />
                         {order.shipping_postal_code} {order.shipping_city}
@@ -388,12 +390,12 @@ export default function Orders() {
                     <div className="order-actions">
                       {canCancel(order) && (
                         <button className="btn-secondary btn-cancel" onClick={() => cancelOrder(order.id)}>
-                          <XCircle size={16} /> Stornieren
+                          <XCircle size={16} /> {t('ord.k14')}
                         </button>
                       )}
                       {isDeletable && (
                         <button className="btn-secondary btn-delete" onClick={() => deleteSingle(order.id)}>
-                          <Trash2 size={16} /> Löschen
+                          <Trash2 size={16} /> {t('ord.k15')}
                         </button>
                       )}
                     </div>
@@ -411,7 +413,7 @@ export default function Orders() {
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
             <div className="modal-header">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CreditCard size={20} /> Zahlung abschliessen
+                <CreditCard size={20} /> {t('ord.k16')}
               </h2>
               <button className="btn-icon" onClick={closeRetryModal} disabled={payLoading}>
                 <XCircle size={20} />
@@ -429,7 +431,7 @@ export default function Orders() {
                   borderRadius: 8, color: '#166534', display: 'flex',
                   alignItems: 'center', gap: 8,
                 }}>
-                  <CheckCircle size={20} /> Zahlung erfolgreich. Vielen Dank!
+                  <CheckCircle size={20} /> {t('ord.k17')}
                 </div>
               ) : (
                 <>
@@ -448,7 +450,7 @@ export default function Orders() {
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
                     {payLoading ? (
-                      <>Wird verarbeitet …</>
+                      <>{t('ord.k18')}</>
                     ) : (
                       <><Lock size={14} /> Jetzt bezahlen – {Number(payOrder.total).toFixed(2).replace('.', ',')} €</>
                     )}

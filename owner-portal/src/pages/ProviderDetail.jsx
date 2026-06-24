@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Heart, MapPin, Phone, Mail, Globe, Star, Navigation, Tag, Clock, ChevronLeft, ShoppingBag, Wrench, Package, Pencil, Trash2, Send, X, MessageSquarePlus } from 'lucide-react'
+import { useT } from '../i18n'
 
 const categoryConfig = {
   werkstatt: { icon: '🔧', label: 'Werkstatt', color: '#f97316' },
@@ -27,6 +28,7 @@ function getCat(category) {
 }
 
 function StarRating({ rating, count }) {
+  const { t } = useT()
   if (!rating || rating <= 0) return null
   const full = Math.floor(rating)
   const half = rating - full >= 0.5
@@ -53,6 +55,7 @@ function calcDistance(lat1, lon1, lat2, lon2) {
 }
 
 export default function ProviderDetail() {
+  const { t } = useT()
   const { id } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -138,7 +141,7 @@ export default function ProviderDetail() {
   }
 
   async function submitReview() {
-    if (reviewRating === 0) { alert('Bitte wähle eine Sternebewertung.'); return }
+    if (reviewRating === 0) { alert(t('prov.k31')); return }
     setReviewSaving(true)
     try {
       let savedId = myReview?.id
@@ -185,7 +188,7 @@ export default function ProviderDetail() {
   }
 
   async function deleteReview() {
-    if (!confirm('Deine Bewertung wirklich löschen?')) return
+    if (!confirm(t('prov.k32'))) return
     const { error } = await supabase.from('reviews').delete().eq('id', myReview.id)
     if (error) { alert('Fehler: ' + error.message); return }
     setMyReview(null)
@@ -236,7 +239,7 @@ export default function ProviderDetail() {
 
   async function saveOrSendInquiry(send) {
     if (!inquirySubject.trim() || !inquiryMessage.trim()) {
-      alert('Bitte Betreff und Nachricht ausfüllen.')
+      alert(t('prov.k33'))
       return
     }
     setInquirySaving(true)
@@ -260,7 +263,7 @@ export default function ProviderDetail() {
         // Beim Senden direkt zur Anfragen-Übersicht navigieren
         setTimeout(() => navigate('/inquiries'), 100)
       } else {
-        alert('Anfrage als Entwurf gespeichert. Du kannst sie unter „Anfragen" jederzeit bearbeiten und senden.')
+        alert(t('prov.k34'))
       }
     } catch (err) {
       alert('Fehler: ' + err.message)
@@ -269,7 +272,7 @@ export default function ProviderDetail() {
   }
 
   if (loading) return <div className="page"><div className="spinner" /></div>
-  if (!provider) return <div className="page"><div className="alert alert-error">Provider nicht gefunden.</div></div>
+  if (!provider) return <div className="page"><div className="alert alert-error">{t('prov.k0')}</div></div>
 
   const cat = getCat(provider.category)
   const services = Array.isArray(provider.services) ? provider.services : provider.services ? [provider.services] : []
@@ -284,7 +287,7 @@ export default function ProviderDetail() {
       } : { background: `linear-gradient(135deg, ${cat.color}22, ${cat.color}44)` }}>
         <div className="pd-cover-gradient" />
         <button className="pd-back-btn" onClick={() => navigate(-1)}>
-          <ChevronLeft size={20} /> Zurück
+          <ChevronLeft size={20} /> {t('prov.k1')}
         </button>
         <button className={`pd-fav-float ${isFavorite ? 'active' : ''}`} onClick={toggleFavorite}>
           <Heart size={22} fill={isFavorite ? '#ef4444' : 'none'} color={isFavorite ? '#ef4444' : 'white'} />
@@ -307,7 +310,7 @@ export default function ProviderDetail() {
         <h1>
           {provider.name}
           {(provider.is_verified || provider.user_id) && (
-            <span className="pd-verified-badge" title="Dieser Betrieb hat sein Profil bei Skipily übernommen und bestätigt.">
+            <span className="pd-verified-badge" title={t('prov.k28')}>
               ✓ Verifizierter Service-Betrieb
             </span>
           )}
@@ -347,30 +350,30 @@ export default function ProviderDetail() {
         {provider.latitude && provider.longitude && (
           <a href={`https://maps.apple.com/?daddr=${provider.latitude},${provider.longitude}`} target="_blank" rel="noopener" className="pd-contact-btn pd-btn-route">
             <Navigation size={22} />
-            <span>Route</span>
+            <span>{t('prov.k2')}</span>
           </a>
         )}
         {provider.website && (
           <a href={provider.website.startsWith('http') ? provider.website : `https://${provider.website}`} target="_blank" rel="noopener" className="pd-contact-btn pd-btn-web">
             <Globe size={22} />
-            <span>Website</span>
+            <span>{t('prov.k3')}</span>
           </a>
         )}
         {provider.phone && (
           <a href={`tel:${provider.phone}`} className="pd-contact-btn pd-btn-phone">
             <Phone size={22} />
-            <span>Anrufen</span>
+            <span>{t('prov.k4')}</span>
           </a>
         )}
         {provider.email && (
           <a href={`mailto:${provider.email}`} className="pd-contact-btn pd-btn-email">
             <Mail size={22} />
-            <span>E-Mail</span>
+            <span>{t('prov.k5')}</span>
           </a>
         )}
         <button className="pd-contact-btn pd-btn-inquiry" onClick={openInquiryForm}>
           <MessageSquarePlus size={22} />
-          <span>Anfrage</span>
+          <span>{t('prov.k6')}</span>
         </button>
       </div>
 
@@ -379,11 +382,11 @@ export default function ProviderDetail() {
         <div className="pd-promo-banner">
           <Tag size={18} />
           <div>
-            <strong>Aktion</strong>
+            <strong>{t('prov.k7')}</strong>
             <p>{provider.current_promotion}</p>
           </div>
           <Link to={`/shop?provider=${provider.id}`} className="pd-promo-shop-btn">
-            <ShoppingBag size={14} /> Zum Shop
+            <ShoppingBag size={14} /> {t('prov.k8')}
           </Link>
         </div>
       )}
@@ -398,7 +401,7 @@ export default function ProviderDetail() {
       {/* Services */}
       {services.length > 0 && (
         <div className="pd-section">
-          <h3><Wrench size={16} /> Leistungen</h3>
+          <h3><Wrench size={16} /> {t('prov.k9')}</h3>
           <div className="pd-tag-list">
             {services.map((s, i) => (
               <button key={i} className="pd-tag-btn pd-tag-green" onClick={() => handleServiceClick(s)}>
@@ -426,7 +429,7 @@ export default function ProviderDetail() {
                 setServicePrompt(null)
                 navigate(`/services?search=${servicePrompt.query}`)
               }}>🔍 Anderen Service-Partner finden</button>
-              <button className="pd-prompt-cancel" onClick={() => setServicePrompt(null)}>Abbrechen</button>
+              <button className="pd-prompt-cancel" onClick={() => setServicePrompt(null)}>{t('prov.k10')}</button>
             </div>
           </div>
         </div>
@@ -435,7 +438,7 @@ export default function ProviderDetail() {
       {/* Brands */}
       {brands.length > 0 && (
         <div className="pd-section">
-          <h3><Tag size={16} /> Marken</h3>
+          <h3><Tag size={16} /> {t('prov.k11')}</h3>
           <div className="pd-tag-list">
             {brands.map((b, i) => (
               <button key={i} className="pd-tag-btn pd-tag-orange" onClick={() => handleServiceClick(b)}>
@@ -449,7 +452,7 @@ export default function ProviderDetail() {
       {/* Opening hours */}
       {provider.opening_hours && (
         <div className="pd-section">
-          <h3><Clock size={16} /> Öffnungszeiten</h3>
+          <h3><Clock size={16} /> {t('prov.k12')}</h3>
           <p className="pd-hours-text">{provider.opening_hours}</p>
         </div>
       )}
@@ -458,8 +461,8 @@ export default function ProviderDetail() {
       {products.length > 0 && (
         <div className="pd-section">
           <div className="pd-section-header">
-            <h3><Package size={16} /> Produkte</h3>
-            <Link to={`/shop?provider=${provider.id}`} className="card-link">Alle anzeigen →</Link>
+            <h3><Package size={16} /> {t('prov.k13')}</h3>
+            <Link to={`/shop?provider=${provider.id}`} className="card-link">{t('prov.k14')}</Link>
           </div>
           <div className="pd-products-grid">
             {products.map(p => (
@@ -484,7 +487,7 @@ export default function ProviderDetail() {
           </h3>
           {!myReview && !showReviewForm && (
             <button className="pd-write-review-btn" onClick={() => setShowReviewForm(true)}>
-              <Pencil size={14} /> Bewertung schreiben
+              <Pencil size={14} /> {t('prov.k15')}
             </button>
           )}
         </div>
@@ -519,7 +522,7 @@ export default function ProviderDetail() {
             <textarea
               className="pd-review-textarea"
               rows={4}
-              placeholder="Beschreibe deine Erfahrung (optional)..."
+              placeholder={t('prov.k24')}
               value={reviewComment}
               onChange={e => setReviewComment(e.target.value)}
             />
@@ -527,7 +530,7 @@ export default function ProviderDetail() {
             <div className="pd-review-form-actions">
               {myReview && (
                 <button className="pd-review-delete-btn" onClick={deleteReview}>
-                  <Trash2 size={14} /> Löschen
+                  <Trash2 size={14} /> {t('prov.k16')}
                 </button>
               )}
               <button className="pd-review-submit-btn" onClick={submitReview} disabled={reviewSaving || reviewRating === 0}>
@@ -546,9 +549,9 @@ export default function ProviderDetail() {
                   <Star key={i} size={14} fill={i <= myReview.rating ? '#f59e0b' : 'none'} color={i <= myReview.rating ? '#f59e0b' : '#cbd5e1'} />
                 ))}
               </div>
-              <span className="pd-review-mine-label">Deine Bewertung</span>
+              <span className="pd-review-mine-label">{t('prov.k17')}</span>
               <span className="pd-review-date">{new Date(myReview.created_at).toLocaleDateString('de-DE')}</span>
-              <button className="btn-icon" style={{ marginLeft: 'auto' }} onClick={() => setShowReviewForm(true)} title="Bearbeiten">
+              <button className="btn-icon" style={{ marginLeft: 'auto' }} onClick={() => setShowReviewForm(true)} title={t('prov.k29')}>
                 <Pencil size={14} />
               </button>
             </div>
@@ -563,7 +566,7 @@ export default function ProviderDetail() {
 
         {/* Alle anderen Bewertungen */}
         {reviews.filter(r => r.author_id !== user?.id).length === 0 && !myReview ? (
-          <p className="pd-empty-reviews">Noch keine Bewertungen. Sei der Erste!</p>
+          <p className="pd-empty-reviews">{t('prov.k18')}</p>
         ) : (
           <div className="pd-reviews-list">
             {reviews.filter(r => r.author_id !== user?.id).map(r => (
@@ -598,46 +601,46 @@ export default function ProviderDetail() {
             <div className="inq-modal-body">
               {boats.length > 0 && (
                 <div className="form-group">
-                  <label>Boot (optional)</label>
+                  <label>{t('prov.k19')}</label>
                   <select value={inquiryBoatId} onChange={e => setInquiryBoatId(e.target.value)}>
-                    <option value="">— kein Boot angeben —</option>
+                    <option value="">{t('prov.k30')}</option>
                     {boats.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                 </div>
               )}
               <div className="form-group">
-                <label>Betreff *</label>
+                <label>{t('prov.k20')}</label>
                 <input
                   type="text"
                   value={inquirySubject}
                   onChange={e => setInquirySubject(e.target.value)}
-                  placeholder="z. B. Anfrage Winterlager 2025"
+                  placeholder={t('prov.k25')}
                   maxLength={200}
                 />
               </div>
               <div className="form-group">
-                <label>Deine Nachricht *</label>
+                <label>{t('prov.k21')}</label>
                 <textarea
                   rows={6}
                   value={inquiryMessage}
                   onChange={e => setInquiryMessage(e.target.value)}
-                  placeholder="Beschreibe dein Anliegen so genau wie möglich…"
+                  placeholder={t('prov.k26')}
                 />
               </div>
               <div className="form-group">
-                <label>Private Notizen <span className="form-label-hint">(nur für dich sichtbar)</span></label>
+                <label>{t('prov.k22')} <span className="form-label-hint">(nur für dich sichtbar)</span></label>
                 <textarea
                   rows={2}
                   value={inquiryNotes}
                   onChange={e => setInquiryNotes(e.target.value)}
-                  placeholder="Eigene Gedanken, Budgetrahmen, Zeitplan…"
+                  placeholder={t('prov.k27')}
                 />
               </div>
             </div>
             <div className="inq-modal-actions">
-              <button className="btn-ghost" onClick={() => setShowInquiryForm(false)}>Abbrechen</button>
+              <button className="btn-ghost" onClick={() => setShowInquiryForm(false)}>{t('prov.k10')}</button>
               <button className="btn-secondary" onClick={() => saveOrSendInquiry(false)} disabled={inquirySaving}>
-                <Clock size={14} /> Als Entwurf
+                <Clock size={14} /> {t('prov.k23')}
               </button>
               <button className="btn-primary" onClick={() => saveOrSendInquiry(true)} disabled={inquirySaving}>
                 <Send size={14} /> {inquirySaving ? 'Senden…' : 'Jetzt senden'}

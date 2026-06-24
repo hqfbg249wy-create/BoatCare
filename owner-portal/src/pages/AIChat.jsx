@@ -3,8 +3,10 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Send, Wrench, Trash2, Anchor, Clock, Plus, X } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
+import { useT } from '../i18n'
 
 export default function AIChat() {
+  const { t } = useT()
   const { user } = useAuth()
   const [searchParams] = useSearchParams()
   const [messages, setMessages] = useState([])
@@ -153,7 +155,7 @@ export default function AIChat() {
 
   async function deleteSession(sid, e) {
     e.stopPropagation()
-    if (!confirm('Diesen Chat dauerhaft löschen?')) return
+    if (!confirm(t('chat.k11'))) return
     try {
       await supabase.from('ai_chat_sessions').delete().eq('id', sid)
       if (sid === sessionId) startNewChat()
@@ -236,7 +238,7 @@ export default function AIChat() {
     <div className="page chat-page">
       <div className="chat-header">
         <div>
-          <h1>KI-Assistent</h1>
+          <h1>{t('chat.k0')}</h1>
           <p className="subtitle">
             {boatContext?.boats?.length
               ? `Ihr Berater für ${boatNames}`
@@ -244,12 +246,12 @@ export default function AIChat() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button className="btn-secondary" onClick={() => setHistoryOpen(true)} title="Verlauf öffnen">
+          <button className="btn-secondary" onClick={() => setHistoryOpen(true)} title={t('chat.k9')}>
             <Clock size={16} /> Verlauf{sessions.length > 0 ? ` (${sessions.length})` : ''}
           </button>
           {(messages.length > 0 || sessionId) && (
-            <button className="btn-secondary" onClick={startNewChat} title="Neuer Chat">
-              <Plus size={16} /> Neuer Chat
+            <button className="btn-secondary" onClick={startNewChat} title={t('chat.k1')}>
+              <Plus size={16} /> {t('chat.k1')}
             </button>
           )}
         </div>
@@ -262,8 +264,8 @@ export default function AIChat() {
             <div className="chat-welcome-icon">
               <img src="/icon-192.png" alt="" style={{ width: 48, height: 48, borderRadius: 10 }} />
             </div>
-            <h2>Hallo! 👋</h2>
-            <p>Ich bin Ihr Skipily KI-Berater. Fragen Sie mich zu:</p>
+            <h2>{t('chat.k2')}</h2>
+            <p>{t('chat.k3')}</p>
             <div className="chat-suggestions">
               <button onClick={() => setInput('Was muss ich bei der Winterlagerung beachten?')}>❄️ Winterlagerung</button>
               <button onClick={() => setInput('Wann ist die nächste Wartung für meine Ausrüstung fällig?')}>🔧 Wartungsintervalle</button>
@@ -274,14 +276,14 @@ export default function AIChat() {
             </div>
             {boatContext?.boats?.length > 0 && (
               <p className="chat-context-info">
-                <Anchor size={14} /> Ich kenne Ihre Boote: <strong>{boatNames}</strong> und deren Ausrüstung.
+                <Anchor size={14} /> {t('chat.k4')} <strong>{boatNames}</strong> und deren Ausrüstung.
               </p>
             )}
           </div>
         )}
 
         {historyLoading && (
-          <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>Verlauf wird geladen…</div>
+          <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>{t('chat.k5')}</div>
         )}
 
         {/* Messages */}
@@ -320,7 +322,7 @@ export default function AIChat() {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-          placeholder="Fragen Sie den KI-Berater..."
+          placeholder={t('chat.k8')}
           disabled={loading}
         />
         <button className="chat-send-btn" onClick={sendMessage} disabled={!input.trim() || loading}>
@@ -345,12 +347,12 @@ export default function AIChat() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #e2e8f0' }}>
-              <h2 style={{ margin: 0, fontSize: 18 }}>Verlauf</h2>
+              <h2 style={{ margin: 0, fontSize: 18 }}>{t('chat.k6')}</h2>
               <button className="btn-icon" onClick={() => setHistoryOpen(false)}><X size={18} /></button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
               {sessions.length === 0 ? (
-                <p style={{ color: '#64748b', textAlign: 'center', marginTop: 32 }}>Noch keine Gespräche.</p>
+                <p style={{ color: '#64748b', textAlign: 'center', marginTop: 32 }}>{t('chat.k7')}</p>
               ) : (
                 sessions.map(s => (
                   <div
@@ -374,7 +376,7 @@ export default function AIChat() {
                     <button
                       className="btn-icon"
                       onClick={(e) => deleteSession(s.id, e)}
-                      title="Löschen"
+                      title={t('chat.k10')}
                       style={{ color: '#dc2626' }}
                     >
                       <Trash2 size={14} />
