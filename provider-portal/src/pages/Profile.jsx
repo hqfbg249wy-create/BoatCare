@@ -104,8 +104,9 @@ export default function Profile() {
     { code: 'GB', name: 'Vereinigtes Königreich' },
   ], [])
   const ALL_COUNTRIES = useMemo(
-    () => [...EU_27, ...EEA_PLUS].sort((a, b) => a.name.localeCompare(b.name, 'de')),
-    [EU_27, EEA_PLUS]
+    () => [...EU_27, ...EEA_PLUS].sort((a, b) =>
+      t('ctry.' + a.code).localeCompare(t('ctry.' + b.code))),
+    [EU_27, EEA_PLUS, t]
   )
 
   const currentShipping = shippingCountries ?? []
@@ -1522,7 +1523,7 @@ export default function Profile() {
                   <span style={{ fontWeight: 600, fontFamily: 'monospace', color: '#475569' }}>
                     {c.code}
                   </span>
-                  <span style={{ color: '#1e293b' }}>{c.name}</span>
+                  <span style={{ color: '#1e293b' }}>{t('ctry.' + c.code)}</span>
                 </label>
               )
             })}
