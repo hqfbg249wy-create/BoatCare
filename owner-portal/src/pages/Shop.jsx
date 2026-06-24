@@ -125,7 +125,16 @@ export default function Shop() {
     const parentOf = {}
     for (const c of all) parentOf[c.id] = c.parent_id || c.id
     const usedParents = new Set((prodCats || []).map(p => parentOf[p.category_id]).filter(Boolean))
-    const cats = all.filter(c => !c.parent_id && usedParents.has(c.id))
+    // Nur Elternkategorien mit Produkten; Dubletten (gleicher Name) zusammenfassen.
+    const seenName = new Set()
+    const cats = all
+      .filter(c => !c.parent_id && usedParents.has(c.id))
+      .filter(c => {
+        const key = (c.name_de || c.slug || c.id).trim().toLowerCase()
+        if (seenName.has(key)) return false
+        seenName.add(key)
+        return true
+      })
     setCategories(cats)
     setPromotions((promos || []).filter(p => {
       const now = new Date().toISOString().slice(0, 10)
@@ -378,14 +387,20 @@ export default function Shop() {
         </div>
       )}
 
-      {/* Category chips */}
+      {/* Category dropdown (nur Kategorien mit Produkten, dedupliziert) */}
       <div className="shop-categories">
-        <button className={`filter-btn ${!selectedCat ? 'active' : ''}`} onClick={() => handleCategorySelect('')}>{t('shop.k4')}</button>
-        {categories.map(c => (
-          <button key={c.id} className={`filter-btn ${selectedCat === c.id ? 'active' : ''}`} onClick={() => handleCategorySelect(c.id)}>
-            {mapIcon(c.icon)}{mapIcon(c.icon) ? ' ' : ''}{c['name_' + lang] || c.name_de || c.slug}
-          </button>
-        ))}
+        <select
+          className="shop-category-select"
+          value={selectedCat}
+          onChange={e => handleCategorySelect(e.target.value)}
+        >
+          <option value="">{t('shop.k4')}</option>
+          {categories.map(c => (
+            <option key={c.id} value={c.id}>
+              {c['name_' + lang] || c.name_de || c.slug}
+            </option>
+          ))}
+        </select>
       </div>
 
       {providerFilter && (
