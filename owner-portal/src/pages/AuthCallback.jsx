@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useT } from '../i18n'
 
 /**
  * OAuth-Callback-Landing fuer Apple Sign-In (und andere OAuth-Provider).
@@ -10,6 +11,7 @@ import { supabase } from '../lib/supabase'
  * wir warten nur darauf und routen dann zur Haupt-App weiter.
  */
 export default function AuthCallback() {
+  const { t } = useT()
   const navigate = useNavigate()
   const [error, setError] = useState(null)
 
@@ -27,7 +29,7 @@ export default function AuthCallback() {
 
         if (errorParam) {
           if (!cancelled) {
-            setError(`Apple-Anmeldung abgelehnt: ${errorParam}`)
+            setError(t('acb.appleRejected', { error: errorParam }))
           }
           return
         }
@@ -35,7 +37,7 @@ export default function AuthCallback() {
         if (code) {
           const { error: exErr } = await supabase.auth.exchangeCodeForSession(code)
           if (exErr) {
-            if (!cancelled) setError(`Code-Exchange fehlgeschlagen: ${exErr.message}`)
+            if (!cancelled) setError(t('acb.exchangeFailed', { error: exErr.message }))
             return
           }
           if (!cancelled) navigate('/', { replace: true })
@@ -53,7 +55,7 @@ export default function AuthCallback() {
           await new Promise(r => setTimeout(r, 150))
         }
         if (!cancelled) {
-          setError('Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.')
+          setError(t('acb.failed'))
         }
       } catch (err) {
         if (!cancelled) setError(err.message)
@@ -73,13 +75,13 @@ export default function AuthCallback() {
         <>
           <p style={{ color: '#b91c1c' }}>{error}</p>
           <button className="btn-secondary" onClick={() => navigate('/', { replace: true })}>
-            Zurück zur Anmeldung
+            {t('acb.backToLogin')}
           </button>
         </>
       ) : (
         <>
           <div className="spinner" />
-          <p style={{ color: '#64748b' }}>Anmeldung wird abgeschlossen …</p>
+          <p style={{ color: '#64748b' }}>{t('acb.finishing')}</p>
         </>
       )}
     </div>

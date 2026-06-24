@@ -12,32 +12,33 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useT } from '../i18n'
 import { X, Save, MapPin, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 const categories = [
-  { value: 'werkstatt',    label: '🔧 Werkstatt' },
-  { value: 'motor_service',label: '⚙️ Motor-Service' },
-  { value: 'segelmacher',  label: '⛵ Segelmacher' },
-  { value: 'elektronik',   label: '📡 Marine Elektronik' },
-  { value: 'marina',       label: '🌊 Marina' },
-  { value: 'werft',        label: '🚢 Werft' },
-  { value: 'tankstelle',   label: '⛽ Tankstelle' },
-  { value: 'winterlager',  label: '❄️ Winterlager' },
-  { value: 'lackiererei',  label: '🎨 Lackiererei' },
-  { value: 'gutachter',    label: '📋 Gutachter' },
-  { value: 'versorgung',   label: '🛒 Versorgung / Marine Supplies' },
+  { value: 'werkstatt',    emoji: '🔧', key: 'addbiz.catWerkstatt' },
+  { value: 'motor_service',emoji: '⚙️', key: 'addbiz.catMotor' },
+  { value: 'segelmacher',  emoji: '⛵', key: 'addbiz.catSegelmacher' },
+  { value: 'elektronik',   emoji: '📡', key: 'addbiz.catElektronik' },
+  { value: 'marina',       emoji: '🌊', key: 'addbiz.catMarina' },
+  { value: 'werft',        emoji: '🚢', key: 'addbiz.catWerft' },
+  { value: 'tankstelle',   emoji: '⛽', key: 'addbiz.catTankstelle' },
+  { value: 'winterlager',  emoji: '❄️', key: 'addbiz.catWinterlager' },
+  { value: 'lackiererei',  emoji: '🎨', key: 'addbiz.catLackiererei' },
+  { value: 'gutachter',    emoji: '📋', key: 'addbiz.catGutachter' },
+  { value: 'versorgung',   emoji: '🛒', key: 'addbiz.catVersorgung' },
 ]
 
 const countries = [
-  { value: 'DE', label: 'Deutschland' },
-  { value: 'AT', label: 'Österreich' },
-  { value: 'CH', label: 'Schweiz' },
-  { value: 'NL', label: 'Niederlande' },
-  { value: 'FR', label: 'Frankreich' },
-  { value: 'IT', label: 'Italien' },
-  { value: 'ES', label: 'Spanien' },
-  { value: 'HR', label: 'Kroatien' },
-  { value: 'GR', label: 'Griechenland' },
+  { value: 'DE', key: 'addbiz.cDE' },
+  { value: 'AT', key: 'addbiz.cAT' },
+  { value: 'CH', key: 'addbiz.cCH' },
+  { value: 'NL', key: 'addbiz.cNL' },
+  { value: 'FR', key: 'addbiz.cFR' },
+  { value: 'IT', key: 'addbiz.cIT' },
+  { value: 'ES', key: 'addbiz.cES' },
+  { value: 'HR', key: 'addbiz.cHR' },
+  { value: 'GR', key: 'addbiz.cGR' },
 ]
 
 const emptyForm = {
@@ -50,6 +51,7 @@ const emptyForm = {
 }
 
 export default function AddBusinessModal({ open, onClose, onSubmitted }) {
+  const { t } = useT()
   const { user } = useAuth()
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
@@ -72,7 +74,7 @@ export default function AddBusinessModal({ open, onClose, onSubmitted }) {
   async function fetchCoordinates() {
     const { street, postal_code, city, country } = form
     if (!street || !city) {
-      alert('Bitte mindestens Straße und Ort eingeben, um die Koordinaten zu holen.')
+      alert(t('addbiz.alertStreetCity'))
       return
     }
     setGeocoding(true)
@@ -83,14 +85,14 @@ export default function AddBusinessModal({ open, onClose, onSubmitted }) {
       })
       const data = await res.json()
       if (!data || data.length === 0) {
-        alert('Keine Koordinaten gefunden. Bitte Adresse prüfen.')
+        alert(t('addbiz.alertNoCoords'))
         return
       }
       const lat = parseFloat(data[0].lat)
       const lon = parseFloat(data[0].lon)
       setForm(f => ({ ...f, latitude: lat, longitude: lon }))
     } catch (err) {
-      alert('Geocoding-Fehler: ' + err.message)
+      alert(t('addbiz.alertGeocodeError') + err.message)
     } finally {
       setGeocoding(false)
     }
@@ -99,11 +101,11 @@ export default function AddBusinessModal({ open, onClose, onSubmitted }) {
   async function submit(e) {
     e.preventDefault()
     if (!form.name.trim() || !form.street.trim() || !form.city.trim()) {
-      alert('Bitte Pflichtfelder ausfüllen (Name, Straße, Ort).')
+      alert(t('addbiz.alertRequired'))
       return
     }
     if (form.latitude == null || form.longitude == null) {
-      alert('Bitte zuerst Koordinaten holen.')
+      alert(t('addbiz.alertGetCoords'))
       return
     }
     setSaving(true)
@@ -131,7 +133,7 @@ export default function AddBusinessModal({ open, onClose, onSubmitted }) {
       setDone(true)
       if (onSubmitted) onSubmitted()
     } catch (err) {
-      alert('Fehler beim Speichern: ' + err.message)
+      alert(t('addbiz.alertSaveError') + err.message)
     } finally {
       setSaving(false)
     }
@@ -144,12 +146,11 @@ export default function AddBusinessModal({ open, onClose, onSubmitted }) {
         <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
           <div className="modal-body" style={{ textAlign: 'center', padding: '32px 24px' }}>
             <CheckCircle2 size={64} color="#10b981" style={{ marginBottom: 16 }} />
-            <h2 style={{ marginBottom: 8 }}>Vielen Dank!</h2>
+            <h2 style={{ marginBottom: 8 }}>{t('addbiz.thanks')}</h2>
             <p style={{ color: '#475569', marginBottom: 20 }}>
-              Dein Vorschlag wurde eingereicht. Sobald ein Admin den Betrieb
-              freigegeben hat, erscheint er auf der Karte.
+              {t('addbiz.submittedDesc')}
             </p>
-            <button className="btn-primary" onClick={close}>Schließen</button>
+            <button className="btn-primary" onClick={close}>{t('addbiz.close')}</button>
           </div>
         </div>
       </div>
@@ -160,28 +161,27 @@ export default function AddBusinessModal({ open, onClose, onSubmitted }) {
     <div className="modal-overlay" onClick={close}>
       <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
         <div className="modal-header">
-          <h2><MapPin size={20} /> Betrieb anlegen</h2>
+          <h2><MapPin size={20} /> {t('addbiz.createTitle')}</h2>
           <button className="btn-icon" onClick={close}><X size={20} /></button>
         </div>
         <form onSubmit={submit} className="modal-body">
           <p style={{ fontSize: 13, color: '#64748b', marginTop: 0, marginBottom: 18 }}>
-            Schlage einen neuen Service-Anbieter vor. Nach Prüfung durch
-            einen Admin erscheint er auf der Karte.
+            {t('addbiz.intro')}
           </p>
 
           {/* Pflichtangaben */}
           <div className="form-row">
             <div className="form-group" style={{ flex: '1 1 280px' }}>
-              <label>Name des Betriebs *</label>
+              <label>{t('addbiz.lblName')}</label>
               <input required value={form.name}
                 onChange={e => setForm({ ...form, name: e.target.value })}
-                placeholder="z.B. Yacht-Service Hamburg" />
+                placeholder={t('addbiz.phName')} />
             </div>
             <div className="form-group" style={{ flex: '1 1 220px' }}>
-              <label>Kategorie *</label>
+              <label>{t('addbiz.lblCategory')}</label>
               <select required value={form.category}
                 onChange={e => setForm({ ...form, category: e.target.value })}>
-                {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                {categories.map(c => <option key={c.value} value={c.value}>{c.emoji} {t(c.key)}</option>)}
               </select>
             </div>
           </div>
@@ -190,32 +190,32 @@ export default function AddBusinessModal({ open, onClose, onSubmitted }) {
           <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase',
                         letterSpacing: '0.06em', color: '#64748b',
                         marginTop: 12, marginBottom: 8 }}>
-            Adresse
+            {t('addbiz.sectAddress')}
           </div>
           <div className="form-row">
             <div className="form-group" style={{ flex: '2 1 280px' }}>
-              <label>Straße & Nr. *</label>
+              <label>{t('addbiz.lblStreet')}</label>
               <input required value={form.street}
                 onChange={e => setForm({ ...form, street: e.target.value })}
                 placeholder="Musterstr. 12" />
             </div>
             <div className="form-group" style={{ flex: '1 1 120px' }}>
-              <label>PLZ</label>
+              <label>{t('addbiz.lblZip')}</label>
               <input value={form.postal_code}
                 onChange={e => setForm({ ...form, postal_code: e.target.value })} />
             </div>
           </div>
           <div className="form-row">
             <div className="form-group" style={{ flex: '2 1 200px' }}>
-              <label>Ort *</label>
+              <label>{t('addbiz.lblCity')}</label>
               <input required value={form.city}
                 onChange={e => setForm({ ...form, city: e.target.value })} />
             </div>
             <div className="form-group" style={{ flex: '1 1 180px' }}>
-              <label>Land</label>
+              <label>{t('addbiz.lblCountry')}</label>
               <select value={form.country}
                 onChange={e => setForm({ ...form, country: e.target.value })}>
-                {countries.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                {countries.map(c => <option key={c.value} value={c.value}>{t(c.key)}</option>)}
               </select>
             </div>
           </div>
@@ -230,21 +230,21 @@ export default function AddBusinessModal({ open, onClose, onSubmitted }) {
               <>
                 <CheckCircle2 size={18} color="#10b981" />
                 <span style={{ fontSize: 13, color: '#15803d', flex: 1 }}>
-                  Koordinaten gesetzt: {form.latitude.toFixed(4)}, {form.longitude.toFixed(4)}
+                  {t('addbiz.coordsSet')} {form.latitude.toFixed(4)}, {form.longitude.toFixed(4)}
                 </span>
               </>
             ) : (
               <>
                 <AlertCircle size={18} color="#f97316" />
                 <span style={{ fontSize: 13, color: '#c2410c', flex: 1 }}>
-                  Noch keine Koordinaten geholt
+                  {t('addbiz.noCoordsYet')}
                 </span>
               </>
             )}
             <button type="button" className="btn-secondary"
               onClick={fetchCoordinates} disabled={geocoding}
               style={{ padding: '6px 12px' }}>
-              {geocoding ? 'Suche…' : 'Koordinaten holen'}
+              {geocoding ? t('addbiz.searching') : t('addbiz.getCoords')}
             </button>
           </div>
 
@@ -252,21 +252,21 @@ export default function AddBusinessModal({ open, onClose, onSubmitted }) {
           <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase',
                         letterSpacing: '0.06em', color: '#64748b',
                         marginTop: 12, marginBottom: 8 }}>
-            Kontakt (optional)
+            {t('addbiz.sectContact')}
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label>Telefon</label>
+              <label>{t('addbiz.lblPhone')}</label>
               <input type="tel" value={form.phone}
                 onChange={e => setForm({ ...form, phone: e.target.value })} />
             </div>
             <div className="form-group">
-              <label>E-Mail</label>
+              <label>{t('addbiz.lblEmail')}</label>
               <input type="email" value={form.email}
                 onChange={e => setForm({ ...form, email: e.target.value })} />
             </div>
             <div className="form-group">
-              <label>Website</label>
+              <label>{t('addbiz.lblWebsite')}</label>
               <input type="url" value={form.website}
                 onChange={e => setForm({ ...form, website: e.target.value })}
                 placeholder="https://" />
@@ -277,23 +277,23 @@ export default function AddBusinessModal({ open, onClose, onSubmitted }) {
           <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase',
                         letterSpacing: '0.06em', color: '#64748b',
                         marginTop: 12, marginBottom: 8 }}>
-            Details (optional)
+            {t('addbiz.sectDetails')}
           </div>
           <div className="form-group">
-            <label>Beschreibung</label>
+            <label>{t('addbiz.lblDescription')}</label>
             <textarea rows={3} value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })}
-              placeholder="Was bietet dieser Betrieb an?" />
+              placeholder={t('addbiz.phDescription')} />
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label>Marken (Komma-getrennt)</label>
+              <label>{t('addbiz.lblBrands')}</label>
               <input value={form.brands}
                 onChange={e => setForm({ ...form, brands: e.target.value })}
                 placeholder="Yanmar, Volvo Penta, ..." />
             </div>
             <div className="form-group">
-              <label>Leistungen (Komma-getrennt)</label>
+              <label>{t('addbiz.lblServices')}</label>
               <input value={form.services}
                 onChange={e => setForm({ ...form, services: e.target.value })}
                 placeholder="Reparatur, Wartung, ..." />
@@ -301,13 +301,13 @@ export default function AddBusinessModal({ open, onClose, onSubmitted }) {
           </div>
 
           <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-            * Pflichtfelder. Der Eintrag wird vor der Veröffentlichung geprüft.
+            {t('addbiz.requiredNote')}
           </p>
 
           <div className="modal-footer">
-            <button type="button" className="btn-secondary" onClick={close}>Abbrechen</button>
+            <button type="button" className="btn-secondary" onClick={close}>{t('addbiz.cancel')}</button>
             <button type="submit" className="btn-primary" disabled={saving || form.latitude == null}>
-              <Save size={16} /> {saving ? 'Speichern…' : 'Vorschlagen'}
+              <Save size={16} /> {saving ? t('addbiz.saving') : t('addbiz.submit')}
             </button>
           </div>
         </form>

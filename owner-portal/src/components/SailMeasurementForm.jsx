@@ -4,11 +4,13 @@
  * Entspricht 1:1 dem iOS-SwiftUI-Messblatt.
  */
 
+import { useT } from '../i18n'
+
 export const SAIL_TYPES = [
-  { value: 'grosssegel', label: 'Großsegel' },
-  { value: 'vorsegel',   label: 'Vorsegel / Genua' },
-  { value: 'gennaker',   label: 'Gennaker' },
-  { value: 'code0',      label: 'Code 0' },
+  { value: 'grosssegel', label: 'Großsegel',        tkey: 'sail.typeGross' },
+  { value: 'vorsegel',   label: 'Vorsegel / Genua', tkey: 'sail.typeVor' },
+  { value: 'gennaker',   label: 'Gennaker',         tkey: 'sail.typeGennaker' },
+  { value: 'code0',      label: 'Code 0',           tkey: 'sail.typeCode0' },
 ]
 
 export const emptySailForm = {
@@ -152,6 +154,7 @@ function CheckField({ label, fieldKey, sf, onChange }) {
 // ─── Hauptkomponente ─────────────────────────────────────────────────────────
 
 export default function SailMeasurementForm({ sailForm, setSailForm }) {
+  const { t } = useT()
   const set = (key, val) => setSailForm(prev => ({ ...prev, [key]: val }))
   const sf = sailForm
   const type = sf.sail_type
@@ -165,22 +168,22 @@ export default function SailMeasurementForm({ sailForm, setSailForm }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
         <span style={{ fontSize: 22 }}>⛵</span>
-        <strong style={{ color: '#15803d', fontSize: 16 }}>Segel-Maßblatt</strong>
+        <strong style={{ color: '#15803d', fontSize: 16 }}>{t('sail.segelMassblatt')}</strong>
       </div>
       <p style={{ fontSize: 13, color: '#475569', margin: '0 0 16px' }}>
-        Alle Maße in mm. Pflegen Sie hier alle relevanten Daten für Ihren Segelmacher.
+        {t('sail.alleMasseInMmPflegenSieHie')}
       </p>
 
       {/* Segeltyp + Segelnummer */}
       <div className="form-row">
         <div className="form-group">
-          <label>Segeltyp</label>
+          <label>{t('sail.segeltyp')}</label>
           <select value={type} onChange={e => set('sail_type', e.target.value)}>
-            {SAIL_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            {SAIL_TYPES.map(st => <option key={st.value} value={st.value}>{t(st.tkey)}</option>)}
           </select>
         </div>
         <div className="form-group">
-          <label>Segelnummer</label>
+          <label>{t('sail.segelnummer')}</label>
           <input
             type="text" value={sf.sail_number}
             onChange={e => set('sail_number', e.target.value)}
@@ -192,36 +195,36 @@ export default function SailMeasurementForm({ sailForm, setSailForm }) {
       {/* ── GROSSSEGEL ── */}
       {type === 'grosssegel' && (
         <>
-          <SailSection title="Rigg-Maße">
-            <NumField label="Mastlänge P" fieldKey="gs_p" sf={sf} onChange={set} />
-            <NumField label="Baumlänge E" fieldKey="gs_e" sf={sf} onChange={set} />
-            <NumField label="Mast-Achterstag E1" fieldKey="gs_e1" sf={sf} onChange={set} />
-            <NumField label="Baumoberkante bis Keep A" fieldKey="gs_a" sf={sf} onChange={set} />
-            <NumField label="Galgen Mast-Bolzen G" fieldKey="gs_g" sf={sf} onChange={set} />
-            <NumField label="Großfall-Auslass bis Baum AL" fieldKey="gs_al" sf={sf} onChange={set} />
+          <SailSection title={t('sail.riggMasse')}>
+            <NumField label={t('sail.mastlaengeP')} fieldKey="gs_p" sf={sf} onChange={set} />
+            <NumField label={t('sail.baumlaengeE')} fieldKey="gs_e" sf={sf} onChange={set} />
+            <NumField label={t('sail.mastAchterstagE1')} fieldKey="gs_e1" sf={sf} onChange={set} />
+            <NumField label={t('sail.baumoberkanteBisKeepA')} fieldKey="gs_a" sf={sf} onChange={set} />
+            <NumField label={t('sail.galgenMastBolzenG')} fieldKey="gs_g" sf={sf} onChange={set} />
+            <NumField label={t('sail.grossfallAuslassBisBaumAl')} fieldKey="gs_al" sf={sf} onChange={set} />
           </SailSection>
-          <SailSection title="Reff-Maße">
-            <NumField label="Masthinterkante bis Reffhaken RB" fieldKey="gs_rb" sf={sf} onChange={set} />
-            <NumField label="Baumoberkante bis Reffhaken RU" fieldKey="gs_ru" sf={sf} onChange={set} />
-            <NumField label="Masthinterkante bis Anschlagpunkt CB" fieldKey="gs_cb" sf={sf} onChange={set} />
-            <NumField label="Baumoberkante bis Anschlagpunkt CU" fieldKey="gs_cu" sf={sf} onChange={set} />
-            <NumField label="Baumoberkante bis Reff 1 R1" fieldKey="gs_r1" sf={sf} onChange={set} />
-            <NumField label="Baumoberkante bis Reff 2 R2" fieldKey="gs_r2" sf={sf} onChange={set} />
+          <SailSection title={t('sail.reffMasse')}>
+            <NumField label={t('sail.masthinterkanteBisReffhake')} fieldKey="gs_rb" sf={sf} onChange={set} />
+            <NumField label={t('sail.baumoberkanteBisReffhakenR')} fieldKey="gs_ru" sf={sf} onChange={set} />
+            <NumField label={t('sail.masthinterkanteBisAnschlag')} fieldKey="gs_cb" sf={sf} onChange={set} />
+            <NumField label={t('sail.baumoberkanteBisAnschlagpu')} fieldKey="gs_cu" sf={sf} onChange={set} />
+            <NumField label={t('sail.baumoberkanteBisReff1R1')} fieldKey="gs_r1" sf={sf} onChange={set} />
+            <NumField label={t('sail.baumoberkanteBisReff2R2')} fieldKey="gs_r2" sf={sf} onChange={set} />
           </SailSection>
-          <SailSection title="Details / Verbindungen">
-            <TextField label="Unterliekstau Ø" fieldKey="gs_unterliekstau" sf={sf} onChange={set} placeholder="z.B. 8mm" />
-            <TextField label="Vorliekstau Ø" fieldKey="gs_vorliekstau" sf={sf} onChange={set} placeholder="z.B. 6mm" />
-            <TextField label="Schothorn-Rutscher Ø" fieldKey="gs_schothornrutscher" sf={sf} onChange={set} />
-            <TextField label="Mastrutscher (Typ)" fieldKey="gs_mastrutscher" sf={sf} onChange={set} />
-            <TextField label="Farbe / Design" fieldKey="gs_farbe" sf={sf} onChange={set} placeholder="z.B. Weiß mit blauem Logo" />
+          <SailSection title={t('sail.detailsVerbindungen')}>
+            <TextField label={t('sail.unterliekstau')} fieldKey="gs_unterliekstau" sf={sf} onChange={set} placeholder="z.B. 8mm" />
+            <TextField label={t('sail.vorliekstau')} fieldKey="gs_vorliekstau" sf={sf} onChange={set} placeholder="z.B. 6mm" />
+            <TextField label={t('sail.schothornRutscher')} fieldKey="gs_schothornrutscher" sf={sf} onChange={set} />
+            <TextField label={t('sail.mastrutscherTyp')} fieldKey="gs_mastrutscher" sf={sf} onChange={set} />
+            <TextField label={t('sail.farbeDesign')} fieldKey="gs_farbe" sf={sf} onChange={set} placeholder={t('sail.zBWeissMitBlauemLogo')} />
           </SailSection>
-          <SailSection title="Optionen">
+          <SailSection title={t('sail.optionen')}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 24px' }}>
-              <CheckField label="Einleinenreff" fieldKey="gs_einleinenreff" sf={sf} onChange={set} />
-              <CheckField label="Weicher Fußteil" fieldKey="gs_weicher_fussteil" sf={sf} onChange={set} />
-              <CheckField label="Loses Unterliek" fieldKey="gs_loses_unterliek" sf={sf} onChange={set} />
-              <CheckField label="Segelzeichen" fieldKey="gs_segelzeichen" sf={sf} onChange={set} />
-              <CheckField label="Segelnummer aufgedruckt" fieldKey="gs_segelnummer" sf={sf} onChange={set} />
+              <CheckField label={t('sail.einleinenreff')} fieldKey="gs_einleinenreff" sf={sf} onChange={set} />
+              <CheckField label={t('sail.weicherFussteil')} fieldKey="gs_weicher_fussteil" sf={sf} onChange={set} />
+              <CheckField label={t('sail.losesUnterliek')} fieldKey="gs_loses_unterliek" sf={sf} onChange={set} />
+              <CheckField label={t('sail.segelzeichen')} fieldKey="gs_segelzeichen" sf={sf} onChange={set} />
+              <CheckField label={t('sail.segelnummerAufgedruckt')} fieldKey="gs_segelnummer" sf={sf} onChange={set} />
             </div>
           </SailSection>
         </>
@@ -230,42 +233,42 @@ export default function SailMeasurementForm({ sailForm, setSailForm }) {
       {/* ── VORSEGEL ── */}
       {type === 'vorsegel' && (
         <>
-          <SailSection title="Rigg-Maße">
-            <NumField label="Vorstaganschlagpunkt I" fieldKey="vs_i" sf={sf} onChange={set} />
-            <NumField label="Top-Fallauslass I2" fieldKey="vs_i2" sf={sf} onChange={set} />
-            <NumField label="Länge Vorstag VST" fieldKey="vs_vst" sf={sf} onChange={set} />
-            <NumField label="Vorstaganschlag bis Mast J" fieldKey="vs_j" sf={sf} onChange={set} />
-            <NumField label="Bugspriet bis Mastvorderkante J2" fieldKey="vs_j2" sf={sf} onChange={set} />
+          <SailSection title={t('sail.riggMasse')}>
+            <NumField label={t('sail.vorstaganschlagpunktI')} fieldKey="vs_i" sf={sf} onChange={set} />
+            <NumField label={t('sail.topFallauslassI2')} fieldKey="vs_i2" sf={sf} onChange={set} />
+            <NumField label={t('sail.laengeVorstagVst')} fieldKey="vs_vst" sf={sf} onChange={set} />
+            <NumField label={t('sail.vorstaganschlagBisMastJ')} fieldKey="vs_j" sf={sf} onChange={set} />
+            <NumField label={t('sail.bugsprietBisMastvorderkant')} fieldKey="vs_j2" sf={sf} onChange={set} />
           </SailSection>
-          <SailSection title="Segel-Maße">
-            <NumField label="Vorliekslänge VL" fieldKey="vs_vl" sf={sf} onChange={set} />
-            <NumField label="Fallschlitten Anfang AL1" fieldKey="vs_al1" sf={sf} onChange={set} />
-            <NumField label="Fallschlitten Ende AL2" fieldKey="vs_al2" sf={sf} onChange={set} />
-            <NumField label="Vorstag Anfang Schiene T1" fieldKey="vs_t1" sf={sf} onChange={set} />
-            <NumField label="Vorstag Ende Schiene T2" fieldKey="vs_t2" sf={sf} onChange={set} />
-            <NumField label="Vorstag bis Want W" fieldKey="vs_w" sf={sf} onChange={set} />
-            <NumField label="Höhe Anschlagpunkt über Deck Q" fieldKey="vs_q" sf={sf} onChange={set} />
-            <NumField label="Höhe Schothorn über Deck K" fieldKey="vs_k" sf={sf} onChange={set} />
-            <NumField label="Höhe Einfädler H" fieldKey="vs_h" sf={sf} onChange={set} />
+          <SailSection title={t('sail.segelMasse')}>
+            <NumField label={t('sail.vorliekslaengeVl')} fieldKey="vs_vl" sf={sf} onChange={set} />
+            <NumField label={t('sail.fallschlittenAnfangAl1')} fieldKey="vs_al1" sf={sf} onChange={set} />
+            <NumField label={t('sail.fallschlittenEndeAl2')} fieldKey="vs_al2" sf={sf} onChange={set} />
+            <NumField label={t('sail.vorstagAnfangSchieneT1')} fieldKey="vs_t1" sf={sf} onChange={set} />
+            <NumField label={t('sail.vorstagEndeSchieneT2')} fieldKey="vs_t2" sf={sf} onChange={set} />
+            <NumField label={t('sail.vorstagBisWantW')} fieldKey="vs_w" sf={sf} onChange={set} />
+            <NumField label={t('sail.hoeheAnschlagpunktUeberDec')} fieldKey="vs_q" sf={sf} onChange={set} />
+            <NumField label={t('sail.hoeheSchothornUeberDeckK')} fieldKey="vs_k" sf={sf} onChange={set} />
+            <NumField label={t('sail.hoeheEinfaedlerH')} fieldKey="vs_h" sf={sf} onChange={set} />
           </SailSection>
-          <SailSection title="Details / Verbindungen">
-            <TextField label="Reffanlage (Typ/Modell)" fieldKey="vs_reffanlage" sf={sf} onChange={set} />
-            <TextField label="Vorliekstau Ø" fieldKey="vs_vorliekstau" sf={sf} onChange={set} placeholder="z.B. 6mm" />
-            <TextField label="Farbe / Design" fieldKey="vs_farbe" sf={sf} onChange={set} />
+          <SailSection title={t('sail.detailsVerbindungen')}>
+            <TextField label={t('sail.reffanlageTypModell')} fieldKey="vs_reffanlage" sf={sf} onChange={set} />
+            <TextField label={t('sail.vorliekstau')} fieldKey="vs_vorliekstau" sf={sf} onChange={set} placeholder="z.B. 6mm" />
+            <TextField label={t('sail.farbeDesign')} fieldKey="vs_farbe" sf={sf} onChange={set} />
             <div className="form-group">
-              <label style={{ fontSize: 13 }}>Position</label>
+              <label style={{ fontSize: 13 }}>{t('sail.position')}</label>
               <select value={sf.vs_position} onChange={e => set('vs_position', e.target.value)}>
-                <option value="">— keine Angabe —</option>
-                <option value="BB">Backbord (BB)</option>
-                <option value="STB">Steuerbord (STB)</option>
+                <option value="">{t('sail.keineAngabe')}</option>
+                <option value="BB">{t('sail.backbordBb')}</option>
+                <option value="STB">{t('sail.steuerbordStb')}</option>
               </select>
             </div>
           </SailSection>
-          <SailSection title="Optionen">
+          <SailSection title={t('sail.optionen')}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 24px' }}>
-              <CheckField label="Rollreff" fieldKey="vs_rollreff" sf={sf} onChange={set} />
-              <CheckField label="Fenster" fieldKey="vs_fenster" sf={sf} onChange={set} />
-              <CheckField label="UV-Schutz" fieldKey="vs_uv_schutz" sf={sf} onChange={set} />
+              <CheckField label={t('sail.rollreff')} fieldKey="vs_rollreff" sf={sf} onChange={set} />
+              <CheckField label={t('sail.fenster')} fieldKey="vs_fenster" sf={sf} onChange={set} />
+              <CheckField label={t('sail.uvSchutz')} fieldKey="vs_uv_schutz" sf={sf} onChange={set} />
             </div>
           </SailSection>
         </>
@@ -274,16 +277,16 @@ export default function SailMeasurementForm({ sailForm, setSailForm }) {
       {/* ── GENNAKER / CODE 0 ── */}
       {(type === 'gennaker' || type === 'code0') && (
         <>
-          <SailSection title="Segel-Maße">
-            <NumField label="Vorliek (Luff)" fieldKey="gk_luff_length" sf={sf} onChange={set} />
-            <NumField label="Achterliek (Leech)" fieldKey="gk_leech_length" sf={sf} onChange={set} />
-            <NumField label="Unterliek (Foot)" fieldKey="gk_foot_length" sf={sf} onChange={set} />
-            <NumField label="Mittelbreite" fieldKey="gk_mid_width" sf={sf} onChange={set} />
-            <NumField label="Halshöhe über Deck" fieldKey="gk_tack_height" sf={sf} onChange={set} />
+          <SailSection title={t('sail.segelMasse')}>
+            <NumField label={t('sail.vorliekLuff')} fieldKey="gk_luff_length" sf={sf} onChange={set} />
+            <NumField label={t('sail.achterliekLeech')} fieldKey="gk_leech_length" sf={sf} onChange={set} />
+            <NumField label={t('sail.unterliekFoot')} fieldKey="gk_foot_length" sf={sf} onChange={set} />
+            <NumField label={t('sail.mittelbreite')} fieldKey="gk_mid_width" sf={sf} onChange={set} />
+            <NumField label={t('sail.halshoeheUeberDeck')} fieldKey="gk_tack_height" sf={sf} onChange={set} />
           </SailSection>
-          <SailSection title="Details">
-            <TextField label="Material" fieldKey="gk_material" sf={sf} onChange={set} placeholder="z.B. Nylon, Polyester" />
-            <TextField label="Farbe / Design" fieldKey="gk_farbe" sf={sf} onChange={set} />
+          <SailSection title={t('sail.details')}>
+            <TextField label={t('sail.material')} fieldKey="gk_material" sf={sf} onChange={set} placeholder={t('sail.zBNylonPolyester')} />
+            <TextField label={t('sail.farbeDesign')} fieldKey="gk_farbe" sf={sf} onChange={set} />
           </SailSection>
         </>
       )}
@@ -291,12 +294,12 @@ export default function SailMeasurementForm({ sailForm, setSailForm }) {
       {/* Notizen – immer sichtbar */}
       <div style={{ marginTop: 16 }}>
         <div className="form-group">
-          <label>Notizen / Besonderes</label>
+          <label>{t('sail.notizenBesonderes')}</label>
           <textarea
             rows={2}
             value={sf.notes}
             onChange={e => set('notes', e.target.value)}
-            placeholder="Besonderheiten, Reparaturhistorie, Segelmacher-Kontakt..."
+            placeholder={t('sail.besonderheitenReparaturhis')}
             style={{ fontSize: 14 }}
           />
         </div>

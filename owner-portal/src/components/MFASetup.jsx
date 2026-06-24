@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { useT } from '../i18n'
 import { ShieldCheck, ShieldOff, QrCode, Check, X } from 'lucide-react'
 
 export default function MFASetup() {
+  const { t } = useT()
   const { enrollMFA, confirmMFAEnrollment, unenrollMFA, mfaFactors, refreshMFAStatus } = useAuth()
   const [step, setStep] = useState('idle') // idle | enrolling | confirming | done
   const [qrCode, setQrCode] = useState('')
@@ -40,7 +42,7 @@ export default function MFASetup() {
       setStep('done')
       setCode('')
     } catch {
-      setError('Code ungültig. Bitte erneut versuchen.')
+      setError(t('mfas.invalidCode'))
       setCode('')
     } finally {
       setLoading(false)
@@ -48,7 +50,7 @@ export default function MFASetup() {
   }
 
   async function handleUnenroll() {
-    if (!confirm('2FA wirklich deaktivieren? Dein Konto wird weniger geschützt.')) return
+    if (!confirm(t('mfas.confirmDisable'))) return
     setLoading(true)
     try {
       await unenrollMFA(mfaFactors[0].id)
@@ -65,8 +67,8 @@ export default function MFASetup() {
         <div className="mfa-status active">
           <ShieldCheck size={20} color="#10b981" />
           <div>
-            <strong>Zwei-Faktor-Authentifizierung aktiv</strong>
-            <p>Dein Konto ist mit einem Authenticator gesichert.</p>
+            <strong>{t('mfas.active')}</strong>
+            <p>{t('mfas.activeDesc')}</p>
           </div>
         </div>
         {error && <div className="mfa-error">{error}</div>}
@@ -76,7 +78,7 @@ export default function MFASetup() {
           disabled={loading}
           style={{ marginTop: 12 }}
         >
-          <ShieldOff size={15} /> 2FA deaktivieren
+          <ShieldOff size={15} /> {t('mfas.disable')}
         </button>
       </div>
     )
@@ -88,8 +90,8 @@ export default function MFASetup() {
         <div className="mfa-status active">
           <Check size={20} color="#10b981" />
           <div>
-            <strong>2FA erfolgreich aktiviert!</strong>
-            <p>Ab sofort wird beim Login ein Code abgefragt.</p>
+            <strong>{t('mfas.enabledSuccess')}</strong>
+            <p>{t('mfas.enabledSuccessDesc')}</p>
           </div>
         </div>
       </div>
@@ -99,9 +101,9 @@ export default function MFASetup() {
   if (step === 'confirming') {
     return (
       <div className="mfa-setup-section">
-        <h4><QrCode size={16} /> QR-Code scannen</h4>
+        <h4><QrCode size={16} /> {t('mfas.scanQr')}</h4>
         <p className="mfa-hint">
-          Scanne den QR-Code mit Google Authenticator, Authy oder der Apple Passwörter-App.
+          {t('mfas.scanQrDesc')}
         </p>
 
         {qrCode && (
@@ -115,7 +117,7 @@ export default function MFASetup() {
           onClick={() => setShowSecret(v => !v)}
           type="button"
         >
-          {showSecret ? 'Code verbergen' : 'Code manuell eingeben'}
+          {showSecret ? t('mfas.hideCode') : t('mfas.enterManually')}
         </button>
         {showSecret && (
           <div className="mfa-secret">
@@ -124,7 +126,7 @@ export default function MFASetup() {
         )}
 
         <form onSubmit={handleConfirm} className="mfa-form" style={{ marginTop: 16 }}>
-          <label className="mfa-label">6-stelligen Code zur Bestätigung eingeben:</label>
+          <label className="mfa-label">{t('mfas.enterCodeConfirm')}</label>
           <input
             type="text"
             inputMode="numeric"
@@ -144,14 +146,14 @@ export default function MFASetup() {
               className="btn-primary"
               disabled={loading || code.length !== 6}
             >
-              {loading ? 'Wird aktiviert…' : '2FA aktivieren'}
+              {loading ? t('mfas.activating') : t('mfas.activate')}
             </button>
             <button
               type="button"
               className="btn-secondary"
               onClick={() => { setStep('idle'); setCode(''); setError('') }}
             >
-              Abbrechen
+              {t('mfas.cancel')}
             </button>
           </div>
         </form>
@@ -164,8 +166,8 @@ export default function MFASetup() {
       <div className="mfa-status inactive">
         <ShieldOff size={20} color="#f59e0b" />
         <div>
-          <strong>Zwei-Faktor-Authentifizierung nicht aktiv</strong>
-          <p>Schütze dein Konto mit einem zweiten Faktor.</p>
+          <strong>{t('mfas.inactive')}</strong>
+          <p>{t('mfas.inactiveDesc')}</p>
         </div>
       </div>
       {error && <div className="mfa-error">{error}</div>}
@@ -175,7 +177,7 @@ export default function MFASetup() {
         disabled={loading}
         style={{ marginTop: 12 }}
       >
-        <ShieldCheck size={15} /> {loading ? 'Wird vorbereitet…' : '2FA einrichten'}
+        <ShieldCheck size={15} /> {loading ? t('mfas.preparing') : t('mfas.setup')}
       </button>
     </div>
   )

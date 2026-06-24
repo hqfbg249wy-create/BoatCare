@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useT } from '../i18n'
 
 /**
  * Reset-Password-Landing. Supabase legt beim Klick auf den Recovery-Link
@@ -8,6 +9,7 @@ import { supabase } from '../lib/supabase'
  * (detectSessionInUrl=true), aus der updateUser({ password }) erlaubt ist.
  */
 export default function ResetPassword() {
+  const { t } = useT()
   const navigate = useNavigate()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -37,10 +39,10 @@ export default function ResetPassword() {
     e.preventDefault()
     setError(null)
     if (password.length < 8) {
-      setError('Mindestens 8 Zeichen.'); return
+      setError(t('rsp.minChars')); return
     }
     if (password !== confirm) {
-      setError('Die beiden Passwoerter stimmen nicht ueberein.'); return
+      setError(t('rsp.noMatch')); return
     }
     setSubmitting(true)
     try {
@@ -54,7 +56,7 @@ export default function ResetPassword() {
         navigate('/', { replace: true })
       }, 2000)
     } catch (err) {
-      setError(err.message || 'Passwort konnte nicht gesetzt werden.')
+      setError(err.message || t('rsp.failed'))
     } finally {
       setSubmitting(false)
     }
@@ -63,21 +65,20 @@ export default function ResetPassword() {
   return (
     <div className="login-screen" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', padding:'24px' }}>
       <div style={{ maxWidth:420, width:'100%', background:'#fff', padding:'32px', borderRadius:12, boxShadow:'0 4px 20px rgba(0,0,0,0.08)' }}>
-        <h1 style={{ marginTop:0, fontSize:'1.5rem' }}>Neues Passwort setzen</h1>
+        <h1 style={{ marginTop:0, fontSize:'1.5rem' }}>{t('rsp.title')}</h1>
 
         {success ? (
           <p style={{ color:'#16a34a' }}>
-            Passwort wurde aktualisiert. Du wirst gleich zur Anmeldung weitergeleitet.
+            {t('rsp.updated')}
           </p>
         ) : !recoveryReady ? (
           <p style={{ color:'#64748b' }}>
-            Recovery-Link wird verarbeitet … Falls hier nichts passiert,
-            ist der Link evtl. abgelaufen — fordere bitte einen neuen an.
+            {t('rsp.processing')}
           </p>
         ) : (
           <form onSubmit={handleSubmit}>
             <label style={{ display:'block', marginBottom:12 }}>
-              Neues Passwort
+              {t('rsp.newPassword')}
               <input
                 type="password"
                 value={password}
@@ -88,7 +89,7 @@ export default function ResetPassword() {
               />
             </label>
             <label style={{ display:'block', marginBottom:16 }}>
-              Passwort wiederholen
+              {t('rsp.repeatPassword')}
               <input
                 type="password"
                 value={confirm}
@@ -110,7 +111,7 @@ export default function ResetPassword() {
                 opacity: submitting ? 0.6 : 1
               }}
             >
-              {submitting ? 'Speichere …' : 'Passwort speichern'}
+              {submitting ? t('rsp.saving') : t('rsp.save')}
             </button>
           </form>
         )}
