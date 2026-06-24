@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Filter, ShoppingCart, MapPin, Bot, Mail } from 'lucide-react'
+import { useT } from '../i18n'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { buildShopQuery, buildServiceQuery, buildAIQuestion, buildInquirySubject, buildInquiryMessage } from '../lib/equipmentSearch'
 import { buildSparePartsParams } from '../lib/sparePartsSearch'
@@ -18,6 +19,7 @@ const categoryLabels = {
 const emptyItem = { name: '', category: 'engine', manufacturer: '', model: '', serial_number: '', installation_date: '', warranty_expiry: '', maintenance_cycle_years: '', last_maintenance_date: '', notes: '', boat_id: '' }
 
 export default function Equipment() {
+  const { t } = useT()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -134,7 +136,7 @@ export default function Equipment() {
       notes:                    nullify(form.notes),
     }
 
-    if (!payload.boat_id) { alert('Bitte ein Boot wählen'); setSaving(false); return }
+    if (!payload.boat_id) { alert(t('eq.k31')); setSaving(false); return }
 
     // Nächsten Wartungstermin berechnen
     if (payload.last_maintenance_date && payload.maintenance_cycle_years) {
@@ -184,7 +186,7 @@ export default function Equipment() {
   }
 
   async function deleteItem(id) {
-    if (!confirm('Gerät wirklich löschen?')) return
+    if (!confirm(t('eq.k32'))) return
     const { error } = await supabase.from('equipment').delete().eq('id', id)
     if (error) { alert('Fehler beim Löschen: ' + error.message); return }
     await loadData()
@@ -195,26 +197,26 @@ export default function Equipment() {
   return (
     <div className="page">
       <div className="page-header">
-        <div><h1>Ausruestung</h1><p className="subtitle">{items.length} Geraete erfasst</p></div>
-        {boats.length > 0 && <button className="btn-primary" onClick={startNew}><Plus size={16} /> Geraet hinzufuegen</button>}
+        <div><h1>{t('eq.k0')}</h1><p className="subtitle">{items.length} Geraete erfasst</p></div>
+        {boats.length > 0 && <button className="btn-primary" onClick={startNew}><Plus size={16} /> {t('eq.k1')}</button>}
       </div>
 
       {boats.length === 0 ? (
         <div className="empty-state">
           <Package size={64} color="#cbd5e1" />
-          <h2>Bitte zuerst ein Boot anlegen</h2>
-          <p>Geraete werden einem Boot zugeordnet.</p>
+          <h2>{t('eq.k2')}</h2>
+          <p>{t('eq.k3')}</p>
         </div>
       ) : (
         <>
           <div className="filter-bar">
             <Filter size={16} />
             <select value={selectedBoat} onChange={e => setSelectedBoat(e.target.value)}>
-              <option value="">Alle Boote</option>
+              <option value="">{t('eq.k4')}</option>
               {boats.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
             <select value={filterCat} onChange={e => setFilterCat(e.target.value)}>
-              <option value="">Alle Kategorien</option>
+              <option value="">{t('eq.k5')}</option>
               {categories.map(c => <option key={c} value={c}>{categoryLabels[c]}</option>)}
             </select>
           </div>
@@ -237,44 +239,44 @@ export default function Equipment() {
                     }}>
                       <span style={{ fontSize: 16, lineHeight: 1.2 }}>💡</span>
                       <span style={{ fontSize: 13, color: 'var(--text-secondary, #64748b)', lineHeight: 1.4 }}>
-                        Je genauer Deine Eingaben sind, desto leichter kann Dir die KI helfen und der Shop das passende Teil finden.
+                        {t('eq.k6')}
                       </span>
                     </div>
                   )}
                   <div className="form-row">
-                    <div className="form-group"><label>Bezeichnung *</label>
-                      <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="z.B. Yanmar 3YM30" /></div>
-                    <div className="form-group"><label>Kategorie</label>
+                    <div className="form-group"><label>{t('eq.k7')}</label>
+                      <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder={t('eq.k26')} /></div>
+                    <div className="form-group"><label>{t('eq.k8')}</label>
                       <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
                         {categories.map(c => <option key={c} value={c}>{categoryLabels[c]}</option>)}
                       </select></div>
-                    <div className="form-group"><label>Boot *</label>
+                    <div className="form-group"><label>{t('eq.k9')}</label>
                       <select required value={form.boat_id} onChange={e => setForm({...form, boat_id: e.target.value})}>
-                        <option value="">Bitte waehlen</option>
+                        <option value="">{t('eq.k10')}</option>
                         {boats.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                       </select></div>
                   </div>
                   <div className="form-row">
-                    <div className="form-group"><label>Hersteller</label>
+                    <div className="form-group"><label>{t('eq.k11')}</label>
                       <input value={form.manufacturer} onChange={e => setForm({...form, manufacturer: e.target.value})} /></div>
-                    <div className="form-group"><label>Modell</label>
+                    <div className="form-group"><label>{t('eq.k12')}</label>
                       <input value={form.model} onChange={e => setForm({...form, model: e.target.value})} /></div>
-                    <div className="form-group"><label>Seriennummer</label>
+                    <div className="form-group"><label>{t('eq.k13')}</label>
                       <input value={form.serial_number} onChange={e => setForm({...form, serial_number: e.target.value})} /></div>
                   </div>
                   <div className="form-row">
-                    <div className="form-group"><label>Eingebaut am</label>
+                    <div className="form-group"><label>{t('eq.k14')}</label>
                       <input type="date" value={form.installation_date} onChange={e => setForm({...form, installation_date: e.target.value})} /></div>
-                    <div className="form-group"><label>Garantie bis</label>
+                    <div className="form-group"><label>{t('eq.k15')}</label>
                       <input type="date" value={form.warranty_expiry} onChange={e => setForm({...form, warranty_expiry: e.target.value})} /></div>
                   </div>
                   <div className="form-row">
-                    <div className="form-group"><label>Wartungsintervall (Jahre)</label>
+                    <div className="form-group"><label>{t('eq.k16')}</label>
                       <input type="number" value={form.maintenance_cycle_years} onChange={e => setForm({...form, maintenance_cycle_years: e.target.value})} placeholder="z.B. 1" /></div>
-                    <div className="form-group"><label>Letzte Wartung</label>
+                    <div className="form-group"><label>{t('eq.k17')}</label>
                       <input type="date" value={form.last_maintenance_date} onChange={e => setForm({...form, last_maintenance_date: e.target.value})} /></div>
                   </div>
-                  <div className="form-group"><label>Notizen</label>
+                  <div className="form-group"><label>{t('eq.k18')}</label>
                     <textarea rows={3} value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} /></div>
 
                   {/* ─── Segel-Maßblatt (nur wenn category=sails) ──────── */}
@@ -283,7 +285,7 @@ export default function Equipment() {
                   )}
 
                   <div className="modal-footer">
-                    <button type="button" className="btn-secondary" onClick={() => setEditing(null)}>Abbrechen</button>
+                    <button type="button" className="btn-secondary" onClick={() => setEditing(null)}>{t('eq.k19')}</button>
                     <button type="submit" className="btn-primary" disabled={saving}><Save size={16} /> {saving ? 'Speichern...' : 'Speichern'}</button>
                   </div>
                 </form>
@@ -294,8 +296,8 @@ export default function Equipment() {
           {filtered.length === 0 ? (
             <div className="empty-state">
               <Package size={64} color="#cbd5e1" />
-              <h2>Keine Geraete gefunden</h2>
-              <p>Erfassen Sie Ihre Bordausruestung fuer eine einfache Wartungsuebersicht.</p>
+              <h2>{t('eq.k20')}</h2>
+              <p>{t('eq.k21')}</p>
             </div>
           ) : (
             <div className="equipment-grid">
@@ -335,15 +337,15 @@ export default function Equipment() {
                       </div>
                     )}
                     <div className="eq-quick-actions">
-                      <button className="eq-action-btn eq-action-shop" title="Passende Artikel im Shop suchen"
+                      <button className="eq-action-btn eq-action-shop" title={t('eq.k27')}
                         onClick={() => navigate(`/shop?${buildSparePartsParams(item)}`)}>
-                        <ShoppingCart size={13} /> Shop
+                        <ShoppingCart size={13} /> {t('eq.k22')}
                       </button>
-                      <button className="eq-action-btn eq-action-service" title="Passenden Service in der Nähe finden"
+                      <button className="eq-action-btn eq-action-service" title={t('eq.k28')}
                         onClick={() => navigate(`/services?search=${encodeURIComponent(buildServiceQuery(item))}`)}>
-                        <MapPin size={13} /> Service
+                        <MapPin size={13} /> {t('eq.k23')}
                       </button>
-                      <button className="eq-action-btn eq-action-inquiry" title="Anfrage an Service-Partner senden"
+                      <button className="eq-action-btn eq-action-inquiry" title={t('eq.k29')}
                         onClick={() => {
                           // Inquiry-Kontext in sessionStorage, damit ProviderDetail die Anfrage vorausfüllt.
                           sessionStorage.setItem('pending_inquiry', JSON.stringify({
@@ -354,11 +356,11 @@ export default function Equipment() {
                           }))
                           navigate(`/services?inquiry=1&search=${encodeURIComponent(buildServiceQuery(item))}`)
                         }}>
-                        <Mail size={13} /> Anfrage
+                        <Mail size={13} /> {t('eq.k24')}
                       </button>
-                      <button className="eq-action-btn eq-action-ai" title="KI zu diesem Gerät fragen"
+                      <button className="eq-action-btn eq-action-ai" title={t('eq.k30')}
                         onClick={() => navigate(`/chat?question=${encodeURIComponent(buildAIQuestion(item, boatName(item.boat_id)))}`)}>
-                        <Bot size={13} /> KI fragen
+                        <Bot size={13} /> {t('eq.k25')}
                       </button>
                     </div>
                   </div>
