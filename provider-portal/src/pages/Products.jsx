@@ -9,7 +9,7 @@ import { useT } from '../i18n'
 export default function Products() {
   const { provider } = useAuth()
   const access = useFeatureAccess()
-  const { t } = useT()
+  const { t, lang } = useT()
   const [generatingDesc, setGeneratingDesc] = useState(false)
   const [genDescError, setGenDescError] = useState(null)
 
@@ -572,9 +572,9 @@ export default function Products() {
                 <select name="category_id" value={form.category_id} onChange={handleChange}>
                   <option value="">{t('products.chooseCat')}</option>
                   {parentCategories.map(parent => (
-                    <optgroup key={parent.id} label={parent.name_de}>
+                    <optgroup key={parent.id} label={parent['name_' + lang] || parent.name_de}>
                       {categories.filter(c => c.parent_id === parent.id).map(sub => (
-                        <option key={sub.id} value={sub.id}>{sub.name_de}</option>
+                        <option key={sub.id} value={sub.id}>{sub['name_' + lang] || sub.name_de}</option>
                       ))}
                     </optgroup>
                   ))}

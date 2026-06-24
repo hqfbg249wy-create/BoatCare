@@ -19,7 +19,7 @@ const sfSymbolToEmoji = {
 function mapIcon(icon) { return sfSymbolToEmoji[icon] || '' }
 
 export default function Shop() {
-  const { t } = useT()
+  const { t, lang } = useT()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -356,7 +356,7 @@ export default function Shop() {
         <button className={`filter-btn ${!selectedCat ? 'active' : ''}`} onClick={() => handleCategorySelect('')}>{t('shop.k4')}</button>
         {categories.map(c => (
           <button key={c.id} className={`filter-btn ${selectedCat === c.id ? 'active' : ''}`} onClick={() => handleCategorySelect(c.id)}>
-            {mapIcon(c.icon)}{mapIcon(c.icon) ? ' ' : ''}{c.name_de || c.slug}
+            {mapIcon(c.icon)}{mapIcon(c.icon) ? ' ' : ''}{c['name_' + lang] || c.name_de || c.slug}
           </button>
         ))}
       </div>

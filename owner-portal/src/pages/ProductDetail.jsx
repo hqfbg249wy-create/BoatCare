@@ -6,7 +6,7 @@ import { ChevronLeft, ShoppingCart, Check, Package, Truck, Star, Tag, Plus, Minu
 import { useT } from '../i18n'
 
 export default function ProductDetail() {
-  const { t } = useT()
+  const { t, lang } = useT()
   const { id } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -120,7 +120,7 @@ export default function ProductDetail() {
         {/* Info */}
         <div className="pd-info">
           {product.product_categories && (
-            <span className="pd-product-cat">{product.product_categories.name_de || product.product_categories.slug}</span>
+            <span className="pd-product-cat">{product.product_categories['name_' + lang] || product.product_categories.name_de || product.product_categories.slug}</span>
           )}
           {product.service_providers && (
             <Link to={`/provider/${product.service_providers.id}`} className="pd-product-provider-link">
