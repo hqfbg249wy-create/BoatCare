@@ -582,7 +582,20 @@ export default {
     "mi.tab.overview": "Fleet overview",
     "mi.tab.models": "Models & devices",
     "mi.tab.age": "Installation age",
-    "mi.tab.maintenance": "Maintenance status"
+    "mi.tab.maintenance": "Maintenance status",
+    "pf.stripeActive": "Active",
+    "pf.stripeReview": "Under Review",
+    "pf.stripePending": "Setup Pending",
+    "pf.enabled": "Enabled",
+    "pf.pending": "Pending",
+    "pf.tierAdminGrant": "🎁 Admin Grant",
+    "pf.tierStandard": "Standard",
+    "pf.subFreeRest": "free of charge via an admin grant. After expiration, you can upgrade regularly.",
+    "pf.imagesDesc": "Logo and cover image appear on your profile in the Skipily app. Only you as the provider can change these images. Max. 5 MB, recommended: logo 512×512 px, cover image 1600×900 px.",
+    "pf.logoReplace": "Replace logo",
+    "pf.logoUpload": "Upload logo",
+    "pf.coverReplace": "Replace cover image",
+    "pf.coverUpload": "Upload cover image"
   },
   "fr": {
     "common.email": "E-mail",
@@ -1164,7 +1177,20 @@ export default {
     "mi.tab.overview": "Aperçu de la flotte",
     "mi.tab.models": "Modèles & appareils",
     "mi.tab.age": "Âge d'installation",
-    "mi.tab.maintenance": "État de maintenance"
+    "mi.tab.maintenance": "État de maintenance",
+    "pf.stripeActive": "Actif",
+    "pf.stripeReview": "En cours d'examen",
+    "pf.stripePending": "Configuration en attente",
+    "pf.enabled": "Activé",
+    "pf.pending": "En attente",
+    "pf.tierAdminGrant": "🎁 Activation par un administrateur",
+    "pf.tierStandard": "Standard",
+    "pf.subFreeRest": "gratuit via une activation par un administrateur. À l'expiration, vous pouvez passer à une offre supérieure de manière habituelle.",
+    "pf.imagesDesc": "Le logo et l'image de couverture apparaissent sur votre profil dans l'application Skipily. Seul vous, en tant que prestataire, pouvez modifier ces images. Max. 5 Mo, recommandé : logo 512×512 px, image de couverture 1600×900 px.",
+    "pf.logoReplace": "Remplacer le logo",
+    "pf.logoUpload": "Télécharger le logo",
+    "pf.coverReplace": "Remplacer l'image de couverture",
+    "pf.coverUpload": "Télécharger l'image de couverture"
   },
   "it": {
     "common.email": "E-mail",
@@ -1746,7 +1772,20 @@ export default {
     "mi.tab.overview": "Panoramica della flotta",
     "mi.tab.models": "Modelli & dispositivi",
     "mi.tab.age": "Età di installazione",
-    "mi.tab.maintenance": "Stato di manutenzione"
+    "mi.tab.maintenance": "Stato di manutenzione",
+    "pf.stripeActive": "Attivo",
+    "pf.stripeReview": "In revisione",
+    "pf.stripePending": "Configurazione in sospeso",
+    "pf.enabled": "Attivato",
+    "pf.pending": "In sospeso",
+    "pf.tierAdminGrant": "🎁 Sblocco amministratore",
+    "pf.tierStandard": "Standard",
+    "pf.subFreeRest": "gratuito tramite uno sblocco amministratore. Alla scadenza potrai effettuare un upgrade regolare.",
+    "pf.imagesDesc": "Il logo e l'immagine di copertina vengono visualizzati sul tuo profilo nell'app Skipily. Solo tu come fornitore puoi modificare queste immagini. Max. 5 MB, consigliato: logo 512×512 px, immagine di copertina 1600×900 px.",
+    "pf.logoReplace": "Sostituire il logo",
+    "pf.logoUpload": "Caricare il logo",
+    "pf.coverReplace": "Sostituire l'immagine di copertina",
+    "pf.coverUpload": "Caricare l'immagine di copertina"
   },
   "es": {
     "common.email": "Correo electrónico",
@@ -2328,7 +2367,20 @@ export default {
     "mi.tab.overview": "Resumen de la flota",
     "mi.tab.models": "Modelos y dispositivos",
     "mi.tab.age": "Antigüedad de instalación",
-    "mi.tab.maintenance": "Estado de mantenimiento"
+    "mi.tab.maintenance": "Estado de mantenimiento",
+    "pf.stripeActive": "Activo",
+    "pf.stripeReview": "En revisión",
+    "pf.stripePending": "Configuración pendiente",
+    "pf.enabled": "Activado",
+    "pf.pending": "Pendiente",
+    "pf.tierAdminGrant": "🎁 Activación por administrador",
+    "pf.tierStandard": "Estándar",
+    "pf.subFreeRest": "gratuito mediante una activación por administrador. Una vez vencido, puedes actualizar de forma regular.",
+    "pf.imagesDesc": "El logotipo y la imagen de portada aparecen en su perfil en la aplicación Skipily. Solo usted como proveedor puede cambiar estas imágenes. Máx. 5 MB, recomendado: logotipo 512×512 px, imagen de portada 1600×900 px.",
+    "pf.logoReplace": "Reemplazar logotipo",
+    "pf.logoUpload": "Subir logotipo",
+    "pf.coverReplace": "Reemplazar imagen de portada",
+    "pf.coverUpload": "Subir imagen de portada"
   },
   "nl": {
     "common.email": "E-mail",
@@ -2910,6 +2962,19 @@ export default {
     "mi.tab.overview": "Vlootoverzicht",
     "mi.tab.models": "Modellen & apparaten",
     "mi.tab.age": "Installatieleeftijd",
-    "mi.tab.maintenance": "Onderhoudsstatus"
+    "mi.tab.maintenance": "Onderhoudsstatus",
+    "pf.stripeActive": "Actief",
+    "pf.stripeReview": "In beoordeling",
+    "pf.stripePending": "Instelling in behandeling",
+    "pf.enabled": "Geactiveerd",
+    "pf.pending": "In behandeling",
+    "pf.tierAdminGrant": "🎁 Admin-vrijgave",
+    "pf.tierStandard": "Standaard",
+    "pf.subFreeRest": "kosteloos via een admin-vrijgave. Na afloop kun je regulier upgraden.",
+    "pf.imagesDesc": "Logo en omslagafbeelding verschijnen op uw profiel in de Skipily-app. Alleen u als aanbieder kunt deze afbeeldingen wijzigen. Max. 5 MB, aanbevolen: logo 512×512 px, omslagafbeelding 1600×900 px.",
+    "pf.logoReplace": "Logo vervangen",
+    "pf.logoUpload": "Logo uploaden",
+    "pf.coverReplace": "Omslagafbeelding vervangen",
+    "pf.coverUpload": "Omslagafbeelding uploaden"
   }
 }

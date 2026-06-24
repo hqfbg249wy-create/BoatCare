@@ -813,12 +813,12 @@ export default function Profile() {
       return { label: 'Nicht eingerichtet', color: 'var(--gray-400)', icon: AlertCircle }
     }
     if (stripeStatus?.charges_enabled && stripeStatus?.payouts_enabled) {
-      return { label: 'Aktiv', color: 'var(--green)', icon: CheckCircle }
+      return { label: t('pf.stripeActive'), color: 'var(--green)', icon: CheckCircle }
     }
     if (stripeStatus?.details_submitted) {
-      return { label: 'In Prüfung', color: 'var(--yellow)', icon: Clock }
+      return { label: t('pf.stripeReview'), color: 'var(--yellow)', icon: Clock }
     }
-    return { label: 'Einrichtung ausstehend', color: 'var(--primary)', icon: AlertCircle }
+    return { label: t('pf.stripePending'), color: 'var(--primary)', icon: AlertCircle }
   }
 
   if (!provider) return <div className="loading">{t('pf.k0')}</div>
@@ -960,13 +960,13 @@ export default function Profile() {
               <div className="stripe-status-item">
                 <span className="stripe-status-label">{t('pf.k14')}</span>
                 <span className={`stripe-status-value ${stripeStatus?.charges_enabled ? 'active' : ''}`}>
-                  {stripeStatus?.charges_enabled ? 'Aktiviert' : 'Ausstehend'}
+                  {stripeStatus?.charges_enabled ? t('pf.enabled') : t('pf.pending')}
                 </span>
               </div>
               <div className="stripe-status-item">
                 <span className="stripe-status-label">{t('pf.k15')}</span>
                 <span className={`stripe-status-value ${stripeStatus?.payouts_enabled ? 'active' : ''}`}>
-                  {stripeStatus?.payouts_enabled ? 'Aktiviert' : 'Ausstehend'}
+                  {stripeStatus?.payouts_enabled ? t('pf.enabled') : t('pf.pending')}
                 </span>
               </div>
               <div className="stripe-status-item">
@@ -1031,7 +1031,7 @@ export default function Profile() {
               }}>
                 {isEnterprise   ? `💎 Enterprise${planLabel ? ' · ' + planLabel.split('· ')[1] : ''}` :
                  isProfessional ? `⭐ ${planLabel || 'Pro'}` :
-                 isAdminGrant   ? '🎁 Admin-Freischaltung' : 'Standard'}
+                 isAdminGrant   ? t('pf.tierAdminGrant') : t('pf.tierStandard')}
               </span>
             </div>
 
@@ -1197,8 +1197,7 @@ export default function Profile() {
 
             {isAdminGrant && (
               <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginTop: 8 }}>
-                {t('pf.k25')} <strong>kostenfrei</strong> über eine
-                Admin-Freischaltung. Nach Ablauf kannst du regulär upgraden.
+                {t('pf.k25')} {t('pf.subFreeRest')}
               </p>
             )}
           </div>
@@ -1212,8 +1211,7 @@ export default function Profile() {
           <h2 style={{ margin: 0 }}>{t('profile.secImages')}</h2>
         </div>
         <p className="hint" style={{ marginBottom: 16 }}>
-          Logo und Titelbild erscheinen auf Ihrem Profil in der Skipily App.
-          Nur Sie als Anbieter können diese Bilder ändern. Max. 5 MB, empfohlen: Logo 512×512 px, Titelbild 1600×900 px.
+          {t('pf.imagesDesc')}
         </p>
 
         {imageMessage && (
@@ -1267,7 +1265,7 @@ export default function Profile() {
               >
                 {uploadingLogo
                   ? <><Loader size={14} className="spin" /> {t('pf.k26')}</>
-                  : <><Upload size={14} /> {provider.logo_url ? 'Logo ersetzen' : 'Logo hochladen'}</>
+                  : <><Upload size={14} /> {provider.logo_url ? t('pf.logoReplace') : t('pf.logoUpload')}</>
                 }
               </button>
               {provider.logo_url && (
@@ -1335,7 +1333,7 @@ export default function Profile() {
             >
               {uploadingCover
                 ? <><Loader size={14} className="spin" /> {t('pf.k26')}</>
-                : <><Upload size={14} /> {provider.cover_image_url ? 'Titelbild ersetzen' : 'Titelbild hochladen'}</>
+                : <><Upload size={14} /> {provider.cover_image_url ? t('pf.coverReplace') : t('pf.coverUpload')}</>
               }
             </button>
             {provider.cover_image_url && (
