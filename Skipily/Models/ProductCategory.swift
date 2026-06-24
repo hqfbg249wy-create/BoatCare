@@ -12,6 +12,12 @@ struct ProductCategory: Codable, Identifiable, Hashable, Sendable {
     let slug: String?
     let nameDe: String
     let nameEn: String
+    // Weitere Sprachen (Migration 093). Optional, da nicht jede Kategorie
+    // zwingend befüllt ist → Fallback über displayName.
+    var nameFr: String? = nil
+    var nameIt: String? = nil
+    var nameEs: String? = nil
+    var nameNl: String? = nil
     let parentId: UUID?
     let icon: String?
     let sortOrder: Int?
@@ -20,16 +26,26 @@ struct ProductCategory: Codable, Identifiable, Hashable, Sendable {
         case id, slug
         case nameDe = "name_de"
         case nameEn = "name_en"
+        case nameFr = "name_fr"
+        case nameIt = "name_it"
+        case nameEs = "name_es"
+        case nameNl = "name_nl"
         case parentId = "parent_id"
         case icon
         case sortOrder = "sort_order"
     }
 
     var displayName: String {
-        // DE = Quelle. Für alle anderen Sprachen nutzen wir das Englisch-Feld
-        // als saubere Fallback-Übersetzung (Kategorien sind kurz & generisch).
-        let code = LanguageManager.shared.currentLanguage.code
-        return code == "de" ? nameDe : nameEn
+        // DE = Quelle. Übrige Sprachen aus dem jeweiligen Feld, mit Fallback
+        // auf Englisch und zuletzt Deutsch (Kategorien sind kurz & generisch).
+        switch LanguageManager.shared.currentLanguage.code {
+        case "de": return nameDe
+        case "fr": return nameFr ?? nameEn
+        case "it": return nameIt ?? nameEn
+        case "es": return nameEs ?? nameEn
+        case "nl": return nameNl ?? nameEn
+        default:   return nameEn
+        }
     }
 
     var sfSymbol: String {
