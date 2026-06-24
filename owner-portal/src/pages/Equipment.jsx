@@ -10,10 +10,10 @@ import SailMeasurementForm, { emptySailForm, sailFormToPayload } from '../compon
 
 const categories = ['engine', 'electrical', 'navigation', 'safety', 'communication', 'rigging', 'sails', 'hull', 'deck', 'anchor', 'other']
 const categoryLabels = {
-  engine: 'Motor & Antrieb', electrical: 'Elektrik & Batterie', navigation: 'Navigation & Elektronik',
-  safety: 'Sicherheit', communication: 'Kommunikation', rigging: 'Rigg & Takelage',
-  sails: 'Segel & Tuch',
-  hull: 'Rumpf & Unterwasser', deck: 'Deck & Beschlaege', anchor: 'Anker & Kette', other: 'Sonstiges'
+  engine: 'eqcat.engine', electrical: 'eqcat.electrical', navigation: 'eqcat.navigation',
+  safety: 'eqcat.safety', communication: 'eqcat.communication', rigging: 'eqcat.rigging',
+  sails: 'eqcat.sails',
+  hull: 'eqcat.hull', deck: 'eqcat.deck', anchor: 'eqcat.anchor', other: 'eqcat.other'
 }
 
 const emptyItem = { name: '', category: 'engine', manufacturer: '', model: '', serial_number: '', installation_date: '', warranty_expiry: '', maintenance_cycle_years: '', last_maintenance_date: '', notes: '', boat_id: '' }
@@ -217,7 +217,7 @@ export default function Equipment() {
             </select>
             <select value={filterCat} onChange={e => setFilterCat(e.target.value)}>
               <option value="">{t('eq.k5')}</option>
-              {categories.map(c => <option key={c} value={c}>{categoryLabels[c]}</option>)}
+              {categories.map(c => <option key={c} value={c}>{t(categoryLabels[c])}</option>)}
             </select>
           </div>
 
@@ -248,7 +248,7 @@ export default function Equipment() {
                       <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder={t('eq.k26')} /></div>
                     <div className="form-group"><label>{t('eq.k8')}</label>
                       <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
-                        {categories.map(c => <option key={c} value={c}>{categoryLabels[c]}</option>)}
+                        {categories.map(c => <option key={c} value={c}>{t(categoryLabels[c])}</option>)}
                       </select></div>
                     <div className="form-group"><label>{t('eq.k9')}</label>
                       <select required value={form.boat_id} onChange={e => setForm({...form, boat_id: e.target.value})}>
@@ -306,7 +306,7 @@ export default function Equipment() {
                 return (
                   <div key={item.id} className={`equipment-card ${ms?.cls || ''}`}>
                     <div className="eq-header">
-                      <span className="eq-category">{categoryLabels[item.category] || item.category}</span>
+                      <span className="eq-category">{categoryLabels[item.category] ? t(categoryLabels[item.category]) : item.category}</span>
                       <div className="eq-actions">
                         <button className="btn-icon" onClick={() => startEdit(item)}><Pencil size={14} /></button>
                         <button className="btn-icon btn-danger" onClick={() => deleteItem(item.id)}><Trash2 size={14} /></button>

@@ -11,17 +11,17 @@ const PROVIDER_IMAGES_BUCKET = 'provider-images'
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5 MB (matches bucket limit)
 
 const CATEGORY_OPTIONS = [
-  ['repair', '🔧 Reparatur'],
-  ['motor_service', '⚙️ Motorservice'],
-  ['segelmacher', '⛵ Segelmacher'],
-  ['marine_supplies', '🛒 Zubehör / Marine Supplies'],
-  ['elektronik', '📡 Elektronik'],
-  ['werft', '🚢 Werft'],
-  ['winterlager', '❄️ Winterlager'],
-  ['lackiererei', '🎨 Lackiererei'],
-  ['gutachter', '📋 Gutachter'],
-  ['tankstelle', '⛽ Tankstelle'],
-  ['marina', '🌊 Marina'],
+  ['repair', '🔧', 'cat.repair'],
+  ['motor_service', '⚙️', 'cat.motorService'],
+  ['segelmacher', '⛵', 'cat.sailmaker'],
+  ['marine_supplies', '🛒', 'cat.marineSupplies'],
+  ['elektronik', '📡', 'cat.electronics'],
+  ['werft', '🚢', 'cat.shipyard'],
+  ['winterlager', '❄️', 'cat.winterStorage'],
+  ['lackiererei', '🎨', 'cat.paintShop'],
+  ['gutachter', '📋', 'cat.surveyor'],
+  ['tankstelle', '⛽', 'cat.fuelStation'],
+  ['marina', '🌊', 'cat.marina'],
 ]
 
 export default function Profile() {
@@ -516,7 +516,7 @@ export default function Profile() {
   }
 
   async function removeTeamMember(email) {
-    if (!confirm(`Mitglied ${email} wirklich entfernen?`)) return
+    if (!confirm(t('team.confirmRemove', { email }))) return
     try {
       const { error } = await supabase
         .from('provider_members')
@@ -540,7 +540,7 @@ export default function Profile() {
         .eq('provider_id', provider.id)
         .eq('email', email)
       if (error) throw error
-      setTeamMessage({ type: 'success', text: `Rolle für ${email} ist jetzt ${newRole === 'admin' ? 'Admin' : 'Mitglied'}.` })
+      setTeamMessage({ type: 'success', text: t('team.roleChanged', { email, role: newRole === 'admin' ? t('team.admin') : t('team.member') }) })
       await loadTeamMembers()
     } catch (err) {
       setTeamMessage({ type: 'error', text: t('profile.msgChangeFailed') + ' ' + err.message })
@@ -830,8 +830,8 @@ export default function Profile() {
     <div className="page">
       {!canAdmin && (
         <div className="alert" style={{ background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', marginBottom: 12 }}>
-          👤 Du bist als <strong>{t('pf.k1')}</strong> angemeldet. Du kannst <strong>{t('pf.k2')}</strong> bearbeiten.
-          Profil/Stammdaten, Team, API-Zugang und Versandregeln sind dem Inhaber/Admin vorbehalten.
+          👤 {t('team.loggedInAs')} <strong>{t('pf.k1')}</strong> {t('team.canEditOnly')} <strong>{t('pf.k2')}</strong>{t('team.editSuffix')}
+          {t('team.adminReserved')}
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -1379,16 +1379,16 @@ export default function Profile() {
           <div className="form-row">
             {['category', 'category2', 'category3'].map((field, idx) => (
               <div className="form-group" key={field}>
-                <label>{idx === 0 ? 'Hauptkategorie *' : `Kategorie ${idx + 1} (optional)`}</label>
+                <label>{idx === 0 ? t('team.catMain') : t('team.catOptional', { n: idx + 1 })}</label>
                 <select name={field} value={form[field] || ''} onChange={handleChange} required={idx === 0}>
-                  <option value="">{idx === 0 ? '— bitte wählen —' : '— keine —'}</option>
+                  <option value="">{idx === 0 ? t('team.catChoose') : t('team.catNone')}</option>
                   {CATEGORY_OPTIONS
                     // gleiche Kategorie nicht doppelt wählbar
                     .filter(([val]) => {
                       const others = ['category', 'category2', 'category3'].filter(f => f !== field).map(f => form[f])
                       return val === form[field] || !others.includes(val)
                     })
-                    .map(([val, label]) => <option key={val} value={val}>{label}</option>)}
+                    .map(([val, emoji, key]) => <option key={val} value={val}>{emoji} {t(key)}</option>)}
                 </select>
               </div>
             ))}
@@ -1834,16 +1834,13 @@ export default function Profile() {
           </div>
 
           {!access.isEnterprise ? (
-            <FeatureLock requiredTier="Enterprise" feature="Team-Verwaltung" icon="👥">
-              Lade Mitarbeiter zu deinem Provider-Konto ein. Jedes Team-Mitglied
-              hat eigene Login-Daten, ihr seht gemeinsam Anfragen, Bestellungen
-              und den Shop. Verfügbar im <strong>{t('pf.k21')}</strong>-Tarif.
+            <FeatureLock requiredTier="Enterprise" feature={t('team.feature')} icon="👥">
+              {t('team.lockBody')} <strong>{t('pf.k21')}</strong>{t('team.lockTariff')}
             </FeatureLock>
           ) : (
             <>
               <p className="hint" style={{ marginBottom: 16 }}>
-                Lade Mitarbeiter ein, die mit dir gemeinsam dieses Provider-Konto verwalten.
-                Sie sehen denselben Posteingang, dieselben Bestellungen und denselben Shop.
+                {t('team.invite')}
               </p>
 
               {teamMessage && (
@@ -1863,7 +1860,7 @@ export default function Profile() {
                   <span style={{ fontSize: 18 }}>👑</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, color: '#0f172a' }}>
-                      Inhaber{myRole === 'owner' ? ' · Du' : ''}
+                      {t('team.owner')}{myRole === 'owner' ? ` · ${t('team.you')}` : ''}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--gray-500)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {provider.email || '—'}
@@ -1891,7 +1888,7 @@ export default function Profile() {
                               {m.email}
                             </div>
                             <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>
-                              {m.role === 'admin' ? 'Admin' : 'Mitglied'} · {m.accepted_at ? 'Aktiv' : 'Einladung verschickt'}
+                              {m.role === 'admin' ? t('team.admin') : t('team.member')} · {m.accepted_at ? t('team.active') : t('team.invited')}
                             </div>
                           </div>
                         </div>
@@ -1904,8 +1901,8 @@ export default function Profile() {
                             padding: '5px 8px', border: '1px solid var(--gray-200)', borderRadius: 6,
                             fontSize: 12, background: '#fff', cursor: canAdmin ? 'pointer' : 'not-allowed',
                           }}>
-                          <option value="member">👤 Mitglied</option>
-                          <option value="admin">🛡️ Admin</option>
+                          <option value="member">👤 {t('team.member')}</option>
+                          <option value="admin">🛡️ {t('team.admin')}</option>
                         </select>
                         <button
                           type="button"
@@ -1974,8 +1971,7 @@ export default function Profile() {
               </div>
 
               <p className="hint" style={{ marginTop: 10, fontSize: 12 }}>
-                Eingeladene Mitarbeiter erhalten einen Magic-Link per E-Mail. Beim ersten Klick
-                werden sie automatisch zum Provider-Konto verknüpft.
+                {t('team.magicLink')}
               </p>
             </>
           )}
