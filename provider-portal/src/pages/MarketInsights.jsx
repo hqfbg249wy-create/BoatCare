@@ -10,6 +10,15 @@ import {
   ChevronRight, ChevronLeft, ArrowRight, Tag, ShoppingCart, Package,
   Filter, Eye, Zap
 } from 'lucide-react'
+import { useT } from '../i18n'
+
+// Lokalisiertes Kategorie-Label (mi.cat.<slug>), Fallback = roher Slug.
+function categoryLabel(t, c) {
+  if (!c) return c
+  const k = 'mi.cat.' + c
+  const v = t(k)
+  return v === k ? c : v
+}
 
 export default function MarketInsights() {
   const { t } = useT()
