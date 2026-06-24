@@ -821,7 +821,7 @@ export default function Profile() {
     return { label: 'Einrichtung ausstehend', color: 'var(--primary)', icon: AlertCircle }
   }
 
-  if (!provider) return <div className="loading">Laden...</div>
+  if (!provider) return <div className="loading">{t('pf.k0')}</div>
 
   const stripeInfo = getStripeStatusInfo()
   const StripeIcon = stripeInfo.icon
@@ -830,15 +830,15 @@ export default function Profile() {
     <div className="page">
       {!canAdmin && (
         <div className="alert" style={{ background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', marginBottom: 12 }}>
-          👤 Du bist als <strong>Mitglied</strong> angemeldet. Du kannst <strong>Produkte und Bestellungen</strong> bearbeiten.
+          👤 Du bist als <strong>{t('pf.k1')}</strong> angemeldet. Du kannst <strong>{t('pf.k2')}</strong> bearbeiten.
           Profil/Stammdaten, Team, API-Zugang und Versandregeln sind dem Inhaber/Admin vorbehalten.
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 8 }}>
         <div>
-          <h1 style={{ marginBottom: 4 }}>Stammdaten</h1>
+          <h1 style={{ marginBottom: 4 }}>{t('pf.k3')}</h1>
           <p className="subtitle" style={{ margin: 0 }}>
-            So sehen Kunden dein Profil in der Skipily-App. Leistungen und Marken werden anklickbar und führen Kunden zu passenden Produkten.
+            {t('pf.k4')}
           </p>
         </div>
         <a
@@ -848,7 +848,7 @@ export default function Profile() {
           className="btn-secondary"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', whiteSpace: 'nowrap' }}
         >
-          <Eye size={16} /> Live-Vorschau
+          <Eye size={16} /> {t('pf.k5')}
         </a>
       </div>
 
@@ -861,7 +861,7 @@ export default function Profile() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <h2 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
             <CreditCard size={20} />
-            Zahlungen & Auszahlungen
+            {t('pf.k6')}
           </h2>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -891,7 +891,7 @@ export default function Profile() {
                 background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 8,
                 padding: '12px 14px', marginBottom: 16, fontSize: '0.9rem', color: '#9a3412'
               }}>
-                <strong>Bitte zuerst die Provider-Nutzungsbedingungen akzeptieren.</strong>
+                <strong>{t('pf.k7')}</strong>
                 <p style={{ margin: '6px 0 10px', fontSize: '0.85rem' }}>
                   Skipily ist Vermittler — du verantwortest Lieferung, Qualität, Mängelhaftung
                   und Verbraucherschutz für deine Endkunden selbst.
@@ -899,7 +899,7 @@ export default function Profile() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <a href="/provider-agb.html" target="_blank" rel="noopener noreferrer"
                      style={{ color: '#9a3412', fontWeight: 600, textDecoration: 'underline' }}>
-                    AGB lesen
+                    {t('pf.k8')}
                   </a>
                   <button
                     type="button"
@@ -930,15 +930,15 @@ export default function Profile() {
             <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
               <div className="stripe-feature">
                 <CheckCircle size={16} style={{ color: 'var(--green)' }} />
-                <span>Kreditkarte, SEPA & Apple Pay</span>
+                <span>{t('pf.k9')}</span>
               </div>
               <div className="stripe-feature">
                 <CheckCircle size={16} style={{ color: 'var(--green)' }} />
-                <span>Automatische Auszahlung</span>
+                <span>{t('pf.k10')}</span>
               </div>
               <div className="stripe-feature">
                 <CheckCircle size={16} style={{ color: 'var(--green)' }} />
-                <span>Sichere Zahlungsabwicklung</span>
+                <span>{t('pf.k11')}</span>
               </div>
             </div>
             <button
@@ -949,8 +949,8 @@ export default function Profile() {
               style={{ marginTop: 8 }}
             >
               {stripeLoading
-                ? <><Loader size={16} className="spin" /> Wird vorbereitet...</>
-                : <><CreditCard size={16} /> Stripe-Konto einrichten</>
+                ? <><Loader size={16} className="spin" /> {t('pf.k12')}</>
+                : <><CreditCard size={16} /> {t('pf.k13')}</>
               }
             </button>
           </div>
@@ -958,19 +958,19 @@ export default function Profile() {
           <div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
               <div className="stripe-status-item">
-                <span className="stripe-status-label">Zahlungen empfangen</span>
+                <span className="stripe-status-label">{t('pf.k14')}</span>
                 <span className={`stripe-status-value ${stripeStatus?.charges_enabled ? 'active' : ''}`}>
                   {stripeStatus?.charges_enabled ? 'Aktiviert' : 'Ausstehend'}
                 </span>
               </div>
               <div className="stripe-status-item">
-                <span className="stripe-status-label">Auszahlungen</span>
+                <span className="stripe-status-label">{t('pf.k15')}</span>
                 <span className={`stripe-status-value ${stripeStatus?.payouts_enabled ? 'active' : ''}`}>
                   {stripeStatus?.payouts_enabled ? 'Aktiviert' : 'Ausstehend'}
                 </span>
               </div>
               <div className="stripe-status-item">
-                <span className="stripe-status-label">Provision</span>
+                <span className="stripe-status-label">{t('pf.k16')}</span>
                 <span className="stripe-status-value">{provider.commission_rate || 10}%</span>
               </div>
             </div>
@@ -983,15 +983,15 @@ export default function Profile() {
                 disabled={stripeLoading}
               >
                 {stripeLoading
-                  ? <><Loader size={16} className="spin" /> Wird vorbereitet...</>
-                  : <><ExternalLink size={16} /> Einrichtung fortsetzen</>
+                  ? <><Loader size={16} className="spin" /> {t('pf.k12')}</>
+                  : <><ExternalLink size={16} /> {t('pf.k17')}</>
                 }
               </button>
             )}
 
             {stripeStatus?.charges_enabled && stripeStatus?.payouts_enabled && (
               <p style={{ color: 'var(--gray-400)', fontSize: '0.85rem', marginTop: 4 }}>
-                Ihr Stripe-Konto ist vollständig eingerichtet. Auszahlungen erfolgen automatisch.
+                {t('pf.k18')}
               </p>
             )}
           </div>
@@ -1066,7 +1066,7 @@ export default function Profile() {
                       </div>
                     )}
                     <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 4 }}>
-                      Nächste Verlängerung am <strong style={{ color: '#0f172a' }}>{fmtDate(validUntil)}</strong>
+                      {t('pf.k19')} <strong style={{ color: '#0f172a' }}>{fmtDate(validUntil)}</strong>
                     </div>
                     {planPrice && (
                       <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -1090,7 +1090,7 @@ export default function Profile() {
 
             {isAdminGrant && validUntil && (
               <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: 12 }}>
-                Kostenfreie Nutzung bis <strong>{fmtDate(validUntil)}</strong>
+                {t('pf.k20')} <strong>{fmtDate(validUntil)}</strong>
               </p>
             )}
 
@@ -1099,7 +1099,7 @@ export default function Profile() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
                   <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', margin: 0, lineHeight: 1.6, flex: 1, minWidth: 240 }}>
                     Mit <strong>Pro</strong> erhältst du erweiterte Features (API-Zugang,
-                    Webhook-Integration, priorisierte Sichtbarkeit). Mit <strong>Enterprise</strong>
+                    Webhook-Integration, priorisierte Sichtbarkeit). Mit <strong>{t('pf.k21')}</strong>
                     zusätzlich Werbeplätze, Markt-Analytics und Multi-User-Verwaltung.
                   </p>
                   <button
@@ -1162,7 +1162,7 @@ export default function Profile() {
                 </div>
                 {subscriptionLoading && (
                   <p style={{ marginTop: 10, fontSize: 13, color: 'var(--gray-500)' }}>
-                    <Loader size={14} className="spin" /> Checkout wird vorbereitet…
+                    <Loader size={14} className="spin" /> {t('pf.k22')}
                   </p>
                 )}
               </div>
@@ -1178,8 +1178,8 @@ export default function Profile() {
                   style={{ fontSize: '0.9rem' }}
                 >
                   {subscriptionLoading
-                    ? <><Loader size={14} className="spin" /> Lädt…</>
-                    : <><ExternalLink size={14} /> Abo verwalten / kündigen</>}
+                    ? <><Loader size={14} className="spin" /> {t('pf.k23')}</>
+                    : <><ExternalLink size={14} /> {t('pf.k24')}</>}
                 </button>
                 <button
                   type="button"
@@ -1197,7 +1197,7 @@ export default function Profile() {
 
             {isAdminGrant && (
               <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginTop: 8 }}>
-                Du nutzt Skipily Professional aktuell <strong>kostenfrei</strong> über eine
+                {t('pf.k25')} <strong>kostenfrei</strong> über eine
                 Admin-Freischaltung. Nach Ablauf kannst du regulär upgraden.
               </p>
             )}
@@ -1266,7 +1266,7 @@ export default function Profile() {
                 disabled={uploadingLogo}
               >
                 {uploadingLogo
-                  ? <><Loader size={14} className="spin" /> Wird hochgeladen...</>
+                  ? <><Loader size={14} className="spin" /> {t('pf.k26')}</>
                   : <><Upload size={14} /> {provider.logo_url ? 'Logo ersetzen' : 'Logo hochladen'}</>
                 }
               </button>
@@ -1278,7 +1278,7 @@ export default function Profile() {
                   disabled={uploadingLogo}
                   title={t('profile.titleRemoveLogo')}
                 >
-                  <Trash2 size={14} /> Entfernen
+                  <Trash2 size={14} /> {t('pf.k27')}
                 </button>
               )}
             </div>
@@ -1315,7 +1315,7 @@ export default function Profile() {
             ) : (
               <div style={{ color: 'var(--gray-400)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <ImageIcon size={28} />
-                <span>Noch kein Titelbild</span>
+                <span>{t('pf.k28')}</span>
               </div>
             )}
           </div>
@@ -1334,7 +1334,7 @@ export default function Profile() {
               disabled={uploadingCover}
             >
               {uploadingCover
-                ? <><Loader size={14} className="spin" /> Wird hochgeladen...</>
+                ? <><Loader size={14} className="spin" /> {t('pf.k26')}</>
                 : <><Upload size={14} /> {provider.cover_image_url ? 'Titelbild ersetzen' : 'Titelbild hochladen'}</>
               }
             </button>
@@ -1346,7 +1346,7 @@ export default function Profile() {
                 disabled={uploadingCover}
                 title={t('profile.titleRemoveCover')}
               >
-                <Trash2 size={14} /> Entfernen
+                <Trash2 size={14} /> {t('pf.k27')}
               </button>
             )}
           </div>
@@ -1377,7 +1377,7 @@ export default function Profile() {
 
           {/* Kategorien — bis zu 3 (z.B. Zubehör + Motorservice) */}
           <h3 style={{ fontSize: '0.95rem', margin: '14px 0 6px' }}>{t('profile.catTitle')}</h3>
-          <p className="hint" style={{ marginTop: 0 }}>In welchen Bereichen ist Dein Betrieb aktiv? Die Hauptkategorie ist Pflicht, zwei weitere optional.</p>
+          <p className="hint" style={{ marginTop: 0 }}>{t('pf.k29')}</p>
           <div className="form-row">
             {['category', 'category2', 'category3'].map((field, idx) => (
               <div className="form-group" key={field}>
@@ -1426,10 +1426,10 @@ export default function Profile() {
             <h2 style={{ margin: 0 }}>{t('profile.secCountries')}</h2>
           </div>
           <p className="hint" style={{ marginBottom: 12 }}>
-            Wähle die Länder, in die du versendest. Hintergrund: Die <strong>EU-Verpackungsverordnung (PPWR)</strong> und nationale Pflichten wie <em>LUCID</em> (Deutschland), <em>Triman</em> (Frankreich) oder <em>RAEE</em> (Italien) verlangen, dass Händler in jedem Empfängerland registriert sind und die Verpackungs-Recycling-Gebühren entrichten. Wer hier ein Land nicht freischaltet, bekommt aus diesem Land keine Bestellungen.
+            {t('pf.k30')} <strong>{t('pf.k31')}</strong> und nationale Pflichten wie <em>LUCID</em> (Deutschland), <em>{t('pf.k32')}</em> (Frankreich) oder <em>RAEE</em> (Italien) verlangen, dass Händler in jedem Empfängerland registriert sind und die Verpackungs-Recycling-Gebühren entrichten. Wer hier ein Land nicht freischaltet, bekommt aus diesem Land keine Bestellungen.
           </p>
           <p className="hint" style={{ marginBottom: 16, fontSize: '0.85rem', color: 'var(--gray-500)' }}>
-            <strong>Hinweis:</strong> Diese Einstellung ersetzt keine rechtliche Beratung — kläre für jedes ausgewählte Land deine Registrierungs- und Meldepflichten selbst ab.
+            <strong>{t('pf.k33')}</strong> Diese Einstellung ersetzt keine rechtliche Beratung — kläre für jedes ausgewählte Land deine Registrierungs- und Meldepflichten selbst ab.
           </p>
 
           {/* Presets */}
@@ -1437,7 +1437,7 @@ export default function Profile() {
             <button type="button" className="btn-secondary"
                     onClick={() => applyShippingPreset(['DE'])}
                     style={{ fontSize: 13, padding: '6px 12px' }}>
-              Nur Deutschland
+              {t('pf.k34')}
             </button>
             <button type="button" className="btn-secondary"
                     onClick={() => applyShippingPreset(['DE', 'AT', 'CH'])}
@@ -1452,12 +1452,12 @@ export default function Profile() {
             <button type="button" className="btn-secondary"
                     onClick={() => applyShippingPreset(ALL_COUNTRIES.map(c => c.code))}
                     style={{ fontSize: 13, padding: '6px 12px' }}>
-              Ganz Europa (EU + EFTA + UK)
+              {t('pf.k35')}
             </button>
             <button type="button" className="btn-secondary"
                     onClick={clearShipping}
                     style={{ fontSize: 13, padding: '6px 12px', color: '#b91c1c' }}>
-              Alle abwählen
+              {t('pf.k36')}
             </button>
           </div>
 
@@ -1478,21 +1478,21 @@ export default function Profile() {
               <>
                 <AlertCircle size={16} style={{ color: '#854d0e' }} />
                 <span style={{ color: '#854d0e' }}>
-                  Noch nicht konfiguriert — bitte mindestens ein Land auswählen und speichern.
+                  {t('pf.k37')}
                 </span>
               </>
             ) : currentShipping.length === 0 ? (
               <>
                 <AlertCircle size={16} style={{ color: '#991b1b' }} />
                 <span style={{ color: '#991b1b' }}>
-                  Aktuell wird in <strong>kein Land</strong> versendet — Bestellungen werden im Shop blockiert.
+                  {t('pf.k38')} <strong>kein Land</strong> versendet — Bestellungen werden im Shop blockiert.
                 </span>
               </>
             ) : (
               <>
                 <CheckCircle size={16} style={{ color: '#166534' }} />
                 <span style={{ color: '#166534' }}>
-                  Versand in <strong>{currentShipping.length}</strong> {currentShipping.length === 1 ? 'Land' : 'Länder'} aktiviert.
+                  {t('pf.k39')} <strong>{currentShipping.length}</strong> {currentShipping.length === 1 ? 'Land' : 'Länder'} aktiviert.
                 </span>
               </>
             )}
@@ -1542,7 +1542,7 @@ export default function Profile() {
 
           <label style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
             <input type="checkbox" checked={!!shipRule.enabled} onChange={e => setShip('enabled', e.target.checked)} />
-            <span style={{ fontWeight:600 }}>Versandkosten-Engine aktivieren</span>
+            <span style={{ fontWeight:600 }}>{t('pf.k40')}</span>
           </label>
 
           <div className="form-row">
@@ -1590,7 +1590,7 @@ export default function Profile() {
           </div>
 
           {shipMsg && <div className={`alert alert-${shipMsg.type}`}>{shipMsg.text}</div>}
-          <button className="btn-primary" onClick={saveShippingRule} disabled={!canAdmin}>Versandregeln speichern</button>
+          <button className="btn-primary" onClick={saveShippingRule} disabled={!canAdmin}>{t('pf.k41')}</button>
         </div>
         )}
 
@@ -1632,7 +1632,7 @@ export default function Profile() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
             {services.length === 0 && (
               <span style={{ color: 'var(--gray-400)', fontSize: '0.85rem', fontStyle: 'italic' }}>
-                Noch keine Leistungen hinterlegt.
+                {t('pf.k42')}
               </span>
             )}
             {services.map(s => {
@@ -1685,7 +1685,7 @@ export default function Profile() {
             />
             <button type="button" className="btn-secondary"
               onClick={() => { addService(serviceInput); setServiceInput('') }}>
-              <Plus size={14} /> Hinzufügen
+              <Plus size={14} /> {t('pf.k43')}
             </button>
           </div>
 
@@ -1726,7 +1726,7 @@ export default function Profile() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
             {brands.length === 0 && (
               <span style={{ color: 'var(--gray-400)', fontSize: '0.85rem', fontStyle: 'italic' }}>
-                Noch keine Marken hinterlegt.
+                {t('pf.k44')}
               </span>
             )}
             {brands.map(b => {
@@ -1779,7 +1779,7 @@ export default function Profile() {
             />
             <button type="button" className="btn-secondary"
               onClick={() => { addBrand(brandInput); setBrandInput('') }}>
-              <Plus size={14} /> Hinzufügen
+              <Plus size={14} /> {t('pf.k43')}
             </button>
           </div>
 
@@ -1840,7 +1840,7 @@ export default function Profile() {
             <FeatureLock requiredTier="Enterprise" feature="Team-Verwaltung" icon="👥">
               Lade Mitarbeiter zu deinem Provider-Konto ein. Jedes Team-Mitglied
               hat eigene Login-Daten, ihr seht gemeinsam Anfragen, Bestellungen
-              und den Shop. Verfügbar im <strong>Enterprise</strong>-Tarif.
+              und den Shop. Verfügbar im <strong>{t('pf.k21')}</strong>-Tarif.
             </FeatureLock>
           ) : (
             <>
@@ -1873,7 +1873,7 @@ export default function Profile() {
                     </div>
                   </div>
                   <span style={{ background: '#7e22ce', color: '#fff', padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
-                    Vollzugriff
+                    {t('pf.k45')}
                   </span>
                 </div>
 
@@ -1920,7 +1920,7 @@ export default function Profile() {
                             fontSize: 12, fontWeight: 600, cursor: canAdmin ? 'pointer' : 'not-allowed',
                             opacity: canAdmin ? 1 : 0.5,
                           }}>
-                          Entfernen
+                          {t('pf.k27')}
                         </button>
                       </div>
                     ))}
@@ -1930,17 +1930,17 @@ export default function Profile() {
 
               {/* Rechte-Legende: was darf welche Rolle? */}
               <div style={{ background: '#f8fafc', border: '1px solid var(--gray-200)', borderRadius: 8, padding: '10px 12px', marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 8 }}>Was darf welche Rolle?</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 8 }}>{t('pf.k46')}</div>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
                   <span style={{ fontSize: 14, flexShrink: 0 }}>👑🛡️</span>
                   <div style={{ fontSize: 12, color: '#475569' }}>
-                    <strong>Inhaber / Admin:</strong> Profil &amp; Stammdaten · Team · API &amp; Webhook · Versandregeln · Produkte · Bestellungen
+                    <strong>{t('pf.k47')}</strong> Profil &amp; Stammdaten · Team · API &amp; Webhook · Versandregeln · Produkte · Bestellungen
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                   <span style={{ fontSize: 14, flexShrink: 0 }}>👤</span>
                   <div style={{ fontSize: 12, color: '#475569' }}>
-                    <strong>Mitglied:</strong> nur Produkte · Bestellungen
+                    <strong>{t('pf.k48')}</strong> nur Produkte · Bestellungen
                     <span style={{ color: '#94a3b8' }}> — kein Zugriff auf Profil, Team, API, Versand</span>
                   </div>
                 </div>
@@ -1971,8 +1971,8 @@ export default function Profile() {
                   disabled={teamLoading || !canAdmin}
                 >
                   {teamLoading
-                    ? <><Loader size={14} className="spin" /> Sende…</>
-                    : <><Plus size={14} /> Einladen</>}
+                    ? <><Loader size={14} className="spin" /> {t('pf.k49')}</>
+                    : <><Plus size={14} /> {t('pf.k50')}</>}
                 </button>
               </div>
 
@@ -2007,7 +2007,7 @@ export default function Profile() {
           ) : (
           <>
           <p className="hint" style={{ marginBottom: '16px' }}>
-            Nutze die REST API um Produkte automatisch zu synchronisieren. Dein API-Schlüssel ermöglicht Zugriff auf die Produkt-Verwaltung.
+            {t('pf.k51')}
           </p>
 
           {/* API Key */}
@@ -2032,7 +2032,7 @@ export default function Profile() {
             ) : (
               <div>
                 <button type="button" className="btn-secondary" onClick={generateApiKey} disabled={generatingKey || !canAdmin}>
-                  {generatingKey ? <><Loader size={14} className="spin" /> Generieren...</> : <><Key size={14} /> API-Schlüssel generieren</>}
+                  {generatingKey ? <><Loader size={14} className="spin" /> {t('pf.k52')}</> : <><Key size={14} /> {t('pf.k53')}</>}
                 </button>
               </div>
             )}
@@ -2041,7 +2041,7 @@ export default function Profile() {
           {/* Webhook URL */}
           <div className="form-group">
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Globe size={14} /> Webhook-URL (optional)
+              <Globe size={14} /> {t('pf.k54')}
             </label>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
@@ -2052,29 +2052,29 @@ export default function Profile() {
                 style={{ flex: 1 }}
               />
               <button type="button" className="btn-secondary" onClick={saveWebhookUrl} disabled={!canAdmin} style={{ whiteSpace: 'nowrap' }}>
-                <Save size={14} /> Speichern
+                <Save size={14} /> {t('pf.k55')}
               </button>
             </div>
             <p className="hint" style={{ marginTop: '4px' }}>
-              Wird bei Bestelländerungen mit Status-Updates aufgerufen (POST mit JSON-Payload).
+              {t('pf.k56')}
             </p>
           </div>
 
           {/* API Docs Link */}
           {apiKey && (
             <div style={{ marginTop: '12px', padding: '12px', background: 'var(--gray-50)', borderRadius: '8px', fontSize: '0.85rem' }}>
-              <strong>API-Endpoint:</strong>{' '}
+              <strong>{t('pf.k57')}</strong>{' '}
               <code style={{ background: 'var(--gray-200)', padding: '2px 6px', borderRadius: '4px' }}>
                 POST /functions/v1/products-api
               </code>
               <br /><br />
-              <strong>Header:</strong>{' '}
+              <strong>{t('pf.k58')}</strong>{' '}
               <code style={{ background: 'var(--gray-200)', padding: '2px 6px', borderRadius: '4px' }}>
                 x-api-key: {apiKeyVisible ? apiKey : '••••••••'}
               </code>
               <br /><br />
               <span style={{ color: 'var(--gray-500)' }}>
-                Produkte erstellen, aktualisieren und abfragen. GET-Anfragen sind ohne Authentifizierung möglich.
+                {t('pf.k59')}
               </span>
             </div>
           )}
@@ -2084,7 +2084,7 @@ export default function Profile() {
 
         <div className="form-actions">
           <button type="submit" className="btn-primary" disabled={saving || !canAdmin}>
-            {saving ? <><Loader size={16} className="spin" /> Speichern...</> : <><Save size={16} /> Speichern</>}
+            {saving ? <><Loader size={16} className="spin" /> {t('pf.k60')}</> : <><Save size={16} /> {t('pf.k55')}</>}
           </button>
         </div>
       </form>
