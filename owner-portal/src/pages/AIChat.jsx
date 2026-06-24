@@ -267,16 +267,16 @@ export default function AIChat() {
             <h2>{t('chat.k2')}</h2>
             <p>{t('chat.k3')}</p>
             <div className="chat-suggestions">
-              <button onClick={() => setInput('Was muss ich bei der Winterlagerung beachten?')}>❄️ Winterlagerung</button>
-              <button onClick={() => setInput('Wann ist die nächste Wartung für meine Ausrüstung fällig?')}>🔧 Wartungsintervalle</button>
-              <button onClick={() => setInput('Welches Antifouling eignet sich für mein Boot?')}>🎨 Antifouling</button>
-              <button onClick={() => setInput('Wie pflege ich meinen Motor richtig?')}>⚙️ Motorpflege</button>
-              <button onClick={() => setInput('Was gehört zur Sicherheitsausrüstung an Bord?')}>🛟 Sicherheit</button>
-              <button onClick={() => setInput('Welche Elektronik-Updates empfiehlst du?')}>📡 Elektronik</button>
+              <button onClick={() => setInput(t('chat.sugWinterPrompt'))}>❄️ {t('chat.sugWinterLabel')}</button>
+              <button onClick={() => setInput(t('chat.sugMaintPrompt'))}>🔧 {t('chat.sugMaintLabel')}</button>
+              <button onClick={() => setInput(t('chat.sugAntifoulingPrompt'))}>🎨 {t('chat.sugAntifoulingLabel')}</button>
+              <button onClick={() => setInput(t('chat.sugMotorPrompt'))}>⚙️ {t('chat.sugMotorLabel')}</button>
+              <button onClick={() => setInput(t('chat.sugSafetyPrompt'))}>🛟 {t('chat.sugSafetyLabel')}</button>
+              <button onClick={() => setInput(t('chat.sugElectronicsPrompt'))}>📡 {t('chat.sugElectronicsLabel')}</button>
             </div>
             {boatContext?.boats?.length > 0 && (
               <p className="chat-context-info">
-                <Anchor size={14} /> {t('chat.k4')} <strong>{boatNames}</strong> und deren Ausrüstung.
+                <Anchor size={14} /> {t('chat.k4')} <strong>{boatNames}</strong> {t('chat.boatsSuffix')}
               </p>
             )}
           </div>
