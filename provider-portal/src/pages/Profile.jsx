@@ -1534,8 +1534,7 @@ export default function Profile() {
         <div className="card">
           <h2 style={{ display:'flex', alignItems:'center', gap:8 }}>{t('profile.secShipping')}</h2>
           <p style={{ fontSize:'0.85rem', color:'#64748b', marginTop:0 }}>
-            Frei ab Betrag + gewichtsbasierte Staffel pro Zone. Ist die Engine
-            aus, gilt der höchste Produkt-Versand wie bisher.
+            {t('pf.shipEngineDesc')}
           </p>
 
           <label style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
@@ -1549,12 +1548,12 @@ export default function Profile() {
               <select value={shipRule.domestic_country || 'DE'}
                       onChange={e => setShip('domestic_country', e.target.value)}>
                 {[
-                  ['DE','Deutschland'],['AT','Österreich'],['CH','Schweiz'],['FR','Frankreich'],
-                  ['IT','Italien'],['ES','Spanien'],['NL','Niederlande'],['BE','Belgien'],
-                  ['LU','Luxemburg'],['DK','Dänemark'],['SE','Schweden'],['PL','Polen'],
-                  ['PT','Portugal'],['GR','Griechenland'],['HR','Kroatien'],['GB','Großbritannien'],
+                  ['DE','pf.cDE'],['AT','pf.cAT'],['CH','pf.cCH'],['FR','pf.cFR'],
+                  ['IT','pf.cIT'],['ES','pf.cES'],['NL','pf.cNL'],['BE','pf.cBE'],
+                  ['LU','pf.cLU'],['DK','pf.cDK'],['SE','pf.cSE'],['PL','pf.cPL'],
+                  ['PT','pf.cPT'],['GR','pf.cGR'],['HR','pf.cHR'],['GB','pf.cGB'],
                 ].map(([code, name]) => (
-                  <option key={code} value={code}>{name} ({code})</option>
+                  <option key={code} value={code}>{t(name)} ({code})</option>
                 ))}
               </select>
             </div>
@@ -1571,11 +1570,11 @@ export default function Profile() {
           </div>
 
           <h3 style={{ fontSize:'0.95rem', margin:'10px 0 6px' }}>{t('profile.tariffsTitle')}</h3>
-          {[['domestic','Heimatland'],['eu','EU'],['world','Welt']].map(([z, label]) => (
+          {[['domestic','pf.zoneHome'],['eu','pf.zoneEu'],['world','pf.zoneWorld']].map(([z, label]) => (
             <div className="form-row" key={z}>
-              <div className="form-group"><label>{label} — Grundpreis €</label>
+              <div className="form-group"><label>{t(label)} — {t('pf.basePrice')}</label>
                 <input type="number" step="0.01" value={shipRule[`rate_${z}_base`] ?? ''} onChange={e => setShip(`rate_${z}_base`, parseFloat(e.target.value) || 0)} /></div>
-              <div className="form-group"><label>{label} — € pro kg</label>
+              <div className="form-group"><label>{t(label)} — {t('pf.perKg')}</label>
                 <input type="number" step="0.01" value={shipRule[`rate_${z}_per_kg`] ?? ''} onChange={e => setShip(`rate_${z}_per_kg`, parseFloat(e.target.value) || 0)} /></div>
             </div>
           ))}
@@ -1932,14 +1931,14 @@ export default function Profile() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
                   <span style={{ fontSize: 14, flexShrink: 0 }}>👑🛡️</span>
                   <div style={{ fontSize: 12, color: '#475569' }}>
-                    <strong>{t('pf.k47')}</strong> Profil &amp; Stammdaten · Team · API &amp; Webhook · Versandregeln · Produkte · Bestellungen
+                    <strong>{t('pf.k47')}</strong> {t('pf.ownerPerms')}
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                   <span style={{ fontSize: 14, flexShrink: 0 }}>👤</span>
                   <div style={{ fontSize: 12, color: '#475569' }}>
-                    <strong>{t('pf.k48')}</strong> nur Produkte · Bestellungen
-                    <span style={{ color: '#94a3b8' }}> — kein Zugriff auf Profil, Team, API, Versand</span>
+                    <strong>{t('pf.k48')}</strong> {t('pf.memberPerms')}
+                    <span style={{ color: '#94a3b8' }}> {t('pf.memberNoAccess')}</span>
                   </div>
                 </div>
               </div>
