@@ -578,7 +578,11 @@ export default {
     "mi.rec.needTitle": "Maintenance needed: {mfr}",
     "mi.rec.needText": "This device is {days} days overdue. Specialize in this brand for targeted service.",
     "mi.rec.mostTitle": "Most equipment: {cat}",
-    "mi.rec.mostText": "{n} devices in this category — offer maintenance accessories and spare parts."
+    "mi.rec.mostText": "{n} devices in this category — offer maintenance accessories and spare parts.",
+    "mi.tab.overview": "Fleet overview",
+    "mi.tab.models": "Models & devices",
+    "mi.tab.age": "Installation age",
+    "mi.tab.maintenance": "Maintenance status"
   },
   "fr": {
     "common.email": "E-mail",
@@ -1156,7 +1160,11 @@ export default {
     "mi.rec.needTitle": "Maintenance nécessaire : {mfr}",
     "mi.rec.needText": "Cet appareil est en retard de {days} jours. Spécialisez-vous dans cette marque pour un service ciblé.",
     "mi.rec.mostTitle": "Le plus d'équipement : {cat}",
-    "mi.rec.mostText": "{n} appareils dans cette catégorie — proposez des accessoires de maintenance et des pièces de rechange."
+    "mi.rec.mostText": "{n} appareils dans cette catégorie — proposez des accessoires de maintenance et des pièces de rechange.",
+    "mi.tab.overview": "Aperçu de la flotte",
+    "mi.tab.models": "Modèles & appareils",
+    "mi.tab.age": "Âge d'installation",
+    "mi.tab.maintenance": "État de maintenance"
   },
   "it": {
     "common.email": "E-mail",
@@ -1734,7 +1742,11 @@ export default {
     "mi.rec.needTitle": "Manutenzione necessaria: {mfr}",
     "mi.rec.needText": "Questo dispositivo è in ritardo di {days} giorni. Specializzati in questo marchio per un servizio mirato.",
     "mi.rec.mostTitle": "Più attrezzatura: {cat}",
-    "mi.rec.mostText": "{n} dispositivi in questa categoria — offri accessori di manutenzione e ricambi."
+    "mi.rec.mostText": "{n} dispositivi in questa categoria — offri accessori di manutenzione e ricambi.",
+    "mi.tab.overview": "Panoramica della flotta",
+    "mi.tab.models": "Modelli & dispositivi",
+    "mi.tab.age": "Età di installazione",
+    "mi.tab.maintenance": "Stato di manutenzione"
   },
   "es": {
     "common.email": "Correo electrónico",
@@ -2312,7 +2324,11 @@ export default {
     "mi.rec.needTitle": "Mantenimiento necesario: {mfr}",
     "mi.rec.needText": "Este dispositivo lleva {days} días vencido. Especialízate en esta marca para un servicio específico.",
     "mi.rec.mostTitle": "Más equipamiento: {cat}",
-    "mi.rec.mostText": "{n} dispositivos en esta categoría — ofrece accesorios de mantenimiento y repuestos."
+    "mi.rec.mostText": "{n} dispositivos en esta categoría — ofrece accesorios de mantenimiento y repuestos.",
+    "mi.tab.overview": "Resumen de la flota",
+    "mi.tab.models": "Modelos y dispositivos",
+    "mi.tab.age": "Antigüedad de instalación",
+    "mi.tab.maintenance": "Estado de mantenimiento"
   },
   "nl": {
     "common.email": "E-mail",
@@ -2890,6 +2906,10 @@ export default {
     "mi.rec.needTitle": "Onderhoud nodig: {mfr}",
     "mi.rec.needText": "Dit apparaat is {days} dagen achterstallig. Specialiseer je in dit merk voor gerichte service.",
     "mi.rec.mostTitle": "Meeste uitrusting: {cat}",
-    "mi.rec.mostText": "{n} apparaten in deze categorie — bied onderhoudsaccessoires en onderdelen aan."
+    "mi.rec.mostText": "{n} apparaten in deze categorie — bied onderhoudsaccessoires en onderdelen aan.",
+    "mi.tab.overview": "Vlootoverzicht",
+    "mi.tab.models": "Modellen & apparaten",
+    "mi.tab.age": "Installatieleeftijd",
+    "mi.tab.maintenance": "Onderhoudsstatus"
   }
 }

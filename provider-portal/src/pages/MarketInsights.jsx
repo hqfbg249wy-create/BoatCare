@@ -217,10 +217,10 @@ export default function MarketInsights() {
   const isOverview = currentLevel.type === 'overview'
 
   const tabs = [
-    { id: 'overview', label: 'Flotten-Überblick', icon: <Sailboat size={16} /> },
-    { id: 'models', label: 'Modelle & Geräte', icon: <Settings size={16} /> },
-    { id: 'age', label: 'Installationsalter', icon: <Calendar size={16} /> },
-    { id: 'maintenance', label: 'Wartungsstatus', icon: <Wrench size={16} /> },
+    { id: 'overview', label: 'mi.tab.overview', icon: <Sailboat size={16} /> },
+    { id: 'models', label: 'mi.tab.models', icon: <Settings size={16} /> },
+    { id: 'age', label: 'mi.tab.age', icon: <Calendar size={16} /> },
+    { id: 'maintenance', label: 'mi.tab.maintenance', icon: <Wrench size={16} /> },
   ]
 
   return (
@@ -317,7 +317,7 @@ export default function MarketInsights() {
                 className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
                 onClick={() => setActiveTab(tab.id)}
               >
-                {tab.icon} {tab.label}
+                {tab.icon} {t(tab.label)}
               </button>
             ))}
           </div>
