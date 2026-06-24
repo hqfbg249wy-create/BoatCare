@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { ChevronLeft, ShoppingCart, Check, Package, Truck, Star, Tag, Plus, Minus, MapPin } from 'lucide-react'
 import { useT } from '../i18n'
+import { translateProducts, isTranslatableLang } from '../lib/dbTranslate'
 
 export default function ProductDetail() {
   const { t, lang } = useT()
@@ -19,8 +20,21 @@ export default function ProductDetail() {
   const [cart, setCart] = useState(() => {
     try { return JSON.parse(localStorage.getItem('boatcare_cart') || '[]') } catch { return [] }
   })
+  const [tr, setTr] = useState(null) // { name, description } in aktiver Sprache
 
   useEffect(() => { if (id) loadProduct() }, [id])
+
+  // DB-Freitext (Name/Beschreibung) on-demand in Zielsprache übersetzen + cachen
+  useEffect(() => {
+    if (!product) { setTr(null); return }
+    if (!isTranslatableLang(lang)) { setTr(null); return }
+    const cached = product.translations?.[lang]
+    if (cached?.name) { setTr(cached); return }
+    setTr(null)
+    translateProducts([product.id], lang).then(map => {
+      if (map[product.id]) setTr(map[product.id])
+    })
+  }, [product, lang])
   useEffect(() => { localStorage.setItem('boatcare_cart', JSON.stringify(cart)) }, [cart])
 
   async function loadProduct() {
@@ -128,7 +142,7 @@ export default function ProductDetail() {
             </Link>
           )}
 
-          <h1>{product.name}</h1>
+          <h1>{tr?.name || product.name}</h1>
           {product.manufacturer && <p className="pd-manufacturer">{product.manufacturer}{product.part_number ? ` · ${product.part_number}` : ''}</p>}
 
           {/* Promo banner */}
@@ -179,10 +193,10 @@ export default function ProductDetail() {
           </div>
 
           {/* Description */}
-          {product.description && (
+          {(tr?.description || product.description) && (
             <div className="pd-description">
               <h3>{t('prod.k5')}</h3>
-              <p>{product.description}</p>
+              <p>{tr?.description || product.description}</p>
             </div>
           )}
 

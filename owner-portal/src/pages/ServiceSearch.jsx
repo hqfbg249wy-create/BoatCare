@@ -5,27 +5,29 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Search, X, MapPin, Star, Phone, Mail, Globe, Navigation, Wrench, Heart, ShoppingBag, Tag, ChevronRight } from 'lucide-react'
 import { getCurrentLocation, calcDistance as geoCalcDistance, formatDistance } from '../lib/geo'
 import { useT } from '../i18n'
+import { translateProviders, isTranslatableLang } from '../lib/dbTranslate'
 
 const serviceCategories = [
-  { key: '', label: 'Alle', icon: '🔍' },
-  { key: 'werkstatt', label: 'Werkstatt', icon: '🔧' },
-  { key: 'motor_service', label: 'Motor', icon: '⚙️' },
-  { key: 'segelmacher', label: 'Segel', icon: '⛵' },
-  { key: 'elektronik', label: 'Elektronik', icon: '📡' },
-  { key: 'marina', label: 'Marina', icon: '🌊' },
-  { key: 'werft', label: 'Werft', icon: '🚢' },
-  { key: 'tankstelle', label: 'Tankstelle', icon: '⛽' },
-  { key: 'winterlager', label: 'Winterlager', icon: '❄️' },
-  { key: 'lackiererei', label: 'Lackierung', icon: '🎨' },
-  { key: 'gutachter', label: 'Gutachter', icon: '📋' },
-  { key: 'versorgung', label: 'Zubehör', icon: '🛒' },
+  { key: '', tkey: 'ssvc.all', icon: '🔍' },
+  { key: 'werkstatt', tkey: 'mcat.workshop', icon: '🔧' },
+  { key: 'motor_service', tkey: 'ssvc.motor', icon: '⚙️' },
+  { key: 'segelmacher', tkey: 'ssvc.sail', icon: '⛵' },
+  { key: 'elektronik', tkey: 'mcat.electronics', icon: '📡' },
+  { key: 'marina', tkey: 'mcat.marina', icon: '🌊' },
+  { key: 'werft', tkey: 'mcat.shipyard', icon: '🚢' },
+  { key: 'tankstelle', tkey: 'mcat.fuel', icon: '⛽' },
+  { key: 'winterlager', tkey: 'mcat.winterStorage', icon: '❄️' },
+  { key: 'lackiererei', tkey: 'ssvc.painting', icon: '🎨' },
+  { key: 'gutachter', tkey: 'mcat.surveyor', icon: '📋' },
+  { key: 'versorgung', tkey: 'mcat.supplies', icon: '🛒' },
 ]
 
 // calcDistance/formatDistance kommen aus ../lib/geo
 
 export default function ServiceSearch() {
-  const { t } = useT()
+  const { t, lang } = useT()
   const { user } = useAuth()
+  const [trProviders, setTrProviders] = useState({}) // id -> { services[], description, slogan }
   const [searchParams] = useSearchParams()
   const [providers, setProviders] = useState([])
   const [favorites, setFavorites] = useState(new Set())
@@ -47,6 +49,23 @@ export default function ServiceSearch() {
       .catch(err => console.warn('Geolocation:', err?.message || err))
   }, [user])
 
+  // Service-Freitext (services-Tags + Beschreibung) on-demand übersetzen.
+  // DB-Cache (provider.translations[lang]) zuerst, Rest via DeepL nachladen.
+  useEffect(() => {
+    if (!isTranslatableLang(lang) || providers.length === 0) { setTrProviders({}); return }
+    const base = {}
+    const missing = []
+    for (const p of providers) {
+      const c = p.translations?.[lang]
+      if (c?.services) base[p.id] = c
+      else if ((p.services && p.services.length) || p.description) missing.push(p.id)
+    }
+    setTrProviders(base)
+    if (missing.length) {
+      translateProviders(missing, lang).then(m => setTrProviders(prev => ({ ...prev, ...m })))
+    }
+  }, [providers, lang])
+
   async function loadData() {
     setLoading(true)
     // Schritt 1: Parallel die wichtigsten Datenquellen anfragen.
@@ -57,7 +76,7 @@ export default function ServiceSearch() {
     //   (das war der Hauptgrund für die langen Ladezeiten).
     const [providersRes, favsRes, productCountsRes] = await Promise.all([
       supabase.from('service_providers')
-        .select('id, name, category, services, brands, latitude, longitude, street, postal_code, city, country, phone, email, website, rating, review_count, logo_url')
+        .select('id, name, category, services, brands, latitude, longitude, street, postal_code, city, country, phone, email, website, rating, review_count, logo_url, translations')
         .order('rating', { ascending: false, nullsFirst: false })
         .limit(500),
       supabase.from('user_favorites').select('provider_id').eq('user_id', user.id),
@@ -222,7 +241,7 @@ export default function ServiceSearch() {
         <div className="shop-categories">
           {serviceCategories.map(c => (
             <button key={c.key} className={`filter-btn ${filterCat === c.key ? 'active' : ''}`} onClick={() => setFilterCat(c.key)}>
-              {c.icon} {c.label}
+              {c.icon} {t(c.tkey)}
             </button>
           ))}
         </div>
@@ -264,7 +283,8 @@ export default function ServiceSearch() {
                 const catKey = (p.category || '').toLowerCase().replace(/[/ ]/g, '_')
                 const catIcons = { werkstatt: '🔧', motor_service: '⚙️', segelmacher: '⛵', elektronik: '📡', marina: '🌊', werft: '🚢', tankstelle: '⛽', winterlager: '❄️', lackiererei: '🎨', gutachter: '📋', versorgung: '🛒', marine_supplies: '🛒' }
                 const icon = catIcons[catKey] || '⚓'
-                const services = Array.isArray(p.services) ? p.services.slice(0, 3) : []
+                const tsvc = trProviders[p.id]?.services
+                const services = (Array.isArray(tsvc) ? tsvc : (Array.isArray(p.services) ? p.services : [])).slice(0, 3)
 
                 return (
                   <Link key={p.id} to={`/provider/${p.id}${inquiryMode ? '?inquiry=1' : ''}`} className="service-row">

@@ -642,4 +642,8 @@ export default {
   "mcat.heating": "Heizung/Klima",
   "mcat.diver": "Taucher",
   "mcat.other": "Sonstige",
+  "ssvc.all": "Alle",
+  "ssvc.motor": "Motor",
+  "ssvc.sail": "Segel",
+  "ssvc.painting": "Lackierung",
 }

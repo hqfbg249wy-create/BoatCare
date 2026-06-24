@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Heart, MapPin, Phone, Mail, Globe, Star, Navigation, Tag, Clock, ChevronLeft, ShoppingBag, Wrench, Package, Pencil, Trash2, Send, X, MessageSquarePlus } from 'lucide-react'
 import { useT } from '../i18n'
+import { translateProviders, translateProducts, isTranslatableLang } from '../lib/dbTranslate'
 
 const categoryConfig = {
   werkstatt: { icon: '🔧', label: 'Werkstatt', color: '#f97316' },
@@ -55,12 +56,14 @@ function calcDistance(lat1, lon1, lat2, lon2) {
 }
 
 export default function ProviderDetail() {
-  const { t } = useT()
+  const { t, lang } = useT()
   const { id } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [provider, setProvider] = useState(null)
+  const [tp, setTp] = useState(null) // übersetzte { services, description, slogan }
+  const [trProducts, setTrProducts] = useState({}) // id -> { name, description }
   const [products, setProducts] = useState([])
   const [reviews, setReviews] = useState([])
   const [isFavorite, setIsFavorite] = useState(false)
@@ -92,6 +95,27 @@ export default function ProviderDetail() {
       }, () => {})
     }
   }, [user, id])
+
+  // Provider-Freitext (services/description/slogan) on-demand übersetzen
+  useEffect(() => {
+    if (!provider || !isTranslatableLang(lang)) { setTp(null); return }
+    const c = provider.translations?.[lang]
+    if (c?.services) { setTp(c); return }
+    setTp(null)
+    translateProviders([provider.id], lang).then(m => { if (m[provider.id]) setTp(m[provider.id]) })
+  }, [provider, lang])
+
+  // Produkt-Namen/-Beschreibungen des Providers on-demand übersetzen
+  useEffect(() => {
+    if (!products.length || !isTranslatableLang(lang)) { setTrProducts({}); return }
+    const base = {}; const missing = []
+    for (const p of products) {
+      const c = p.translations?.[lang]
+      if (c?.name) base[p.id] = c; else missing.push(p.id)
+    }
+    setTrProducts(base)
+    if (missing.length) translateProducts(missing, lang).then(m => setTrProducts(prev => ({ ...prev, ...m })))
+  }, [products, lang])
 
   // ?inquiry=1 → Anfrage-Formular auto-öffnen.
   // sessionStorage liefert ggf. vorausgefüllte Daten (kommt aus Equipment-Anfrage),
@@ -275,7 +299,9 @@ export default function ProviderDetail() {
   if (!provider) return <div className="page"><div className="alert alert-error">{t('prov.k0')}</div></div>
 
   const cat = getCat(provider.category)
-  const services = Array.isArray(provider.services) ? provider.services : provider.services ? [provider.services] : []
+  const srcServices = Array.isArray(tp?.services) ? tp.services
+    : Array.isArray(provider.services) ? provider.services : provider.services ? [provider.services] : []
+  const services = srcServices
   const brands = Array.isArray(provider.brands) ? provider.brands : []
   const allCategories = Array.isArray(provider.categories) ? provider.categories : []
 
@@ -315,7 +341,7 @@ export default function ProviderDetail() {
             </span>
           )}
         </h1>
-        {provider.slogan && <p className="pd-slogan">{provider.slogan}</p>}
+        {(tp?.slogan || provider.slogan) && <p className="pd-slogan">{tp?.slogan || provider.slogan}</p>}
         <div className="pd-badges">
           <span className="pd-cat-badge" style={{ background: `${cat.color}15`, color: cat.color }}>
             {cat.icon} {cat.label}
@@ -392,9 +418,9 @@ export default function ProviderDetail() {
       )}
 
       {/* Description */}
-      {provider.description && (
+      {(tp?.description || provider.description) && (
         <div className="pd-section">
-          <p className="pd-description">{provider.description}</p>
+          <p className="pd-description">{tp?.description || provider.description}</p>
         </div>
       )}
 
@@ -469,7 +495,7 @@ export default function ProviderDetail() {
               <Link key={p.id} to={`/shop/product/${p.id}`} className="pd-product-card">
                 {p.images?.[0] && <img src={p.images[0]} alt={p.name} className="pd-product-img" />}
                 <div className="pd-product-info">
-                  <span className="pd-product-name">{p.name}</span>
+                  <span className="pd-product-name">{trProducts[p.id]?.name || p.name}</span>
                   <span className="pd-product-price">{Number(p.price).toFixed(2).replace('.', ',')} €</span>
                 </div>
               </Link>

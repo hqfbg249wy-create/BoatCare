@@ -3,6 +3,10 @@
 // zur Laufzeit automatisch auf Deutsch zurück.
 export default {
   "en": {
+    "ssvc.all": "All",
+    "ssvc.motor": "Engine",
+    "ssvc.sail": "Sails",
+    "ssvc.painting": "Painting",
     "mcat.workshop": "Workshop",
     "mcat.repair": "Repair",
     "mcat.motorService": "Engine service",
@@ -594,6 +598,10 @@ export default {
     "sail.position": "Position"
   },
   "fr": {
+    "ssvc.all": "Tous",
+    "ssvc.motor": "Moteur",
+    "ssvc.sail": "Voiles",
+    "ssvc.painting": "Peinture",
     "mcat.workshop": "Atelier",
     "mcat.repair": "Réparation",
     "mcat.motorService": "Service moteur",
@@ -1185,6 +1193,10 @@ export default {
     "sail.position": "Position"
   },
   "it": {
+    "ssvc.all": "Tutti",
+    "ssvc.motor": "Motore",
+    "ssvc.sail": "Vele",
+    "ssvc.painting": "Verniciatura",
     "mcat.workshop": "Officina",
     "mcat.repair": "Riparazione",
     "mcat.motorService": "Assistenza motore",
@@ -1776,6 +1788,10 @@ export default {
     "sail.position": "Posizione"
   },
   "es": {
+    "ssvc.all": "Todos",
+    "ssvc.motor": "Motor",
+    "ssvc.sail": "Velas",
+    "ssvc.painting": "Pintura",
     "mcat.workshop": "Taller",
     "mcat.repair": "Reparación",
     "mcat.motorService": "Servicio de motor",
@@ -2367,6 +2383,10 @@ export default {
     "sail.position": "Posición"
   },
   "nl": {
+    "ssvc.all": "Alle",
+    "ssvc.motor": "Motor",
+    "ssvc.sail": "Zeilen",
+    "ssvc.painting": "Lakwerk",
     "mcat.workshop": "Werkplaats",
     "mcat.repair": "Reparatie",
     "mcat.motorService": "Motorservice",

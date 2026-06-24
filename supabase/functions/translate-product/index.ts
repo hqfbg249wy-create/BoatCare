@@ -21,20 +21,47 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-6";
-const MAX_TOKENS = 1024;
+// DeepL Free-API (api-free.deepl.com). Key als Supabase-Secret DEEPL_API_KEY.
+const DEEPL_API_URL = "https://api-free.deepl.com/v2/translate";
+const DEEPL_MAX_BATCH = 50; // max. Texte pro DeepL-Request
 
 const SUPPORTED_LANGS = ["en", "es", "fr", "it", "nl"] as const;
 type Lang = typeof SUPPORTED_LANGS[number];
 
-const LANG_NAMES: Record<Lang, string> = {
-  en: "English",
-  es: "Spanish",
-  fr: "French",
-  it: "Italian",
-  nl: "Dutch",
+const DEEPL_TARGET: Record<Lang, string> = {
+  en: "EN-GB",
+  es: "ES",
+  fr: "FR",
+  it: "IT",
+  nl: "NL",
 };
+
+// Übersetzt ein beliebiges String-Array in Chunks (≤50), behält die Reihenfolge.
+// Quelle wird von DeepL automatisch erkannt (source==target → unverändert).
+async function deeplTranslateAll(
+  texts: string[],
+  lang: Lang,
+  key: string,
+): Promise<string[]> {
+  const out: string[] = [];
+  for (let i = 0; i < texts.length; i += DEEPL_MAX_BATCH) {
+    const chunk = texts.slice(i, i + DEEPL_MAX_BATCH);
+    const resp = await fetch(DEEPL_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `DeepL-Auth-Key ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text: chunk, target_lang: DEEPL_TARGET[lang] }),
+    });
+    if (!resp.ok) {
+      throw new Error(`DeepL-API ${resp.status}: ${await resp.text()}`);
+    }
+    const data = await resp.json();
+    for (const t of (data.translations ?? [])) out.push(t.text ?? "");
+  }
+  return out;
+}
 
 interface ProductRow {
   id: string;
@@ -49,11 +76,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    const apiKey = Deno.env.get("DEEPL_API_KEY");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!apiKey || !supabaseUrl || !serviceKey) {
-      return json({ error: "Server-Konfiguration fehlt" }, 500);
+      return json({ error: "Server-Konfiguration fehlt (DEEPL_API_KEY?)" }, 500);
     }
 
     const body = await req.json().catch(() => ({}));
@@ -146,71 +173,36 @@ Deno.serve(async (req) => {
   }
 });
 
-// ---------- Claude Translation ----------
+// ---------- DeepL Translation ----------
 
 async function translateBatch(
   rows: ProductRow[],
   lang: Lang,
   apiKey: string,
 ): Promise<Record<string, { name: string; description: string | null }>> {
-  const langName = LANG_NAMES[lang];
-
-  // Eingabe als nummerierte Liste, damit Claude die IDs sauber zuordnen kann
-  const items = rows.map((r, i) => ({
-    idx: i + 1,
-    id: r.id,
-    name: r.name,
-    description: r.description ?? "",
-  }));
-
-  const userPrompt = `Translate the following German marine product entries to ${langName}.
-Return ONLY a valid JSON array (no prose, no markdown fences) where each
-element matches: { "idx": number, "name": "...", "description": "..." }.
-Keep the same idx as input. Description may be empty string. Stay concise,
-use proper marine terminology, and preserve units (mm, kg, V, A) verbatim.
-
-Input:
-${JSON.stringify(items, null, 2)}`;
-
-  const resp = await fetch(ANTHROPIC_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: MAX_TOKENS,
-      messages: [{ role: "user", content: userPrompt }],
-    }),
-  });
-
-  if (!resp.ok) {
-    const errText = await resp.text();
-    throw new Error(`Claude-API ${resp.status}: ${errText}`);
+  // Flache String-Liste aus Name + (optional) Beschreibung bauen und
+  // Rückzuordnung merken. Leere Beschreibungen werden nicht übersetzt.
+  const strings: string[] = [];
+  const map: Array<{ id: string; field: "name" | "description"; idx: number }> = [];
+  for (const r of rows) {
+    strings.push(r.name);
+    map.push({ id: r.id, field: "name", idx: strings.length - 1 });
+    if (r.description && r.description.trim()) {
+      strings.push(r.description);
+      map.push({ id: r.id, field: "description", idx: strings.length - 1 });
+    }
   }
 
-  const data = await resp.json();
-  const content: string = data?.content?.[0]?.text ?? "";
+  const translated = await deeplTranslateAll(strings, lang, apiKey);
 
-  // Robustes JSON-Parsing: Markdown-Fences entfernen, falls Claude doch welche schickt
-  const cleaned = content.replace(/```json\s*|\s*```/g, "").trim();
-  let parsed: Array<{ idx: number; name: string; description: string }>;
-  try {
-    parsed = JSON.parse(cleaned);
-  } catch {
-    throw new Error("Claude-Antwort ist kein gültiges JSON");
-  }
-
+  // Default = Original, dann mit Übersetzungen überschreiben
   const out: Record<string, { name: string; description: string | null }> = {};
-  for (const entry of parsed) {
-    const orig = items.find((i) => i.idx === entry.idx);
-    if (!orig) continue;
-    out[orig.id] = {
-      name: entry.name?.trim() || orig.name,
-      description: entry.description?.trim() || null,
-    };
+  for (const r of rows) out[r.id] = { name: r.name, description: r.description ?? null };
+  for (const m of map) {
+    const val = (translated[m.idx] ?? "").trim();
+    if (!val) continue;
+    if (m.field === "name") out[m.id].name = val;
+    else out[m.id].description = val;
   }
   return out;
 }
