@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skipily — Always · Safe · Ready to Sail</title>
+<meta name="description" content="Skipily: Werften, Service & Shops auf der Karte. Lade die App oder beanspruche dein Anbieter-Profil.">
+<style>
+  :root { --navy:#0B1D3A; --navy2:#13294d; --orange:#f97316; --orange-dark:#ea580c; --muted:#cbd5e1; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:var(--navy); color:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    display:flex; align-items:center; justify-content:center; padding:32px 20px; overflow-x:hidden; }
+  .wrap { width:100%; max-width:440px; text-align:center; }
+  .logo { width:88px; height:88px; border-radius:20px; display:block; margin:0 auto 18px; box-shadow:0 10px 30px rgba(0,0,0,.35); }
+  h1 { margin:0; font-size:30px; font-weight:800; letter-spacing:6px; }
+  .tag { margin:8px 0 4px; color:var(--orange); font-size:12px; font-weight:700; letter-spacing:2px; }
+  .lead { margin:18px 0 26px; color:var(--muted); font-size:16px; line-height:1.6; }
+  .btn { display:flex; align-items:center; gap:14px;
+    width:100%; padding:16px 20px; margin:12px 0; border-radius:14px; text-decoration:none;
+    font-size:17px; font-weight:700; transition:transform .08s ease, background .15s ease; }
+  .btn:active { transform:scale(.985); }
+  .btn-primary { background:var(--orange); color:var(--navy); }
+  .btn-primary:hover { background:var(--orange-dark); }
+  .btn-secondary { background:var(--navy2); color:#fff; border:1px solid #27457a; }
+  .btn-secondary:hover { background:#19315c; }
+  .btn .ico { flex:0 0 auto; font-size:24px; line-height:1; width:28px; text-align:center; }
+  .btn .lbl { flex:1 1 auto; min-width:0; text-align:left; }
+  .btn .sub { display:block; font-size:12px; font-weight:500; opacity:.8; margin-top:2px; }
+  .shots { display:flex; gap:10px; justify-content:center; margin:22px 0 28px; }
+  .shots img { width:32%; max-width:130px; height:auto; border-radius:14px;
+    border:1px solid #27457a; box-shadow:0 8px 22px rgba(0,0,0,.35); background:var(--navy2); }
+  .foot { margin-top:30px; font-size:12px; color:#94a3b8; line-height:1.8; }
+  .foot a { color:#94a3b8; }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <img class="logo" src="https://provider.skipily.app/icon-192.png" width="88" height="88" alt="Skipily">
+    <h1>SKIPILY</h1>
+    <p class="tag">ALWAYS · SAFE · READY TO SAIL</p>
+    <p class="lead">Werften, Service & Shops auf einer Karte — und ein KI-Bootsingenieur, der dein Boot kennt.</p>
+
+    <div class="shots">
+      <img src="assets/app-map.jpg" width="460" height="1000" loading="lazy" alt="Skipily-Karte mit Marine-Service-Anbietern">
+      <img src="assets/app-ki.jpg" width="460" height="1000" loading="lazy" alt="KI-Bootsassistent im Chat">
+      <img src="assets/app-boats.jpg" width="460" height="1000" loading="lazy" alt="Boots-Profil mit Ausrüstung in der App">
+    </div>
+
+    <a class="btn btn-primary" id="cta-app"
+       href="https://apps.apple.com/app/id6757314378">
+      <span class="ico">📲</span>
+      <span class="lbl">App laden<span class="sub">Kostenlos im App Store</span></span>
+    </a>
+
+    <a class="btn btn-secondary" id="cta-provider"
+       href="https://provider.skipily.app/?utm_source=linkinbio&utm_medium=social&utm_campaign=launch2026">
+      <span class="ico">⚓</span>
+      <span class="lbl">Anbieter werden<span class="sub">Profil beanspruchen · Werft, Service, Shop</span></span>
+    </a>
+
+    <a class="btn btn-secondary" id="cta-web"
+       href="https://skipily.app/?utm_source=linkinbio&utm_medium=social&utm_campaign=launch2026">
+      <span class="ico">🌐</span>
+      <span class="lbl">Mehr über Skipily<span class="sub">skipily.app</span></span>
+    </a>
+
+    <p class="foot">
+      <a href="https://skipily.app/impressum">Impressum</a> ·
+      <a href="https://skipily.app/datenschutz">Datenschutz</a>
+    </p>
+  </main>
+
+  <script>
+    // Quelle (utm_source) aus dem Seitenaufruf an die ausgehenden Links weiterreichen,
+    // z. B. ?utm_source=instagram -> bis zum Portal bzw. App Store.
+    // Web/Portal: utm_*. App Store: Apples eigener Parameter "ct" (App-Analytics),
+    // utm_* wird von Apple ignoriert.
+    (function () {
+      var p = new URLSearchParams(location.search);
+      var src = p.get('utm_source') || 'linkinbio';
+      var camp = p.get('utm_campaign') || 'launch2026';
+      function tagWeb(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var u = new URL(el.getAttribute('href'));
+        u.searchParams.set('utm_source', src);
+        u.searchParams.set('utm_medium', 'social');
+        u.searchParams.set('utm_campaign', camp);
+        el.setAttribute('href', u.toString());
+      }
+      function tagApp(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var u = new URL(el.getAttribute('href'));
+        u.searchParams.set('ct', (src + '-' + camp).slice(0, 40));
+        el.setAttribute('href', u.toString());
+      }
+      tagApp('cta-app'); tagWeb('cta-provider'); tagWeb('cta-web');
+    })();
+  </script>
+</body>
+</html>
