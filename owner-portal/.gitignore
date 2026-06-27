@@ -35,4 +35,6 @@ android/.cxx
 # Signing keystore – niemals ins Repository!
 android/*.keystore
 android/*.jks
+android/keystore.properties
 android/app/google-services.json
+.vercel

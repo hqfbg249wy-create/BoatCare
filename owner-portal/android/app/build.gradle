@@ -1,5 +1,12 @@
 apply plugin: 'com.android.application'
 
+// Signing-Credentials NICHT im Git: aus android/keystore.properties laden.
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
 android {
     namespace = "app.skipily.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -18,17 +25,19 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file('../skipily-release.keystore')
-            storePassword 'Skipily2024!'
-            keyAlias 'skipily'
-            keyPassword 'Skipily2024!'
+            if (keystorePropsFile.exists()) {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
         }
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            signingConfig keystorePropsFile.exists() ? signingConfigs.release : null
         }
     }
 }
