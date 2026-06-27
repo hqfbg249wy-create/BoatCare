@@ -27,6 +27,9 @@
   .btn .ico { flex:0 0 auto; font-size:24px; line-height:1; width:28px; text-align:center; }
   .btn .lbl { flex:1 1 auto; min-width:0; text-align:left; }
   .btn .sub { display:block; font-size:12px; font-weight:500; opacity:.8; margin-top:2px; }
+  .store-row { display:flex; gap:10px; margin:12px 0; }
+  .store-row .btn { margin:0; flex:1 1 0; padding:14px 14px; }
+  .store .ico { font-size:18px; }
   .shots { display:flex; gap:10px; justify-content:center; margin:22px 0 28px; }
   .shots img { width:32%; max-width:130px; height:auto; border-radius:14px;
     border:1px solid #27457a; box-shadow:0 8px 22px rgba(0,0,0,.35); background:var(--navy2); }
@@ -47,11 +50,18 @@
       <img src="assets/app-boats.jpg" width="460" height="1000" loading="lazy" alt="Boots-Profil mit Ausrüstung in der App">
     </div>
 
-    <a class="btn btn-primary" id="cta-app"
-       href="https://apps.apple.com/app/id6757314378">
-      <span class="ico">📲</span>
-      <span class="lbl">App laden<span class="sub">Kostenlos im App Store</span></span>
-    </a>
+    <div class="store-row">
+      <a class="btn btn-primary store" id="cta-app"
+         href="https://apps.apple.com/app/id6757314378">
+        <span class="ico">📲</span>
+        <span class="lbl">App Store<span class="sub">iPhone &amp; iPad</span></span>
+      </a>
+      <a class="btn btn-primary store" id="cta-play"
+         href="https://play.google.com/store/apps/details?id=app.skipily.app">
+        <span class="ico">▶</span>
+        <span class="lbl">Google Play<span class="sub">Android</span></span>
+      </a>
+    </div>
 
     <a class="btn btn-secondary" id="cta-provider"
        href="https://provider.skipily.app/?utm_source=linkinbio&utm_medium=social&utm_campaign=launch2026">
@@ -96,7 +106,7 @@
         u.searchParams.set('ct', (src + '-' + camp).slice(0, 40));
         el.setAttribute('href', u.toString());
       }
-      tagApp('cta-app'); tagWeb('cta-provider'); tagWeb('cta-web');
+      tagApp('cta-app'); tagWeb('cta-play'); tagWeb('cta-provider'); tagWeb('cta-web');
     })();
   </script>
 </body>
