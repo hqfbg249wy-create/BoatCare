@@ -36,7 +36,7 @@ const FAQ_CAT_ORDER = ['general', 'getting_started', 'features', 'ai', 'plus', '
 const SITE_CSS = `
 /* Schrift laut Style-Guide (wie auf der bisherigen skipily.app) */
 body{font-family:'Roboto',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
-.sk-h1,.sk-h2,.sk-h3,.sk-hero h1{font-family:'Roboto Slab','Roboto',Georgia,serif;}
+.sk-h1,.sk-h2,.sk-h3,.sk-hero h1{font-family:'Roboto',-apple-system,'Segoe UI',sans-serif;}
 
 /* Header / Footer / Sprachumschalter */
 .sk-topbar{position:sticky;top:0;z-index:50;background:rgba(11,29,58,.92);backdrop-filter:saturate(140%) blur(8px);
@@ -56,8 +56,8 @@ body{font-family:'Roboto',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 
 /* Rechtstexte + FAQ */
 .sk-legal{max-width:820px;margin:0 auto;padding:42px 22px 64px;color:#1a1a2e;line-height:1.7;}
-.sk-legal h1{font-family:'Roboto Slab',Georgia,serif;font-size:1.9rem;color:#0B1D3A;margin:0 0 .4rem;}
-.sk-legal h2{font-family:'Roboto Slab',Georgia,serif;font-size:1.25rem;color:#0B1D3A;margin-top:2rem;border-bottom:2px solid #f97316;padding-bottom:.35rem;}
+.sk-legal h1{font-family:'Roboto',sans-serif;font-size:1.9rem;color:#0B1D3A;margin:0 0 .4rem;}
+.sk-legal h2{font-family:'Roboto',sans-serif;font-size:1.25rem;color:#0B1D3A;margin-top:2rem;border-bottom:2px solid #f97316;padding-bottom:.35rem;}
 .sk-legal h3,.sk-legal h4{color:#0B1D3A;margin-top:1.4rem;}
 .sk-legal a{color:#f97316;}
 .sk-legal table{border-collapse:collapse;width:100%;font-size:.92rem;}
@@ -65,7 +65,7 @@ body{font-family:'Roboto',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 .sk-legal .warn{background:#fef2f2;border-left:4px solid #ef4444;padding:.75rem 1rem;border-radius:4px;margin:1rem 0;font-size:.9rem;}
 .sk-legal .highlight{background:#fff7ed;border-left:4px solid #f97316;padding:.75rem 1rem;border-radius:4px;margin:1rem 0;}
 .sk-legal .revoke-box{background:#eff6ff;border:1px solid #93c5fd;padding:1rem 1.25rem;border-radius:8px;margin:1.5rem 0;}
-.sk-faq-cat{font-family:'Roboto Slab',Georgia,serif;color:#0B1D3A;font-size:1.2rem;margin:1.8rem 0 .6rem;}
+.sk-faq-cat{font-family:'Roboto',sans-serif;color:#0B1D3A;font-size:1.2rem;margin:1.8rem 0 .6rem;}
 .sk-faq-item{border:1px solid #e2e8f0;border-radius:10px;margin:8px 0;background:#fff;overflow:hidden;}
 .sk-faq-item summary{cursor:pointer;padding:14px 16px;font-weight:600;color:#0B1D3A;list-style:none;}
 .sk-faq-item summary::-webkit-details-marker{display:none;}
@@ -131,7 +131,7 @@ function doc({ lang, title, desc, body, jsonld }) {
 <link rel="icon" href="${LOGO}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Roboto+Slab:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <link rel="alternate" hreflang="de" href="https://skipily.app/">
 <link rel="alternate" hreflang="en" href="https://skipily.app/en/">
 <link rel="stylesheet" href="/skipily-style.css">
