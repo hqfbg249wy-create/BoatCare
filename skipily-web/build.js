@@ -76,6 +76,22 @@ body{font-family:'Roboto',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 
 const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+// WordPress-Bild-URLs durch selbst gehostete englische Screenshots ersetzen
+// (entfernt zugleich die wp-content-Abhängigkeit).
+const IMG_MAP = {
+  'cropped-cropped-Skipily_Icon_512.png': '/assets/logo.png',
+  'screenshot-karte.png': '/assets/feature-map.jpg',
+  'screenshot-ersatzteile-scaled.png': '/assets/feature-parts.jpg',
+  'screenshot-anfrage-scaled.png': '/assets/feature-request.jpg',
+  'screenshot-wartung-scaled.png': '/assets/feature-maintenance.jpg',
+  'screenshot-ki-scaled.png': '/assets/feature-ai.jpg',
+  'screenshot-bewertungen-scaled.png': '/assets/feature-reviews.jpg',
+};
+function localizeImages(html) {
+  return html.replace(/https:\/\/skipily\.app\/wp-content\/uploads\/[0-9/]+\/([A-Za-z0-9_-]+\.(?:png|jpe?g))/g,
+    (m, file) => IMG_MAP[file] || m);
+}
+
 function header(lang) {
   const s = STR[lang], u = URLS[lang];
   return `<header class="sk-topbar">
@@ -185,16 +201,17 @@ async function main() {
   fs.mkdirSync(OUT, { recursive: true });
   fs.copyFileSync(path.join(SRC, 'skipily-style.css'), path.join(OUT, 'skipily-style.css'));
   fs.writeFileSync(path.join(OUT, 'site.css'), SITE_CSS);
+  fs.cpSync(path.join(__dirname, 'assets'), path.join(OUT, 'assets'), { recursive: true });
 
   // Home
   write('index.html', doc({ lang: 'de',
     title: 'Skipily — Dein Boot. Dein Assistent. Deine Community.',
     desc: 'Skipily: Werften, Service & Shops auf der Karte, 1:1-Ersatzteilsuche, Wartungsplanung und ein KI-Assistent, der dein Boot kennt.',
-    body: fs.readFileSync(path.join(SRC, 'skipily-home.html'), 'utf8') }));
+    body: localizeImages(fs.readFileSync(path.join(SRC, 'skipily-home.html'), 'utf8')) }));
   write('en/index.html', doc({ lang: 'en',
     title: 'Skipily — Your boat. Your assistant. Your community.',
     desc: 'Skipily: boatyards, services & shops on the map, 1:1 spare-part search, maintenance planning and an AI assistant that knows your boat.',
-    body: fs.readFileSync(path.join(SRC, 'en', 'skipily-home.html'), 'utf8') }));
+    body: localizeImages(fs.readFileSync(path.join(SRC, 'en', 'skipily-home.html'), 'utf8')) }));
 
   // Rechtstexte
   const legal = [
