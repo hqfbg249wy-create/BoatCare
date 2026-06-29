@@ -1255,7 +1255,11 @@
             <!-- FAQ-Pflege (Provider-Portal) -->
             <div id="provider-faqs-page" class="page">
                 <h1>📖 FAQ-Pflege</h1>
-                <p class="subtitle">FAQs für das <strong>Provider-Portal</strong> verwalten. Deutsch ist die Quelle. Mit <strong>✨ KI</strong> entwirfst/verbesserst du Antworten aus Stichpunkten/Rückmeldungen, mit <strong>🌐 Übersetzen</strong> füllst du automatisch alle 6 Sprachen.</p>
+                <p class="subtitle" id="faq-subtitle">FAQs für das <strong>Provider-Portal</strong> verwalten. Deutsch ist die Quelle. Mit <strong>✨ KI</strong> entwirfst/verbesserst du Antworten aus Stichpunkten/Rückmeldungen, mit <strong>🌐 Übersetzen</strong> füllst du automatisch alle 6 Sprachen.</p>
+                <div style="display:flex; gap:8px; margin:14px 0 0;">
+                    <button class="btn-primary" id="faq-scope-provider" onclick="window.faqSetScope('provider')">Provider-FAQ</button>
+                    <button class="btn-secondary" id="faq-scope-app" onclick="window.faqSetScope('app')">Website-/App-FAQ</button>
+                </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap; margin:14px 0;">
                     <button class="btn-primary" onclick="window.faqNew()">+ Neue FAQ</button>
                     <button class="btn-secondary" onclick="window.loadProviderFaqs()">🔄 Aktualisieren</button>
@@ -2198,7 +2202,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260622-faqtrans"></script>
+    <script src="app.js?v=20260629-appfaq"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;

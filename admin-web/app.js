@@ -12195,9 +12195,13 @@ async function exportCleverReachCsv(countryCode) {
         const header = ['email', 'company', 'city', 'country', 'category', 'website', 'language', 'claim_url'];
         const rows = [header.join(',')];
         for (const p of filtered) {
-            const claimUrl = p.claim_token
+            // Fallback auf eine ABSOLUTE URL, falls ausnahmsweise kein Token
+        // vorliegt — ein leerer Wert würde im Mailing zu href="" und damit
+        // zu einem relativen Link gegen die S3-Vorschau-Basis von CleverReach
+        // (AccessDenied) führen. Lieber harmlos auf das Portal leiten.
+        const claimUrl = p.claim_token
                 ? `https://provider.skipily.app/claim/${p.claim_token}`
-                : '';
+                : 'https://provider.skipily.app';
             rows.push([
                 p.email,
                 p.name || '',
@@ -12308,7 +12312,8 @@ function buildProviderCsv(list, lang) {
     const header = ['email', 'company', 'city', 'country', 'category', 'website', 'language', 'claim_url'];
     const rows = [header.join(',')];
     for (const p of list) {
-        const claimUrl = p.claim_token ? `https://provider.skipily.app/claim/${p.claim_token}` : '';
+        // Absolute Fallback-URL (siehe Hinweis oben): nie href="" erzeugen.
+        const claimUrl = p.claim_token ? `https://provider.skipily.app/claim/${p.claim_token}` : 'https://provider.skipily.app';
         rows.push([
             p.email, p.name || '', p.city || '', csvNormalizeCountry(p.country),
             p.category || '', p.website || '', lang, claimUrl,
@@ -12477,6 +12482,37 @@ const FAQ_TARGET_LANGS = ['en', 'fr', 'it', 'es', 'nl'];
 let _faqs = [];
 let _faqEditing = null; // null | {} (neu) | bestehendes Objekt
 
+// FAQ-Scope: dieselbe Oberfläche bedient zwei Tabellen — Provider-Portal-FAQ
+// (provider_faqs) und Website-/App-FAQ für Endkunden (app_faqs).
+let _faqScope = 'provider';            // 'provider' | 'app'
+let _faqTable = 'provider_faqs';
+const FAQ_CATS_APP = [
+  ['general', 'Allgemein'],
+  ['getting_started', 'Erste Schritte'],
+  ['features', 'Funktionen'],
+  ['ai', 'KI-Assistent'],
+  ['plus', 'Skipily Plus'],
+  ['account', 'Konto'],
+  ['privacy', 'Datenschutz'],
+];
+function faqCats() { return _faqScope === 'app' ? FAQ_CATS_APP : FAQ_CATS; }
+function faqSetScope(scope) {
+  _faqScope = scope === 'app' ? 'app' : 'provider';
+  _faqTable = _faqScope === 'app' ? 'app_faqs' : 'provider_faqs';
+  _faqEditing = null;
+  const ed = document.getElementById('faq-editor'); if (ed) ed.innerHTML = '';
+  const sub = document.getElementById('faq-subtitle');
+  if (sub) sub.innerHTML = _faqScope === 'app'
+    ? 'FAQs für <strong>Website &amp; App</strong> (Endkunden) verwalten. Deutsch ist die Quelle; mit <strong>🌐 Übersetzen</strong> alle 6 Sprachen füllen.'
+    : 'FAQs für das <strong>Provider-Portal</strong> verwalten. Deutsch ist die Quelle; mit <strong>🌐 Übersetzen</strong> alle 6 Sprachen füllen.';
+  ['provider', 'app'].forEach(s => {
+    const b = document.getElementById('faq-scope-' + s);
+    if (b) { b.classList.toggle('btn-primary', s === _faqScope); b.classList.toggle('btn-secondary', s !== _faqScope); }
+  });
+  loadProviderFaqs();
+}
+window.faqSetScope = faqSetScope;
+
 function faqCatLabel(slug) { return (FAQ_CATS.find(c => c[0] === slug) || [slug, slug])[1]; }
 
 async function faqInvoke(fn, payload) {
@@ -12500,7 +12536,7 @@ async function loadProviderFaqs() {
   const list = document.getElementById('faq-list');
   if (list) list.innerHTML = '<p style="color:#94a3b8;">Lade …</p>';
   const { data, error } = await supabaseClient
-    .from('provider_faqs')
+    .from(_faqTable)
     .select('*')
     .order('category', { ascending: true })
     .order('sort_order', { ascending: true });
@@ -12521,7 +12557,7 @@ function renderFaqList() {
   if (!box) return;
   if (_faqs.length === 0) { box.innerHTML = '<p style="color:#94a3b8;">Noch keine FAQ-Einträge. Mit „+ Neue FAQ" anlegen.</p>'; return; }
   let html = '';
-  for (const [slug, label] of FAQ_CATS) {
+  for (const [slug, label] of faqCats()) {
     const items = _faqs.filter(f => f.category === slug);
     if (!items.length) continue;
     html += `<h3 style="margin:18px 0 8px;">${escapeHtml_v(label)} <span style="color:#94a3b8; font-weight:400; font-size:13px;">(${items.length})</span></h3>`;
@@ -12556,7 +12592,7 @@ function renderFaqList() {
 }
 
 function faqEditorHtml(f) {
-  const catOpts = FAQ_CATS.map(([s, l]) => `<option value="${s}" ${f.category === s ? 'selected' : ''}>${escapeHtml_v(l)}</option>`).join('');
+  const catOpts = faqCats().map(([s, l]) => `<option value="${s}" ${f.category === s ? 'selected' : ''}>${escapeHtml_v(l)}</option>`).join('');
   return `
     <div style="border:1px solid #6366f1; border-radius:10px; padding:16px; margin-bottom:16px; background:#f5f3ff;">
       <h3 style="margin:0 0 10px;">${f.id ? 'FAQ bearbeiten' : 'Neue FAQ'}</h3>
@@ -12588,7 +12624,7 @@ function faqEditorHtml(f) {
       </div>
       <label style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
         <input type="checkbox" id="faq-f-published" ${f.is_published === false ? '' : 'checked'}>
-        <span>Im Provider-Portal sichtbar</span>
+        <span>Sichtbar (veröffentlicht)</span>
       </label>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn-primary" onclick="window.faqSave(false)">💾 Speichern</button>
@@ -12604,7 +12640,7 @@ function faqShowEditor() {
   const ed = document.getElementById('faq-editor');
   if (ed) { ed.innerHTML = faqEditorHtml(_faqEditing || {}); ed.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
 }
-function faqNew() { _faqEditing = { category: 'offering', is_published: true, sort_order: 100, translations: {} }; faqShowEditor(); }
+function faqNew() { _faqEditing = { category: (faqCats()[0] || ['general'])[0], is_published: true, sort_order: 100, translations: {} }; faqShowEditor(); }
 function faqEdit(id) { _faqEditing = { ..._faqs.find(f => f.id === id) }; faqShowEditor(); }
 function faqCancel() { _faqEditing = null; const ed = document.getElementById('faq-editor'); if (ed) ed.innerHTML = ''; }
 window.faqNew = faqNew; window.faqEdit = faqEdit; window.faqCancel = faqCancel;
@@ -12678,9 +12714,9 @@ async function faqSave(withTranslate) {
     const row = { ...form, translations };
     let error;
     if (_faqEditing && _faqEditing.id) {
-      ({ error } = await supabaseClient.from('provider_faqs').update(row).eq('id', _faqEditing.id));
+      ({ error } = await supabaseClient.from(_faqTable).update(row).eq('id', _faqEditing.id));
     } else {
-      ({ error } = await supabaseClient.from('provider_faqs').insert(row));
+      ({ error } = await supabaseClient.from(_faqTable).insert(row));
     }
     if (error) throw error;
     _faqEditing = null;
@@ -12692,7 +12728,7 @@ window.faqSave = faqSave;
 
 async function faqDelete(id) {
   if (!confirm('Diese FAQ wirklich löschen?')) return;
-  const { error } = await supabaseClient.from('provider_faqs').delete().eq('id', id);
+  const { error } = await supabaseClient.from(_faqTable).delete().eq('id', id);
   if (error) { alert('Fehler: ' + error.message); return; }
   _faqEditing = null; const ed = document.getElementById('faq-editor'); if (ed) ed.innerHTML = '';
   await loadProviderFaqs();
@@ -12708,8 +12744,8 @@ async function faqReorder(id, dir) {
   if (!swap) return;
   // sort_order tauschen
   const a = f.sort_order, b = swap.sort_order;
-  await supabaseClient.from('provider_faqs').update({ sort_order: b }).eq('id', f.id);
-  await supabaseClient.from('provider_faqs').update({ sort_order: a }).eq('id', swap.id);
+  await supabaseClient.from(_faqTable).update({ sort_order: b }).eq('id', f.id);
+  await supabaseClient.from(_faqTable).update({ sort_order: a }).eq('id', swap.id);
   await loadProviderFaqs();
 }
 window.faqReorder = faqReorder;
@@ -12724,7 +12760,7 @@ async function faqTranslateAllMissing() {
     if (list) list.insertAdjacentHTML('afterbegin', `<p style="color:#0891b2;" id="faq-prog">🌐 Übersetze ${i + 1}/${todo.length} …</p>`);
     try {
       const translations = await faqTranslateFields(f.question, f.answer);
-      await supabaseClient.from('provider_faqs').update({ translations }).eq('id', f.id);
+      await supabaseClient.from(_faqTable).update({ translations }).eq('id', f.id);
     } catch (e) { console.warn('Übersetzung fehlgeschlagen für', f.id, e.message); }
     const p = document.getElementById('faq-prog'); if (p) p.remove();
   }
