@@ -1,7 +1,6 @@
-// Skipily Website — statischer Assembler (Phase 1: Home DE/EN).
-// Wiederverwendet die vorhandenen Inhalte aus website-skipily/ + skipily-style.css,
-// umrahmt sie mit gemeinsamem Header/Footer + Sprachumschalter und schreibt
-// statisches HTML nach dist/. Deploy: dist/ als statische Vercel-Site.
+// Skipily Website — statischer Assembler.
+// Phase 1: Home (DE/EN). Phase 2: FAQ (live aus Supabase app_faqs + FAQPage-
+// Schema), Rechtstexte (Impressum/Datenschutz/AGB) + Konto-Lösch-Seite.
 // Aufruf: node skipily-web/build.js
 const fs = require('fs');
 const path = require('path');
@@ -10,18 +9,36 @@ const ROOT = path.resolve(__dirname, '..');
 const SRC = path.join(ROOT, 'website-skipily');
 const OUT = path.join(__dirname, 'dist');
 
-fs.rmSync(OUT, { recursive: true, force: true });
-fs.mkdirSync(path.join(OUT, 'en'), { recursive: true });
+const SUPA_URL = 'https://vcjwlyqkfkszumdrfvtm.supabase.co';
+const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjandseXFrZmtzenVtZHJmdnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMDQ4NTksImV4cCI6MjA4NDY4MDg1OX0.VOlhRdvShU325xG18SSSTWdFfGEdyeX-7CAovE2vesQ';
 
-// CSS übernehmen (Theme-Styles) + Site-CSS (Header/Footer) schreiben
-fs.copyFileSync(path.join(SRC, 'skipily-style.css'), path.join(OUT, 'skipily-style.css'));
+const LOGO = 'https://provider.skipily.app/icon-192.png';
+
+const STR = {
+  de: { plus: 'Plus', provider: 'Für Anbieter', faq: 'FAQ',
+        imprint: 'Impressum', privacy: 'Datenschutz', terms: 'AGB', del: 'Konto löschen',
+        foot: 'Die App für Bootseigner.' },
+  en: { plus: 'Plus', provider: 'For providers', faq: 'FAQ',
+        imprint: 'Imprint', privacy: 'Privacy', terms: 'Terms', del: 'Delete account',
+        foot: 'The app for boat owners.' },
+};
+// Slugs je Sprache
+const URLS = {
+  de: { home: '/', faq: '/faq', imprint: '/impressum', privacy: '/datenschutz', terms: '/agb', del: '/account-deletion' },
+  en: { home: '/en/', faq: '/en/faq', imprint: '/en/imprint', privacy: '/en/privacy', terms: '/en/terms', del: '/account-deletion' },
+};
+const FAQ_CAT_LABELS = {
+  de: { general: 'Allgemein', getting_started: 'Erste Schritte', features: 'Funktionen', ai: 'KI-Assistent', plus: 'Skipily Plus', account: 'Konto', privacy: 'Datenschutz' },
+  en: { general: 'General', getting_started: 'Getting started', features: 'Features', ai: 'AI assistant', plus: 'Skipily Plus', account: 'Account', privacy: 'Privacy' },
+};
+const FAQ_CAT_ORDER = ['general', 'getting_started', 'features', 'ai', 'plus', 'account', 'privacy'];
 
 const SITE_CSS = `
 /* Schrift laut Style-Guide (wie auf der bisherigen skipily.app) */
 body{font-family:'Roboto',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
 .sk-h1,.sk-h2,.sk-h3,.sk-hero h1{font-family:'Roboto Slab','Roboto',Georgia,serif;}
 
-/* Header / Footer / Sprachumschalter — ergänzt skipily-style.css */
+/* Header / Footer / Sprachumschalter */
 .sk-topbar{position:sticky;top:0;z-index:50;background:rgba(11,29,58,.92);backdrop-filter:saturate(140%) blur(8px);
   display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-bottom:1px solid #1b2f52;}
 .sk-topbar a{color:#fff;text-decoration:none;}
@@ -36,59 +53,65 @@ body{font-family:'Roboto',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 .sk-sitefooter a{color:#94a3b8;}
 .sk-sitefooter .tag{color:#f97316;font-weight:700;letter-spacing:2px;font-size:12px;}
 @media(max-width:560px){.sk-topnav{gap:10px;font-size:13px;} .sk-topnav .hide-sm{display:none;}}
+
+/* Rechtstexte + FAQ */
+.sk-legal{max-width:820px;margin:0 auto;padding:42px 22px 64px;color:#1a1a2e;line-height:1.7;}
+.sk-legal h1{font-family:'Roboto Slab',Georgia,serif;font-size:1.9rem;color:#0B1D3A;margin:0 0 .4rem;}
+.sk-legal h2{font-family:'Roboto Slab',Georgia,serif;font-size:1.25rem;color:#0B1D3A;margin-top:2rem;border-bottom:2px solid #f97316;padding-bottom:.35rem;}
+.sk-legal h3,.sk-legal h4{color:#0B1D3A;margin-top:1.4rem;}
+.sk-legal a{color:#f97316;}
+.sk-legal table{border-collapse:collapse;width:100%;font-size:.92rem;}
+.sk-legal th,.sk-legal td{border:1px solid #e2e8f0;padding:8px;text-align:left;}
+.sk-legal .warn{background:#fef2f2;border-left:4px solid #ef4444;padding:.75rem 1rem;border-radius:4px;margin:1rem 0;font-size:.9rem;}
+.sk-legal .highlight{background:#fff7ed;border-left:4px solid #f97316;padding:.75rem 1rem;border-radius:4px;margin:1rem 0;}
+.sk-legal .revoke-box{background:#eff6ff;border:1px solid #93c5fd;padding:1rem 1.25rem;border-radius:8px;margin:1.5rem 0;}
+.sk-faq-cat{font-family:'Roboto Slab',Georgia,serif;color:#0B1D3A;font-size:1.2rem;margin:1.8rem 0 .6rem;}
+.sk-faq-item{border:1px solid #e2e8f0;border-radius:10px;margin:8px 0;background:#fff;overflow:hidden;}
+.sk-faq-item summary{cursor:pointer;padding:14px 16px;font-weight:600;color:#0B1D3A;list-style:none;}
+.sk-faq-item summary::-webkit-details-marker{display:none;}
+.sk-faq-item summary::after{content:'+';float:right;color:#f97316;font-weight:700;}
+.sk-faq-item[open] summary::after{content:'–';}
+.sk-faq-item .a{padding:0 16px 14px;color:#334155;}
 `;
-fs.writeFileSync(path.join(OUT, 'site.css'), SITE_CSS);
 
-const LOGO = 'https://provider.skipily.app/icon-192.png';
-
-const STR = {
-  de: { nav_features: 'Funktionen', nav_plus: 'Plus', nav_provider: 'Für Anbieter', nav_faq: 'FAQ',
-        imprint: 'Impressum', privacy: 'Datenschutz', terms: 'AGB',
-        home: '/', enHref: '/en/', foot: 'Die App für Bootseigner.' },
-  en: { nav_features: 'Features', nav_plus: 'Plus', nav_provider: 'For providers', nav_faq: 'FAQ',
-        imprint: 'Imprint', privacy: 'Privacy', terms: 'Terms',
-        home: '/en/', enHref: '/en/', foot: 'The app for boat owners.' },
-};
+const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 function header(lang) {
-  const s = STR[lang];
-  const deActive = lang === 'de' ? ' class="active"' : '';
-  const enActive = lang === 'en' ? ' class="active"' : '';
-  const base = lang === 'en' ? '/en/' : '/';
+  const s = STR[lang], u = URLS[lang];
   return `<header class="sk-topbar">
-  <a class="brand" href="${base}"><img src="${LOGO}" alt="Skipily">SKIPILY</a>
+  <a class="brand" href="${u.home}"><img src="${LOGO}" alt="Skipily">SKIPILY</a>
   <nav class="sk-topnav">
-    <a class="muted hide-sm" href="${base}#plus">${s.nav_plus}</a>
-    <a class="muted hide-sm" href="https://provider.skipily.app">${s.nav_provider}</a>
-    <span class="sk-lang"><a href="/"${deActive}>DE</a><a href="/en/"${enActive}>EN</a></span>
+    <a class="muted hide-sm" href="${u.home}#plus">${s.plus}</a>
+    <a class="muted hide-sm" href="${u.faq}">${s.faq}</a>
+    <a class="muted hide-sm" href="https://provider.skipily.app">${s.provider}</a>
+    <span class="sk-lang"><a href="/"${lang === 'de' ? ' class="active"' : ''}>DE</a><a href="/en/"${lang === 'en' ? ' class="active"' : ''}>EN</a></span>
   </nav>
 </header>`;
 }
 
 function footer(lang) {
-  const s = STR[lang];
-  // Rechtstexte zeigen vorerst auf die bestehende (WordPress-)Seite, bis die
-  // statischen Rechtsseiten in Phase 2 gebaut sind.
+  const s = STR[lang], u = URLS[lang];
   return `<footer class="sk-sitefooter">
   <p class="tag">ALWAYS · SAFE · READY TO SAIL</p>
   <p>${s.foot}</p>
   <p>
-    <a href="https://skipily.app/impressum">${s.imprint}</a> ·
-    <a href="https://skipily.app/datenschutz">${s.privacy}</a> ·
-    <a href="https://skipily.app/agb">${s.terms}</a>
+    <a href="${u.imprint}">${s.imprint}</a> ·
+    <a href="${u.privacy}">${s.privacy}</a> ·
+    <a href="${u.terms}">${s.terms}</a> ·
+    <a href="${u.del}">${s.del}</a>
   </p>
   <p>© ${new Date().getFullYear()} SKIPILY GmbH</p>
 </footer>`;
 }
 
-function doc({ lang, title, desc, body }) {
+function doc({ lang, title, desc, body, jsonld }) {
   return `<!doctype html>
 <html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${title}</title>
-<meta name="description" content="${desc}">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
 <link rel="icon" href="${LOGO}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -96,7 +119,7 @@ function doc({ lang, title, desc, body }) {
 <link rel="alternate" hreflang="de" href="https://skipily.app/">
 <link rel="alternate" hreflang="en" href="https://skipily.app/en/">
 <link rel="stylesheet" href="/skipily-style.css">
-<link rel="stylesheet" href="/site.css">
+<link rel="stylesheet" href="/site.css">${jsonld ? `\n<script type="application/ld+json">${jsonld}</script>` : ''}
 </head>
 <body>
 ${header(lang)}
@@ -107,24 +130,104 @@ ${footer(lang)}
 `;
 }
 
-// Home-Inhalte (Fragmente mit sk-* Sektionen) übernehmen
-const deHome = fs.readFileSync(path.join(SRC, 'skipily-home.html'), 'utf8');
-const enHome = fs.readFileSync(path.join(SRC, 'en', 'skipily-home.html'), 'utf8');
+function write(rel, html) {
+  const p = path.join(OUT, rel);
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  fs.writeFileSync(p, html);
+  console.log('✓', rel);
+}
 
-fs.writeFileSync(path.join(OUT, 'index.html'), doc({
-  lang: 'de',
-  title: 'Skipily — Dein Boot. Dein Assistent. Deine Community.',
-  desc: 'Skipily: Werften, Service & Shops auf der Karte, 1:1-Ersatzteilsuche, Wartungsplanung und ein KI-Assistent, der dein Boot kennt.',
-  body: deHome,
-}));
-fs.writeFileSync(path.join(OUT, 'en', 'index.html'), doc({
-  lang: 'en',
-  title: 'Skipily — Your boat. Your assistant. Your community.',
-  desc: 'Skipily: boatyards, services & shops on the map, 1:1 spare-part search, maintenance planning and an AI assistant that knows your boat.',
-  body: enHome,
-}));
+// sk-legal-Fragment einbinden; volle HTML-Dokumente (AGB) auf den Body reduzieren
+function legalBody(html) {
+  const m = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  let inner = m ? m[1] : html;
+  if (!/class="sk-legal"/.test(inner)) inner = `<div class="sk-legal">${inner}</div>`;
+  return inner;
+}
 
-console.log('✓ dist/index.html');
-console.log('✓ dist/en/index.html');
-console.log('✓ skipily-style.css + site.css');
-console.log('\\nPhase 1 (Home DE/EN) gebaut nach skipily-web/dist/');
+async function fetchFaqs() {
+  const url = `${SUPA_URL}/rest/v1/app_faqs?select=category,sort_order,question,answer,translations&is_published=eq.true&order=category,sort_order`;
+  const r = await fetch(url, { headers: { apikey: SUPA_ANON, Authorization: `Bearer ${SUPA_ANON}` } });
+  if (!r.ok) throw new Error('FAQ-Fetch HTTP ' + r.status);
+  return r.json();
+}
+
+function faqLocalized(f, lang) {
+  if (lang === 'de') return { q: f.question, a: f.answer };
+  const t = (f.translations || {})[lang] || {};
+  return { q: t.question || f.question, a: t.answer || f.answer };
+}
+
+function faqPage(faqs, lang) {
+  const labels = FAQ_CAT_LABELS[lang];
+  let body = `<div class="sk-legal"><h1>${lang === 'de' ? 'Häufige Fragen' : 'Frequently asked questions'}</h1>`;
+  const qa = [];
+  for (const cat of FAQ_CAT_ORDER) {
+    const items = faqs.filter(f => f.category === cat);
+    if (!items.length) continue;
+    body += `<h2 class="sk-faq-cat">${esc(labels[cat] || cat)}</h2>`;
+    for (const f of items) {
+      const { q, a } = faqLocalized(f, lang);
+      qa.push({ q, a });
+      body += `<details class="sk-faq-item"><summary>${esc(q)}</summary><div class="a">${esc(a)}</div></details>`;
+    }
+  }
+  body += '</div>';
+  const jsonld = JSON.stringify({
+    '@context': 'https://schema.org', '@type': 'FAQPage',
+    mainEntity: qa.map(({ q, a }) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+  });
+  return { body, jsonld };
+}
+
+async function main() {
+  fs.rmSync(OUT, { recursive: true, force: true });
+  fs.mkdirSync(OUT, { recursive: true });
+  fs.copyFileSync(path.join(SRC, 'skipily-style.css'), path.join(OUT, 'skipily-style.css'));
+  fs.writeFileSync(path.join(OUT, 'site.css'), SITE_CSS);
+
+  // Home
+  write('index.html', doc({ lang: 'de',
+    title: 'Skipily — Dein Boot. Dein Assistent. Deine Community.',
+    desc: 'Skipily: Werften, Service & Shops auf der Karte, 1:1-Ersatzteilsuche, Wartungsplanung und ein KI-Assistent, der dein Boot kennt.',
+    body: fs.readFileSync(path.join(SRC, 'skipily-home.html'), 'utf8') }));
+  write('en/index.html', doc({ lang: 'en',
+    title: 'Skipily — Your boat. Your assistant. Your community.',
+    desc: 'Skipily: boatyards, services & shops on the map, 1:1 spare-part search, maintenance planning and an AI assistant that knows your boat.',
+    body: fs.readFileSync(path.join(SRC, 'en', 'skipily-home.html'), 'utf8') }));
+
+  // Rechtstexte
+  const legal = [
+    ['de', 'impressum/index.html', 'skipily-impressum.html', 'Impressum — Skipily'],
+    ['de', 'datenschutz/index.html', 'skipily-datenschutz.html', 'Datenschutz — Skipily'],
+    ['de', 'agb/index.html', 'skipily-agb.html', 'AGB — Skipily'],
+    ['en', 'en/imprint/index.html', 'en/skipily-impressum.html', 'Imprint — Skipily'],
+    ['en', 'en/privacy/index.html', 'en/skipily-datenschutz.html', 'Privacy — Skipily'],
+    ['en', 'en/terms/index.html', 'en/skipily-agb.html', 'Terms — Skipily'],
+  ];
+  for (const [lang, out, file, title] of legal) {
+    const html = fs.readFileSync(path.join(SRC, file), 'utf8');
+    write(out, doc({ lang, title, desc: title, body: legalBody(html) }));
+  }
+
+  // Konto löschen (eigenständig, bereits zweisprachig) — 1:1 übernehmen
+  write('account-deletion/index.html', fs.readFileSync(path.join(SRC, 'account-deletion.html'), 'utf8'));
+
+  // FAQ live aus Supabase
+  try {
+    const faqs = await fetchFaqs();
+    for (const [lang, out] of [['de', 'faq/index.html'], ['en', 'en/faq/index.html']]) {
+      const { body, jsonld } = faqPage(faqs, lang);
+      write(out, doc({ lang, title: lang === 'de' ? 'FAQ — Häufige Fragen | Skipily' : 'FAQ | Skipily',
+        desc: lang === 'de' ? 'Antworten auf häufige Fragen zu Skipily.' : 'Answers to frequently asked questions about Skipily.',
+        body, jsonld }));
+    }
+    console.log(`  (${faqs.length} FAQ aus Supabase)`);
+  } catch (e) {
+    console.warn('⚠ FAQ-Build übersprungen:', e.message);
+  }
+
+  console.log('\\nBuild fertig → skipily-web/dist/');
+}
+
+main();
