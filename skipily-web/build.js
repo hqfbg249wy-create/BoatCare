@@ -244,6 +244,18 @@ async function main() {
     console.warn('⚠ FAQ-Build übersprungen:', e.message);
   }
 
+  // Sitemap + robots.txt
+  const SITE = 'https://skipily.app';
+  const routes = ['/', '/faq', '/impressum', '/datenschutz', '/agb', '/account-deletion',
+    '/en/', '/en/faq', '/en/imprint', '/en/privacy', '/en/terms'];
+  const today = new Date().toISOString().slice(0, 10);
+  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    routes.map(r => `  <url><loc>${SITE}${r}</loc><lastmod>${today}</lastmod></url>`).join('\n') +
+    `\n</urlset>\n`;
+  fs.writeFileSync(path.join(OUT, 'sitemap.xml'), sitemap);
+  fs.writeFileSync(path.join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
+  console.log('✓ sitemap.xml + robots.txt');
+
   console.log('\\nBuild fertig → skipily-web/dist/');
 }
 
