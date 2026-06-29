@@ -17,6 +17,10 @@ fs.mkdirSync(path.join(OUT, 'en'), { recursive: true });
 fs.copyFileSync(path.join(SRC, 'skipily-style.css'), path.join(OUT, 'skipily-style.css'));
 
 const SITE_CSS = `
+/* Schrift laut Style-Guide (wie auf der bisherigen skipily.app) */
+body{font-family:'Roboto',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+.sk-h1,.sk-h2,.sk-h3,.sk-hero h1{font-family:'Roboto Slab','Roboto',Georgia,serif;}
+
 /* Header / Footer / Sprachumschalter — ergänzt skipily-style.css */
 .sk-topbar{position:sticky;top:0;z-index:50;background:rgba(11,29,58,.92);backdrop-filter:saturate(140%) blur(8px);
   display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-bottom:1px solid #1b2f52;}
@@ -86,6 +90,9 @@ function doc({ lang, title, desc, body }) {
 <title>${title}</title>
 <meta name="description" content="${desc}">
 <link rel="icon" href="${LOGO}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Roboto+Slab:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="alternate" hreflang="de" href="https://skipily.app/">
 <link rel="alternate" hreflang="en" href="https://skipily.app/en/">
 <link rel="stylesheet" href="/skipily-style.css">
