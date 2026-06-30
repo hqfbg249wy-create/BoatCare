@@ -8381,6 +8381,326 @@ async function runMarketSnapshot() {
 }
 window.runMarketSnapshot = runMarketSnapshot;
 
+// ============================================================
+// Markt-Bericht (B2B-Newsletter) — Zeitraum, RPC, PDF, HTML
+// ============================================================
+let _reportData = null;
+const REPORT_LOGO = 'https://provider.skipily.app/icon-192.png';
+const _kpiLabels = {
+    users_total: 'Nutzer', boats_total: 'Boote',
+    providers_total: 'Anbieter', shops_active_total: 'Aktive Shops',
+};
+const _quarterMonths = { 1: '01', 2: '04', 3: '07', 4: '10' };
+
+function _yearOptions(selected) {
+    const now = new Date().getFullYear();
+    let out = '';
+    for (let y = 2025; y <= now; y++) out += `<option value="${y}"${y === selected ? ' selected' : ''}>${y}</option>`;
+    return out;
+}
+
+/** Füllt den sekundären Zeitraum-Picker abhängig vom Typ. */
+function onReportPeriodTypeChange() {
+    const type = document.getElementById('report-period-type')?.value || 'quarter';
+    const host = document.getElementById('report-period-value');
+    if (!host) return;
+    const now = new Date();
+    const y = now.getFullYear();
+    const q = Math.floor(now.getMonth() / 3) + 1;
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const sel = 'padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;';
+    if (type === 'month') {
+        host.innerHTML = `<input type="month" id="report-month" value="${y}-${m}" style="${sel}">`;
+    } else if (type === 'quarter') {
+        host.innerHTML = `
+            <select id="report-quarter" style="${sel}">
+                <option value="1"${q===1?' selected':''}>Q1 (Jan–Mär)</option>
+                <option value="2"${q===2?' selected':''}>Q2 (Apr–Jun)</option>
+                <option value="3"${q===3?' selected':''}>Q3 (Jul–Sep)</option>
+                <option value="4"${q===4?' selected':''}>Q4 (Okt–Dez)</option>
+            </select>
+            <select id="report-qyear" style="${sel}">${_yearOptions(y)}</select>`;
+    } else if (type === 'year') {
+        host.innerHTML = `<select id="report-year" style="${sel}">${_yearOptions(y)}</select>`;
+    } else { // years
+        host.innerHTML = `<select id="report-yfrom" style="${sel}">${_yearOptions(2025)}</select>
+            <span style="color:#94a3b8;">bis</span>
+            <select id="report-yto" style="${sel}">${_yearOptions(y)}</select>`;
+    }
+}
+window.onReportPeriodTypeChange = onReportPeriodTypeChange;
+
+/** Liest den Picker und liefert {from, to, label} (ISO-Daten). */
+function _reportRange() {
+    const type = document.getElementById('report-period-type')?.value || 'quarter';
+    const iso = (d) => d.toISOString().slice(0, 10);
+    if (type === 'month') {
+        const v = document.getElementById('report-month')?.value || new Date().toISOString().slice(0, 7);
+        const [yy, mm] = v.split('-').map(Number);
+        const from = new Date(Date.UTC(yy, mm - 1, 1));
+        const to = new Date(Date.UTC(yy, mm, 0));
+        const name = from.toLocaleDateString('de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+        return { from: iso(from), to: iso(to), label: name };
+    }
+    if (type === 'quarter') {
+        const q = parseInt(document.getElementById('report-quarter')?.value || '1', 10);
+        const yy = parseInt(document.getElementById('report-qyear')?.value || new Date().getFullYear(), 10);
+        const sm = parseInt(_quarterMonths[q], 10);
+        const from = new Date(Date.UTC(yy, sm - 1, 1));
+        const to = new Date(Date.UTC(yy, sm + 2, 0));
+        return { from: iso(from), to: iso(to), label: `Q${q} ${yy}` };
+    }
+    if (type === 'year') {
+        const yy = parseInt(document.getElementById('report-year')?.value || new Date().getFullYear(), 10);
+        return { from: `${yy}-01-01`, to: `${yy}-12-31`, label: `Jahr ${yy}` };
+    }
+    // years
+    let yf = parseInt(document.getElementById('report-yfrom')?.value || '2025', 10);
+    let yt = parseInt(document.getElementById('report-yto')?.value || new Date().getFullYear(), 10);
+    if (yf > yt) [yf, yt] = [yt, yf];
+    return { from: `${yf}-01-01`, to: `${yt}-12-31`, label: `${yf}–${yt}` };
+}
+
+// Schritt 1: Daten laden und interaktiven Drilldown zeigen
+async function loadMarketReportData() {
+    const btn = document.getElementById('report-load-btn');
+    const drill = document.getElementById('report-drilldown');
+    const prev = document.getElementById('report-preview');
+    const setExport = (on) => ['report-preview-btn', 'report-pdf-btn', 'report-html-btn']
+        .forEach(id => { const e = document.getElementById(id); if (e) e.disabled = !on; });
+    if (!document.getElementById('report-period-value')?.children.length) onReportPeriodTypeChange();
+    const { from, to, label } = _reportRange();
+    if (prev) prev.innerHTML = '';
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ lade …'; }
+    try {
+        const { data, error } = await supabaseClient.rpc('admin_market_report', {
+            p_from: from, p_to: to, p_label: label,
+        });
+        if (error) throw error;
+        _reportData = data;
+        if (drill) drill.innerHTML =
+            `<div style="font-size:13px;color:#475569;margin:6px 0;">Zeitraum: <strong>${escapeHtml(label)}</strong> (${from} – ${to}). `
+            + `Erkunde die Nachfrage, dann erzeuge den Bericht daraus.</div>`
+            + _demandSectionHTML(data, { expand: false });
+        setExport(true);
+    } catch (err) {
+        if (drill) drill.innerHTML = `<div style="padding:14px;color:#dc2626;background:#fee2e2;border-radius:8px;">Fehler: ${escapeHtml(err.message)}</div>`;
+        setExport(false);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '🔎 Daten & Drilldown laden'; }
+    }
+}
+window.loadMarketReportData = loadMarketReportData;
+
+// Schritt 2: vollständige Bericht-Vorschau aus den geladenen Daten
+function showMarketReportPreview() {
+    if (!_reportData) { alert('Bitte zuerst „Daten & Drilldown laden".'); return; }
+    const prev = document.getElementById('report-preview');
+    if (prev) {
+        prev.innerHTML = _buildReportHTML(_reportData);
+        prev.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+window.showMarketReportPreview = showMarketReportPreview;
+
+/** Leitet die Auffälligkeiten aus den Berichtsdaten ab. */
+function _reportAnomalies(d) {
+    const out = [];
+    const repl = d.replacement || [], maint = d.maintenance || [], t = d.totals || {};
+    const topWave = repl.filter(r => r.ref?.m12 > 0).sort((a, b) => b.ref.m12 - a.ref.m12)[0];
+    if (topWave) out.push(`<strong>Größte Ersatzwelle:</strong> ${escapeHtml(topWave.label)} — ${topWave.ref.m12} Geräte erreichen in 12 Monaten ihr Lebensdauer-Ende (Referenz).`);
+    const topOverdue = maint.filter(m => m.overdue > 0).sort((a, b) => b.overdue - a.overdue)[0];
+    if (topOverdue) out.push(`<strong>Höchster Wartungsstau:</strong> ${topOverdue.overdue} überfällige Wartungen bei ${escapeHtml(topOverdue.label)} — akute Servicenachfrage.`);
+    const early = repl.filter(r => r.count >= 5 && r.ref_lifespan && r.data_lifespan && r.data_lifespan < r.ref_lifespan * 0.7)[0];
+    if (early) out.push(`<strong>Vorzeitiger Ersatz:</strong> ${escapeHtml(early.label)} wird im Schnitt nach ${_yf(early.data_lifespan)} J. ersetzt — deutlich früher als die Referenz (${_yf(early.ref_lifespan)} J.).`);
+    if ((t.repl_ref_12m || 0) > 0) out.push(`<strong>Beschaffungsausblick:</strong> flottenweit rund ${t.repl_ref_12m} Ersatzbeschaffungen in den nächsten 12 Monaten (Referenz).`);
+    const topRise = (d.demand || []).filter(x => Number(x.delta) > 0).sort((a, b) => b.delta - a.delta)[0];
+    if (topRise) out.push(`<strong>Steigende Nachfrage:</strong> ${escapeHtml(topRise.label)} legt im Zeitraum am stärksten zu (+${_nf(topRise.delta)} Geräte in der Flotte).`);
+    if (!out.length) out.push('Noch zu wenig Flottendaten für belastbare Auffälligkeiten — Datenbasis wächst mit jeder Anmeldung.');
+    return out;
+}
+
+const _nf = (n) => Number(n || 0).toLocaleString('de-DE');
+const _yf = (n) => (n == null ? '–' : Number(n).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
+
+/** Interaktiver Nachfrage-Trend (Drilldown Kategorie → Hersteller).
+ *  Wird eigenständig auf der Seite UND im Bericht verwendet.
+ *  opts.expand = true → alle <details> aufgeklappt (PDF/Newsletter). */
+function _demandSectionHTML(d, opts = {}) {
+    const openAttr = opts.expand ? ' open' : '';
+    const navy = '#0B1D3A', orange = '#f97316', line = '#e2e8f0';
+    const th  = `style="padding:8px 10px;text-align:left;font-size:12px;color:#475569;border-bottom:2px solid ${line};"`;
+    const tdL = `style="padding:8px 10px;font-size:13px;color:${navy};border-bottom:1px solid ${line};"`;
+    const tdR = `style="padding:8px 10px;font-size:13px;color:${navy};border-bottom:1px solid ${line};text-align:right;"`;
+    const demand = d.demand || [];
+    const deltaBadge = (delta) => {
+        const dv = Number(delta || 0);
+        const col = dv > 0 ? '#16a34a' : (dv < 0 ? '#dc2626' : '#94a3b8');
+        const arr = dv > 0 ? '▲ +' : (dv < 0 ? '▼ ' : '± ');
+        return `<span style="color:${col};font-weight:700;">${arr}${_nf(dv)}</span>`;
+    };
+    const liTrend = (x) => `<li style="margin:3px 0;">${escapeHtml(x.label)} ${deltaBadge(x.delta)} <span style="color:#94a3b8;">(${_nf(x.start)}→${_nf(x.end)})</span></li>`;
+    const risers  = demand.filter(x => Number(x.delta) > 0).slice(0, 5);
+    const fallers = demand.filter(x => Number(x.delta) < 0).sort((a, b) => a.delta - b.delta).slice(0, 5);
+    const riserList  = risers.length  ? risers.map(liTrend).join('')  : '<li style="color:#94a3b8;">—</li>';
+    const fallerList = fallers.length ? fallers.map(liTrend).join('') : '<li style="color:#94a3b8;">—</li>';
+    const drill = demand.filter(c => (Number(c.start) + Number(c.end)) > 0).length
+        ? demand.filter(c => (Number(c.start) + Number(c.end)) > 0).map(c => {
+            const kids = (c.children || []).filter(m => (Number(m.start) + Number(m.end)) > 0).slice(0, 8);
+            const kidRows = kids.length
+                ? kids.map(m => `<tr><td ${tdL}>${escapeHtml(m.manufacturer || '–')}</td><td ${tdR}>${_nf(m.start)}</td><td ${tdR}>${_nf(m.end)}</td><td ${tdR}>${deltaBadge(m.delta)}</td></tr>`).join('')
+                : `<tr><td ${tdL} colspan="4" style="color:#94a3b8;">Keine Hersteller-Daten.</td></tr>`;
+            return `<details${openAttr} style="border:1px solid ${line};border-radius:8px;margin:6px 0;background:#fff;">
+                <summary style="cursor:pointer;padding:10px 12px;font-weight:700;color:${navy};">${escapeHtml(c.label)} &nbsp; ${deltaBadge(c.delta)} <span style="color:#94a3b8;font-weight:400;">(${_nf(c.start)}→${_nf(c.end)})</span></summary>
+                <div style="padding:0 12px 10px;">
+                  <table style="width:100%;border-collapse:collapse;">
+                    <thead><tr><th ${th}>Hersteller</th><th ${th} style="text-align:right;">Start</th><th ${th} style="text-align:right;">Ende</th><th ${th} style="text-align:right;">Δ</th></tr></thead>
+                    <tbody>${kidRows}</tbody>
+                  </table>
+                </div>
+              </details>`;
+        }).join('')
+        : `<p style="color:#94a3b8;font-size:13px;">Noch keine Zeitreihe im gewählten Zeitraum — der Trend erscheint, sobald an mindestens zwei Tagen Snapshots vorliegen (täglicher Snapshot aktivieren).</p>`;
+    return `
+    <h2 style="font-size:15px;color:${navy};border-bottom:2px solid ${orange};padding-bottom:5px;margin-top:22px;">📈 Nachfrage-Trend (Drilldown)</h2>
+    <p style="font-size:12px;color:#64748b;margin:6px 0;">Veränderung des Equipment-Bestands im Zeitraum — Indikator für Service- &amp; Teile-Nachfrage. Kategorie aufklappen für Hersteller.</p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10px;"><tr>
+      <td style="width:50%;vertical-align:top;padding:6px;">
+        <div style="font-size:13px;font-weight:700;color:#16a34a;">▲ Steigende Nachfrage</div>
+        <ul style="font-size:12px;color:#334155;padding-left:16px;margin:4px 0;">${riserList}</ul>
+      </td>
+      <td style="width:50%;vertical-align:top;padding:6px;">
+        <div style="font-size:13px;font-weight:700;color:#dc2626;">▼ Sinkende Nachfrage</div>
+        <ul style="font-size:12px;color:#334155;padding-left:16px;margin:4px 0;">${fallerList}</ul>
+      </td>
+    </tr></table>
+    ${drill}`;
+}
+
+/** Baut das vollständige, e-mail-sichere Bericht-HTML (Vorschau, PDF, Newsletter).
+ *  opts.expand = true → alle Drill-down-Ebenen aufgeklappt (für PDF/Newsletter, da statisch). */
+function _buildReportHTML(d, opts = {}) {
+    const openAttr = opts.expand ? ' open' : '';
+    const navy = '#0B1D3A', orange = '#f97316', line = '#e2e8f0';
+    const meta = d.meta || {}, kpis = d.kpis || [], repl = d.replacement || [], maint = d.maintenance || [];
+    const gen = meta.generated_at ? new Date(meta.generated_at).toLocaleDateString('de-DE') : '';
+    const th = `style="padding:8px 10px;text-align:left;font-size:12px;color:#475569;border-bottom:2px solid ${line};"`;
+    const tdL = `style="padding:8px 10px;font-size:13px;color:${navy};border-bottom:1px solid ${line};"`;
+    const tdR = `style="padding:8px 10px;font-size:13px;color:${navy};border-bottom:1px solid ${line};text-align:right;"`;
+
+    const kpiCells = kpis.map(k => `
+        <td style="padding:10px;text-align:center;border:1px solid ${line};">
+            <div style="font-size:11px;color:#64748b;text-transform:uppercase;">${escapeHtml(_kpiLabels[k.metric] || k.metric)}</div>
+            <div style="font-size:22px;font-weight:800;color:${navy};">${_nf(k.end)}</div>
+            <div style="font-size:12px;color:${(k.delta||0) >= 0 ? '#16a34a' : '#dc2626'};">${(k.delta||0) >= 0 ? '▲ +' : '▼ '}${_nf(k.delta)} im Zeitraum</div>
+        </td>`).join('');
+
+    const replRows = repl.map(r => `
+        <tr>
+            <td ${tdL}><strong>${escapeHtml(r.label)}</strong></td>
+            <td ${tdR}>${_nf(r.count)}</td>
+            <td ${tdR}>${_yf(r.avg_age_years)} J.</td>
+            <td ${tdR}>${_yf(r.ref_lifespan)} J. <span style="color:#94a3b8;">/ ${_yf(r.data_lifespan)} J.</span></td>
+            <td ${tdR}>${_nf(r.ref?.m12)} <span style="color:#94a3b8;">/ ${_nf(r.data?.m12)}</span></td>
+            <td ${tdR}>${_nf(r.ref?.m24)} <span style="color:#94a3b8;">/ ${_nf(r.data?.m24)}</span></td>
+            <td ${tdR}>${_nf(r.ref?.m36)} <span style="color:#94a3b8;">/ ${_nf(r.data?.m36)}</span></td>
+        </tr>`).join('');
+
+    const maintRows = maint.map(m => `
+        <tr>
+            <td ${tdL}><strong>${escapeHtml(m.label)}</strong></td>
+            <td ${tdR}>${_nf(m.count)}</td>
+            <td ${tdR}>${m.avg_cycle_years == null ? '–' : _yf(m.avg_cycle_years) + ' J.'} <span style="color:#94a3b8;">/ ${_yf(m.ref_cycle_years)} J.</span></td>
+            <td ${tdR}><span style="color:${m.overdue>0?'#dc2626':'#16a34a'};font-weight:700;">${_nf(m.overdue)}</span></td>
+            <td ${tdR}>${_nf(m.due_3m)}</td>
+            <td ${tdR}>${_nf(m.due_6m)}</td>
+            <td ${tdR}>${_nf(m.due_12m)}</td>
+        </tr>`).join('');
+
+    const anomalies = _reportAnomalies(d).map(a => `<li style="margin:6px 0;">${a}</li>`).join('');
+    const demandHTML = _demandSectionHTML(d, { expand: opts.expand });
+
+    return `
+<div style="max-width:680px;margin:0 auto;font-family:Arial,Helvetica,sans-serif;color:${navy};background:#fff;">
+  <div style="background:${navy};padding:24px;text-align:center;border-radius:10px 10px 0 0;">
+    <img src="${REPORT_LOGO}" alt="Skipily" width="56" height="56" style="border-radius:12px;display:inline-block;">
+    <div style="color:#fff;font-size:20px;font-weight:800;letter-spacing:2px;margin-top:8px;">SKIPILY MARKT-REPORT</div>
+    <div style="color:${orange};font-size:13px;font-weight:700;letter-spacing:2px;margin-top:2px;">${escapeHtml(meta.label || '')}</div>
+  </div>
+  <div style="padding:22px;">
+    <p style="font-size:14px;line-height:1.6;color:#334155;margin-top:0;">
+      Liebe Partnerinnen und Partner, hier die aktuellen Markt-Auffälligkeiten aus der Skipily-Flotte —
+      mit Prognosen zu <strong>Ersatzbedarf</strong> und <strong>Wartungsnachfrage</strong>, die ihr für Planung und Angebote nutzen könnt.
+    </p>
+
+    <h2 style="font-size:15px;color:${navy};border-bottom:2px solid ${orange};padding-bottom:5px;">📊 Plattform-Kennzahlen</h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:8px;"><tr>${kpiCells || '<td style="padding:10px;color:#94a3b8;">Keine Snapshot-Daten im Zeitraum.</td>'}</tr></table>
+
+    <h2 style="font-size:15px;color:${navy};border-bottom:2px solid ${orange};padding-bottom:5px;">🚩 Auffälligkeiten</h2>
+    <ul style="font-size:13px;line-height:1.5;color:#334155;padding-left:18px;margin-top:8px;">${anomalies}</ul>
+
+    <h2 style="font-size:15px;color:${navy};border-bottom:2px solid ${orange};padding-bottom:5px;">🔧 Ersatzzyklen &amp; Prognose</h2>
+    <p style="font-size:12px;color:#64748b;margin:6px 0;">Lebensdauer &amp; Prognose je Kategorie: <strong>Referenz</strong> <span style="color:#94a3b8;">/ datenbasiert</span> (75.-Perzentil des Flottenalters). „Fällig" = voraussichtlich zu ersetzen.</p>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr>
+        <th ${th}>Kategorie</th><th ${th} style="text-align:right;">Bestand</th><th ${th} style="text-align:right;">Ø Alter</th>
+        <th ${th} style="text-align:right;">Lebensdauer</th><th ${th} style="text-align:right;">≤12 Mon.</th>
+        <th ${th} style="text-align:right;">≤24 Mon.</th><th ${th} style="text-align:right;">≤36 Mon.</th>
+      </tr></thead>
+      <tbody>${replRows || '<tr><td style="padding:10px;color:#94a3b8;" colspan="7">Keine Equipment-Daten.</td></tr>'}</tbody>
+    </table>
+
+    <h2 style="font-size:15px;color:${navy};border-bottom:2px solid ${orange};padding-bottom:5px;margin-top:22px;">🛠️ Wartungszyklen &amp; Fälligkeiten</h2>
+    <p style="font-size:12px;color:#64748b;margin:6px 0;">Zyklus je Kategorie: <strong>Nutzerangabe</strong> <span style="color:#94a3b8;">/ Referenz</span>. Fälligkeiten aus den hinterlegten nächsten Wartungsterminen.</p>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr>
+        <th ${th}>Kategorie</th><th ${th} style="text-align:right;">Bestand</th><th ${th} style="text-align:right;">Zyklus</th>
+        <th ${th} style="text-align:right;">Überfällig</th><th ${th} style="text-align:right;">≤3 Mon.</th>
+        <th ${th} style="text-align:right;">≤6 Mon.</th><th ${th} style="text-align:right;">≤12 Mon.</th>
+      </tr></thead>
+      <tbody>${maintRows || '<tr><td style="padding:10px;color:#94a3b8;" colspan="7">Keine Equipment-Daten.</td></tr>'}</tbody>
+    </table>
+${demandHTML}
+    <p style="font-size:11px;color:#94a3b8;margin-top:20px;border-top:1px solid ${line};padding-top:12px;">
+      Stand: ${gen} · Quelle: aggregierte, anonymisierte Skipily-Flottendaten. Ersatz-/Austauschereignisse werden nicht
+      erfasst; die datenbasierte Prognose nutzt das Flottenalter als Näherung. Angaben ohne Gewähr.
+    </p>
+  </div>
+  <div style="background:${navy};color:#94a3b8;text-align:center;padding:18px;font-size:12px;border-radius:0 0 10px 10px;">
+    <span style="color:${orange};font-weight:700;letter-spacing:2px;">ALWAYS · SAFE · READY TO SAIL</span><br>
+    SKIPILY · <a href="https://skipily.app" style="color:#94a3b8;">skipily.app</a> · <a href="mailto:contact@skipily.app" style="color:#94a3b8;">contact@skipily.app</a>
+  </div>
+</div>`;
+}
+
+function downloadReportPDF() {
+    if (!_reportData) return;
+    const html = _buildReportHTML(_reportData, { expand: true });
+    const w = window.open('', '_blank');
+    if (!w) { alert('Bitte Pop-ups für diese Seite erlauben.'); return; }
+    w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Skipily Markt-Report ${escapeHtml(_reportData.meta?.label || '')}</title><style>body{margin:0;background:#fff;}@media print{@page{margin:12mm;}}</style></head><body>${html}<script>window.onload=function(){setTimeout(function(){window.print();},350);};<\/script></body></html>`);
+    w.document.close();
+}
+window.downloadReportPDF = downloadReportPDF;
+
+async function copyReportNewsletterHTML() {
+    if (!_reportData) return;
+    const html = _buildReportHTML(_reportData, { expand: true });
+    try {
+        await navigator.clipboard.writeText(html);
+        alert('✅ Newsletter-HTML kopiert.\n\nIn CleverReach: Mailing → HTML-Element/Quellcode → einfügen.');
+    } catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = html; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); ta.remove();
+        alert('✅ Newsletter-HTML in die Zwischenablage kopiert.');
+    }
+}
+window.copyReportNewsletterHTML = copyReportNewsletterHTML;
+
+// Picker initial befüllen (Script läuft am Body-Ende, DOM ist bereit)
+if (document.getElementById('report-period-type')) onReportPeriodTypeChange();
+
 // ── Bewertungs-Moderation ─────────────────────────────────────────────────────
 
 async function loadModerationQueue() {
