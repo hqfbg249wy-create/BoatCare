@@ -146,6 +146,31 @@ ${footer(lang)}
 `;
 }
 
+// Skipily-gebrandete Danke-/Bestätigungsseite — Ziel der CleverReach-Weiterleitung.
+function dankeBody(lang) {
+  const t = lang === 'de' ? {
+    h: 'Fast geschafft!',
+    p: 'Bitte bestätige deine Anmeldung über den Link in der E-Mail, die wir dir gerade geschickt haben. Erst danach bist du dabei.',
+    note: 'Keine Mail bekommen? Schau auch im Spam-Ordner nach.',
+    btn: 'Zurück zur Startseite',
+  } : {
+    h: 'Almost there!',
+    p: 'Please confirm your subscription via the link in the email we just sent you. Only then are you in.',
+    note: 'No email? Please also check your spam folder.',
+    btn: 'Back to homepage',
+  };
+  const home = URLS[lang].home;
+  return `<section class="sk-section sk-section-light" style="min-height:60vh;display:flex;align-items:center;">
+  <div class="sk-container sk-narrow sk-center" style="max-width:560px;margin:0 auto;text-align:center;padding:48px 22px;">
+    <img src="${LOGO}" alt="Skipily" style="width:72px;height:72px;border-radius:16px;box-shadow:0 8px 24px rgba(11,29,58,.18);margin-bottom:22px;">
+    <h1 class="sk-h1" style="color:#0B1D3A;font-size:2rem;margin:0 0 .6rem;">${t.h}</h1>
+    <p style="color:#334155;font-size:1.08rem;line-height:1.7;margin:0 auto 1.4rem;max-width:440px;">${t.p}</p>
+    <p style="color:#64748b;font-size:.92rem;margin:0 0 1.8rem;">${t.note}</p>
+    <a href="${home}" class="sk-btn sk-btn-primary" style="display:inline-block;background:#f97316;color:#fff;text-decoration:none;font-weight:700;padding:13px 28px;border-radius:10px;">${t.btn}</a>
+  </div>
+</section>`;
+}
+
 function write(rel, html) {
   const p = path.join(OUT, rel);
   fs.mkdirSync(path.dirname(p), { recursive: true });
@@ -212,6 +237,14 @@ async function main() {
     title: 'Skipily — Your boat. Your assistant. Your community.',
     desc: 'Skipily: boatyards, services & shops on the map, 1:1 spare-part search, maintenance planning and an AI assistant that knows your boat.',
     body: localizeImages(fs.readFileSync(path.join(SRC, 'en', 'skipily-home.html'), 'utf8')) }));
+
+  // Newsletter-Danke (Ziel der CleverReach-Weiterleitung nach Anmeldung)
+  write('newsletter-danke/index.html', doc({ lang: 'de',
+    title: 'Fast geschafft — Skipily Newsletter', desc: 'Bitte bestätige deine Newsletter-Anmeldung.',
+    body: dankeBody('de') }));
+  write('en/newsletter-thanks/index.html', doc({ lang: 'en',
+    title: 'Almost there — Skipily newsletter', desc: 'Please confirm your newsletter subscription.',
+    body: dankeBody('en') }));
 
   // Rechtstexte
   const legal = [
