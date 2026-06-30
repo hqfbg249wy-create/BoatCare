@@ -8466,7 +8466,7 @@ async function loadMarketReportData() {
     const btn = document.getElementById('report-load-btn');
     const drill = document.getElementById('report-drilldown');
     const prev = document.getElementById('report-preview');
-    const setExport = (on) => ['report-preview-btn', 'report-pdf-btn', 'report-html-btn']
+    const setExport = (on) => ['report-preview-btn', 'report-pdf-btn', 'report-html-btn', 'report-ai-btn']
         .forEach(id => { const e = document.getElementById(id); if (e) e.disabled = !on; });
     if (!document.getElementById('report-period-value')?.children.length) onReportPeriodTypeChange();
     const { from, to, label } = _reportRange();
@@ -8481,7 +8481,8 @@ async function loadMarketReportData() {
         if (drill) drill.innerHTML =
             `<div style="font-size:13px;color:#475569;margin:6px 0;">Zeitraum: <strong>${escapeHtml(label)}</strong> (${from} – ${to}). `
             + `Erkunde die Nachfrage, dann erzeuge den Bericht daraus.</div>`
-            + _demandSectionHTML(data, { expand: false });
+            + _demandSectionHTML(data, { expand: false })
+            + _recommendationsHTML(data);
         setExport(true);
     } catch (err) {
         if (drill) drill.innerHTML = `<div style="padding:14px;color:#dc2626;background:#fee2e2;border-radius:8px;">Fehler: ${escapeHtml(err.message)}</div>`;
@@ -8503,6 +8504,47 @@ function showMarketReportPreview() {
 }
 window.showMarketReportPreview = showMarketReportPreview;
 
+// KI-Formulierung: Provider-Mail oder Pressemeldung aus den Berichtsdaten
+async function generateAiReportText() {
+    if (!_reportData) { alert('Bitte zuerst „Daten & Drilldown laden".'); return; }
+    const target = document.getElementById('report-ai-target')?.value || 'provider';
+    const btn = document.getElementById('report-ai-btn');
+    const out = document.getElementById('report-ai-output');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ formuliere …'; }
+    if (out) out.innerHTML = '<div style="margin-top:12px;color:#64748b;font-size:13px;">🤖 KI formuliert den Text …</div>';
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('admin-market-report-ai', {
+            body: { report: _reportData, target },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        const text = data?.text || '';
+        if (out) out.innerHTML = `
+            <div style="margin-top:12px;border:1px solid #e2e8f0;border-radius:8px;padding:12px;background:#fff;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <strong style="color:#0B1D3A;">🤖 KI-Text — ${target === 'press' ? 'Pressemeldung' : 'Provider-Mail'}</strong>
+                <button class="btn-secondary" style="padding:4px 10px;" onclick="window._copyAiReportText()">📋 Kopieren</button>
+              </div>
+              <textarea id="report-ai-text" style="width:100%;min-height:300px;border:1px solid #e2e8f0;border-radius:6px;padding:10px;font:14px/1.5 -apple-system,Segoe UI,sans-serif;color:#1a1a2e;">${escapeHtml(text)}</textarea>
+              <p style="font-size:11px;color:#94a3b8;margin:6px 0 0;">KI-Entwurf — vor Versand prüfen. Zahlen stammen aus dem Bericht.</p>
+            </div>`;
+    } catch (err) {
+        if (out) out.innerHTML = `<div style="margin-top:12px;padding:12px;color:#dc2626;background:#fee2e2;border-radius:8px;">KI-Fehler: ${escapeHtml(err.message || String(err))}</div>`;
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '🤖 KI-Text formulieren'; }
+    }
+}
+window.generateAiReportText = generateAiReportText;
+
+function _copyAiReportText() {
+    const t = document.getElementById('report-ai-text');
+    if (!t) return;
+    t.select();
+    if (navigator.clipboard) navigator.clipboard.writeText(t.value).then(() => alert('✅ Text kopiert.')).catch(() => { document.execCommand('copy'); alert('✅ Text kopiert.'); });
+    else { document.execCommand('copy'); alert('✅ Text kopiert.'); }
+}
+window._copyAiReportText = _copyAiReportText;
+
 /** Leitet die Auffälligkeiten aus den Berichtsdaten ab. */
 function _reportAnomalies(d) {
     const out = [];
@@ -8522,6 +8564,48 @@ function _reportAnomalies(d) {
 
 const _nf = (n) => Number(n || 0).toLocaleString('de-DE');
 const _yf = (n) => (n == null ? '–' : Number(n).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
+
+/** Regelbasierte Handlungsempfehlungen + Presse-Statements aus den Berichtsdaten. */
+function _reportRecommendations(d) {
+    const num = (n) => Number(n || 0);
+    const kpiEnd = (m) => num((d.kpis || []).find(k => k.metric === m)?.end);
+    const demand = d.demand || [], repl = d.replacement || [], maint = d.maintenance || [], t = d.totals || {};
+    const provider = [], press = [];
+
+    const topRise = demand.filter(x => num(x.delta) > 0).sort((a, b) => b.delta - a.delta)[0];
+    if (topRise) {
+        const kid = (topRise.children || []).filter(m => num(m.delta) > 0).sort((a, b) => b.delta - a.delta)[0];
+        provider.push(`Sortiment/Beratung für <strong>${escapeHtml(topRise.label)}</strong> ausbauen — Nachfrage +${_nf(topRise.delta)} im Zeitraum${kid ? `, besonders ${escapeHtml(kid.manufacturer || '–')}` : ''}.`);
+    }
+    const replTop = [...repl].sort((a, b) => num(b.ref?.m12) - num(a.ref?.m12))[0];
+    if (replTop && num(replTop.ref?.m12) > 0) provider.push(`Austauschangebote für <strong>${escapeHtml(replTop.label)}</strong> vorbereiten — ${_nf(replTop.ref.m12)} Geräte erreichen in 12 Monaten ihr Lebensdauer-Ende.`);
+    const maintTop = [...maint].sort((a, b) => num(b.overdue) - num(a.overdue))[0];
+    if (maintTop && num(maintTop.overdue) > 0) provider.push(`Aktiv Servicekunden ansprechen: <strong>${_nf(maintTop.overdue)} überfällige Wartungen</strong> bei ${escapeHtml(maintTop.label)}.`);
+    if (num(t.maint_due_12m) > 0) provider.push(`Kapazität & Terminangebote planen — flottenweit ${_nf(t.maint_due_12m)} Wartungen in den nächsten 12 Monaten fällig.`);
+    if (num(t.repl_ref_12m) > 0) provider.push(`Beschaffung/Lager planen — rund ${_nf(t.repl_ref_12m)} altersbedingte Ersatzbeschaffungen in 12 Monaten zu erwarten.`);
+    if (!provider.length) provider.push('Noch zu wenig Daten für konkrete Empfehlungen — Datenbasis wächst mit jeder Anmeldung.');
+
+    const boats = kpiEnd('boats_total'), eq = num(t.equipment);
+    if (eq > 0) press.push(`Skipily erfasst aktuell <strong>${_nf(eq)} Ausrüstungsgegenstände</strong>${boats ? ` über ${_nf(boats)} Boote` : ''} — ein datenbasierter Überblick über den Instandhaltungsbedarf in der Freizeitschifffahrt.`);
+    if (num(t.repl_ref_12m) > 0) press.push(`Erste Skipily-Daten zeigen: In den nächsten 12 Monaten steht bei rund <strong>${_nf(t.repl_ref_12m)} Ausrüstungsteilen</strong> ein altersbedingter Austausch an.`);
+    if (num(t.maint_overdue) > 0) press.push(`<strong>${_nf(t.maint_overdue)} überfällige Wartungen</strong> in der erfassten Flotte unterstreichen den Servicebedarf im Markt.`);
+    if (topRise) press.push(`Wachsende Nachfrage nach <strong>${escapeHtml(topRise.label)}</strong> signalisiert einen klaren Trend in der Bootsausrüstung.`);
+    press.push('Mit Skipily erhalten Bootseigner, Werften und Händler erstmals einen gemeinsamen, datengestützten Marktüberblick.');
+
+    return { provider, press };
+}
+
+/** HTML-Block der regelbasierten Empfehlungen (Bericht + Seite). */
+function _recommendationsHTML(d) {
+    const navy = '#0B1D3A', orange = '#f97316';
+    const { provider, press } = _reportRecommendations(d);
+    const li = (a) => `<li style="margin:6px 0;">${a}</li>`;
+    return `
+    <h2 style="font-size:15px;color:${navy};border-bottom:2px solid ${orange};padding-bottom:5px;margin-top:22px;">✅ Handlungsempfehlungen für Anbieter</h2>
+    <ul style="font-size:13px;line-height:1.5;color:#334155;padding-left:18px;margin-top:8px;">${provider.map(li).join('')}</ul>
+    <h2 style="font-size:15px;color:${navy};border-bottom:2px solid ${orange};padding-bottom:5px;margin-top:22px;">🗞️ Presse-Statements</h2>
+    <ul style="font-size:13px;line-height:1.5;color:#334155;padding-left:18px;margin-top:8px;">${press.map(li).join('')}</ul>`;
+}
 
 /** Interaktiver Nachfrage-Trend (Drilldown Kategorie → Hersteller).
  *  Wird eigenständig auf der Seite UND im Bericht verwendet.
@@ -8619,6 +8703,7 @@ function _buildReportHTML(d, opts = {}) {
 
     const anomalies = _reportAnomalies(d).map(a => `<li style="margin:6px 0;">${a}</li>`).join('');
     const demandHTML = _demandSectionHTML(d, { expand: opts.expand });
+    const recHTML = _recommendationsHTML(d);
 
     return `
 <div style="max-width:680px;margin:0 auto;font-family:Arial,Helvetica,sans-serif;color:${navy};background:#fff;">
@@ -8661,6 +8746,7 @@ function _buildReportHTML(d, opts = {}) {
       <tbody>${maintRows || '<tr><td style="padding:10px;color:#94a3b8;" colspan="7">Keine Equipment-Daten.</td></tr>'}</tbody>
     </table>
 ${demandHTML}
+${recHTML}
     <p style="font-size:11px;color:#94a3b8;margin-top:20px;border-top:1px solid ${line};padding-top:12px;">
       Stand: ${gen} · Quelle: aggregierte, anonymisierte Skipily-Flottendaten. Ersatz-/Austauschereignisse werden nicht
       erfasst; die datenbasierte Prognose nutzt das Flottenalter als Näherung. Angaben ohne Gewähr.

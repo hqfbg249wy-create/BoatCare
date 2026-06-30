@@ -2171,6 +2171,17 @@
                         <button class="btn-secondary" onclick="window.copyReportNewsletterHTML()" id="report-html-btn"
                                 style="padding:8px 12px;" disabled>📋 HTML für CleverReach</button>
                     </div>
+                    <!-- KI-Formulierung (Provider-Mail / Pressemeldung) -->
+                    <div style="display:flex; gap:8px; align-items:center; margin:0 0 8px; flex-wrap:wrap;">
+                        <label style="font-size:13px; color:#475569;">KI-Text:</label>
+                        <select id="report-ai-target" style="padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;">
+                            <option value="provider">Provider-Mail (B2B)</option>
+                            <option value="press">Pressemeldung (PR)</option>
+                        </select>
+                        <button class="btn-secondary" onclick="window.generateAiReportText()" id="report-ai-btn"
+                                style="padding:8px 12px;" disabled>🤖 KI-Text formulieren</button>
+                    </div>
+                    <div id="report-ai-output"></div>
                     <!-- Schritt 1: interaktiver Drilldown -->
                     <div id="report-drilldown" style="margin-top:8px;"></div>
                     <!-- Schritt 2: vollständige Bericht-Vorschau (daraus PDF/Newsletter) -->
@@ -2234,7 +2245,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260630-mreport4"></script>
+    <script src="app.js?v=20260630-mreport5"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;
