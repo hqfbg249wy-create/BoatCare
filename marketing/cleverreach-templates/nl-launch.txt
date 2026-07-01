@@ -1,10 +1,10 @@
 SKIPILY — ALWAYS · SAFE · READY TO SAIL
 =========================================
 
-Hallo {COMPANY[STD:]},
+Hallo {COMPANY},
 
-Booteigenaren in {CITY[STD:]} en omgeving zoeken precies wat u biedt —
-{OPT_CATEGORY[STD:]}. Tot nu toe vonden ze u via zoekmachines,
+Booteigenaren in {CITY} en omgeving zoeken precies wat u biedt —
+{CATEGORY}. Tot nu toe vonden ze u via zoekmachines,
 mond-tot-mondreclame of helemaal niet.
 
 Met Skipily verschijnt u op een kaart die booteigenaren direct op
@@ -54,7 +54,7 @@ CLAIM UW PROFIEL — GRATIS
 ==========================
 In 2 minuten ingesteld, zonder verplichting.
 
-→ {OPT_CLAIM_URL[STD:]}
+→ {CLAIM_URL}
 
 Eerst de app bekijken?
 → https://apps.apple.com/app/id6757314378
@@ -68,7 +68,7 @@ HOE HET WERKT
 
 
 We linken ook naar uw website:
-{OPT_WEBSITE[STD:]}
+{WEBSITE}
 
 
 ---

@@ -1,9 +1,9 @@
 SKIPILY — SHOP-ANBINDUNG · 6 MONATE GRATIS
 ============================================
 
-Hallo {COMPANY[STD:]},
+Hallo {COMPANY},
 
-Sie verkaufen {OPT_CATEGORY[STD:]} online. Ihr Marketing-Problem kennen wir:
+Sie verkaufen {CATEGORY} online. Ihr Marketing-Problem kennen wir:
 Sie geben Geld fuer Suchanzeigen aus, die auch Hobby-Hardware-Kaeufer
 treffen. Bootseigner, die genau Ihr Sortiment brauchen, finden Sie
 oft erst ueber muehsame Recherche — wenn ueberhaupt.
@@ -65,7 +65,7 @@ jetzt nachgefragt werden.
 =============================================================
 Solange unter den ersten 100 Shops — Plaetze sind begrenzt.
 
-→ {OPT_CLAIM_URL[STD:]}
+→ {CLAIM_URL}
 
 Direkter Draht zum Team:  partner@skipily.app
 
@@ -78,7 +78,7 @@ IN 3 SCHRITTEN ANGEBUNDEN
 
 
 Ihr Shop, den wir verlinken:
-{OPT_WEBSITE[STD:]}
+{WEBSITE}
 
 
 ---

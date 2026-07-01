@@ -17,7 +17,7 @@ Zwei Kampagnen:
 
 **Subject A** (Nutzen + Zielgruppe):
 ```
-{COMPANY[STD:]}: Ihre {OPT_CATEGORY[STD:]} dort, wo Bootseigner sie suchen
+{COMPANY}: Ihre {CATEGORY} dort, wo Bootseigner sie suchen
 ```
 **Subject B** (Angebot/Dringlichkeit):
 ```
@@ -37,7 +37,7 @@ Skipily matcht per KI Boot, Motor und Equipment mit Ihrem Sortiment — Ihr Shop
 
 **Subject A:**
 ```
-{COMPANY[STD:]}: your {OPT_CATEGORY[STD:]} where boat owners are looking
+{COMPANY}: your {CATEGORY} where boat owners are looking
 ```
 **Subject B:**
 ```
@@ -57,7 +57,7 @@ Skipily uses AI to match boat, engine and equipment with your catalog — your s
 
 **Subject A:**
 ```
-{COMPANY[STD:]} : vos {OPT_CATEGORY[STD:]} là où les plaisanciers les cherchent
+{COMPANY} : vos {CATEGORY} là où les plaisanciers les cherchent
 ```
 **Subject B:**
 ```
@@ -77,7 +77,7 @@ Skipily fait correspondre par IA bateau, moteur et équipement avec votre assort
 
 **Subject A:**
 ```
-{COMPANY[STD:]}: i vostri {OPT_CATEGORY[STD:]} dove i diportisti li cercano
+{COMPANY}: i vostri {CATEGORY} dove i diportisti li cercano
 ```
 **Subject B:**
 ```
@@ -97,7 +97,7 @@ Skipily abbina con l'IA barca, motore ed equipaggiamento al vostro assortimento 
 
 **Subject A:**
 ```
-{COMPANY[STD:]}: vuestros {OPT_CATEGORY[STD:]} donde los navegantes los buscan
+{COMPANY}: vuestros {CATEGORY} donde los navegantes los buscan
 ```
 **Subject B:**
 ```
@@ -117,7 +117,7 @@ Skipily empareja con IA barco, motor y equipamiento con vuestro surtido — vues
 
 **Subject A:**
 ```
-{COMPANY[STD:]}: uw {OPT_CATEGORY[STD:]} waar booteigenaren zoeken
+{COMPANY}: uw {CATEGORY} waar booteigenaren zoeken
 ```
 **Subject B:**
 ```
@@ -143,7 +143,7 @@ Skipily matcht met AI boot, motor en uitrusting met uw assortiment — uw shop v
 
 **Subject A** (direkt + Nutzen):
 ```
-Bootseigner suchen Service in {CITY[STD:]} — werden Sie gefunden?
+Bootseigner suchen Service in {CITY} — werden Sie gefunden?
 ```
 **Subject B** (kurz + Skipily-Brand):
 ```
@@ -151,7 +151,7 @@ Skipily: Mehr Sichtbarkeit für Ihre Werft
 ```
 **Subject C** (persönlich + Frage):
 ```
-Hallo {COMPANY[STD:]}, dürfen wir Sie Bootseignern vorstellen?
+Hallo {COMPANY}, dürfen wir Sie Bootseignern vorstellen?
 ```
 
 **Preheader:**
@@ -165,7 +165,7 @@ Bootseigner suchen Werkstätten, Segelmacher und Yachtservice direkt in der Näh
 
 **Subject A:**
 ```
-Boat owners are searching in {CITY[STD:]} — are you visible?
+Boat owners are searching in {CITY} — are you visible?
 ```
 **Subject B:**
 ```
@@ -173,7 +173,7 @@ Skipily: More visibility for your marine service
 ```
 **Subject C:**
 ```
-Hello {COMPANY[STD:]}, may we introduce you to boat owners?
+Hello {COMPANY}, may we introduce you to boat owners?
 ```
 
 **Preheader:**
@@ -187,7 +187,7 @@ Boat owners search for marine services nearby — with Skipily, you appear on th
 
 **Subject A:**
 ```
-Des plaisanciers cherchent un service à {CITY[STD:]} — êtes-vous visible ?
+Des plaisanciers cherchent un service à {CITY} — êtes-vous visible ?
 ```
 **Subject B:**
 ```
@@ -195,7 +195,7 @@ Skipily : plus de visibilité pour votre chantier nautique
 ```
 **Subject C:**
 ```
-Bonjour {COMPANY[STD:]}, peut-on vous présenter aux plaisanciers ?
+Bonjour {COMPANY}, peut-on vous présenter aux plaisanciers ?
 ```
 
 **Preheader:**
@@ -209,7 +209,7 @@ Les plaisanciers cherchent chantiers, voileries et services nautiques à proximi
 
 **Subject A:**
 ```
-I diportisti cercano servizi a {CITY[STD:]} — siete visibili?
+I diportisti cercano servizi a {CITY} — siete visibili?
 ```
 **Subject B:**
 ```
@@ -217,7 +217,7 @@ Skipily: più visibilità per il vostro cantiere
 ```
 **Subject C:**
 ```
-Ciao {COMPANY[STD:]}, posso presentarvi ai diportisti?
+Ciao {COMPANY}, posso presentarvi ai diportisti?
 ```
 
 **Preheader:**
@@ -231,7 +231,7 @@ I diportisti cercano cantieri, velerie e servizi nautici nelle vicinanze — con
 
 **Subject A:**
 ```
-Navegantes buscan servicio en {CITY[STD:]} — ¿les pueden encontrar?
+Navegantes buscan servicio en {CITY} — ¿les pueden encontrar?
 ```
 **Subject B:**
 ```
@@ -239,7 +239,7 @@ Skipily: más visibilidad para su astillero
 ```
 **Subject C:**
 ```
-Hola {COMPANY[STD:]}, ¿les presentamos a los navegantes?
+Hola {COMPANY}, ¿les presentamos a los navegantes?
 ```
 
 **Preheader:**
@@ -253,7 +253,7 @@ Los navegantes buscan astilleros, velerías y servicios náuticos cercanos — c
 
 **Subject A:**
 ```
-Booteigenaren zoeken service in {CITY[STD:]} — bent u zichtbaar?
+Booteigenaren zoeken service in {CITY} — bent u zichtbaar?
 ```
 **Subject B:**
 ```
@@ -261,7 +261,7 @@ Skipily: meer zichtbaarheid voor uw werf
 ```
 **Subject C:**
 ```
-Hallo {COMPANY[STD:]}, mogen wij u aan booteigenaren voorstellen?
+Hallo {COMPANY}, mogen wij u aan booteigenaren voorstellen?
 ```
 
 **Preheader:**

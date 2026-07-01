@@ -1,10 +1,10 @@
 SKIPILY — ALWAYS · SAFE · READY TO SAIL
 =========================================
 
-Ciao {COMPANY[STD:]},
+Ciao {COMPANY},
 
-I diportisti a {CITY[STD:]} e dintorni cercano esattamente ciò che offrite
-voi — {OPT_CATEGORY[STD:]}. Finora vi hanno trovato tramite motori di ricerca,
+I diportisti a {CITY} e dintorni cercano esattamente ciò che offrite
+voi — {CATEGORY}. Finora vi hanno trovato tramite motori di ricerca,
 passaparola o non vi hanno trovato affatto.
 
 Con Skipily apparite su una mappa che i diportisti aprono direttamente
@@ -55,7 +55,7 @@ RIVENDICATE IL VOSTRO PROFILO — GRATIS
 ========================================
 Configurato in 2 minuti, senza vincoli.
 
-→ {OPT_CLAIM_URL[STD:]}
+→ {CLAIM_URL}
 
 Volete vedere prima l'app?
 → https://apps.apple.com/app/id6757314378
@@ -69,7 +69,7 @@ COME FUNZIONA
 
 
 Linkiamo anche il vostro sito web:
-{OPT_WEBSITE[STD:]}
+{WEBSITE}
 
 
 ---

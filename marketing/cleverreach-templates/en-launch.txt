@@ -1,10 +1,10 @@
 SKIPILY — ALWAYS · SAFE · READY TO SAIL
 =========================================
 
-Hello {COMPANY[STD:]},
+Hello {COMPANY},
 
-Boat owners in {CITY[STD:]} and the surrounding area are looking for
-exactly what you offer — {OPT_CATEGORY[STD:]}. So far, they've found you
+Boat owners in {CITY} and the surrounding area are looking for
+exactly what you offer — {CATEGORY}. So far, they've found you
 through search engines, word of mouth, or not at all.
 
 With Skipily, you appear on a map that boat owners open directly
@@ -55,7 +55,7 @@ CLAIM YOUR PROFILE — FREE
 ==========================
 Set up in 2 minutes, no commitment.
 
-→ {OPT_CLAIM_URL[STD:]}
+→ {CLAIM_URL}
 
 Want to see the app first?
 → https://apps.apple.com/app/id6757314378
@@ -69,7 +69,7 @@ HOW IT WORKS
 
 
 We also link to your website:
-{OPT_WEBSITE[STD:]}
+{WEBSITE}
 
 
 ---
