@@ -3431,12 +3431,14 @@ async function cleverreachUpsertReceiver(groupId, provider) {
         // NICHT erkannt → müssen in global_attributes. Platzhalter im Template:
         // {COMPANY} {CITY} {COUNTRY} (Standard) sowie {CATEGORY} {WEBSITE}
         // {CLAIM_URL} {LANGUAGE} (Custom, müssen als GLOBALE Attribute existieren).
+        // In diesem Account sind auch die Custom-Felder als GLOBALE Attribute
+        // angelegt (CleverReach-Standard). Der global_attributes-Bucket funktioniert
+        // (company/city/country kamen an), der attributes-Bucket nicht → daher ALLE
+        // Felder in global_attributes.
         global_attributes: {
             company: provider.name || '',
             city: provider.city || '',
             country: provider.country || '',
-        },
-        attributes: {
             category: provider.category || '',
             website: provider.website || '',
             language: countryToLanguage(provider.country),
