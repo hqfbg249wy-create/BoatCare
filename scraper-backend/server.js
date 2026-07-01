@@ -3426,12 +3426,17 @@ async function cleverreachUpsertReceiver(groupId, provider) {
         registered: Math.floor(Date.now() / 1000),
         activated: Math.floor(Date.now() / 1000),  // Double-Opt-In hier umgangen — siehe Hinweis
         source: 'Skipily Import',
-        // CleverReach erlaubt benutzerdefinierte Attribute, die du im
-        // Newsletter-Template als Platzhalter nutzen kannst ({$company}, {$claim_url})
-        attributes: {
+        // CleverReach trennt Standardfelder (global_attributes) von eigenen
+        // Custom-Feldern (attributes). Standardfelder in attributes werden
+        // NICHT erkannt → müssen in global_attributes. Platzhalter im Template:
+        // {COMPANY} {CITY} {COUNTRY} (Standard) sowie {CATEGORY} {WEBSITE}
+        // {CLAIM_URL} {LANGUAGE} (Custom, müssen als GLOBALE Attribute existieren).
+        global_attributes: {
             company: provider.name || '',
             city: provider.city || '',
             country: provider.country || '',
+        },
+        attributes: {
             category: provider.category || '',
             website: provider.website || '',
             language: countryToLanguage(provider.country),
