@@ -1,10 +1,10 @@
 SKIPILY — ALWAYS · SAFE · READY TO SAIL
 =========================================
 
-Bonjour {$company},
+Bonjour {COMPANY[STD:]},
 
-Les plaisanciers à {$city} et dans la région cherchent exactement ce
-que vous proposez — {$category}. Jusqu'à présent, ils vous trouvaient
+Les plaisanciers à {CITY[STD:]} et dans la région cherchent exactement ce
+que vous proposez — {OPT_CATEGORY[STD:]}. Jusqu'à présent, ils vous trouvaient
 via les moteurs de recherche, le bouche-à-oreille ou pas du tout.
 
 Avec Skipily, vous apparaissez sur une carte que les plaisanciers
@@ -41,11 +41,21 @@ CE QUE SKIPILY VOUS APPORTE
    les scannent au ponton, sans installation d'app.
 
 
+ANALYSE DE MARCHÉ IA : CE DONT LA FLOTTE DE VOTRE RÉGION A BESOIN
+-----------------------------------------------------------------
+Dans le portail prestataire, notre IA vous offre des aperçus
+anonymisés de la flotte des utilisateurs Skipily : quels types de
+bateaux et fabricants dominent, quel équipement vieillit et où
+l'entretien arrive à échéance. L'IA en déduit des recommandations
+d'offres concrètes — vous savez avant tout le monde quels services
+et pièces détachées sont demandés en ce moment.
+
+
 REVENDIQUEZ VOTRE PROFIL — GRATUIT
 ====================================
 Configuré en 2 minutes, sans engagement.
 
-→ {$claim_url}
+→ {OPT_CLAIM_URL[STD:]}
 
 Voir l'application d'abord ?
 → https://apps.apple.com/app/id6757314378
@@ -59,7 +69,7 @@ COMMENT ÇA MARCHE
 
 
 Nous mettons aussi votre site web en lien :
-{$website}
+{OPT_WEBSITE[STD:]}
 
 
 ---
@@ -70,6 +80,6 @@ de services nautiques dans notre base de données. Ce message
 s'inscrit dans notre intérêt légitime de communication B2B
 sectorielle au sens de l'art. 6 (1) (f) RGPD.
 
-Se désinscrire :    {$unsubscribe}
+Se désinscrire :    {UNSUBSCRIBE}
 Mentions légales :  https://skipily.app/impressum
 Confidentialité :   https://skipily.app/datenschutz

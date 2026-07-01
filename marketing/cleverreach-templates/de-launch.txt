@@ -1,10 +1,10 @@
 SKIPILY — ALWAYS · SAFE · READY TO SAIL
 =========================================
 
-Hallo Team {$company},
+Hallo Team {COMPANY[STD:]},
 
-Bootseigner in {$city} und Umgebung suchen genau das, was Sie
-anbieten — {$category}. Bisher haben sie Sie ueber Suchmaschinen,
+Bootseigner in {CITY[STD:]} und Umgebung suchen genau das, was Sie
+anbieten — {OPT_CATEGORY[STD:]}. Bisher haben sie Sie ueber Suchmaschinen,
 Empfehlungen oder gar nicht gefunden.
 
 Mit Skipily stehen Sie auf einer Karte, die Bootseigner direkt auf
@@ -41,11 +41,21 @@ WAS SKIPILY IHNEN BRINGT
    scannen koennen — ohne App-Installation.
 
 
+KI-MARKTANALYSE: WAS DIE FLOTTE IN IHRER REGION BRAUCHT
+--------------------------------------------------------
+Im Provider-Portal liefert Ihnen unsere KI anonymisierte Einblicke
+in die Skipily-Nutzerflotte: welche Bootstypen und Hersteller
+dominieren, welche Ausruestung altert und wo gerade Wartung faellig
+wird. Daraus leitet die KI konkrete Angebots-Empfehlungen ab — so
+wissen Sie vor allen anderen, welche Services und Ersatzteile jetzt
+nachgefragt werden.
+
+
 PROFIL KOSTENLOS BEANSPRUCHEN
 ==============================
 In 2 Minuten eingerichtet, keine Bindung.
 
-→ {$claim_url}
+→ {OPT_CLAIM_URL[STD:]}
 
 Oder schauen Sie sich zuerst die App an:
 → https://apps.apple.com/app/id6757314378
@@ -59,7 +69,7 @@ SO FUNKTIONIERT'S
 
 
 Ihre Website wird verlinkt:
-{$website}
+{OPT_WEBSITE[STD:]}
 
 
 ---
@@ -70,6 +80,6 @@ in unserer Datenbank gelistet sind. Diese E-Mail ist Teil unseres
 berechtigten Interesses an Branchen-kommunikation gem. Art. 6
 Abs. 1 lit. f DSGVO.
 
-Abmelden:    {$unsubscribe}
+Abmelden:    {UNSUBSCRIBE}
 Impressum:   https://skipily.app/impressum
 Datenschutz: https://skipily.app/datenschutz

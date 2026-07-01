@@ -1,10 +1,10 @@
 SKIPILY — ALWAYS · SAFE · READY TO SAIL
 =========================================
 
-Hallo {$company},
+Hallo {COMPANY[STD:]},
 
-Booteigenaren in {$city} en omgeving zoeken precies wat u biedt —
-{$category}. Tot nu toe vonden ze u via zoekmachines,
+Booteigenaren in {CITY[STD:]} en omgeving zoeken precies wat u biedt —
+{OPT_CATEGORY[STD:]}. Tot nu toe vonden ze u via zoekmachines,
 mond-tot-mondreclame of helemaal niet.
 
 Met Skipily verschijnt u op een kaart die booteigenaren direct op
@@ -41,11 +41,20 @@ WAT SKIPILY U OPLEVERT
    aan de steiger, zonder app-installatie.
 
 
+AI-MARKTANALYSE: WAT DE VLOOT IN UW REGIO NODIG HEEFT
+------------------------------------------------------
+In het provider-portaal geeft onze AI u geanonimiseerde inzichten in
+de Skipily-gebruikersvloot: welke boottypes en fabrikanten domineren,
+welke uitrusting veroudert en waar onderhoud binnenkort nodig is.
+Daaruit leidt de AI concrete aanbod-aanbevelingen af — zo weet u
+eerder dan wie dan ook welke diensten en onderdelen nu gevraagd zijn.
+
+
 CLAIM UW PROFIEL — GRATIS
 ==========================
 In 2 minuten ingesteld, zonder verplichting.
 
-→ {$claim_url}
+→ {OPT_CLAIM_URL[STD:]}
 
 Eerst de app bekijken?
 → https://apps.apple.com/app/id6757314378
@@ -59,7 +68,7 @@ HOE HET WERKT
 
 
 We linken ook naar uw website:
-{$website}
+{OPT_WEBSITE[STD:]}
 
 
 ---
@@ -70,6 +79,6 @@ botenservice-aanbieder vermeld staat. Dit bericht maakt deel uit
 van ons gerechtvaardigd belang in zakelijke branchecommunicatie
 volgens art. 6 (1) (f) AVG.
 
-Afmelden:  {$unsubscribe}
+Afmelden:  {UNSUBSCRIBE}
 Colofon:   https://skipily.app/impressum
 Privacy:   https://skipily.app/datenschutz

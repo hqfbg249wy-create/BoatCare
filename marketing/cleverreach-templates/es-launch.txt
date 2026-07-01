@@ -1,10 +1,10 @@
 SKIPILY — ALWAYS · SAFE · READY TO SAIL
 =========================================
 
-Hola {$company},
+Hola {COMPANY[STD:]},
 
-Los navegantes en {$city} y alrededores buscan exactamente lo que
-ofrecéis — {$category}. Hasta ahora os encontraban por buscadores,
+Los navegantes en {CITY[STD:]} y alrededores buscan exactamente lo que
+ofrecéis — {OPT_CATEGORY[STD:]}. Hasta ahora os encontraban por buscadores,
 boca a boca o no os encontraban en absoluto.
 
 Con Skipily aparecéis en un mapa que los navegantes abren directamente
@@ -41,11 +41,21 @@ LO QUE SKIPILY OS APORTA
    escanean en el pantalán, sin instalar la app.
 
 
+ANÁLISIS DE MERCADO IA: QUÉ NECESITA LA FLOTA DE SU REGIÓN
+-----------------------------------------------------------
+En el portal de proveedores, nuestra IA os ofrece datos anonimizados
+de la flota de usuarios de Skipily: qué tipos de barco y fabricantes
+dominan, qué equipamiento envejece y dónde vence el mantenimiento. A
+partir de ahí, la IA genera recomendaciones de oferta concretas:
+sabéis antes que nadie qué servicios y recambios se demandan ahora
+mismo.
+
+
 RECLAMAD VUESTRO PERFIL — GRATIS
 ==================================
 Configurado en 2 minutos, sin compromiso.
 
-→ {$claim_url}
+→ {OPT_CLAIM_URL[STD:]}
 
 ¿Queréis ver primero la app?
 → https://apps.apple.com/app/id6757314378
@@ -59,7 +69,7 @@ CÓMO FUNCIONA
 
 
 También enlazamos vuestra web:
-{$website}
+{OPT_WEBSITE[STD:]}
 
 
 ---
@@ -70,6 +80,6 @@ servicios náuticos en nuestra base de datos. Este mensaje forma
 parte de nuestro interés legítimo en la comunicación B2B sectorial
 conforme al art. 6 (1) (f) RGPD.
 
-Darse de baja:  {$unsubscribe}
+Darse de baja:  {UNSUBSCRIBE}
 Aviso legal:    https://skipily.app/impressum
 Privacidad:     https://skipily.app/datenschutz

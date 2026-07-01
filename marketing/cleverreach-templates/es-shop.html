@@ -41,10 +41,10 @@ Los navegantes con inventario de equipamiento verificado buscan exactamente lo q
         <tr>
           <td style="padding:40px 40px 0;" class="px">
             <h2 style="margin:0 0 16px; font-size:22px; line-height:1.3;">
-              Hola {$company},
+              Hola {COMPANY[STD:]},
             </h2>
             <p style="margin:0 0 18px; font-size:16px; line-height:1.6; color:#334155;">
-              Vendéis <strong>{$category}</strong> en línea. Vuestro problema de marketing
+              Vendéis <strong>{OPT_CATEGORY[STD:]}</strong> en línea. Vuestro problema de marketing
               lo conocemos: pagáis anuncios de búsqueda que también llegan a aficionados al
               bricolaje. A los navegantes que necesitan <em>justo vuestro surtido</em> a
               menudo solo los encontráis tras búsquedas tediosas — si es que los encontráis.
@@ -129,6 +129,23 @@ Los navegantes con inventario de equipamiento verificado buscan exactamente lo q
           </td>
         </tr>
 
+        <!-- Análisis de mercado IA -->
+        <tr><td style="height:30px;"></td></tr>
+        <tr>
+          <td style="padding:0 40px;" class="px">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1D3A; border-radius:12px;">
+              <tr>
+                <td style="padding:28px; color:#ffffff;">
+                  <div style="font-size:13px; color:#f97316; font-weight:700; letter-spacing:1px;">📈 ANÁLISIS DE MERCADO IA</div>
+                  <h3 style="margin:6px 0 12px; font-size:20px; color:#ffffff;">Planifique su surtido con datos reales de la flota</h3>
+                  <p style="margin:0 0 16px; font-size:14px; line-height:1.6; color:#cbd5e1;">En el portal de tienda, nuestra IA le muestra datos anonimizados de la flota de usuarios de Skipily: qué tipos de barco y fabricantes dominan, qué categorías de equipamiento envejecen y dónde vence el mantenimiento.</p>
+                  <p style="margin:0; font-size:14px; line-height:1.6; color:#cbd5e1;">A partir de ahí, la IA genera recomendaciones de surtido concretas: usted sabe antes que nadie qué repuestos y accesorios se demandan ahora mismo.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
         <!-- App-Vorschau -->
         <tr><td style="height:30px;"></td></tr>
         <tr>
@@ -158,7 +175,7 @@ Los navegantes con inventario de equipamiento verificado buscan exactamente lo q
             <p style="margin:0 0 20px; font-size:17px;">
               <strong>6 meses de prueba gratis, 7 % de comisión early bird asegurada.</strong> Mientras estéis entre las primeras 100 tiendas — plazas limitadas.
             </p>
-            <a href="{$claim_url}" class="btn" style="background:#f97316; color:#ffffff !important; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:600; font-size:16px;">
+            <a href="{OPT_CLAIM_URL[STD:]}" class="btn" style="background:#f97316; color:#ffffff !important; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:600; font-size:16px;">
               🔌 Reclamar el perfil de tienda
             </a>
             <p style="margin:18px 0 0; font-size:13px; color:#64748b;">
@@ -195,7 +212,7 @@ Los navegantes con inventario de equipamiento verificado buscan exactamente lo q
               <tr>
                 <td style="padding:18px 22px;">
                   <p style="margin:0 0 8px; font-size:13px; color:#64748b;">📎 Vuestra tienda, que enlazamos:</p>
-                  <a href="{$website}" style="color:#0B1D3A; font-weight:600; font-size:14px; word-break:break-all;">{$website}</a>
+                  <a href="{OPT_WEBSITE[STD:]}" style="color:#0B1D3A; font-weight:600; font-size:14px; word-break:break-all;">{OPT_WEBSITE[STD:]}</a>
                 </td>
               </tr>
             </table>
@@ -212,7 +229,7 @@ Los navegantes con inventario de equipamiento verificado buscan exactamente lo q
               Recibís este correo como tienda online de accesorios náuticos presente en nuestra base de datos sectorial. Esta comunicación B2B sectorial se realiza en interés legítimo según el art. 6 ap. 1 f) del RGPD.
             </p>
             <p style="margin:0; font-size:12px; color:#94a3b8;">
-              <a href="{$unsubscribe}" style="color:#94a3b8;">Darse de baja</a> ·
+              <a href="{UNSUBSCRIBE}" style="color:#94a3b8;">Darse de baja</a> ·
               <a href="https://skipily.app/impressum" style="color:#94a3b8;">Aviso legal</a> ·
               <a href="https://skipily.app/datenschutz" style="color:#94a3b8;">Privacidad</a>
             </p>
