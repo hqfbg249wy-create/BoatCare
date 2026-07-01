@@ -55,7 +55,7 @@ PROFIL KOSTENLOS BEANSPRUCHEN
 ==============================
 In 2 Minuten eingerichtet, keine Bindung.
 
-→ {CLAIM_URL}
+→ {CLAIM_URL[STD:https://provider.skipily.app]}
 
 Oder schauen Sie sich zuerst die App an:
 → https://apps.apple.com/app/id6757314378
