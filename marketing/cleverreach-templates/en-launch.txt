@@ -4,7 +4,7 @@ SKIPILY — ALWAYS · SAFE · READY TO SAIL
 Hello {COMPANY},
 
 Boat owners in {CITY} and the surrounding area are looking for
-exactly what you offer — {CATEGORY}. So far, they've found you
+exactly what you offer as a {CATEGORY}. So far, they've found you
 through search engines, word of mouth, or not at all.
 
 With Skipily, you appear on a map that boat owners open directly
@@ -55,7 +55,7 @@ CLAIM YOUR PROFILE — FREE
 ==========================
 Set up in 2 minutes, no commitment.
 
-→ {CLAIM_URL}
+→ {CLAIM_URL[STD:https://provider.skipily.app]}
 
 Want to see the app first?
 → https://apps.apple.com/app/id6757314378

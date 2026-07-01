@@ -65,7 +65,7 @@ jetzt nachgefragt werden.
 =============================================================
 Solange unter den ersten 100 Shops — Plaetze sind begrenzt.
 
-→ {CLAIM_URL}
+→ {CLAIM_URL[STD:https://provider.skipily.app]}
 
 Direkter Draht zum Team:  partner@skipily.app
 

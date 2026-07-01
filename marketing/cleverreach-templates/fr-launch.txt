@@ -4,7 +4,7 @@ SKIPILY — ALWAYS · SAFE · READY TO SAIL
 Bonjour {COMPANY},
 
 Les plaisanciers à {CITY} et dans la région cherchent exactement ce
-que vous proposez — {CATEGORY}. Jusqu'à présent, ils vous trouvaient
+que vous proposez en tant que {CATEGORY}. Jusqu'à présent, ils vous trouvaient
 via les moteurs de recherche, le bouche-à-oreille ou pas du tout.
 
 Avec Skipily, vous apparaissez sur une carte que les plaisanciers
@@ -55,7 +55,7 @@ REVENDIQUEZ VOTRE PROFIL — GRATUIT
 ====================================
 Configuré en 2 minutes, sans engagement.
 
-→ {CLAIM_URL}
+→ {CLAIM_URL[STD:https://provider.skipily.app]}
 
 Voir l'application d'abord ?
 → https://apps.apple.com/app/id6757314378
