@@ -3415,13 +3415,19 @@ async function cleverreachToken() {
 async function cleverreachUpsertReceiver(groupId, provider) {
     const token = await cleverreachToken();
 
+    // Claim-Token aus dem eingebetteten provider_secrets ziehen (Array oder Objekt)
+    // und persönlichen Ein-Klick-Übernahme-Link für den Newsletter-Button bauen.
+    const ps = provider.provider_secrets;
+    const claimToken = Array.isArray(ps) ? (ps[0] && ps[0].claim_token) : (ps && ps.claim_token);
+    const claimUrl = claimToken ? `https://provider.skipily.app/claim/${claimToken}` : '';
+
     const payload = JSON.stringify({
         email: provider.email,
         registered: Math.floor(Date.now() / 1000),
         activated: Math.floor(Date.now() / 1000),  // Double-Opt-In hier umgangen — siehe Hinweis
         source: 'Skipily Import',
         // CleverReach erlaubt benutzerdefinierte Attribute, die du im
-        // Newsletter-Template als Platzhalter nutzen kannst ({{COMPANY}})
+        // Newsletter-Template als Platzhalter nutzen kannst ({$company}, {$claim_url})
         attributes: {
             company: provider.name || '',
             city: provider.city || '',
@@ -3429,6 +3435,7 @@ async function cleverreachUpsertReceiver(groupId, provider) {
             category: provider.category || '',
             website: provider.website || '',
             language: countryToLanguage(provider.country),
+            claim_url: claimUrl,
         }
     });
 
@@ -3961,7 +3968,7 @@ async function loadAllProvidersForLanguageSync({ onlyVerified = true, includeSyn
 
     const fetchPage = (offset, pageSize) => new Promise((resolve, reject) => {
         const u = new URL(CONFIG.SUPABASE_URL);
-        const path = `/rest/v1/service_providers?select=id,name,email,city,country,category,website,shop_check_status&${filter}&order=id.asc`;
+        const path = `/rest/v1/service_providers?select=id,name,email,city,country,category,website,shop_check_status,provider_secrets(claim_token)&${filter}&order=id.asc`;
         https.get({
             hostname: u.hostname, path,
             headers: {
@@ -4003,7 +4010,7 @@ async function loadProvidersForCleverReach({ limit, onlyVerified, country }) {
     // filtern nach normalisierung — sonst koennten wir die DE-Provider
     // verpassen die als "Deutschland" gespeichert sind.
     const dbLimit = country ? Math.max(limit * 5, 500) : limit;
-    const url = `${CONFIG.SUPABASE_URL}/rest/v1/service_providers?select=id,name,email,city,country,category,website&${filterClause.substring(1)}&order=country&limit=${dbLimit}`;
+    const url = `${CONFIG.SUPABASE_URL}/rest/v1/service_providers?select=id,name,email,city,country,category,website,provider_secrets(claim_token)&${filterClause.substring(1)}&order=country&limit=${dbLimit}`;
 
     const raw = await new Promise((resolve, reject) => {
         const req = https.get(url, {
