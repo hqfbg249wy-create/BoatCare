@@ -1,10 +1,10 @@
 SKIPILY — ALWAYS · SAFE · READY TO SAIL
 =========================================
 
-Hallo Team {COMPANY},
+Hallo {COMPANY},
 
-Bootseigner in {CITY} und Umgebung suchen genau das, was Sie
-anbieten — {CATEGORY}. Bisher haben sie Sie ueber Suchmaschinen,
+Bootseigner in {CITY} und Umgebung suchen genau das, was Sie als
+{CATEGORY} anbieten. Bisher haben sie Sie ueber Suchmaschinen,
 Empfehlungen oder gar nicht gefunden.
 
 Mit Skipily stehen Sie auf einer Karte, die Bootseigner direkt auf
