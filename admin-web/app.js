@@ -10873,6 +10873,7 @@ window.loadCleverReachStats = loadCleverReachStats;
 let _crLangPollTimer = null;
 async function startCleverReachLanguageSync() {
     const dryRun = document.getElementById('cleverreach-lang-dryrun')?.checked !== false;
+    const includeSynced = document.getElementById('cleverreach-lang-includesynced')?.checked === true;
     const btn = document.getElementById('cleverreach-lang-btn');
     if (btn) btn.disabled = true;
 
@@ -10881,12 +10882,12 @@ async function startCleverReachLanguageSync() {
     const logEl = document.getElementById('cleverreach-log');
     if (logEl) logEl.innerHTML = '';
 
-    cleverreachLog(`🌍 Starte Sprach-Sync (${dryRun ? 'Trockenlauf' : 'ECHT'}) als Hintergrund-Job …`, 'info');
+    cleverreachLog(`🌍 Starte Sprach-Sync (${dryRun ? 'Trockenlauf' : 'ECHT'}${includeSynced ? ', voller Re-Push' : ''}) als Hintergrund-Job …`, 'info');
     try {
         const resp = await fetch(`${SCRAPER_URL}/api/cleverreach-language-sync`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ dryRun, onlyVerified: true }),
+            body: JSON.stringify({ dryRun, onlyVerified: true, includeSynced }),
         });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${(await resp.text()).substring(0, 200)}`);
         cleverreachLog(`⏳ Job läuft serverseitig — Fortschritt wird alle 3 s aktualisiert (kein Timeout/502).`, 'info');

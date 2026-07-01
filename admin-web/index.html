@@ -1094,8 +1094,11 @@
                             6 Sprachen × <strong>Provider</strong> (Nicht-Shops) + 6 Sprachen × <strong>Shop</strong>
                             (online_shop). Vollständig paginiert.
                         </p>
-                        <label style="font-size:13px; display:inline-flex; align-items:center; gap:6px; margin-bottom:10px;">
+                        <label style="font-size:13px; display:inline-flex; align-items:center; gap:6px; margin-bottom:6px;">
                             <input type="checkbox" id="cleverreach-lang-dryrun" checked> Erst Trockenlauf (zeigt nur Verteilung, sendet nichts)
+                        </label><br>
+                        <label style="font-size:13px; display:inline-flex; align-items:center; gap:6px; margin-bottom:10px;" title="Auch bereits synchronisierte Adressen erneut senden — nötig, um aktualisierte Attribute (z. B. claim_url) nachzuziehen.">
+                            <input type="checkbox" id="cleverreach-lang-includesynced"> Voller Re-Push (auch bereits synchronisierte — z. B. für claim_url)
                         </label><br>
                         <button onclick="window.startCleverReachLanguageSync()" class="btn-primary" id="cleverreach-lang-btn"
                                 style="background:#0891b2; color:#fff;">
@@ -2245,7 +2248,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260630-mreport5"></script>
+    <script src="app.js?v=20260701-repush"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;
