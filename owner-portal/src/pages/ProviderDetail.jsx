@@ -189,19 +189,10 @@ export default function ProviderDetail() {
         savedId = data.id
       }
 
-      // KI-Moderation im Hintergrund (blockiert UI nicht)
-      if (reviewComment?.trim()) {
-        supabase.functions.invoke('moderate-review', {
-          body: { review_id: savedId, comment: reviewComment, rating: reviewRating }
-        }).then(({ data: mod }) => {
-          if (mod?.flagged) {
-            // Hinweis anzeigen wenn Bewertung zur Prüfung weitergeleitet wurde
-            setTimeout(() => alert(
-              'Deine Bewertung wurde zur Prüfung weitergeleitet und wird nach Freigabe durch unser Team sichtbar.'
-            ), 300)
-          }
-        }).catch(err => console.warn('Moderation fehlgeschlagen (ignoriert):', err))
-      }
+      // KI-Moderation läuft jetzt serverseitig per DB-Trigger (AFTER INSERT auf
+      // reviews) mit dem gespeicherten Inhalt — kein Client-Aufruf mehr nötig.
+      // Grund: der frühere öffentliche moderate-review-Aufruf erlaubte das
+      // Verstecken fremder Reviews (Zensur) und das Umgehen der Moderation.
 
       setShowReviewForm(false)
       await loadProvider()
