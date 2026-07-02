@@ -1,6 +1,6 @@
 # Skipily — Social-Media Launch-Posts (DE + EN)
 
-6 Posts für Instagram, Facebook und LinkedIn. Mix: 4× B2C (Bootseigner) + 2× B2B (Anbieter & Shops).
+8 Posts für Instagram, Facebook und LinkedIn. Mix: 6× B2C (Bootseigner) + 2× B2B (Anbieter & Shops).
 
 ## Brand-Elemente
 - Farben: Navy `#0B1D3A`, Orange `#f97316`, Hellgrau-Text `#cbd5e1`
@@ -18,6 +18,8 @@
 | 4 | B2B | Profil beanspruchen / Sichtbarkeit | LinkedIn/FB | provider.skipily.app |
 | 5 | B2B | KI-Marktanalyse | LinkedIn | Provider-Portal |
 | 6 | B2C | Community macht die KI schlauer | IG/FB | App laden / mitmachen |
+| 7 | B2C | Fehlende Betriebe per ➕ eintragen | IG/FB | App / Betrieb eintragen |
+| 8 | B2C | Betriebe bewerten (echte Reviews) | IG/FB | App / bewerten |
 
 ---
 
@@ -173,6 +175,58 @@ ALWAYS · SAFE · READY TO SAIL ⛵
 
 ---
 
+## Post 7 — B2C · „Kennst du einen Betrieb, der noch fehlt?" (Community-Mapping)
+Grafik-Headline DE: Fehlt hier deine **Lieblingswerft?** · Button: Mit + eintragen
+Grafik-Headline EN: Is your favourite yard **missing?** · Button: Add it with +
+
+**Caption DE**
+🗺️ Unsere Karte wird jeden Tag vollständiger — und du kannst mithelfen.
+Kennst du eine Werft, Werkstatt, einen Segelmacher oder Shop, den Skipily noch **nicht** zeigt? Tippe auf der Karte einfach auf den **➕-Button** und trag den Betrieb in 30 Sekunden ein. Jeder Eintrag hilft der ganzen Community, den richtigen Service schneller zu finden.
+👉 App öffnen, Karte auf, ➕ tippen. Danke, dass du das Bild vervollständigst!
+ALWAYS · SAFE · READY TO SAIL ⛵
+
+**Caption EN**
+🗺️ Our map gets more complete every day — and you can help.
+Know a boatyard, repair shop, sailmaker or chandler that Skipily doesn't show yet? Just tap the **➕ button** on the map and add the business in 30 seconds. Every entry helps the whole community find the right service faster.
+👉 Open the app, go to the map, tap ➕. Thanks for completing the picture!
+ALWAYS · SAFE · READY TO SAIL ⛵
+
+**Hashtags** #Skipily #BoatLife #Bootsleben #Segeln #Motorboot #Marina #Community #ReadyToSail #Wassersport #Sailing
+
+**Video-Storyboard (≈15 s, 9:16)**
+- 0–3 s: Karte mit Pins, an einer Stelle eine sichtbare Lücke. Overlay: „Hier fehlt noch was?"
+- 3–7 s: Finger tippt auf den ➕-Button oben rechts. Overlay: „Ein Tipp genügt."
+- 7–11 s: Kurzes Formular (Name, Kategorie, Adresse) füllt sich, neuer Pin erscheint. Overlay: „Betrieb eingetragen — in 30 Sekunden."
+- 11–15 s: Karte füllt sich mit weiteren Pins. Logo + Tagline + „Mach die Karte komplett." Musik: leicht, motivierend.
+
+---
+
+## Post 8 — B2C · „Deine Bewertung hilft dem nächsten Skipper"
+Grafik-Headline DE: Gute Werft? **Sag's weiter.** · Button: Jetzt bewerten
+Grafik-Headline EN: Great yard? **Spread the word.** · Button: Leave a review
+
+**Caption DE**
+⭐ Ehrliche Bewertungen sind Gold wert — für dich und für alle nach dir.
+Warst du zufrieden mit einer Werft, Werkstatt oder einem Segelmacher? Oder eher nicht? Teil deine Erfahrung in Skipily. Ein paar Sterne und zwei Sätze genügen — und der nächste Skipper weiß sofort, worauf er sich verlassen kann.
+👉 Betrieb in der App öffnen → **Bewerten**. Echte Erfahrungen, echte Hilfe.
+ALWAYS · SAFE · READY TO SAIL ⛵
+
+**Caption EN**
+⭐ Honest reviews are worth their weight in gold — for you and everyone after you.
+Happy with a boatyard, repair shop or sailmaker? Or not so much? Share your experience on Skipily. A few stars and two sentences are enough — and the next skipper instantly knows what to rely on.
+👉 Open the business in the app → **Review**. Real experiences, real help.
+ALWAYS · SAFE · READY TO SAIL ⛵
+
+**Hashtags** #Skipily #BoatLife #Bootsleben #Segeln #Motorboot #Marina #Bewertung #Community #ReadyToSail #Wassersport
+
+**Video-Storyboard (≈15 s, 9:16)**
+- 0–3 s: Zufriedener Skipper verlässt eine Werft, nickt anerkennend. Overlay: „Guter Service?"
+- 3–7 s: Screen — Provider-Profil, Tap auf „Bewerten". Overlay: „Sag's weiter."
+- 7–11 s: 5 Sterne leuchten nacheinander auf, kurzer Text wird getippt. Overlay: „Ein paar Sterne, zwei Sätze."
+- 11–15 s: Anderer Nutzer sieht die Bewertung und lächelt. Logo + Tagline + „Hilf der Community." Musik: warm, positiv.
+
+---
+
 ## Links & Tracking
 
 Grafik-URL = nur Wiedererkennung (nicht klickbar). Den klickbaren Link je Kanal so platzieren:
@@ -190,7 +244,7 @@ Fertige Basis-Links (das `SOURCE` je Kanal ersetzen):
 
 | Post | Ziel | Basis-Link |
 |---|---|---|
-| 1, 2, 3, 6 (B2C) | App | `https://skipily.app/?utm_source=SOURCE&utm_medium=social&utm_campaign=launch2026` |
+| 1, 2, 3, 6, 7, 8 (B2C) | App | `https://skipily.app/?utm_source=SOURCE&utm_medium=social&utm_campaign=launch2026` |
 | — | App direkt (Story-Sticker) | `https://apps.apple.com/app/id6757314378` |
 | 4, 5 (B2B) | Provider-Portal | `https://provider.skipily.app/?utm_source=SOURCE&utm_medium=social&utm_campaign=launch2026` |
 
