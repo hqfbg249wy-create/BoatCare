@@ -33,18 +33,30 @@ struct SuggestEditView: View {
     @State private var showError = false
     @State private var errorText = ""
 
-    private let categories = [
-        "werkstatt", "motorservice", "segelmacher", "instrumente",
-        "zubehör", "werft", "tankstelle", "rigg", "gutachter",
-        "kran", "lackierung", "marina", "winterlager", "heizung/klima"
-    ]
+    // Kanonische Kategorien — identisch zum Homescreen-Filter (ServiceCategory),
+    // ohne die Pseudo-Kategorie "Alle". Behebt die Dubletten (früher mappten
+    // werkstatt/motorservice/werft alle auf "Motor Service") und hält
+    // Vorschlags-Dialog und Karten-Filter synchron.
+    private let categories: [ServiceCategory] = ServiceCategory.allCases.filter { $0 != .all }
+
+    /// Mappt einen (ggf. sprachabhängigen) Kategorie-Wert auf den kanonischen
+    /// dbKey, damit die aktuelle Kategorie im Picker korrekt vorausgewählt ist.
+    private static func canonicalKey(for raw: String) -> String {
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { return "" }
+        if let match = ServiceCategory.allCases.first(where: { $0 != .all && $0.matches(t) }) {
+            return match.dbKey
+        }
+        return t
+    }
 
     private var hasChanges: Bool {
         let trimmed = { (s: String) in s.trimmingCharacters(in: .whitespacesAndNewlines) }
         if trimmed(name) != (provider.name) { return true }
-        if category != provider.category { return true }
-        if category2 != (provider.category2 ?? "") { return true }
-        if category3 != (provider.category3 ?? "") { return true }
+        // Kategorien kanonisch vergleichen (Picker liefert dbKey, Provider ggf. sprachabhängig)
+        if category != Self.canonicalKey(for: provider.category) { return true }
+        if category2 != Self.canonicalKey(for: provider.category2 ?? "") { return true }
+        if category3 != Self.canonicalKey(for: provider.category3 ?? "") { return true }
         if trimmed(street) != (provider.street ?? "") { return true }
         if trimmed(city) != (provider.city ?? "") { return true }
         if trimmed(postalCode) != (provider.postalCode ?? "") { return true }
@@ -71,8 +83,8 @@ struct SuggestEditView: View {
                     // Primaere Kategorie (bestimmt Pin-Icon)
                     Picker("map.category".loc, selection: $category) {
                         ForEach(categories, id: \.self) { cat in
-                            Text(LanguageManager.shared.localizedCategory(cat))
-                                .tag(cat)
+                            Text(cat.displayName)
+                                .tag(cat.dbKey)
                         }
                     }
 
@@ -80,8 +92,8 @@ struct SuggestEditView: View {
                     Picker("map.category2".loc, selection: $category2) {
                         Text("—").tag("")
                         ForEach(categories, id: \.self) { cat in
-                            Text(LanguageManager.shared.localizedCategory(cat))
-                                .tag(cat)
+                            Text(cat.displayName)
+                                .tag(cat.dbKey)
                         }
                     }
 
@@ -89,8 +101,8 @@ struct SuggestEditView: View {
                     Picker("map.category3".loc, selection: $category3) {
                         Text("—").tag("")
                         ForEach(categories, id: \.self) { cat in
-                            Text(LanguageManager.shared.localizedCategory(cat))
-                                .tag(cat)
+                            Text(cat.displayName)
+                                .tag(cat.dbKey)
                         }
                     }
                 }
@@ -180,9 +192,9 @@ struct SuggestEditView: View {
 
     private func prefill() {
         name = provider.name
-        category = provider.category
-        category2 = provider.category2 ?? ""
-        category3 = provider.category3 ?? ""
+        category = Self.canonicalKey(for: provider.category)
+        category2 = Self.canonicalKey(for: provider.category2 ?? "")
+        category3 = Self.canonicalKey(for: provider.category3 ?? "")
         street = provider.street ?? ""
         city = provider.city ?? ""
         postalCode = provider.postalCode ?? ""
@@ -217,9 +229,9 @@ struct SuggestEditView: View {
 
         // Nur geaenderte Felder senden
         let sugName = trimmed(name) != provider.name ? trimmed(name) : nil
-        let sugCategory = category != provider.category ? category : nil
-        let sugCategory2 = category2 != (provider.category2 ?? "") ? (category2.isEmpty ? nil : category2) : nil
-        let sugCategory3 = category3 != (provider.category3 ?? "") ? (category3.isEmpty ? nil : category3) : nil
+        let sugCategory = category != Self.canonicalKey(for: provider.category) ? category : nil
+        let sugCategory2 = category2 != Self.canonicalKey(for: provider.category2 ?? "") ? (category2.isEmpty ? nil : category2) : nil
+        let sugCategory3 = category3 != Self.canonicalKey(for: provider.category3 ?? "") ? (category3.isEmpty ? nil : category3) : nil
         let sugStreet = trimmed(street) != (provider.street ?? "") ? trimmed(street) : nil
         let sugCity = trimmed(city) != (provider.city ?? "") ? trimmed(city) : nil
         let sugPostal = trimmed(postalCode) != (provider.postalCode ?? "") ? trimmed(postalCode) : nil
