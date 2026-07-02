@@ -111,6 +111,10 @@ struct MainTabView: View {
             }
         }
         .tint(AppColors.primary)
+        // iPad-Fix: klassische (kompakte) Tab-/Layout-Darstellung auch im Vollbild
+        // erzwingen. Behebt das Hit-Testing-Problem des neuen iPadOS-TabView bei
+        // regulärer Breite (Shop-Produkte im Grid ließen sich nicht antippen).
+        .environment(\.horizontalSizeClass, .compact)
         .overlay(alignment: .top) {
             // Offline-Banner
             if !offlineService.isOnline {
@@ -144,7 +148,7 @@ struct MainTabView: View {
             get: { selectedTab },
             set: { newTab in
                 // Reset ALL navigation paths to root
-                shopNavigationPath = NavigationPath()
+                shopNavigationPath      = NavigationPath()
                 favoritesNavigationPath = NavigationPath()
 
                 // Reset tabs with internal NavigationStacks via id change
