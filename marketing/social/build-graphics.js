@@ -76,6 +76,37 @@ const communityMotif =
   `<line x1="330" y1="227" x2="353" y2="224" stroke="#ffffff" stroke-width="2.5"/><line x1="353" y1="224" x2="343" y2="249" stroke="#ffffff" stroke-width="2.5"/><line x1="343" y1="249" x2="330" y2="227" stroke="#ffffff" stroke-width="2.5"/>` +
   `<circle cx="330" cy="227" r="5" fill="#ffffff"/><circle cx="353" cy="224" r="5" fill="#ffffff"/><circle cx="343" cy="249" r="5" fill="#ffffff"/>`;
 
+// Stern-Helfer (5-zackig)
+const star = (cx, cy, R, fill) => {
+  const pts = [];
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const r = i % 2 === 0 ? R : R * 0.42;
+    pts.push(`${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`);
+  }
+  return `<polygon points="${pts.join(' ')}" fill="${fill}"/>`;
+};
+
+// Motiv Post 7: Karte mit Lücke + großem ➕-Button (Betrieb eintragen)
+const mapAddMotif =
+  `<rect x="190" y="150" width="300" height="185" rx="16" fill="#13294d" stroke="#27457a" stroke-width="1.5"/>` +
+  [255, 340, 425].map((x) => `<line x1="${x}" y1="150" x2="${x}" y2="335" stroke="#213b66" stroke-width="1"/>`).join('') +
+  [212, 274].map((y) => `<line x1="190" y1="${y}" x2="490" y2="${y}" stroke="#213b66" stroke-width="1"/>`).join('') +
+  `<g><circle cx="245" cy="205" r="12" fill="#e2e8f0"/><polygon points="235,213 255,213 245,231" fill="#e2e8f0"/><circle cx="245" cy="205" r="4.5" fill="#0B1D3A"/></g>` +
+  `<g><circle cx="315" cy="252" r="12" fill="#e2e8f0"/><polygon points="305,260 325,260 315,278" fill="#e2e8f0"/><circle cx="315" cy="252" r="4.5" fill="#0B1D3A"/></g>` +
+  `<circle cx="405" cy="210" r="16" fill="none" stroke="#f97316" stroke-width="2.5" stroke-dasharray="5 5"/>` +
+  `<text x="405" y="217" fill="#f97316" font-family="${F}" font-size="20" font-weight="800" text-anchor="middle">?</text>` +
+  `<circle cx="470" cy="318" r="31" fill="#f97316"/>` +
+  `<line x1="470" y1="303" x2="470" y2="333" stroke="#ffffff" stroke-width="6.5" stroke-linecap="round"/>` +
+  `<line x1="455" y1="318" x2="485" y2="318" stroke="#ffffff" stroke-width="6.5" stroke-linecap="round"/>`;
+
+// Motiv Post 8: Bewertungs-Karte mit 5 Sternen
+const starMotif =
+  `<rect x="205" y="158" width="270" height="160" rx="16" fill="#13294d" stroke="#27457a" stroke-width="1.5"/>` +
+  [0, 1, 2, 3, 4].map((k) => star(255 + k * 45, 210, 20, '#f97316')).join('') +
+  `<rect x="238" y="258" width="204" height="11" rx="5.5" fill="#cbd5e1" opacity="0.6"/>` +
+  `<rect x="238" y="282" width="150" height="11" rx="5.5" fill="#cbd5e1" opacity="0.35"/>`;
+
 // Story-Motive (verschobene Koordinaten)
 const mapMotifS =
   `<rect x="160" y="360" width="360" height="240" rx="18" fill="#13294d" stroke="#27457a" stroke-width="1.5"/>` +
@@ -115,6 +146,26 @@ const communityMotifS =
   `<line x1="327" y1="470" x2="357" y2="466" stroke="#ffffff" stroke-width="3"/><line x1="357" y1="466" x2="344" y2="500" stroke="#ffffff" stroke-width="3"/><line x1="344" y1="500" x2="327" y2="470" stroke="#ffffff" stroke-width="3"/>` +
   `<circle cx="327" cy="470" r="6" fill="#ffffff"/><circle cx="357" cy="466" r="6" fill="#ffffff"/><circle cx="344" cy="500" r="6" fill="#ffffff"/>`;
 
+// Motiv Post 7 (Story): Karte mit Lücke + ➕-Button
+const mapAddMotifS =
+  `<rect x="160" y="360" width="360" height="240" rx="18" fill="#13294d" stroke="#27457a" stroke-width="1.5"/>` +
+  [240, 340, 440].map((x) => `<line x1="${x}" y1="360" x2="${x}" y2="600" stroke="#213b66" stroke-width="1"/>`).join('') +
+  [440, 520].map((y) => `<line x1="160" y1="${y}" x2="520" y2="${y}" stroke="#213b66" stroke-width="1"/>`).join('') +
+  `<g><circle cx="230" cy="435" r="15" fill="#e2e8f0"/><polygon points="219,444 241,444 230,466" fill="#e2e8f0"/><circle cx="230" cy="435" r="6" fill="#0B1D3A"/></g>` +
+  `<g><circle cx="320" cy="500" r="15" fill="#e2e8f0"/><polygon points="309,509 331,509 320,531" fill="#e2e8f0"/><circle cx="320" cy="500" r="6" fill="#0B1D3A"/></g>` +
+  `<circle cx="430" cy="440" r="19" fill="none" stroke="#f97316" stroke-width="3" stroke-dasharray="6 6"/>` +
+  `<text x="430" y="449" fill="#f97316" font-family="${F}" font-size="24" font-weight="800" text-anchor="middle">?</text>` +
+  `<circle cx="498" cy="580" r="36" fill="#f97316"/>` +
+  `<line x1="498" y1="562" x2="498" y2="598" stroke="#ffffff" stroke-width="7.5" stroke-linecap="round"/>` +
+  `<line x1="480" y1="580" x2="516" y2="580" stroke="#ffffff" stroke-width="7.5" stroke-linecap="round"/>`;
+
+// Motiv Post 8 (Story): Bewertungs-Karte mit 5 Sternen
+const starMotifS =
+  `<rect x="170" y="400" width="340" height="185" rx="18" fill="#13294d" stroke="#27457a" stroke-width="1.5"/>` +
+  [0, 1, 2, 3, 4].map((k) => star(228 + k * 56, 465, 26, '#f97316')).join('') +
+  `<rect x="205" y="520" width="270" height="13" rx="6.5" fill="#cbd5e1" opacity="0.6"/>` +
+  `<rect x="205" y="548" width="195" height="13" rx="6.5" fill="#cbd5e1" opacity="0.35"/>`;
+
 // Headline-Helfer 3 Zeilen Feed (44px)
 const h3 = (l1, l2, l3, y1 = 412) =>
   t(60, y1, 44, '#ffffff', 800, l1) + t(60, y1 + 50, 44, '#ffffff', 800, l2) + t(60, y1 + 100, 44, '#f97316', 800, l3);
@@ -142,6 +193,18 @@ files.push(['06-community-de.svg', wrap('0 0 680 680', 'Skipily: Mach den KI-Boo
   feedHead('COMMUNITY · KI-BOOTSINGENIEUR') + communityMotif +
   h3('Mach den KI-', 'Bootsingenieur', 'schlauer.').replace(/font-size="44"/g, 'font-size="43"').replace('y="412"', 'y="412"').replace('y="462"', 'y="461"').replace('y="512"', 'y="510"') +
   cta(300, 'Jetzt mitmachen', 'skipily.app', true, 546))]);
+files.push(['07-eintragen-de.svg', wrap('0 0 680 680', 'Skipily: Fehlende Betriebe eintragen',
+  feedHead('COMMUNITY · KARTE FÜLLEN') + mapAddMotif +
+  t(60, 430, 44, '#ffffff', 800, 'Fehlt hier deine') +
+  t(60, 480, 44, '#f97316', 800, 'Lieblingswerft?') +
+  t(60, 518, 21, '#cbd5e1', 500, 'Trag sie mit dem +-Button ein.') +
+  cta(300, 'Mit + eintragen', 'skipily.app', true, 552))]);
+files.push(['08-bewerten-de.svg', wrap('0 0 680 680', 'Skipily: Betriebe bewerten',
+  feedHead('COMMUNITY · ECHTE BEWERTUNGEN') + starMotif +
+  t(60, 430, 44, '#ffffff', 800, 'Gute Werft?') +
+  t(60, 480, 44, '#f97316', 800, "Sag's weiter.") +
+  t(60, 518, 21, '#cbd5e1', 500, 'Deine Bewertung hilft dem nächsten Skipper.') +
+  cta(290, 'Jetzt bewerten', 'skipily.app', true, 552))]);
 
 // ---- FEED EN ----
 files.push(['01-karte-en.svg', wrap('0 0 680 680', 'Skipily: every yard on one map',
@@ -165,6 +228,18 @@ files.push(['06-community-en.svg', wrap('0 0 680 680', 'Skipily: make the AI boa
   feedHead('COMMUNITY · AI BOAT ENGINEER') + communityMotif +
   h3('Make the AI', 'boat engineer', 'smarter.') +
   cta(230, 'Join in', 'skipily.app'))]);
+files.push(['07-eintragen-en.svg', wrap('0 0 680 680', 'Skipily: add missing businesses',
+  feedHead('COMMUNITY · COMPLETE THE MAP') + mapAddMotif +
+  t(60, 430, 44, '#ffffff', 800, 'Is your favourite') +
+  t(60, 480, 44, '#f97316', 800, 'yard missing?') +
+  t(60, 518, 21, '#cbd5e1', 500, 'Add it with the + button.') +
+  cta(250, 'Add it with +', 'skipily.app', true, 552))]);
+files.push(['08-bewerten-en.svg', wrap('0 0 680 680', 'Skipily: review businesses',
+  feedHead('COMMUNITY · REAL REVIEWS') + starMotif +
+  t(60, 430, 44, '#ffffff', 800, 'Great yard?') +
+  t(60, 480, 44, '#f97316', 800, 'Spread the word.') +
+  t(60, 518, 21, '#cbd5e1', 500, 'Your review helps the next skipper.') +
+  cta(270, 'Leave a review', 'skipily.app', true, 552))]);
 
 // ---- STORY DE (9:16) ----
 const h3s = (l1, l2, l3, size = 50, y1 = 800) =>
@@ -194,6 +269,18 @@ files.push(['story-06-community-de.svg', wrap('0 0 680 1209', 'Skipily Story: Ma
   storyHead('COMMUNITY · KI-BOOTSINGENIEUR') + communityMotifS +
   h3s('Mach den KI-', 'Bootsingenieur', 'schlauer.', 46, 790) +
   ctaS(300, 'Jetzt mitmachen', 'skipily.app'))]);
+files.push(['story-07-eintragen-de.svg', wrap('0 0 680 1209', 'Skipily Story: Fehlende Betriebe eintragen',
+  storyHead('COMMUNITY · KARTE FÜLLEN') + mapAddMotifS +
+  t(60, 800, 50, '#ffffff', 800, 'Fehlt hier deine') +
+  t(60, 858, 50, '#f97316', 800, 'Lieblingswerft?') +
+  t(60, 908, 23, '#cbd5e1', 500, 'Trag sie mit dem +-Button ein.') +
+  ctaS(320, 'Mit + eintragen', 'skipily.app'))]);
+files.push(['story-08-bewerten-de.svg', wrap('0 0 680 1209', 'Skipily Story: Betriebe bewerten',
+  storyHead('COMMUNITY · ECHTE BEWERTUNGEN') + starMotifS +
+  t(60, 800, 50, '#ffffff', 800, 'Gute Werft?') +
+  t(60, 858, 50, '#f97316', 800, "Sag's weiter.") +
+  t(60, 908, 23, '#cbd5e1', 500, 'Hilf dem nächsten Skipper.') +
+  ctaS(300, 'Jetzt bewerten', 'skipily.app'))]);
 
 for (const [name, svg] of files) {
   fs.writeFileSync(path.join(OUT, name), svg);
