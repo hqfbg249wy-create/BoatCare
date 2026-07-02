@@ -178,6 +178,7 @@ ALWAYS · SAFE · READY TO SAIL ⛵
 ## Post 7 — B2C · „Kennst du einen Betrieb, der noch fehlt?" (Community-Mapping)
 Grafik-Headline DE: Fehlt hier deine **Lieblingswerft?** · Button: Mit + eintragen
 Grafik-Headline EN: Is your favourite yard **missing?** · Button: Add it with +
+Kategorie-Varianten (gleiches Motiv, direktere Ansprache): „Fehlt hier dein **Motorservice / Segelmacher / Zubehörhändler?**" (EN: *Missing an engine service? / a sailmaker? / a chandler?*) — Grafiken `07-motorservice-*`, `07-segelmacher-*`, `07-zubehoer-*` (Feed DE/EN + Story DE). Gut zum Rotieren/Ausspielen an unterschiedliche Zielgruppen.
 
 **Caption DE**
 🗺️ Unsere Karte wird jeden Tag vollständiger — und du kannst mithelfen.

@@ -199,6 +199,24 @@ files.push(['07-eintragen-de.svg', wrap('0 0 680 680', 'Skipily: Fehlende Betrie
   t(60, 480, 44, '#f97316', 800, 'Lieblingswerft?') +
   t(60, 518, 21, '#cbd5e1', 500, 'Trag sie mit dem +-Button ein.') +
   cta(300, 'Mit + eintragen', 'skipily.app', true, 552))]);
+files.push(['07-motorservice-de.svg', wrap('0 0 680 680', 'Skipily: Motorservice eintragen',
+  feedHead('COMMUNITY · KARTE FÜLLEN') + mapAddMotif +
+  t(60, 430, 44, '#ffffff', 800, 'Fehlt hier dein') +
+  t(60, 480, 44, '#f97316', 800, 'Motorservice?') +
+  t(60, 518, 21, '#cbd5e1', 500, 'Trag ihn mit dem +-Button ein.') +
+  cta(300, 'Mit + eintragen', 'skipily.app', true, 552))]);
+files.push(['07-segelmacher-de.svg', wrap('0 0 680 680', 'Skipily: Segelmacher eintragen',
+  feedHead('COMMUNITY · KARTE FÜLLEN') + mapAddMotif +
+  t(60, 430, 44, '#ffffff', 800, 'Fehlt hier dein') +
+  t(60, 480, 44, '#f97316', 800, 'Segelmacher?') +
+  t(60, 518, 21, '#cbd5e1', 500, 'Trag ihn mit dem +-Button ein.') +
+  cta(300, 'Mit + eintragen', 'skipily.app', true, 552))]);
+files.push(['07-zubehoer-de.svg', wrap('0 0 680 680', 'Skipily: Zubehörhändler eintragen',
+  feedHead('COMMUNITY · KARTE FÜLLEN') + mapAddMotif +
+  t(60, 430, 44, '#ffffff', 800, 'Fehlt hier dein') +
+  t(60, 480, 44, '#f97316', 800, 'Zubehörhändler?') +
+  t(60, 518, 21, '#cbd5e1', 500, 'Trag ihn mit dem +-Button ein.') +
+  cta(300, 'Mit + eintragen', 'skipily.app', true, 552))]);
 files.push(['08-bewerten-de.svg', wrap('0 0 680 680', 'Skipily: Betriebe bewerten',
   feedHead('COMMUNITY · ECHTE BEWERTUNGEN') + starMotif +
   t(60, 430, 44, '#ffffff', 800, 'Gute Werft?') +
@@ -232,6 +250,24 @@ files.push(['07-eintragen-en.svg', wrap('0 0 680 680', 'Skipily: add missing bus
   feedHead('COMMUNITY · COMPLETE THE MAP') + mapAddMotif +
   t(60, 430, 44, '#ffffff', 800, 'Is your favourite') +
   t(60, 480, 44, '#f97316', 800, 'yard missing?') +
+  t(60, 518, 21, '#cbd5e1', 500, 'Add it with the + button.') +
+  cta(250, 'Add it with +', 'skipily.app', true, 552))]);
+files.push(['07-motorservice-en.svg', wrap('0 0 680 680', 'Skipily: add engine service',
+  feedHead('COMMUNITY · COMPLETE THE MAP') + mapAddMotif +
+  t(60, 430, 44, '#ffffff', 800, 'Missing an') +
+  t(60, 480, 44, '#f97316', 800, 'engine service?') +
+  t(60, 518, 21, '#cbd5e1', 500, 'Add it with the + button.') +
+  cta(250, 'Add it with +', 'skipily.app', true, 552))]);
+files.push(['07-segelmacher-en.svg', wrap('0 0 680 680', 'Skipily: add sailmaker',
+  feedHead('COMMUNITY · COMPLETE THE MAP') + mapAddMotif +
+  t(60, 430, 44, '#ffffff', 800, 'Missing a') +
+  t(60, 480, 44, '#f97316', 800, 'sailmaker?') +
+  t(60, 518, 21, '#cbd5e1', 500, 'Add it with the + button.') +
+  cta(250, 'Add it with +', 'skipily.app', true, 552))]);
+files.push(['07-zubehoer-en.svg', wrap('0 0 680 680', 'Skipily: add chandler',
+  feedHead('COMMUNITY · COMPLETE THE MAP') + mapAddMotif +
+  t(60, 430, 44, '#ffffff', 800, 'Missing a') +
+  t(60, 480, 44, '#f97316', 800, 'chandler?') +
   t(60, 518, 21, '#cbd5e1', 500, 'Add it with the + button.') +
   cta(250, 'Add it with +', 'skipily.app', true, 552))]);
 files.push(['08-bewerten-en.svg', wrap('0 0 680 680', 'Skipily: review businesses',
@@ -274,6 +310,24 @@ files.push(['story-07-eintragen-de.svg', wrap('0 0 680 1209', 'Skipily Story: Fe
   t(60, 800, 50, '#ffffff', 800, 'Fehlt hier deine') +
   t(60, 858, 50, '#f97316', 800, 'Lieblingswerft?') +
   t(60, 908, 23, '#cbd5e1', 500, 'Trag sie mit dem +-Button ein.') +
+  ctaS(320, 'Mit + eintragen', 'skipily.app'))]);
+files.push(['story-07-motorservice-de.svg', wrap('0 0 680 1209', 'Skipily Story: Motorservice eintragen',
+  storyHead('COMMUNITY · KARTE FÜLLEN') + mapAddMotifS +
+  t(60, 800, 50, '#ffffff', 800, 'Fehlt hier dein') +
+  t(60, 858, 50, '#f97316', 800, 'Motorservice?') +
+  t(60, 908, 23, '#cbd5e1', 500, 'Trag ihn mit dem +-Button ein.') +
+  ctaS(320, 'Mit + eintragen', 'skipily.app'))]);
+files.push(['story-07-segelmacher-de.svg', wrap('0 0 680 1209', 'Skipily Story: Segelmacher eintragen',
+  storyHead('COMMUNITY · KARTE FÜLLEN') + mapAddMotifS +
+  t(60, 800, 50, '#ffffff', 800, 'Fehlt hier dein') +
+  t(60, 858, 50, '#f97316', 800, 'Segelmacher?') +
+  t(60, 908, 23, '#cbd5e1', 500, 'Trag ihn mit dem +-Button ein.') +
+  ctaS(320, 'Mit + eintragen', 'skipily.app'))]);
+files.push(['story-07-zubehoer-de.svg', wrap('0 0 680 1209', 'Skipily Story: Zubehörhändler eintragen',
+  storyHead('COMMUNITY · KARTE FÜLLEN') + mapAddMotifS +
+  t(60, 800, 50, '#ffffff', 800, 'Fehlt hier dein') +
+  t(60, 858, 50, '#f97316', 800, 'Zubehörhändler?') +
+  t(60, 908, 23, '#cbd5e1', 500, 'Trag ihn mit dem +-Button ein.') +
   ctaS(320, 'Mit + eintragen', 'skipily.app'))]);
 files.push(['story-08-bewerten-de.svg', wrap('0 0 680 1209', 'Skipily Story: Betriebe bewerten',
   storyHead('COMMUNITY · ECHTE BEWERTUNGEN') + starMotifS +
