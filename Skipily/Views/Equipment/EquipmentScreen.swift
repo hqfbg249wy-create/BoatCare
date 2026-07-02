@@ -212,22 +212,24 @@ struct EquipmentHintSheet: View {
     private let brandOrange = Color(red: 0.976, green: 0.451, blue: 0.086) // #f97316
 
     var body: some View {
-        VStack(spacing: 18) {
-            Spacer(minLength: 12)
+        VStack(spacing: 14) {
+            Spacer(minLength: 8)
             ZStack {
-                Circle().fill(brandOrange.opacity(0.15)).frame(width: 88, height: 88)
+                Circle().fill(brandOrange.opacity(0.15)).frame(width: 56, height: 56)
                 Image(systemName: "magnifyingglass.circle.fill")
-                    .font(.system(size: 50, weight: .semibold))
+                    .font(.system(size: 30, weight: .semibold))
                     .foregroundStyle(brandOrange)
             }
             Text("equipment.hint.title".loc)
-                .font(.title2).bold()
+                .font(.title3).bold()
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 20)
             Text("equipment.hint.body".loc)
-                .font(.body)
+                .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 24)
             Spacer(minLength: 8)
             VStack(spacing: 12) {
@@ -351,7 +353,8 @@ struct EquipmentScreen: View {
                 onClose: { showEquipmentHint = false },
                 onDismissForever: { equipmentHintDismissed = true; showEquipmentHint = false }
             )
-            .presentationDetents([.medium])
+            .presentationDetents([.fraction(0.55), .large])
+            .presentationDragIndicator(.visible)
         }
         .searchable(text: $searchText, prompt: "general.search".loc)
         .toolbar {
