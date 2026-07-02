@@ -242,6 +242,10 @@
 "equipment.dimensions" = "Dimensions";
 "equipment.photo_url" = "Photo URL";
 "equipment.manage_hint" = "Manage your boat equipment";
+"equipment.hint.title" = "The more precise, the easier you're found";
+"equipment.hint.body" = "Enter your equipment as precisely as possible – with manufacturer, model and part number. The more accurate the details, the better you'll find matching spare parts, services and offers.";
+"equipment.hint.gotit" = "Got it";
+"equipment.hint.dismiss" = "Don't show again";
 "equipment.cat.navigation" = "Navigation";
 "equipment.cat.safety" = "Safety";
 "equipment.cat.engine" = "Engine";

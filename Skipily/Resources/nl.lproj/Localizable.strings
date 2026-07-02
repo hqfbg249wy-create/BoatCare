@@ -274,6 +274,10 @@
 "equipment.dimensions" = "Afmetingen";
 "equipment.photo_url" = "Foto-URL";
 "equipment.manage_hint" = "Beheer de uitrusting van je boot";
+"equipment.hint.title" = "Hoe nauwkeuriger, hoe beter gevonden";
+"equipment.hint.body" = "Voer je uitrusting zo nauwkeurig mogelijk in – met fabrikant, model en onderdeelnummer. Hoe preciezer de gegevens, hoe beter je passende onderdelen, services en aanbiedingen vindt.";
+"equipment.hint.gotit" = "Begrepen";
+"equipment.hint.dismiss" = "Niet meer tonen";
 "equipment.cat.navigation" = "Navigatie";
 "equipment.cat.safety" = "Veiligheid";
 "equipment.cat.engine" = "Motor";

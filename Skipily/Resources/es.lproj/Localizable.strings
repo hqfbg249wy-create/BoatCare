@@ -274,6 +274,10 @@
 "equipment.dimensions" = "Dimensiones";
 "equipment.photo_url" = "URL de la foto";
 "equipment.manage_hint" = "Gestionar el equipo de tu barco";
+"equipment.hint.title" = "Cuanto más preciso, mejor te encuentran";
+"equipment.hint.body" = "Introduce tu equipo con la mayor precisión posible – con fabricante, modelo y número de pieza. Cuanto más precisos sean los datos, mejor encontrarás recambios, servicios y ofertas adecuados.";
+"equipment.hint.gotit" = "Entendido";
+"equipment.hint.dismiss" = "No volver a mostrar";
 "equipment.cat.navigation" = "Navegación";
 "equipment.cat.safety" = "Seguridad";
 "equipment.cat.engine" = "Motor";
