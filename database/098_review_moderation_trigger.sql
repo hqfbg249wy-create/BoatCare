@@ -17,10 +17,13 @@
 --     (Header x-moderation-secret == env MODERATION_SECRET) — nicht von Clients.
 --
 -- SETUP (einmalig, siehe Hinweise am Ende):
---   1) diese Migration ausführen (aktiviert pg_net + Trigger)
---   2) Secret in der DB setzen:  ALTER DATABASE postgres SET app.moderation_secret = '<SECRET>';
+--   1) Secret in Supabase Vault ablegen (einmalig, im SQL Editor):
+--        select vault.create_secret('<SECRET>', 'moderation_secret');
+--   2) diese Migration ausführen (aktiviert pg_net + Trigger)
 --   3) Gleiches Secret als Edge-Function-Env setzen: MODERATION_SECRET=<SECRET>
 --      (supabase secrets set MODERATION_SECRET=<SECRET>)
+-- Hinweis: ALTER DATABASE ... SET funktioniert auf Supabase nicht
+-- (permission denied) — daher Vault.
 -- ============================================================
 
 create extension if not exists pg_net with schema extensions;
@@ -36,8 +39,13 @@ declare
   -- der eigentliche Schutz ist das Shared-Secret unten.
   fn_url   text := 'https://vcjwlyqkfkszumdrfvtm.supabase.co/functions/v1/moderate-review';
   anon_key text := 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjandseXFrZmtzenVtZHJmdnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMDQ4NTksImV4cCI6MjA4NDY4MDg1OX0.VOlhRdvShU325xG18SSSTWdFfGEdyeX-7CAovE2vesQ';
-  secret   text := current_setting('app.moderation_secret', true);
+  secret   text;
 begin
+  -- Secret aus Supabase Vault lesen (ALTER DATABASE SET ist auf Supabase gesperrt).
+  select decrypted_secret into secret
+    from vault.decrypted_secrets
+   where name = 'moderation_secret'
+   limit 1;
   -- Reine Sternebewertungen ohne Text: keine Moderation nötig.
   if new.comment is null or btrim(new.comment) = '' then
     return new;
@@ -45,7 +53,7 @@ begin
   -- Ohne gesetztes Secret nicht aufrufen (Function würde 403 liefern) —
   -- Review bleibt sichtbar (fail-open, wie bisher), aber sauber geloggt.
   if secret is null or secret = '' then
-    raise warning 'moderate_review: app.moderation_secret nicht gesetzt — Moderation uebersprungen';
+    raise warning 'moderate_review: Vault-Secret "moderation_secret" nicht gefunden — Moderation uebersprungen';
     return new;
   end if;
 
@@ -68,5 +76,5 @@ create trigger trg_moderate_review
 
 do $$
 begin
-  raise notice '✅ Migration 098: Review-Moderation läuft jetzt per Trigger. Nicht vergessen: app.moderation_secret (DB) UND MODERATION_SECRET (Edge Function) auf denselben Wert setzen.';
+  raise notice '✅ Migration 098: Review-Moderation läuft jetzt per Trigger. Nicht vergessen: Vault-Secret "moderation_secret" UND Edge-Env MODERATION_SECRET auf denselben Wert setzen.';
 end $$;
