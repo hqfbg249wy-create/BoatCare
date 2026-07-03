@@ -570,6 +570,7 @@ Ausrüstung unter Boote ergänzen.";
 "equipment.other_providers" = "Weitere Anbieter";
 "equipment.article_no" = "Art.-Nr.:";
 "shop.title" = "Shop";
+"shop.details" = "Details";
 "data_quality.hint" = "Je genauer Deine Eingaben sind, desto leichter kann Dir die KI helfen und der Shop das passende Teil finden.";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";

@@ -566,6 +566,7 @@
 "equipment.other_providers" = "Other providers";
 "equipment.article_no" = "Item no.:";
 "shop.title" = "Shop";
+"shop.details" = "Details";
 "data_quality.hint" = "The more accurate your entries, the easier it is for the AI to help you and the shop to find the right part.";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";
