@@ -562,7 +562,7 @@
 "equipment.other_providers" = "Otros proveedores";
 "equipment.article_no" = "Nº de art.:";
 "shop.title" = "Tienda";
-"shop.details" = "Detalles";
+"shop.details" = "Ver detalles";
 "data_quality.hint" = "Cuanto más precisas sean tus entradas, más fácil será para la IA ayudarte y para la tienda encontrar la pieza adecuada.";
 "shop.filter_min" = "Mín";
 "shop.filter_max" = "Máx";

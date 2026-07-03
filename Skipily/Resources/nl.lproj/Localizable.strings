@@ -562,7 +562,7 @@
 "equipment.other_providers" = "Overige aanbieders";
 "equipment.article_no" = "Art.nr.:";
 "shop.title" = "Winkel";
-"shop.details" = "Details";
+"shop.details" = "Details bekijken";
 "data_quality.hint" = "Hoe nauwkeuriger je invoer, hoe gemakkelijker de AI je kan helpen en de winkel het juiste onderdeel kan vinden.";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";
