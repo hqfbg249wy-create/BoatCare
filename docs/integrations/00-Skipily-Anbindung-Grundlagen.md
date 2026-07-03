@@ -105,6 +105,41 @@ brauchst du zum späteren **Ändern** (PUT).
 
 ---
 
+## Abkürzung: Fertige Vorlagen (Blueprints) importieren
+
+**Gibt es ein fertiges Make-Template für Skipily?** In der öffentlichen Template-Galerie
+(https://www.make.com/en/templates) noch nicht – dort findest du nur Vorlagen zwischen
+bekannten App-Paaren (z. B. „WooCommerce → Google Sheets"). Skipily wird über den
+universellen **HTTP-Baustein** angebunden, dafür gibt es keine Galerie-Vorlage.
+
+**Aber:** Make kann fertige Szenarien als Datei importieren – sogenannte **Blueprints**.
+Wir liefern drei fertige Skipily-Blueprints mit (im Ordner `blueprints/` neben dieser
+Anleitung – oder auf Anfrage von support@skipily.app):
+
+| Datei | Was sie vorbereitet |
+|---|---|
+| `skipily-produkt-anlegen.json` | Teil A – Skipily-Aufruf „Produkt anlegen" (URL, Header, Body fertig) |
+| `skipily-bestellung-empfangen.json` | Teil B – Webhook, der Skipily-Bestellungen empfängt |
+| `skipily-versand-melden.json` | Teil C – Skipily-Aufruf „Versand + Tracking melden" |
+
+**So importierst du einen Blueprint (dauert 1 Minute):**
+1. In Make.com: **„Create a new scenario"**.
+2. Unten in der Werkzeugleiste auf die **drei Punkte „…" (More)** klicken →
+   **„Import Blueprint"** → die JSON-Datei auswählen → **Save**.
+3. Danach nur noch **3 Dinge anpassen** (steht auch als Notiz direkt am Baustein):
+   - Im HTTP-Baustein den Platzhalter beim Header **`x-api-key`** durch **deinen**
+     Skipily-API-Schlüssel ersetzen.
+   - **Deinen Shop-Baustein davor/dahinter setzen** (z. B. „WooCommerce → Watch
+     Products" davor bzw. „Shopify → Create an Order" dahinter – siehe jeweilige
+     Detail-Anleitung Teil A/B/C).
+   - Im Body die `HIER-…`-Platzhalter durch die **Felder deines Shops** ersetzen
+     (per Klick auf die bunten „Chips").
+
+Der Import erspart dir das Abtippen von URL, Headern und JSON-Gerüst – die
+Detail-Anleitungen gelten weiterhin für das Verbinden mit deinem Shop-System.
+
+---
+
 ## Der rote Faden (gilt für alle drei Systeme)
 
 1. **API-Schlüssel holen** (oben).

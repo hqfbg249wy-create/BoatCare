@@ -1,0 +1,69 @@
+{
+    "name": "Skipily – Versand melden (Teil C)",
+    "flow": [
+        {
+            "id": 1,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+            },
+            "mapper": {
+                "url": "https://vcjwlyqkfkszumdrfvtm.supabase.co/functions/v1/orders-api?id=HIER-SKIPILY-BESTELL-ID-ZUORDNEN",
+                "method": "put",
+                "headers": [
+                    {
+                        "name": "Authorization",
+                        "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjandseXFrZmtzenVtZHJmdnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMDQ4NTksImV4cCI6MjA4NDY4MDg1OX0.VOlhRdvShU325xG18SSSTWdFfGEdyeX-7CAovE2vesQ"
+                    },
+                    {
+                        "name": "x-api-key",
+                        "value": "HIER-DEINEN-SKIPILY-API-SCHLUESSEL-EINSETZEN"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "qs": [],
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "data": "{\n  \"status\": \"shipped\",\n  \"tracking_number\": \"HIER-SENDUNGSNUMMER-ZUORDNEN\",\n  \"tracking_url\": \"HIER-TRACKING-LINK-ZUORDNEN\"\n}",
+                "timeout": "30",
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": false,
+                "rejectUnauthorized": true
+            },
+            "metadata": {
+                "designer": {
+                    "x": 300,
+                    "y": 0,
+                    "name": "Skipily: Versand + Tracking melden (orders-api)",
+                    "notes": "VOR diesen Baustein den Versand-Auslöser deines Systems setzen (WooCommerce 'Watch Orders' Status completed / Shopify 'Watch Fulfillments' / Odoo 'Watch Records' Model stock.picking, Status done). Dann: 1) x-api-key ersetzen, 2) in der URL die Skipily-Bestell-ID zuordnen, 3) im Body Sendungsnummer + Tracking-Link zuordnen."
+                }
+            }
+        }
+    ],
+    "metadata": {
+        "instant": false,
+        "version": 1,
+        "scenario": {
+            "roundtrips": 1,
+            "maxErrors": 3,
+            "autoCommit": true,
+            "autoCommitTriggerLast": true,
+            "sequential": false,
+            "confidential": false,
+            "dataloss": false,
+            "dlq": false,
+            "freshVariables": false
+        },
+        "designer": {
+            "orphans": []
+        }
+    }
+}

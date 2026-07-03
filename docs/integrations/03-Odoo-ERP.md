@@ -20,6 +20,16 @@ einen ERP-Programmierer noch Serverzugriff.
 
 Plane **ca. 60 Minuten** ein (ERP hat ein paar Felder mehr).
 
+> **⏱️ Abkürzung – fertige Vorlage:** Ein fertiges Make-Template „Odoo ↔ Skipily" gibt es
+> in der öffentlichen Galerie (noch) nicht, aber wir liefern **importierbare Blueprints**
+> mit (Ordner `blueprints/`), die den kompletten Skipily-Teil (URL, Header, JSON)
+> vorbefüllen: `skipily-produkt-anlegen.json` (Teil A),
+> `skipily-bestellung-empfangen.json` (Teil B), `skipily-versand-melden.json` (Teil C).
+> **Import:** Neues Szenario → unten **„…" (More)** → **„Import Blueprint"** → Datei
+> wählen. Danach nur noch `x-api-key` einsetzen, den Odoo-Baustein ergänzen und Felder
+> zuordnen – genau das zeigen die Teile A–C unten. Die Blueprints funktionieren
+> unverändert auch mit JTL, Xentral, Dynamics oder SAP B1.
+
 ---
 
 ## Teil 0 – Vorbereitung (15 Min)

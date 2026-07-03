@@ -1,0 +1,69 @@
+{
+    "name": "Skipily – Produkt anlegen (Teil A)",
+    "flow": [
+        {
+            "id": 1,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+            },
+            "mapper": {
+                "url": "https://vcjwlyqkfkszumdrfvtm.supabase.co/functions/v1/products-api",
+                "method": "post",
+                "headers": [
+                    {
+                        "name": "Authorization",
+                        "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjandseXFrZmtzenVtZHJmdnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMDQ4NTksImV4cCI6MjA4NDY4MDg1OX0.VOlhRdvShU325xG18SSSTWdFfGEdyeX-7CAovE2vesQ"
+                    },
+                    {
+                        "name": "x-api-key",
+                        "value": "HIER-DEINEN-SKIPILY-API-SCHLUESSEL-EINSETZEN"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "qs": [],
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "data": "{\n  \"name\": \"HIER-PRODUKTNAME-ZUORDNEN\",\n  \"sku\": \"HIER-ARTIKELNUMMER-ZUORDNEN\",\n  \"price\": 0,\n  \"currency\": \"EUR\",\n  \"stock_quantity\": 0,\n  \"in_stock\": true,\n  \"description\": \"HIER-BESCHREIBUNG-ZUORDNEN\"\n}",
+                "timeout": "30",
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": false,
+                "rejectUnauthorized": true
+            },
+            "metadata": {
+                "designer": {
+                    "x": 300,
+                    "y": 0,
+                    "name": "Skipily: Produkt anlegen (products-api)",
+                    "notes": "VOR diesen Baustein den Auslöser deines Shops setzen (z. B. WooCommerce/Shopify 'Watch Products' oder Odoo 'Watch Records'). Dann: 1) x-api-key durch deinen Skipily-API-Schlüssel ersetzen, 2) im Body die HIER-...-Platzhalter durch die Felder deines Shops ersetzen (bunte Chips anklicken)."
+                }
+            }
+        }
+    ],
+    "metadata": {
+        "instant": false,
+        "version": 1,
+        "scenario": {
+            "roundtrips": 1,
+            "maxErrors": 3,
+            "autoCommit": true,
+            "autoCommitTriggerLast": true,
+            "sequential": false,
+            "confidential": false,
+            "dataloss": false,
+            "dlq": false,
+            "freshVariables": false
+        },
+        "designer": {
+            "orphans": []
+        }
+    }
+}

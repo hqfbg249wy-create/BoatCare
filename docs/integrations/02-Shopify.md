@@ -13,6 +13,15 @@ kein Programmieren.
 
 Plane **ca. 45 Minuten** ein.
 
+> **⏱️ Abkürzung – fertige Vorlage:** Ein fertiges Make-Template „Shopify ↔ Skipily"
+> gibt es in der öffentlichen Galerie (noch) nicht, aber wir liefern **importierbare
+> Blueprints** mit (Ordner `blueprints/`), die den kompletten Skipily-Teil (URL, Header,
+> JSON) vorbefüllen: `skipily-produkt-anlegen.json` (Teil A),
+> `skipily-bestellung-empfangen.json` (Teil B), `skipily-versand-melden.json` (Teil C).
+> **Import:** Neues Szenario → unten **„…" (More)** → **„Import Blueprint"** → Datei
+> wählen. Danach nur noch `x-api-key` einsetzen, Shopify-Baustein ergänzen und Felder
+> zuordnen – genau das zeigen die Teile A–C unten.
+
 ---
 
 ## Teil 0 – Vorbereitung (10 Min)

@@ -14,6 +14,15 @@ zusammen – kein Programmieren.
 
 Plane **ca. 45–60 Minuten** für die Ersteinrichtung ein.
 
+> **⏱️ Abkürzung – fertige Vorlage:** Ein fertiges Make-Template „WooCommerce ↔ Skipily"
+> gibt es in der öffentlichen Galerie (noch) nicht, aber wir liefern **importierbare
+> Blueprints** mit (Ordner `blueprints/`), die den kompletten Skipily-Teil (URL, Header,
+> JSON) vorbefüllen: `skipily-produkt-anlegen.json` (Teil A),
+> `skipily-bestellung-empfangen.json` (Teil B), `skipily-versand-melden.json` (Teil C).
+> **Import:** Neues Szenario → unten **„…" (More)** → **„Import Blueprint"** → Datei
+> wählen. Danach musst du nur noch deinen `x-api-key` einsetzen, den WooCommerce-Baustein
+> ergänzen und die Felder zuordnen – genau das zeigen die Teile A–C unten.
+
 ---
 
 ## Teil 0 – Vorbereitung (10 Min)
