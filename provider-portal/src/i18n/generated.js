@@ -3,6 +3,7 @@
 // zur Laufzeit automatisch auf Deutsch zurück.
 export default {
   "en": {
+    "sc.guidePdf": "Guide as PDF",
     "sc.section": "Sendcloud shipping",
     "sc.tagline": "Connect your Sendcloud account and automate shipping for your Skipily orders.",
     "sc.statusConnected": "Connected",
@@ -734,6 +735,7 @@ export default {
     "pf.cGB": "Great Britain"
   },
   "fr": {
+    "sc.guidePdf": "Guide en PDF",
     "sc.section": "Expédition Sendcloud",
     "sc.tagline": "Connectez votre compte Sendcloud et automatisez l’expédition de vos commandes Skipily.",
     "sc.statusConnected": "Connecté",
@@ -1465,6 +1467,7 @@ export default {
     "pf.cGB": "Grande-Bretagne"
   },
   "it": {
+    "sc.guidePdf": "Guida in PDF",
     "sc.section": "Spedizioni Sendcloud",
     "sc.tagline": "Collega il tuo account Sendcloud e automatizza la spedizione dei tuoi ordini Skipily.",
     "sc.statusConnected": "Collegato",
@@ -2196,6 +2199,7 @@ export default {
     "pf.cGB": "Gran Bretagna"
   },
   "es": {
+    "sc.guidePdf": "Guía en PDF",
     "sc.section": "Envíos con Sendcloud",
     "sc.tagline": "Conecta tu cuenta de Sendcloud y automatiza el envío de tus pedidos de Skipily.",
     "sc.statusConnected": "Conectado",
@@ -2927,6 +2931,7 @@ export default {
     "pf.cGB": "Gran Bretaña"
   },
   "nl": {
+    "sc.guidePdf": "Handleiding als PDF",
     "sc.section": "Sendcloud-verzending",
     "sc.tagline": "Koppel je Sendcloud-account en automatiseer de verzending van je Skipily-bestellingen.",
     "sc.statusConnected": "Verbonden",

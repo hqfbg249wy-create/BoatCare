@@ -1831,9 +1831,15 @@ export default function Profile() {
                 </div>
               )}
 
-              <p style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: '0.78rem', color: 'var(--gray-500)', marginTop: 14, marginBottom: 0, lineHeight: 1.5 }}>
-                <ShieldCheck size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {t('sc.securityNote')}
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginTop: 14 }}>
+                <p style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: '0.78rem', color: 'var(--gray-500)', margin: 0, lineHeight: 1.5, flex: 1, minWidth: 220 }}>
+                  <ShieldCheck size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {t('sc.securityNote')}
+                </p>
+                <a href="/anleitungen/04-Sendcloud-Versand.pdf" target="_blank" rel="noopener noreferrer"
+                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: 'var(--primary)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                  <ExternalLink size={14} /> {t('sc.guidePdf')}
+                </a>
+              </div>
             </div>
           )
         })()}

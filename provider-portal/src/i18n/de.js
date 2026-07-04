@@ -751,6 +751,7 @@ export default {
   'sc.connectedAccount': 'Verbundenes Konto',
   'sc.connectedSince': 'Verbunden seit',
   'sc.securityNote': 'Deine Schlüssel werden verschlüsselt und ausschließlich serverseitig gespeichert. Der Secret Key wird nie an App-Nutzer weitergegeben.',
+  'sc.guidePdf': 'Anleitung als PDF',
   'sc.adminOnly': 'Nur Inhaber oder Admins des Betriebs können die Sendcloud-Verbindung ändern.',
   'sc.msgConnected': 'Sendcloud erfolgreich verbunden.',
   'sc.msgDisconnected': 'Sendcloud-Verbindung getrennt.',
