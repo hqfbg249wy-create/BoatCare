@@ -46,7 +46,7 @@ const GUIDES = [
     file: { de: '/anleitungen/03-Odoo-ERP.pdf', en: '/anleitungen/en/03-Odoo-ERP.pdf' } },
   { key: 'sendcloud', icon: '🚚',
     title: { de: 'Sendcloud-Versand', en: 'Sendcloud shipping', fr: 'Expédition Sendcloud', it: 'Spedizioni Sendcloud', es: 'Envíos con Sendcloud', nl: 'Sendcloud-verzending' },
-    file: { de: '/anleitungen/04-Sendcloud-Versand.pdf' } }, // nur DE verfügbar
+    file: { de: '/anleitungen/04-Sendcloud-Versand.pdf', en: '/anleitungen/en/04-Sendcloud-Shipping.pdf' } },
 ]
 const GUIDES_UI = {
   title: { de: 'Anleitungen & Downloads', en: 'Guides & downloads', fr: 'Guides & téléchargements', it: 'Guide & download', es: 'Guías y descargas', nl: 'Handleidingen & downloads' },

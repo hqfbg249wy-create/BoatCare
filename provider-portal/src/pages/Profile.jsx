@@ -27,7 +27,10 @@ const CATEGORY_OPTIONS = [
 export default function Profile() {
   const { provider, loadProvider, user } = useAuth()
   const access = useFeatureAccess()
-  const { t } = useT()
+  const { t, lang } = useT()
+  const sendcloudGuideUrl = lang === 'de'
+    ? '/anleitungen/04-Sendcloud-Versand.pdf'
+    : '/anleitungen/en/04-Sendcloud-Shipping.pdf'
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
@@ -1835,7 +1838,7 @@ export default function Profile() {
                 <p style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: '0.78rem', color: 'var(--gray-500)', margin: 0, lineHeight: 1.5, flex: 1, minWidth: 220 }}>
                   <ShieldCheck size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {t('sc.securityNote')}
                 </p>
-                <a href="/anleitungen/04-Sendcloud-Versand.pdf" target="_blank" rel="noopener noreferrer"
+                <a href={sendcloudGuideUrl} target="_blank" rel="noopener noreferrer"
                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: 'var(--primary)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
                   <ExternalLink size={14} /> {t('sc.guidePdf')}
                 </a>
