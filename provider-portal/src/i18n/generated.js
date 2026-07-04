@@ -3,6 +3,7 @@
 // zur Laufzeit automatisch auf Deutsch zurück.
 export default {
   "en": {
+    "profile.grpApi": "API & interface",
     "profile.grpPayments": "Payments & appearance",
     "profile.grpCompany": "Company details",
     "profile.grpShipping": "Shipping & packaging",
@@ -749,6 +750,7 @@ export default {
     "pf.cGB": "Great Britain"
   },
   "fr": {
+    "profile.grpApi": "API & interface",
     "profile.grpPayments": "Paiements & présentation",
     "profile.grpCompany": "Données de l’entreprise",
     "profile.grpShipping": "Expédition & emballage",
@@ -1495,6 +1497,7 @@ export default {
     "pf.cGB": "Grande-Bretagne"
   },
   "it": {
+    "profile.grpApi": "API & interfaccia",
     "profile.grpPayments": "Pagamenti & aspetto",
     "profile.grpCompany": "Dati aziendali",
     "profile.grpShipping": "Spedizione & imballaggio",
@@ -2241,6 +2244,7 @@ export default {
     "pf.cGB": "Gran Bretagna"
   },
   "es": {
+    "profile.grpApi": "API e interfaz",
     "profile.grpPayments": "Pagos y presentación",
     "profile.grpCompany": "Datos de la empresa",
     "profile.grpShipping": "Envío y embalaje",
@@ -2987,6 +2991,7 @@ export default {
     "pf.cGB": "Gran Bretaña"
   },
   "nl": {
+    "profile.grpApi": "API & koppeling",
     "profile.grpPayments": "Betalingen & weergave",
     "profile.grpCompany": "Bedrijfsgegevens",
     "profile.grpShipping": "Verzending & verpakking",

@@ -2360,7 +2360,9 @@ export default function Profile() {
             </>
           )}
         </div>
+      </CollapsibleGroup>
 
+      <CollapsibleGroup title={t('profile.grpApi')}>
         {/* API Integration Section — Pro+ */}
         <div className="card" style={{ borderLeft: '4px solid var(--primary)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
