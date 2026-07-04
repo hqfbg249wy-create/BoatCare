@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import FeatureLock from '../components/FeatureLock'
 import { supabase } from '../lib/supabase'
-import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe, Image as ImageIcon, Upload, Trash2, Tag, Wrench, Plus, X, Eye, Lock, Truck, ShieldCheck, RotateCcw } from 'lucide-react'
+import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe, Image as ImageIcon, Upload, Trash2, Tag, Wrench, Plus, X, Eye, Lock, Truck, ShieldCheck, RotateCcw, FileText } from 'lucide-react'
 import { useT } from '../i18n'
 
 // Storage bucket created by database/038_provider_images_bucket.sql
@@ -23,6 +23,43 @@ const CATEGORY_OPTIONS = [
   ['tankstelle', '⛽', 'cat.fuelStation'],
   ['marina', '🌊', 'cat.marina'],
 ]
+
+// EPR-/Verpackungsregister je Land — rein informativ (siehe Disclaimer im UI).
+// Register/Ansprechpartner für die Verpackungs-EPR; ohne Gewähr.
+const EPR_REGISTERS = {
+  DE: { name: 'LUCID – Verpackungsregister (ZSVR)', url: 'https://www.verpackungsregister.org' },
+  AT: { name: 'EDM – Elektronisches Datenmanagement', url: 'https://www.edm.gv.at' },
+  FR: { name: 'ADEME – SYDEREP (identifiant unique)', url: 'https://syderep.ademe.fr' },
+  IT: { name: 'CONAI', url: 'https://www.conai.org' },
+  ES: { name: 'MITECO – Registro de Productores', url: 'https://sede.miteco.gob.es' },
+  NL: { name: 'Afvalfonds Verpakkingen', url: 'https://www.afvalfondsverpakkingen.nl' },
+  BE: { name: 'Fost Plus', url: 'https://www.fostplus.be' },
+  LU: { name: 'Valorlux', url: 'https://www.valorlux.lu' },
+  PT: { name: 'Sociedade Ponto Verde', url: 'https://www.pontoverde.pt' },
+  PL: { name: 'BDO – Baza danych o odpadach', url: 'https://bdo.mos.gov.pl' },
+  SE: { name: 'Naturvårdsverket', url: 'https://www.naturvardsverket.se' },
+  DK: { name: 'Dansk Producentansvar (DPA)', url: 'https://www.dpa-system.dk' },
+  FI: { name: 'Rinki – tuottajarekisteri', url: 'https://rinkiin.fi' },
+  IE: { name: 'Repak', url: 'https://www.repak.ie' },
+  CZ: { name: 'EKO-KOM', url: 'https://www.ekokom.cz' },
+  SK: { name: 'ENVI-PAK', url: 'https://www.envipak.sk' },
+  HU: { name: 'MOHU', url: 'https://mohu.hu' },
+  RO: { name: 'Administrația Fondului pentru Mediu', url: 'https://www.afm.ro' },
+  GR: { name: 'HERRCO / EOAN', url: 'https://www.herrco.gr' },
+  HR: { name: 'FZOEU', url: 'https://www.fzoeu.hr' },
+  SI: { name: 'Slopak', url: 'https://www.slopak.si' },
+  BG: { name: 'Ecopack Bulgaria', url: 'https://www.ecopack.bg' },
+  EE: { name: 'ETO – Pakendiregister', url: 'https://www.eto.ee' },
+  LV: { name: 'Latvijas Zaļais punkts', url: 'https://www.zalais.lv' },
+  LT: { name: 'GPAIS – Žaliasis taškas', url: 'https://www.gpais.eu' },
+  CY: { name: 'Green Dot Cyprus', url: 'https://www.greendot.com.cy' },
+  MT: { name: 'GreenPak Malta', url: 'https://www.greenpak.com.mt' },
+  NO: { name: 'Grønt Punkt Norge', url: 'https://www.grontpunkt.no' },
+  IS: { name: 'Úrvinnslusjóður', url: 'https://www.urvinnslusjodur.is' },
+  LI: { name: 'Amt für Umwelt (LI)', url: 'https://www.llv.li' },
+  CH: { name: 'Schweiz – keine EU-EPR-Registrierung', url: 'https://www.swissrecycling.ch' },
+  GB: { name: 'UK Packaging EPR (GOV.UK)', url: 'https://www.gov.uk/guidance/extended-producer-responsibility-for-packaging' },
+}
 
 export default function Profile() {
   const { provider, loadProvider, user } = useAuth()
@@ -154,6 +191,7 @@ export default function Profile() {
         tax_id: provider.tax_id || '',
         shop_description: provider.shop_description || '',
         slogan: provider.slogan || '',
+        epr_registration_number: provider.epr_registration_number || '',
       })
       setServices(Array.isArray(provider.services) ? provider.services : [])
       setBrands(Array.isArray(provider.brands) ? provider.brands : [])
@@ -712,6 +750,7 @@ export default function Profile() {
           tax_id: form.tax_id,
           shop_description: form.shop_description,
           slogan: form.slogan,
+          epr_registration_number: form.epr_registration_number || null,
           services,
           brands,
           // null = unkonfiguriert (kein expliziter Save); [] und Arrays werden
@@ -1632,6 +1671,60 @@ export default function Profile() {
                 </label>
               )
             })}
+          </div>
+
+          {/* ── EPR-Registrierungsnummer (Stammdaten) ── */}
+          <div className="form-group" style={{ marginTop: 18 }}>
+            <label>{t('epr.numberLabel')}</label>
+            <input
+              name="epr_registration_number"
+              value={form.epr_registration_number || ''}
+              onChange={handleChange}
+              placeholder={t('epr.numberPh')}
+              disabled={!canAdmin}
+            />
+            <p className="hint" style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginTop: 4 }}>
+              {t('epr.numberHint')}
+            </p>
+          </div>
+
+          {/* ── EPR-Hinweisbox je Lieferland (rein informativ) ── */}
+          <div style={{ marginTop: 12, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <FileText size={16} style={{ color: 'var(--primary)' }} />
+              <strong style={{ fontSize: '0.92rem' }}>{t('epr.boxTitle')}</strong>
+            </div>
+            {currentShipping.length === 0 ? (
+              <p className="hint" style={{ margin: 0, fontSize: '0.85rem', color: 'var(--gray-500)' }}>
+                {t('epr.selectFirst')}
+              </p>
+            ) : (
+              <>
+                <p className="hint" style={{ margin: '0 0 8px', fontSize: '0.85rem', color: 'var(--gray-500)' }}>
+                  {t('epr.boxIntro')}
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 6 }}>
+                  {[...currentShipping].sort().map(code => {
+                    const reg = EPR_REGISTERS[code]
+                    return (
+                      <div key={code} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12.5 }}>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#475569' }}>{code}</span>
+                        <span style={{ flex: 1, color: '#1e293b' }}>{reg ? reg.name : t('epr.genericNote')}</span>
+                        {reg && (
+                          <a href={reg.url} target="_blank" rel="noopener noreferrer"
+                             style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--primary)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                            {t('epr.openRegister')} <ExternalLink size={11} />
+                          </a>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+            <p style={{ margin: '10px 0 0', fontSize: '0.75rem', color: 'var(--gray-500)', lineHeight: 1.5 }}>
+              {t('epr.disclaimer')}
+            </p>
           </div>
         </div>
 

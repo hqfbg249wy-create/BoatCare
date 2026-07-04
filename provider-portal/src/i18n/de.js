@@ -759,4 +759,15 @@ export default {
   'sc.msgInvalidKeys': 'Verbindung fehlgeschlagen: Public Key oder Secret Key ist ungültig. Bitte in Sendcloud prüfen.',
   'sc.msgEnterKeys': 'Bitte Public Key und Secret Key eingeben.',
   'sc.msgApiError': 'Sendcloud ist momentan nicht erreichbar. Bitte später erneut versuchen.',
+
+  // ── EPR / Verpackungsverordnung ──
+  'epr.numberLabel': 'LUCID-/EPR-Registrierungsnummer',
+  'epr.numberHint': 'Viele Marktplätze verlangen die Verpackungsregister-Nummer (z. B. LUCID in Deutschland). Optional — wird in deinen Stammdaten gespeichert.',
+  'epr.numberPh': 'z. B. DE1234567890123',
+  'epr.boxTitle': 'Verpackungsregistrierung je Lieferland (EPR)',
+  'epr.boxIntro': 'Für die ausgewählten Lieferländer gelten in der Regel Registrierungspflichten für Verpackungen. Typischerweise zuständige Register:',
+  'epr.selectFirst': 'Wähle oben Lieferländer aus, um die zuständigen Verpackungsregister zu sehen.',
+  'epr.openRegister': 'Zum Register',
+  'epr.genericNote': 'EPR-Registrierung möglich – bitte national prüfen',
+  'epr.disclaimer': 'Hinweis (keine Rechtsberatung): Diese Angaben sind rein informativ und ohne Gewähr. Prüfe deine Registrierungs- und Meldepflichten für jedes Land eigenständig bzw. mit fachkundiger Beratung.',
 }

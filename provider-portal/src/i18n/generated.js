@@ -3,6 +3,15 @@
 // zur Laufzeit automatisch auf Deutsch zurück.
 export default {
   "en": {
+    "epr.numberLabel": "LUCID / EPR registration number",
+    "epr.numberHint": "Many marketplaces require the packaging-register number (e.g. LUCID in Germany). Optional — saved with your master data.",
+    "epr.numberPh": "e.g. DE1234567890123",
+    "epr.boxTitle": "Packaging registration per destination country (EPR)",
+    "epr.boxIntro": "The selected destination countries generally require packaging registration. Typically responsible registers:",
+    "epr.selectFirst": "Select destination countries above to see the responsible packaging registers.",
+    "epr.openRegister": "Open register",
+    "epr.genericNote": "EPR registration possible – please check nationally",
+    "epr.disclaimer": "Note (not legal advice): This information is for guidance only, without warranty. Verify your registration and reporting obligations for each country yourself or with professional advice.",
     "sc.guidePdf": "Guide as PDF",
     "sc.section": "Sendcloud shipping",
     "sc.tagline": "Connect your Sendcloud account and automate shipping for your Skipily orders.",
@@ -735,6 +744,15 @@ export default {
     "pf.cGB": "Great Britain"
   },
   "fr": {
+    "epr.numberLabel": "Numéro d’enregistrement LUCID / REP",
+    "epr.numberHint": "De nombreuses marketplaces exigent le numéro du registre des emballages (p. ex. LUCID en Allemagne). Facultatif — enregistré dans vos données.",
+    "epr.numberPh": "p. ex. DE1234567890123",
+    "epr.boxTitle": "Enregistrement des emballages par pays de destination (REP)",
+    "epr.boxIntro": "Les pays de destination sélectionnés exigent généralement un enregistrement des emballages. Registres généralement compétents :",
+    "epr.selectFirst": "Sélectionnez des pays de destination ci-dessus pour voir les registres d’emballages compétents.",
+    "epr.openRegister": "Ouvrir le registre",
+    "epr.genericNote": "Enregistrement REP possible – à vérifier au niveau national",
+    "epr.disclaimer": "Remarque (pas un conseil juridique) : informations fournies à titre indicatif, sans garantie. Vérifiez vous-même vos obligations d’enregistrement et de déclaration pour chaque pays, ou avec un conseil professionnel.",
     "sc.guidePdf": "Guide en PDF",
     "sc.section": "Expédition Sendcloud",
     "sc.tagline": "Connectez votre compte Sendcloud et automatisez l’expédition de vos commandes Skipily.",
@@ -1467,6 +1485,15 @@ export default {
     "pf.cGB": "Grande-Bretagne"
   },
   "it": {
+    "epr.numberLabel": "Numero di registrazione LUCID / EPR",
+    "epr.numberHint": "Molti marketplace richiedono il numero del registro imballaggi (es. LUCID in Germania). Facoltativo — salvato nei tuoi dati.",
+    "epr.numberPh": "es. DE1234567890123",
+    "epr.boxTitle": "Registrazione imballaggi per paese di destinazione (EPR)",
+    "epr.boxIntro": "I paesi di destinazione selezionati richiedono in genere la registrazione degli imballaggi. Registri di norma competenti:",
+    "epr.selectFirst": "Seleziona i paesi di destinazione qui sopra per vedere i registri imballaggi competenti.",
+    "epr.openRegister": "Apri registro",
+    "epr.genericNote": "Registrazione EPR possibile – verifica a livello nazionale",
+    "epr.disclaimer": "Nota (non è consulenza legale): informazioni puramente indicative e senza garanzia. Verifica autonomamente, o con consulenza qualificata, i tuoi obblighi di registrazione e dichiarazione per ogni paese.",
     "sc.guidePdf": "Guida in PDF",
     "sc.section": "Spedizioni Sendcloud",
     "sc.tagline": "Collega il tuo account Sendcloud e automatizza la spedizione dei tuoi ordini Skipily.",
@@ -2199,6 +2226,15 @@ export default {
     "pf.cGB": "Gran Bretagna"
   },
   "es": {
+    "epr.numberLabel": "Número de registro LUCID / EPR",
+    "epr.numberHint": "Muchos marketplaces exigen el número del registro de envases (p. ej. LUCID en Alemania). Opcional — se guarda en tus datos.",
+    "epr.numberPh": "p. ej. DE1234567890123",
+    "epr.boxTitle": "Registro de envases por país de destino (EPR)",
+    "epr.boxIntro": "Los países de destino seleccionados suelen exigir el registro de envases. Registros normalmente competentes:",
+    "epr.selectFirst": "Selecciona países de destino arriba para ver los registros de envases competentes.",
+    "epr.openRegister": "Abrir registro",
+    "epr.genericNote": "Posible registro EPR – comprueba a nivel nacional",
+    "epr.disclaimer": "Aviso (no es asesoramiento jurídico): información meramente orientativa y sin garantía. Verifica tú mismo, o con asesoramiento profesional, tus obligaciones de registro y declaración para cada país.",
     "sc.guidePdf": "Guía en PDF",
     "sc.section": "Envíos con Sendcloud",
     "sc.tagline": "Conecta tu cuenta de Sendcloud y automatiza el envío de tus pedidos de Skipily.",
@@ -2931,6 +2967,15 @@ export default {
     "pf.cGB": "Gran Bretaña"
   },
   "nl": {
+    "epr.numberLabel": "LUCID-/EPR-registratienummer",
+    "epr.numberHint": "Veel marktplaatsen vragen het verpakkingsregisternummer (bijv. LUCID in Duitsland). Optioneel — wordt bij je gegevens opgeslagen.",
+    "epr.numberPh": "bijv. DE1234567890123",
+    "epr.boxTitle": "Verpakkingsregistratie per bestemmingsland (EPR)",
+    "epr.boxIntro": "Voor de geselecteerde bestemmingslanden geldt doorgaans een registratieplicht voor verpakkingen. Doorgaans bevoegde registers:",
+    "epr.selectFirst": "Selecteer hierboven bestemmingslanden om de bevoegde verpakkingsregisters te zien.",
+    "epr.openRegister": "Naar register",
+    "epr.genericNote": "EPR-registratie mogelijk – controleer nationaal",
+    "epr.disclaimer": "Let op (geen juridisch advies): deze informatie is louter informatief en zonder garantie. Controleer je registratie- en meldplichten voor elk land zelf of met professioneel advies.",
     "sc.guidePdf": "Handleiding als PDF",
     "sc.section": "Sendcloud-verzending",
     "sc.tagline": "Koppel je Sendcloud-account en automatiseer de verzending van je Skipily-bestellingen.",
