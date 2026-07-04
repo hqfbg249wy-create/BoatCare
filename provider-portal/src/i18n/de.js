@@ -777,5 +777,6 @@ export default {
   'profile.grpShipping': 'Versand & Verpackung',
   'profile.grpContact': 'Kontakt & Angebot',
   'profile.grpAccount': 'Konto & Team',
+  'profile.grpTeam': 'Team',
   'profile.grpApi': 'API & Schnittstelle',
 }

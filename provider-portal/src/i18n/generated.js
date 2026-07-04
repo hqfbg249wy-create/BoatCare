@@ -3,6 +3,7 @@
 // zur Laufzeit automatisch auf Deutsch zurück.
 export default {
   "en": {
+    "profile.grpTeam": "Team",
     "profile.grpApi": "API & interface",
     "profile.grpPayments": "Payments & appearance",
     "profile.grpCompany": "Company details",
@@ -750,6 +751,7 @@ export default {
     "pf.cGB": "Great Britain"
   },
   "fr": {
+    "profile.grpTeam": "Équipe",
     "profile.grpApi": "API & interface",
     "profile.grpPayments": "Paiements & présentation",
     "profile.grpCompany": "Données de l’entreprise",
@@ -1497,6 +1499,7 @@ export default {
     "pf.cGB": "Grande-Bretagne"
   },
   "it": {
+    "profile.grpTeam": "Team",
     "profile.grpApi": "API & interfaccia",
     "profile.grpPayments": "Pagamenti & aspetto",
     "profile.grpCompany": "Dati aziendali",
@@ -2244,6 +2247,7 @@ export default {
     "pf.cGB": "Gran Bretagna"
   },
   "es": {
+    "profile.grpTeam": "Equipo",
     "profile.grpApi": "API e interfaz",
     "profile.grpPayments": "Pagos y presentación",
     "profile.grpCompany": "Datos de la empresa",
@@ -2991,6 +2995,7 @@ export default {
     "pf.cGB": "Gran Bretaña"
   },
   "nl": {
+    "profile.grpTeam": "Team",
     "profile.grpApi": "API & koppeling",
     "profile.grpPayments": "Betalingen & weergave",
     "profile.grpCompany": "Bedrijfsgegevens",

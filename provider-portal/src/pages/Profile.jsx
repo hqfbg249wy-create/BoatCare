@@ -1590,6 +1590,16 @@ export default function Profile() {
           </div>
         </div>
 
+        <div className="card">
+          <h2>{t('profile.secBusiness')}</h2>
+          <div className="form-row">
+            <div className="form-group">
+              <label>{t('profile.vatId')}</label>
+              <input name="tax_id" value={form.tax_id} onChange={handleChange} placeholder="DE123456789" />
+            </div>
+          </div>
+        </div>
+
       </CollapsibleGroup>
 
       <CollapsibleGroup title={t('profile.grpShipping')}>
@@ -2193,17 +2203,7 @@ export default function Profile() {
         </div>
       </CollapsibleGroup>
 
-      <CollapsibleGroup title={t('profile.grpAccount')}>
-        <div className="card">
-          <h2>{t('profile.secBusiness')}</h2>
-          <div className="form-row">
-            <div className="form-group">
-              <label>{t('profile.vatId')}</label>
-              <input name="tax_id" value={form.tax_id} onChange={handleChange} placeholder="DE123456789" />
-            </div>
-          </div>
-        </div>
-
+      <CollapsibleGroup title={t('profile.grpTeam')}>
         {/* ─── Team-Verwaltung (Enterprise only) ──────────────────────── */}
         <div className="card" style={{ borderLeft: '4px solid #7e22ce' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
