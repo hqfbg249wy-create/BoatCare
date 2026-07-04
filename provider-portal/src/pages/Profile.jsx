@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import FeatureLock from '../components/FeatureLock'
 import { supabase } from '../lib/supabase'
-import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe, Image as ImageIcon, Upload, Trash2, Tag, Wrench, Plus, X, Eye, Lock, Truck, ShieldCheck, RotateCcw, FileText } from 'lucide-react'
+import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe, Image as ImageIcon, Upload, Trash2, Tag, Wrench, Plus, X, Eye, Lock, Truck, ShieldCheck, RotateCcw, FileText, ChevronDown } from 'lucide-react'
 import { useT } from '../i18n'
 
 // Storage bucket created by database/038_provider_images_bucket.sql
@@ -59,6 +59,30 @@ const EPR_REGISTERS = {
   LI: { name: 'Amt für Umwelt (LI)', url: 'https://www.llv.li' },
   CH: { name: 'Schweiz – keine EU-EPR-Registrierung', url: 'https://www.swissrecycling.ch' },
   GB: { name: 'UK Packaging EPR (GOV.UK)', url: 'https://www.gov.uk/guidance/extended-producer-responsibility-for-packaging' },
+}
+
+// Einklappbare Themen-Gruppe für die (lang gewordene) Stammdaten-Seite.
+// Eigene Auf/Zu-Logik; Inhalte bleiben im React-State erhalten (kontrollierte
+// Felder), auch wenn eine Gruppe zugeklappt und damit ausgehängt ist.
+function CollapsibleGroup({ title, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 12, background: '#0b1929', color: '#fff', border: 'none', cursor: 'pointer',
+          padding: '12px 16px', borderRadius: 10, marginBottom: open ? 12 : 0,
+        }}
+      >
+        <span style={{ fontWeight: 700, fontSize: 15, letterSpacing: 0.2 }}>{title}</span>
+        <ChevronDown size={20} style={{ transition: 'transform .15s', transform: open ? 'rotate(180deg)' : 'none' }} />
+      </button>
+      {open && <div>{children}</div>}
+    </div>
+  )
 }
 
 export default function Profile() {
@@ -1001,6 +1025,7 @@ export default function Profile() {
         <div className={`message message-${message.type}`}>{message.text}</div>
       )}
 
+      <CollapsibleGroup title={t('profile.grpPayments')} defaultOpen>
       {/* Stripe Connect Section */}
       <div className="card" style={{ borderLeft: `4px solid ${stripeInfo.color}` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -1496,7 +1521,10 @@ export default function Profile() {
         </div>
       </div>
 
+      </CollapsibleGroup>
+
       <form onSubmit={handleSubmit}>
+      <CollapsibleGroup title={t('profile.grpCompany')} defaultOpen>
         <div className="card">
           <h2>{t('profile.secCompany')}</h2>
           <div className="form-row">
@@ -1562,6 +1590,9 @@ export default function Profile() {
           </div>
         </div>
 
+      </CollapsibleGroup>
+
+      <CollapsibleGroup title={t('profile.grpShipping')}>
         {/* ─── Lieferländer (EU-Verpackungsverordnung / EPR) ───────────────── */}
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -1939,7 +1970,9 @@ export default function Profile() {
             </div>
           )
         })()}
+      </CollapsibleGroup>
 
+      <CollapsibleGroup title={t('profile.grpContact')}>
         <div className="card">
           <h2>{t('profile.secContact')}</h2>
           <div className="form-row">
@@ -2158,7 +2191,9 @@ export default function Profile() {
             </p>
           )}
         </div>
+      </CollapsibleGroup>
 
+      <CollapsibleGroup title={t('profile.grpAccount')}>
         <div className="card">
           <h2>{t('profile.secBusiness')}</h2>
           <div className="form-row">
@@ -2423,6 +2458,7 @@ export default function Profile() {
           </>
           )}
         </div>
+      </CollapsibleGroup>
 
         <div className="form-actions">
           <button type="submit" className="btn-primary" disabled={saving || !canAdmin}>

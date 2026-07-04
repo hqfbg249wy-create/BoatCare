@@ -770,4 +770,11 @@ export default {
   'epr.openRegister': 'Zum Register',
   'epr.genericNote': 'EPR-Registrierung möglich – bitte national prüfen',
   'epr.disclaimer': 'Hinweis (keine Rechtsberatung): Diese Angaben sind rein informativ und ohne Gewähr. Prüfe deine Registrierungs- und Meldepflichten für jedes Land eigenständig bzw. mit fachkundiger Beratung.',
+
+  // ── Stammdaten: einklappbare Themen-Gruppen ──
+  'profile.grpPayments': 'Zahlungen & Darstellung',
+  'profile.grpCompany': 'Unternehmensdaten',
+  'profile.grpShipping': 'Versand & Verpackung',
+  'profile.grpContact': 'Kontakt & Angebot',
+  'profile.grpAccount': 'Konto & Team',
 }

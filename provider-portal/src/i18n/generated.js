@@ -3,6 +3,11 @@
 // zur Laufzeit automatisch auf Deutsch zurück.
 export default {
   "en": {
+    "profile.grpPayments": "Payments & appearance",
+    "profile.grpCompany": "Company details",
+    "profile.grpShipping": "Shipping & packaging",
+    "profile.grpContact": "Contact & offering",
+    "profile.grpAccount": "Account & team",
     "epr.numberLabel": "LUCID / EPR registration number",
     "epr.numberHint": "Many marketplaces require the packaging-register number (e.g. LUCID in Germany). Optional — saved with your master data.",
     "epr.numberPh": "e.g. DE1234567890123",
@@ -744,6 +749,11 @@ export default {
     "pf.cGB": "Great Britain"
   },
   "fr": {
+    "profile.grpPayments": "Paiements & présentation",
+    "profile.grpCompany": "Données de l’entreprise",
+    "profile.grpShipping": "Expédition & emballage",
+    "profile.grpContact": "Contact & offre",
+    "profile.grpAccount": "Compte & équipe",
     "epr.numberLabel": "Numéro d’enregistrement LUCID / REP",
     "epr.numberHint": "De nombreuses marketplaces exigent le numéro du registre des emballages (p. ex. LUCID en Allemagne). Facultatif — enregistré dans vos données.",
     "epr.numberPh": "p. ex. DE1234567890123",
@@ -1485,6 +1495,11 @@ export default {
     "pf.cGB": "Grande-Bretagne"
   },
   "it": {
+    "profile.grpPayments": "Pagamenti & aspetto",
+    "profile.grpCompany": "Dati aziendali",
+    "profile.grpShipping": "Spedizione & imballaggio",
+    "profile.grpContact": "Contatti & offerta",
+    "profile.grpAccount": "Account & team",
     "epr.numberLabel": "Numero di registrazione LUCID / EPR",
     "epr.numberHint": "Molti marketplace richiedono il numero del registro imballaggi (es. LUCID in Germania). Facoltativo — salvato nei tuoi dati.",
     "epr.numberPh": "es. DE1234567890123",
@@ -2226,6 +2241,11 @@ export default {
     "pf.cGB": "Gran Bretagna"
   },
   "es": {
+    "profile.grpPayments": "Pagos y presentación",
+    "profile.grpCompany": "Datos de la empresa",
+    "profile.grpShipping": "Envío y embalaje",
+    "profile.grpContact": "Contacto y oferta",
+    "profile.grpAccount": "Cuenta y equipo",
     "epr.numberLabel": "Número de registro LUCID / EPR",
     "epr.numberHint": "Muchos marketplaces exigen el número del registro de envases (p. ej. LUCID en Alemania). Opcional — se guarda en tus datos.",
     "epr.numberPh": "p. ej. DE1234567890123",
@@ -2967,6 +2987,11 @@ export default {
     "pf.cGB": "Gran Bretaña"
   },
   "nl": {
+    "profile.grpPayments": "Betalingen & weergave",
+    "profile.grpCompany": "Bedrijfsgegevens",
+    "profile.grpShipping": "Verzending & verpakking",
+    "profile.grpContact": "Contact & aanbod",
+    "profile.grpAccount": "Account & team",
     "epr.numberLabel": "LUCID-/EPR-registratienummer",
     "epr.numberHint": "Veel marktplaatsen vragen het verpakkingsregisternummer (bijv. LUCID in Duitsland). Optioneel — wordt bij je gegevens opgeslagen.",
     "epr.numberPh": "bijv. DE1234567890123",
