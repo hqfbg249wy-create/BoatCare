@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import FeatureLock from '../components/FeatureLock'
 import { supabase } from '../lib/supabase'
-import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe, Image as ImageIcon, Upload, Trash2, Tag, Wrench, Plus, X, Eye, Lock } from 'lucide-react'
+import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe, Image as ImageIcon, Upload, Trash2, Tag, Wrench, Plus, X, Eye, Lock, Truck, ShieldCheck, RotateCcw } from 'lucide-react'
 import { useT } from '../i18n'
 
 // Storage bucket created by database/038_provider_images_bucket.sql
@@ -241,6 +241,108 @@ export default function Profile() {
     }
   }
   const setShip = (k, v) => setShipRule(r => ({ ...r, [k]: v }))
+
+  // ─── Sendcloud-Versandintegration ────────────────────────────────────────
+  // Der Client liest NUR den Status (kein secret_key — durch Spalten-GRANTs in
+  // Migration 099 abgesichert). Verbinden/Trennen läuft über die Edge Function.
+  const [sc, setSc] = useState(null)          // Zeile aus provider_sendcloud
+  const [scPublic, setScPublic] = useState('')
+  const [scSecret, setScSecret] = useState('')
+  const [scBusy, setScBusy] = useState(false)
+  const [scMsg, setScMsg] = useState(null)
+
+  useEffect(() => {
+    if (!provider?.id) return
+    supabase
+      .from('provider_sendcloud')
+      .select('status, account_name, account_email, connected_at, last_checked_at')
+      .eq('provider_id', provider.id)
+      .maybeSingle()
+      .then(({ data }) => setSc(data || null))
+  }, [provider?.id])
+
+  const scConnected = sc?.status === 'connected'
+
+  async function callSendcloud(payload) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error('Nicht angemeldet')
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
+    const res = await fetch(`${supabaseUrl}/functions/v1/sendcloud-connect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ provider_id: provider.id, ...payload }),
+    })
+    const data = await res.json().catch(() => ({}))
+    return { ok: res.ok, data }
+  }
+
+  function reloadSendcloud() {
+    return supabase
+      .from('provider_sendcloud')
+      .select('status, account_name, account_email, connected_at, last_checked_at')
+      .eq('provider_id', provider.id)
+      .maybeSingle()
+      .then(({ data }) => setSc(data || null))
+  }
+
+  async function connectSendcloud() {
+    setScMsg(null)
+    if (!scPublic.trim() || !scSecret.trim()) {
+      setScMsg({ type: 'error', text: t('sc.msgEnterKeys') })
+      return
+    }
+    setScBusy(true)
+    try {
+      const { ok, data } = await callSendcloud({
+        action: 'connect',
+        public_key: scPublic.trim(),
+        secret_key: scSecret.trim(),
+      })
+      if (!ok) {
+        const map = { invalid_keys: 'sc.msgInvalidKeys', missing_keys: 'sc.msgEnterKeys', api_error: 'sc.msgApiError' }
+        throw new Error(t(map[data.error] || 'sc.msgApiError'))
+      }
+      setScPublic(''); setScSecret('')
+      await reloadSendcloud()
+      setScMsg({ type: 'success', text: t('sc.msgConnected') })
+    } catch (err) {
+      setScMsg({ type: 'error', text: err.message })
+    } finally {
+      setScBusy(false)
+    }
+  }
+
+  async function disconnectSendcloud() {
+    if (!confirm(t('sc.disconnectConfirm'))) return
+    setScMsg(null); setScBusy(true)
+    try {
+      const { ok, data } = await callSendcloud({ action: 'disconnect' })
+      if (!ok) throw new Error(data.error || 'Fehler')
+      await reloadSendcloud()
+      setScMsg({ type: 'success', text: t('sc.msgDisconnected') })
+    } catch (err) {
+      setScMsg({ type: 'error', text: err.message })
+    } finally {
+      setScBusy(false)
+    }
+  }
+
+  async function testSendcloud() {
+    setScMsg(null); setScBusy(true)
+    try {
+      const { ok, data } = await callSendcloud({ action: 'test' })
+      await reloadSendcloud()
+      if (ok && data.status === 'connected') {
+        setScMsg({ type: 'success', text: t('sc.msgTestedOk') })
+      } else {
+        setScMsg({ type: 'error', text: t('sc.msgInvalidKeys') })
+      }
+    } catch (err) {
+      setScMsg({ type: 'error', text: err.message })
+    } finally {
+      setScBusy(false)
+    }
+  }
 
   // Load shop products (used for auto-suggesting brands/services + linking chips)
   useEffect(() => {
@@ -1591,6 +1693,150 @@ export default function Profile() {
           <button className="btn-primary" onClick={saveShippingRule} disabled={!canAdmin}>{t('pf.k41')}</button>
         </div>
         )}
+
+        {/* ── Sendcloud-Versandintegration ── */}
+        {(() => {
+          const accent = sc?.status === 'connected' ? 'var(--green)'
+            : sc?.status === 'error' ? '#ef4444' : 'var(--gray-400)'
+          const pillBg = sc?.status === 'connected' ? '#d1fae5'
+            : sc?.status === 'error' ? '#fee2e2' : 'var(--gray-100)'
+          const pillColor = sc?.status === 'connected' ? '#065f46'
+            : sc?.status === 'error' ? '#991b1b' : 'var(--gray-500)'
+          const StatusIcon = sc?.status === 'connected' ? CheckCircle
+            : sc?.status === 'error' ? AlertCircle : AlertCircle
+          const statusLabel = sc?.status === 'connected' ? t('sc.statusConnected')
+            : sc?.status === 'error' ? t('sc.statusError') : t('sc.statusNotConnected')
+          const benefits = [1, 2, 3, 4, 5, 6].map(n => [t(`sc.benefit${n}Title`), t(`sc.benefit${n}Desc`)])
+          const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''
+          return (
+            <div className="card" style={{ borderLeft: `4px solid ${accent}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+                <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Truck size={20} style={{ color: 'var(--primary)' }} />
+                  {t('sc.section')}
+                </h2>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '4px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 600,
+                  background: pillBg, color: pillColor,
+                }}>
+                  <StatusIcon size={14} />
+                  {statusLabel}
+                </span>
+              </div>
+
+              <p style={{ fontSize: '0.9rem', color: '#64748b', marginTop: 0, lineHeight: 1.6 }}>
+                {t('sc.tagline')}
+              </p>
+
+              {/* Vorteile */}
+              <div style={{
+                background: 'linear-gradient(135deg, #f0f9ff 0%, #ecfeff 100%)',
+                border: '1px solid #bae6fd', borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+              }}>
+                <h3 style={{ margin: '0 0 4px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  ⭐ {t('sc.benefitsTitle')}
+                </h3>
+                <p style={{ margin: '0 0 12px', fontSize: '0.82rem', color: '#475569', lineHeight: 1.55 }}>
+                  {t('sc.whatIsDesc')}
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
+                  {benefits.map(([title, desc]) => (
+                    <div key={title} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <CheckCircle size={16} style={{ color: 'var(--green)', flexShrink: 0, marginTop: 2 }} />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0f172a' }}>{title}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.45 }}>{desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {scMsg && (
+                <div className={`message message-${scMsg.type}`} style={{ marginBottom: 12 }}>{scMsg.text}</div>
+              )}
+
+              {scConnected ? (
+                <div>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+                    padding: '12px 14px', borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0',
+                    marginBottom: 14, flexWrap: 'wrap',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{t('sc.connectedAccount')}</div>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                        {sc?.account_name || sc?.account_email || 'Sendcloud'}
+                      </div>
+                      {sc?.connected_at && (
+                        <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 2 }}>
+                          {t('sc.connectedSince')} {fmtDate(sc.connected_at)}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 34, lineHeight: 1 }}>📦</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <button type="button" className="btn-secondary" onClick={testSendcloud} disabled={scBusy}>
+                      {scBusy ? <><Loader size={14} className="spin" /> {t('sc.testing')}</> : <><RefreshCw size={14} /> {t('sc.testConnection')}</>}
+                    </button>
+                    {canAdmin && (
+                      <button type="button" className="btn-secondary" onClick={disconnectSendcloud} disabled={scBusy}
+                        style={{ color: '#b91c1c', borderColor: '#fecaca' }}>
+                        <RotateCcw size={14} /> {t('sc.disconnect')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  {/* Anleitung */}
+                  <h3 style={{ fontSize: '0.95rem', margin: '4px 0 8px' }}>{t('sc.howtoTitle')}</h3>
+                  <ol style={{ margin: '0 0 12px', paddingLeft: 20, fontSize: '0.85rem', color: '#475569', lineHeight: 1.7 }}>
+                    <li>{t('sc.howtoStep1')}</li>
+                    <li>{t('sc.howtoStep2')}</li>
+                    <li>{t('sc.howtoStep3')}</li>
+                    <li>{t('sc.howtoStep4')}</li>
+                  </ol>
+                  <a href="https://app.sendcloud.com/" target="_blank" rel="noopener noreferrer"
+                     className="btn-secondary"
+                     style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', marginBottom: 14 }}>
+                    <ExternalLink size={16} /> {t('sc.openSendcloud')}
+                  </a>
+
+                  {canAdmin ? (
+                    <>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>{t('sc.publicKey')}</label>
+                          <input type="text" value={scPublic} onChange={e => setScPublic(e.target.value)}
+                                 placeholder={t('sc.publicKeyPh')} autoComplete="off" />
+                        </div>
+                        <div className="form-group">
+                          <label>{t('sc.secretKey')}</label>
+                          <input type="password" value={scSecret} onChange={e => setScSecret(e.target.value)}
+                                 placeholder={t('sc.secretKeyPh')} autoComplete="off" />
+                        </div>
+                      </div>
+                      <button type="button" className="btn-primary" onClick={connectSendcloud} disabled={scBusy}>
+                        {scBusy ? <><Loader size={16} className="spin" /> {t('sc.connecting')}</> : <><Truck size={16} /> {t('sc.connect')}</>}
+                      </button>
+                    </>
+                  ) : (
+                    <div className="alert" style={{ background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412' }}>
+                      {t('sc.adminOnly')}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <p style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: '0.78rem', color: 'var(--gray-500)', marginTop: 14, marginBottom: 0, lineHeight: 1.5 }}>
+                <ShieldCheck size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {t('sc.securityNote')}
+              </p>
+            </div>
+          )
+        })()}
 
         <div className="card">
           <h2>{t('profile.secContact')}</h2>
