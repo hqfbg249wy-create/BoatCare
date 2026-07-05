@@ -3,6 +3,7 @@
 // zur Laufzeit automatisch auf Deutsch zurück.
 export default {
   "en": {
+    "inq.mailPortalHint": "Note: Please reply ideally via the Skipily portal (provider.skipily.app) – this keeps the whole conversation in one place.",
     "nav.messages": "Messages",
     "msg.unknownProvider": "Provider",
     "msg.searchProvider": "Search provider…",
@@ -642,6 +643,7 @@ export default {
     "sail.position": "Position"
   },
   "fr": {
+    "inq.mailPortalHint": "Remarque : merci de répondre idéalement via le portail Skipily (provider.skipily.app) – ainsi tout l’échange reste au même endroit.",
     "nav.messages": "Messages",
     "msg.unknownProvider": "Prestataire",
     "msg.searchProvider": "Rechercher un prestataire…",
@@ -1281,6 +1283,7 @@ export default {
     "sail.position": "Position"
   },
   "it": {
+    "inq.mailPortalHint": "Nota: rispondi preferibilmente tramite il portale Skipily (provider.skipily.app) – così l’intera conversazione resta in un unico posto.",
     "nav.messages": "Messaggi",
     "msg.unknownProvider": "Fornitore",
     "msg.searchProvider": "Cerca fornitore…",
@@ -1920,6 +1923,7 @@ export default {
     "sail.position": "Posizione"
   },
   "es": {
+    "inq.mailPortalHint": "Nota: responde preferiblemente a través del portal de Skipily (provider.skipily.app) – así toda la conversación queda en un solo lugar.",
     "nav.messages": "Mensajes",
     "msg.unknownProvider": "Proveedor",
     "msg.searchProvider": "Buscar proveedor…",
@@ -2559,6 +2563,7 @@ export default {
     "sail.position": "Posición"
   },
   "nl": {
+    "inq.mailPortalHint": "Let op: reageer bij voorkeur via het Skipily-portaal (provider.skipily.app) – zo blijft het hele gesprek op één plek.",
     "nav.messages": "Berichten",
     "msg.unknownProvider": "Aanbieder",
     "msg.searchProvider": "Aanbieder zoeken…",

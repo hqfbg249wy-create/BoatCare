@@ -684,6 +684,7 @@ export default {
   "msg.selectConversation": "Wähle eine Konversation.",
   "msg.noMessages": "Noch keine Nachrichten in dieser Konversation.",
   "msg.inputPlaceholder": "Nachricht schreiben…",
+  "inq.mailPortalHint": "Hinweis: Bitte antworte idealerweise direkt über das Skipily-Portal (provider.skipily.app) – so bleibt der gesamte Nachrichten-Verlauf an einem Ort.",
   "inq.searchEquip": "Ausrüstung suchen…",
   "inq.noEquipMatch": "Keine passende Ausrüstung gefunden.",
   "inq.selected": "ausgewählt",

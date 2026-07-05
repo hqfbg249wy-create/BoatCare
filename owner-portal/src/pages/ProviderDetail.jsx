@@ -753,7 +753,7 @@ export default function ProviderDetail() {
               {provider.email ? (
                 <a
                   className="btn-primary"
-                  href={`mailto:${provider.email}?subject=${encodeURIComponent(inquirySubject.trim())}&body=${encodeURIComponent(composeInquiryBody())}`}
+                  href={`mailto:${provider.email}?subject=${encodeURIComponent(inquirySubject.trim())}&body=${encodeURIComponent(composeInquiryBody() + '\n\n' + t('inq.mailPortalHint'))}`}
                   onClick={(e) => {
                     if (!inquirySubject.trim() || !inquiryMessage.trim()) { e.preventDefault(); alert(t('prov.k33')); return }
                     saveOrSendInquiry('send')
