@@ -3,6 +3,8 @@
 // zur Laufzeit automatisch auf Deutsch zurück.
 export default {
   "en": {
+    "msg.deleteConv": "Delete conversation",
+    "msg.deleteConfirm": "Really delete this conversation and all messages?",
     "profile.grpTeam": "Team",
     "profile.grpApi": "API & interface",
     "profile.grpPayments": "Payments & appearance",
@@ -751,6 +753,8 @@ export default {
     "pf.cGB": "Great Britain"
   },
   "fr": {
+    "msg.deleteConv": "Supprimer la conversation",
+    "msg.deleteConfirm": "Supprimer vraiment cette conversation et tous les messages ?",
     "profile.grpTeam": "Équipe",
     "profile.grpApi": "API & interface",
     "profile.grpPayments": "Paiements & présentation",
@@ -1499,6 +1503,8 @@ export default {
     "pf.cGB": "Grande-Bretagne"
   },
   "it": {
+    "msg.deleteConv": "Elimina conversazione",
+    "msg.deleteConfirm": "Eliminare davvero questa conversazione e tutti i messaggi?",
     "profile.grpTeam": "Team",
     "profile.grpApi": "API & interfaccia",
     "profile.grpPayments": "Pagamenti & aspetto",
@@ -2247,6 +2253,8 @@ export default {
     "pf.cGB": "Gran Bretagna"
   },
   "es": {
+    "msg.deleteConv": "Eliminar conversación",
+    "msg.deleteConfirm": "¿Eliminar esta conversación y todos los mensajes?",
     "profile.grpTeam": "Equipo",
     "profile.grpApi": "API e interfaz",
     "profile.grpPayments": "Pagos y presentación",
@@ -2995,6 +3003,8 @@ export default {
     "pf.cGB": "Gran Bretaña"
   },
   "nl": {
+    "msg.deleteConv": "Gesprek verwijderen",
+    "msg.deleteConfirm": "Dit gesprek en alle berichten echt verwijderen?",
     "profile.grpTeam": "Team",
     "profile.grpApi": "API & koppeling",
     "profile.grpPayments": "Betalingen & weergave",

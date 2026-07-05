@@ -3,6 +3,13 @@
 // zur Laufzeit automatisch auf Deutsch zurück.
 export default {
   "en": {
+    "inq.shipLocation": "Boat location",
+    "inq.sendLocation": "Send current location",
+    "inq.locating": "Getting location…",
+    "inq.locationError": "Could not get location:",
+    "inq.remove": "Remove",
+    "inq.showMap": "Show on map",
+    "inq.locationHint": "Optional – helps the provider find your boat (e.g. for on-site service).",
     "inq.mailPortalHint": "Note: Please reply ideally via the Skipily portal (provider.skipily.app) – this keeps the whole conversation in one place.",
     "nav.messages": "Messages",
     "msg.unknownProvider": "Provider",
@@ -643,6 +650,13 @@ export default {
     "sail.position": "Position"
   },
   "fr": {
+    "inq.shipLocation": "Position du bateau",
+    "inq.sendLocation": "Envoyer la position actuelle",
+    "inq.locating": "Localisation…",
+    "inq.locationError": "Position introuvable :",
+    "inq.remove": "Retirer",
+    "inq.showMap": "Voir sur la carte",
+    "inq.locationHint": "Facultatif – aide le prestataire à trouver votre bateau (p. ex. pour un service sur place).",
     "inq.mailPortalHint": "Remarque : merci de répondre idéalement via le portail Skipily (provider.skipily.app) – ainsi tout l’échange reste au même endroit.",
     "nav.messages": "Messages",
     "msg.unknownProvider": "Prestataire",
@@ -1283,6 +1297,13 @@ export default {
     "sail.position": "Position"
   },
   "it": {
+    "inq.shipLocation": "Posizione della barca",
+    "inq.sendLocation": "Invia posizione attuale",
+    "inq.locating": "Rilevamento posizione…",
+    "inq.locationError": "Impossibile rilevare la posizione:",
+    "inq.remove": "Rimuovi",
+    "inq.showMap": "Mostra sulla mappa",
+    "inq.locationHint": "Facoltativo – aiuta il fornitore a trovare la tua barca (es. per assistenza in loco).",
     "inq.mailPortalHint": "Nota: rispondi preferibilmente tramite il portale Skipily (provider.skipily.app) – così l’intera conversazione resta in un unico posto.",
     "nav.messages": "Messaggi",
     "msg.unknownProvider": "Fornitore",
@@ -1923,6 +1944,13 @@ export default {
     "sail.position": "Posizione"
   },
   "es": {
+    "inq.shipLocation": "Ubicación del barco",
+    "inq.sendLocation": "Enviar ubicación actual",
+    "inq.locating": "Obteniendo ubicación…",
+    "inq.locationError": "No se pudo obtener la ubicación:",
+    "inq.remove": "Quitar",
+    "inq.showMap": "Ver en el mapa",
+    "inq.locationHint": "Opcional – ayuda al proveedor a encontrar tu barco (p. ej. para servicio in situ).",
     "inq.mailPortalHint": "Nota: responde preferiblemente a través del portal de Skipily (provider.skipily.app) – así toda la conversación queda en un solo lugar.",
     "nav.messages": "Mensajes",
     "msg.unknownProvider": "Proveedor",
@@ -2563,6 +2591,13 @@ export default {
     "sail.position": "Posición"
   },
   "nl": {
+    "inq.shipLocation": "Locatie van de boot",
+    "inq.sendLocation": "Huidige locatie sturen",
+    "inq.locating": "Locatie ophalen…",
+    "inq.locationError": "Locatie kon niet worden bepaald:",
+    "inq.remove": "Verwijderen",
+    "inq.showMap": "Op kaart tonen",
+    "inq.locationHint": "Optioneel – helpt de aanbieder je boot te vinden (bijv. voor service ter plaatse).",
     "inq.mailPortalHint": "Let op: reageer bij voorkeur via het Skipily-portaal (provider.skipily.app) – zo blijft het hele gesprek op één plek.",
     "nav.messages": "Berichten",
     "msg.unknownProvider": "Aanbieder",

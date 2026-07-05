@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import { supabase } from '../lib/supabase'
-import { MessageSquare, Send, Search, Sparkles, Loader } from 'lucide-react'
+import { MessageSquare, Send, Search, Sparkles, Loader, Trash2 } from 'lucide-react'
 import { useT } from '../i18n'
 
 export default function Messages() {
@@ -221,6 +221,17 @@ export default function Messages() {
     }
   }
 
+  async function deleteConversation() {
+    if (!selected) return
+    if (!confirm(t('msg.deleteConfirm'))) return
+    // Konversation löschen → Nachrichten werden per ON DELETE CASCADE mitentfernt.
+    const { error } = await supabase.from('conversations').delete().eq('id', selected.id)
+    if (error) { alert(t('common.errorPrefix') + ' ' + error.message); return }
+    setSelected(null)
+    setMessages([])
+    loadConversations()
+  }
+
   function getUserName(conv) {
     if (conv.profiles?.full_name) return conv.profiles.full_name
     if (conv.profiles?.username) return conv.profiles.username
@@ -305,8 +316,12 @@ export default function Messages() {
             </div>
           ) : (
             <>
-              <div className="chat-header">
+              <div className="chat-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <strong>{getUserName(selected)}</strong>
+                <button onClick={deleteConversation} title={t('msg.deleteConv')}
+                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 4, display: 'inline-flex' }}>
+                  <Trash2 size={16} />
+                </button>
               </div>
               <div className="chat-messages">
                 {messages.length === 0 ? (

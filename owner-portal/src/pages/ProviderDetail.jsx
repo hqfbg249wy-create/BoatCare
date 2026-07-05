@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import { getCurrentLocation } from '../lib/geo'
 import { Heart, MapPin, Phone, Mail, Globe, Star, Navigation, Tag, Clock, ChevronLeft, ShoppingBag, Wrench, Package, Pencil, Trash2, Send, X, MessageSquarePlus } from 'lucide-react'
 import { useT } from '../i18n'
 import { translateProviders, translateProducts, isTranslatableLang } from '../lib/dbTranslate'
@@ -89,6 +90,20 @@ export default function ProviderDetail() {
   const [boatEquipment, setBoatEquipment] = useState([])
   const [selectedEquipIds, setSelectedEquipIds] = useState([])
   const [equipSearch, setEquipSearch] = useState('')
+  const [shipLocation, setShipLocation] = useState(null) // { lat, lon }
+  const [locating, setLocating] = useState(false)
+
+  async function attachShipLocation() {
+    setLocating(true)
+    try {
+      const { lat, lon } = await getCurrentLocation()
+      setShipLocation({ lat, lon })
+    } catch (err) {
+      alert(t('inq.locationError') + ' ' + (err.message || ''))
+    } finally {
+      setLocating(false)
+    }
+  }
 
   useEffect(() => {
     if (user && id) { loadProvider(); loadBoats() }
@@ -282,6 +297,11 @@ export default function ProviderDetail() {
         return `• ${e.name}${d ? ' (' + d + ')' : ''}${sn}`
       }).join('\n'))
     }
+    if (shipLocation) {
+      parts.push('\n' + t('inq.shipLocation') + ':\n'
+        + `• ${shipLocation.lat.toFixed(5)}, ${shipLocation.lon.toFixed(5)}\n`
+        + `• https://maps.google.com/?q=${shipLocation.lat},${shipLocation.lon}`)
+    }
     return parts.filter(Boolean).join('\n')
   }
 
@@ -290,6 +310,7 @@ export default function ProviderDetail() {
     setInquiryMessage('')
     setInquiryBoatId('')
     setInquiryNotes('')
+    setShipLocation(null)
     setShowInquiryForm(true)
   }
 
@@ -728,6 +749,21 @@ export default function ProviderDetail() {
                   </div>
                 )
               })()}
+              <div className="form-group">
+                <label>{t('inq.shipLocation')}</label>
+                {shipLocation ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 14 }}>📍 {shipLocation.lat.toFixed(5)}, {shipLocation.lon.toFixed(5)}</span>
+                    <a href={`https://maps.google.com/?q=${shipLocation.lat},${shipLocation.lon}`} target="_blank" rel="noopener" style={{ fontSize: 13 }}>{t('inq.showMap')}</a>
+                    <button type="button" className="btn-ghost" onClick={() => setShipLocation(null)}>{t('inq.remove')}</button>
+                  </div>
+                ) : (
+                  <button type="button" className="btn-secondary" onClick={attachShipLocation} disabled={locating} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <MapPin size={14} /> {locating ? t('inq.locating') : t('inq.sendLocation')}
+                  </button>
+                )}
+                <p className="form-label-hint" style={{ marginTop: 4, fontSize: 12, color: '#94a3b8' }}>{t('inq.locationHint')}</p>
+              </div>
               <div className="form-group">
                 <label>{t('prov.k20')}</label>
                 <input

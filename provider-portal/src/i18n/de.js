@@ -251,6 +251,8 @@ export default {
   'msg.noConversations': 'Keine Konversationen',
   'msg.selectConversation': 'Wählen Sie eine Konversation',
   'msg.noMessages': 'Noch keine Nachrichten',
+  'msg.deleteConv': 'Konversation löschen',
+  'msg.deleteConfirm': 'Diese Konversation und alle Nachrichten wirklich löschen?',
   'msg.aiSuggestTitle': 'KI-Antwort vorschlagen (verbraucht 1 Call aus deinem Pro-/Enterprise-Kontingent)',
   'msg.generating': 'Generiere…',
   'msg.aiReply': 'KI-Antwort',
