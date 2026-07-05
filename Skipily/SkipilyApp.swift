@@ -61,6 +61,17 @@ struct SkipilyApp: App {
                 .environmentObject(favoritesManager)
                 .environment(cartManager)
                 .languageAware()
+                // Deep-Link-Handler fuer Supabase-Auth-Callbacks. Nach
+                // E-Mail-Bestaetigung oder Passwort-Reset springt Safari
+                // auf skipily://auth/callback?... zurueck — iOS oeffnet
+                // die App und liefert die URL hier ab. Wir reichen sie
+                // an supabase.auth.session(from:) weiter, das den Token
+                // aus den Query-Params extrahiert und die Session setzt.
+                .onOpenURL { url in
+                    Task {
+                        await authService.handleDeepLink(url)
+                    }
+                }
         }
     }
 }
@@ -129,23 +140,8 @@ struct SplashView: View {
             // Deep navy background for brand feel
             Color(hex: 0x050D18).ignoresSafeArea()
 
-            VStack(spacing: 24) {
-                Spacer()
-
-                SkipilyLogoView(
-                    style: .dark,
-                    layout: .vertical,
-                    iconSize: 120,
-                    showSlogan: true,
-                    showSubtitle: true
-                )
-
-                Spacer()
-
-                ProgressView()
-                    .tint(.white.opacity(0.5))
-                    .padding(.bottom, 60)
-            }
+            // Nur das Logo — kein Slogan, kein Subtitle, kein Spinner
+            SkipilyLogoIcon(size: 140)
         }
         .preferredColorScheme(.dark)
     }

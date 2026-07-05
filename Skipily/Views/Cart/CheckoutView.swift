@@ -597,7 +597,7 @@ struct CheckoutView: View {
             // werfen sie NICHT weg — der User kann die Zahlung jederzeit
             // ueber Bestellungen → Detail → "Jetzt bezahlen" nachholen.
             // Klare Botschaft, damit er den Weg findet.
-            errorMessage = "Zahlung abgebrochen. Deine Bestellung wurde angelegt (Status „Ausstehend"). Du kannst die Zahlung jederzeit unter „Bestellungen" abschließen — bis dahin wird sie vom Verkäufer nicht bearbeitet."
+            errorMessage = "Zahlung abgebrochen. Deine Bestellung wurde angelegt (Status \u{201E}Ausstehend\u{201C}). Du kannst die Zahlung jederzeit unter \u{201E}Bestellungen\u{201C} abschließen — bis dahin wird sie vom Verkäufer nicht bearbeitet."
 
         case .failed(let error):
             try? await PaymentService.shared.failPayment(orderIds: orderIds)

@@ -324,11 +324,23 @@ export default function ProviderDetail() {
             .upsert({ user_id: user.id, provider_id: id }, { onConflict: 'user_id,provider_id' })
             .select('id').single()
           if (conv) {
-            await supabase.from('messages').insert({
+            const { data: firstMsg } = await supabase.from('messages').insert({
               conversation_id: conv.id, sender_id: user.id, sender_type: 'user',
               content: `${inquirySubject.trim()}\n\n${fullMessage}`,
-            })
+            }).select('id').single()
             await supabase.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conv.id)
+            // Provider serverseitig per E-Mail benachrichtigen (Resend, mit Portal-Hinweis)
+            if (firstMsg) {
+              try {
+                const { data: { session } } = await supabase.auth.getSession()
+                const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
+                await fetch(`${supabaseUrl}/functions/v1/notify-message`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+                  body: JSON.stringify({ message_id: firstMsg.id }),
+                })
+              } catch (notifyErr) { console.warn('notify-message:', notifyErr) }
+            }
           }
         } catch (convErr) { console.warn('Konversation anlegen:', convErr) }
         // Das mailto öffnet der „Per E-Mail senden"-Link SELBST als Nutzer-Geste

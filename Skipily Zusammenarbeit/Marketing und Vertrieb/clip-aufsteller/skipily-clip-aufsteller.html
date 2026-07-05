@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skipily Clip — Marina Tresen-Aufsteller (3-seitig, Pappfalt A4)</title>
+
+<!--
+  ════════════════════════════════════════════════════════════════════
+  PAPP-FALT-AUFSTELLER — Dreieck-Prisma "Toblerone"
+  ════════════════════════════════════════════════════════════════════
+
+  Druckformat:   A4 quer (297 × 210 mm) — ZWEI Bögen
+  Material:      300–350 g/m² Karton matt
+  Faces:         3 × 95 mm breit × 200 mm hoch
+  Klebe-Lasche:  12 mm rechts → auf die Innenseite des linken Panels
+
+  Zwei Varianten (je ein A4-Bogen):
+    BOGEN 1 — Nordsee/Atlantik:   NL · EN · DE
+    BOGEN 2 — Mittelmeer/Romanik: FR · ES · IT
+
+  Aufbau pro Seite (Hierarchie):
+    1. SKIPILY-Logo + Wortmarke
+    2. Englischer Slogan        "Always · Safe · Ready to Sail"
+    3. Call-to-Action GROSS     in der jeweiligen Hauptsprache
+    4. QR-Code                  → skipily.app/clip
+                                  iPhone = App Clip · Andere = Web
+    5. Hinweis auf Kameranutzung in der jeweiligen Hauptsprache
+    6. Die fünf anderen Sprachen klein darunter
+    7. Footer                   skipily.app/clip
+
+  Assembly:
+    1. Druck auf 300–350 g/m² Karton, A4 quer, randlos
+    2. Mit Cutter 3 senkrechte Strichlinien anritzen (nicht durchschneiden)
+    3. Knicken entlang der Anritze
+    4. Klebe-Lasche rechts (gestreifte Fläche) auf die Innenseite des
+       linken Panels kleben → Dreieck schließt sich
+  ════════════════════════════════════════════════════════════════════
+-->
+
+<style>
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #fff; }
+  body {
+    font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+    color: #0B1D3A;
+  }
+
+  .sheet {
+    width: 297mm;
+    height: 210mm;
+    display: flex;
+    align-items: stretch;
+    background: #fff;
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .sheet:last-child { page-break-after: auto; }
+
+  /* 3 × 95mm = 285mm + Klebe-Lasche 12mm = 297mm */
+  .panel {
+    width: 95mm;
+    height: 200mm;
+    padding: 6mm 5mm 6mm;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background: linear-gradient(180deg, #ffffff 0%, #fff7ec 100%);
+    position: relative;
+    border-right: 0.4mm dashed #cbd5e1;
+    margin-top: 5mm;
+  }
+
+  .glue-tab {
+    width: 12mm;
+    height: 200mm;
+    margin-top: 5mm;
+    background: repeating-linear-gradient(
+      45deg,
+      #e0f2fe 0 2mm,
+      #ffffff 2mm 4mm
+    );
+    border-left: 0.4mm dashed #cbd5e1;
+    color: #0369a1;
+    font-size: 2.2mm;
+    letter-spacing: 0.2mm;
+    writing-mode: vertical-rl;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .glue-tab span { transform: rotate(180deg); opacity: 0.7; }
+
+  /* ────────── Kopf: SKIPILY + Slogan ────────── */
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5mm;
+    margin-bottom: 3mm;
+  }
+  .header img.icon {
+    width: 32mm;
+    height: 32mm;
+    border-radius: 7mm;
+  }
+  .wordmark {
+    font-weight: 800;
+    font-size: 11mm;
+    letter-spacing: 2mm;
+    color: #0B1D3A;
+    line-height: 1;
+  }
+  .slogan {
+    font-size: 3.2mm;
+    font-weight: 600;
+    color: #f97316;
+    letter-spacing: 0.8mm;
+    text-transform: uppercase;
+    margin-top: 0.8mm;
+  }
+
+  /* ────────── Flaggen als Inline-SVG (druckscharf!) ──────────
+     Default-Größe für ALLE .fi — sonst nehmen ungeklemmte
+     SVGs ihre Browser-Default-Größe (riesig) an. Spezifischere
+     Selektoren unten überschreiben für Panel + Liste.
+     KEIN Rand mehr — sah aus wie Briefmarken-Zähnung.            */
+  svg.fi {
+    height: 3mm;
+    display: inline-block;
+    vertical-align: middle;
+  }
+  /* Jede Flagge braucht ihr eigenes Seitenverhältnis, sonst kollabiert
+     die Breite des äußeren <svg> auf 0 (es hat kein eigenes viewBox).  */
+  svg.fi-de { aspect-ratio: 5 / 3; }   /* Deutschland     */
+  svg.fi-gb { aspect-ratio: 2 / 1; }   /* Großbritannien  */
+  svg.fi-fr { aspect-ratio: 3 / 2; }   /* Frankreich      */
+  svg.fi-it { aspect-ratio: 3 / 2; }   /* Italien         */
+  svg.fi-es { aspect-ratio: 3 / 2; }   /* Spanien         */
+  svg.fi-nl { aspect-ratio: 3 / 2; }   /* Niederlande     */
+
+  .flag {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 7mm;
+    margin: 2mm 0 1.5mm;
+  }
+  .flag svg.fi {
+    height: 7mm;
+    display: block;
+    box-shadow: 0 0.2mm 0.6mm rgba(0,0,0,0.18);
+  }
+  .others .row .f svg.fi {
+    height: 2.4mm;
+    display: block;
+    margin: 0;
+  }
+  .cta {
+    font-weight: 800;
+    font-size: 5.2mm;
+    line-height: 1.15;
+    color: #0B1D3A;
+    margin-bottom: 4mm;
+    hyphens: auto;
+    word-break: break-word;
+    max-width: 82mm;
+  }
+
+  /* ────────── QR-Code ────────── */
+  .qr {
+    width: 38mm;
+    height: 38mm;
+    padding: 2mm;
+    background: #fff;
+    border: 0.4mm solid #e5e7eb;
+    border-radius: 2.3mm;
+    box-shadow: 0 0.5mm 1.5mm rgba(0,0,0,0.07);
+    margin-bottom: 2.5mm;
+  }
+  .qr img { width: 100%; height: 100%; display: block; }
+
+  /* ────────── Kamera-Hinweis (klein, Hauptsprache) ────────── */
+  .hint {
+    font-size: 2.7mm;
+    color: #0B1D3A;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 0.5mm;
+    max-width: 82mm;
+  }
+  .hint .hint-sub {
+    display: block;
+    font-weight: 500;
+    color: #475569;
+    margin-top: 0.5mm;
+    font-size: 2.4mm;
+  }
+
+  /* ────────── Die fünf anderen Sprachen ──────────
+     Grid → Flaggen-Spalte fester Slot links, Texte fluchten sauber.
+     Füllt die untere Hälfte des Aufstellers; deutlich größer als
+     vorher, gleichmäßig verteilt.                                  */
+  .others {
+    width: 84mm;
+    flex: 1;                    /* nimmt den freien Raum unten ein */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    margin-top: 5mm;
+    padding-top: 4mm;
+    border-top: 0.3mm solid #e5e7eb;
+  }
+  .others .row {
+    display: grid;
+    grid-template-columns: 10mm 1fr;
+    align-items: center;
+    gap: 3mm;
+    font-size: 4mm;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #334155;
+    text-align: left;
+  }
+  .others .row .f {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .others .row .f svg.fi {
+    height: 4mm;
+  }
+  .others .row .t {
+    color: #334155;
+  }
+
+  /* ────────── Footer ────────── */
+  .footer {
+    position: absolute;
+    bottom: 3mm;
+    left: 0; right: 0;
+    font-size: 2.2mm;
+    color: #94a3b8;
+    letter-spacing: 0.4mm;
+    font-weight: 600;
+  }
+
+  /* ────────── Bildschirm-Vorschau ────────── */
+  @media screen {
+    body { padding: 24px; background: #f1f5f9; }
+    .sheet {
+      box-shadow: 0 6px 30px rgba(0,0,0,0.12);
+      margin: 0 auto 30px;
+    }
+    .preview-note {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      font: 12px/1.4 -apple-system, sans-serif;
+      background: #0B1D3A;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 10;
+      max-width: 320px;
+    }
+    .preview-note b { color: #fdba74; }
+    .preview-note hr { border: 0; border-top: 1px solid rgba(255,255,255,0.2); margin: 6px 0; }
+  }
+  @media print {
+    .preview-note { display: none; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════════════════════════
+       FLAGGEN als SVG-Symbole — werden per <use> in den Panels
+       wiederverwendet. Vektor = bleibt im PDF gestochen scharf,
+       auch bei kleinen Größen (2,6 mm in der Liste der anderen
+       Sprachen).
+       ════════════════════════════════════════════════════════════ -->
+  <svg style="position:absolute; width:0; height:0; overflow:hidden" aria-hidden="true">
+    <defs>
+      <!-- Deutschland 5:3 — Schwarz · Rot · Gold -->
+      <symbol id="fl-de" viewBox="0 0 5 3">
+        <rect width="5" height="1" fill="#000000"/>
+        <rect width="5" height="1" y="1" fill="#DD0000"/>
+        <rect width="5" height="1" y="2" fill="#FFCE00"/>
+      </symbol>
+
+      <!-- Großbritannien 60:30 — Union Jack -->
+      <symbol id="fl-gb" viewBox="0 0 60 30">
+        <clipPath id="ujt">
+          <path d="M30,15h30v15zv15h-30zh-30v-15zv-15h30z"/>
+        </clipPath>
+        <rect width="60" height="30" fill="#012169"/>
+        <path d="M0,0L60,30M60,0L0,30" stroke="#FFFFFF" stroke-width="6"/>
+        <path d="M0,0L60,30M60,0L0,30" clip-path="url(#ujt)" stroke="#C8102E" stroke-width="4"/>
+        <path d="M30,0V30M0,15H60" stroke="#FFFFFF" stroke-width="10"/>
+        <path d="M30,0V30M0,15H60" stroke="#C8102E" stroke-width="6"/>
+      </symbol>
+
+      <!-- Frankreich 3:2 — Blau · Weiß · Rot (vertikal) -->
+      <symbol id="fl-fr" viewBox="0 0 3 2">
+        <rect width="1" height="2" fill="#002654"/>
+        <rect width="1" height="2" x="1" fill="#FFFFFF"/>
+        <rect width="1" height="2" x="2" fill="#ED2939"/>
+      </symbol>
+
+      <!-- Italien 3:2 — Grün · Weiß · Rot (vertikal) -->
+      <symbol id="fl-it" viewBox="0 0 3 2">
+        <rect width="1" height="2" fill="#009246"/>
+        <rect width="1" height="2" x="1" fill="#FFFFFF"/>
+        <rect width="1" height="2" x="2" fill="#CE2B37"/>
+      </symbol>
+
+      <!-- Spanien 3:2 — Rot · Gelb (doppelt) · Rot (horizontal) -->
+      <symbol id="fl-es" viewBox="0 0 3 2">
+        <rect width="3" height="0.5" fill="#AA151B"/>
+        <rect width="3" height="1" y="0.5" fill="#F1BF00"/>
+        <rect width="3" height="0.5" y="1.5" fill="#AA151B"/>
+      </symbol>
+
+      <!-- Niederlande 3:2 — Rot · Weiß · Blau (horizontal) -->
+      <symbol id="fl-nl" viewBox="0 0 3 2">
+        <rect width="3" height="0.6667" fill="#AE1C28"/>
+        <rect width="3" height="0.6666" y="0.6667" fill="#FFFFFF"/>
+        <rect width="3" height="0.6667" y="1.3333" fill="#21468B"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <div class="preview-note">
+    <b>Druck:</b> A4 quer, 300–350 g/m² Karton matt<br>
+    3 × 95 mm × 200 mm Dreieck-Prisma
+    <hr>
+    <b>Bogen 1 (Nordsee):</b> <svg class="fi fi-nl"><use href="#fl-nl"/></svg> <svg class="fi fi-gb"><use href="#fl-gb"/></svg> <svg class="fi fi-de"><use href="#fl-de"/></svg><br>
+    <b>Bogen 2 (Mittelmeer):</b> <svg class="fi fi-fr"><use href="#fl-fr"/></svg> <svg class="fi fi-es"><use href="#fl-es"/></svg> <svg class="fi fi-it"><use href="#fl-it"/></svg>
+    <hr>
+    Reihenfolge pro Seite: SKIPILY → Slogan → CTA groß
+    → QR → Kamera-Hinweis → 5 andere Sprachen klein
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       BOGEN 1 — NORDSEE/ATLANTIK: NL · EN · DE
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="sheet">
+
+    <!-- NEDERLANDS ──────────────────────────────────── -->
+    <div class="panel">
+      <div class="header">
+        <img class="icon" src="skipily-icon.png" alt="">
+        <div class="wordmark">SKIPILY</div>
+        <div class="slogan">Always · Safe · Ready to Sail</div>
+      </div>
+
+      <div class="flag"><svg class="fi fi-nl"><use href="#fl-nl"/></svg></div>
+      <div class="cta">Botenservice in de buurt</div>
+
+      <div class="qr"><img src="skipily-clip-qr.svg" alt="Skipily QR Code"></div>
+
+      <div class="hint">
+        📷 Scan met je camera
+        <span class="hint-sub">iPhone opent de Skipily-Clip · Android de webversie. Geen installatie nodig.</span>
+      </div>
+
+      <div class="others">
+        <div class="row"><span class="f"><svg class="fi fi-gb"><use href="#fl-gb"/></svg></span><span class="t">Marine services nearby</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-de"><use href="#fl-de"/></svg></span><span class="t">Bootsservice in der Nähe</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-fr"><use href="#fl-fr"/></svg></span><span class="t">Services nautiques à proximité</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-es"><use href="#fl-es"/></svg></span><span class="t">Servicios náuticos cercanos</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-it"><use href="#fl-it"/></svg></span><span class="t">Servizi nautici vicini</span></div>
+      </div>
+
+      <div class="footer">skipily.app/clip</div>
+    </div>
+
+    <!-- ENGLISH ──────────────────────────────────── -->
+    <div class="panel">
+      <div class="header">
+        <img class="icon" src="skipily-icon.png" alt="">
+        <div class="wordmark">SKIPILY</div>
+        <div class="slogan">Always · Safe · Ready to Sail</div>
+      </div>
+
+      <div class="flag"><svg class="fi fi-gb"><use href="#fl-gb"/></svg></div>
+      <div class="cta">Marine services nearby</div>
+
+      <div class="qr"><img src="skipily-clip-qr.svg" alt="Skipily QR Code"></div>
+
+      <div class="hint">
+        📷 Scan with your camera
+        <span class="hint-sub">iPhone opens the Skipily Clip · Android the web version. No install needed.</span>
+      </div>
+
+      <div class="others">
+        <div class="row"><span class="f"><svg class="fi fi-de"><use href="#fl-de"/></svg></span><span class="t">Bootsservice in der Nähe</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-nl"><use href="#fl-nl"/></svg></span><span class="t">Botenservice in de buurt</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-fr"><use href="#fl-fr"/></svg></span><span class="t">Services nautiques à proximité</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-es"><use href="#fl-es"/></svg></span><span class="t">Servicios náuticos cercanos</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-it"><use href="#fl-it"/></svg></span><span class="t">Servizi nautici vicini</span></div>
+      </div>
+
+      <div class="footer">skipily.app/clip</div>
+    </div>
+
+    <!-- DEUTSCH ──────────────────────────────────── -->
+    <div class="panel">
+      <div class="header">
+        <img class="icon" src="skipily-icon.png" alt="">
+        <div class="wordmark">SKIPILY</div>
+        <div class="slogan">Always · Safe · Ready to Sail</div>
+      </div>
+
+      <div class="flag"><svg class="fi fi-de"><use href="#fl-de"/></svg></div>
+      <div class="cta">Bootsservice in der Nähe</div>
+
+      <div class="qr"><img src="skipily-clip-qr.svg" alt="Skipily QR Code"></div>
+
+      <div class="hint">
+        📷 Mit der Kamera scannen
+        <span class="hint-sub">iPhone öffnet den Skipily-Clip · Android die Web-Version. Ohne Installation.</span>
+      </div>
+
+      <div class="others">
+        <div class="row"><span class="f"><svg class="fi fi-gb"><use href="#fl-gb"/></svg></span><span class="t">Marine services nearby</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-nl"><use href="#fl-nl"/></svg></span><span class="t">Botenservice in de buurt</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-fr"><use href="#fl-fr"/></svg></span><span class="t">Services nautiques à proximité</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-es"><use href="#fl-es"/></svg></span><span class="t">Servicios náuticos cercanos</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-it"><use href="#fl-it"/></svg></span><span class="t">Servizi nautici vicini</span></div>
+      </div>
+
+      <div class="footer">skipily.app/clip</div>
+    </div>
+
+    <div class="glue-tab">
+      <span>HIER KLEBEN · GLUE HERE · COLLER ICI</span>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       BOGEN 2 — MITTELMEER/ROMANIK: FR · ES · IT
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="sheet">
+
+    <!-- FRANÇAIS ──────────────────────────────────── -->
+    <div class="panel">
+      <div class="header">
+        <img class="icon" src="skipily-icon.png" alt="">
+        <div class="wordmark">SKIPILY</div>
+        <div class="slogan">Always · Safe · Ready to Sail</div>
+      </div>
+
+      <div class="flag"><svg class="fi fi-fr"><use href="#fl-fr"/></svg></div>
+      <div class="cta">Services nautiques à proximité</div>
+
+      <div class="qr"><img src="skipily-clip-qr.svg" alt="Skipily QR Code"></div>
+
+      <div class="hint">
+        📷 Scannez avec l'appareil photo
+        <span class="hint-sub">iPhone ouvre le Skipily Clip · Android la version web. Sans installation.</span>
+      </div>
+
+      <div class="others">
+        <div class="row"><span class="f"><svg class="fi fi-es"><use href="#fl-es"/></svg></span><span class="t">Servicios náuticos cercanos</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-it"><use href="#fl-it"/></svg></span><span class="t">Servizi nautici vicini</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-gb"><use href="#fl-gb"/></svg></span><span class="t">Marine services nearby</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-de"><use href="#fl-de"/></svg></span><span class="t">Bootsservice in der Nähe</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-nl"><use href="#fl-nl"/></svg></span><span class="t">Botenservice in de buurt</span></div>
+      </div>
+
+      <div class="footer">skipily.app/clip</div>
+    </div>
+
+    <!-- ESPAÑOL ──────────────────────────────────── -->
+    <div class="panel">
+      <div class="header">
+        <img class="icon" src="skipily-icon.png" alt="">
+        <div class="wordmark">SKIPILY</div>
+        <div class="slogan">Always · Safe · Ready to Sail</div>
+      </div>
+
+      <div class="flag"><svg class="fi fi-es"><use href="#fl-es"/></svg></div>
+      <div class="cta">Servicios náuticos cercanos</div>
+
+      <div class="qr"><img src="skipily-clip-qr.svg" alt="Skipily QR Code"></div>
+
+      <div class="hint">
+        📷 Escanea con la cámara
+        <span class="hint-sub">iPhone abre el Skipily Clip · Android la versión web. Sin instalar nada.</span>
+      </div>
+
+      <div class="others">
+        <div class="row"><span class="f"><svg class="fi fi-fr"><use href="#fl-fr"/></svg></span><span class="t">Services nautiques à proximité</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-it"><use href="#fl-it"/></svg></span><span class="t">Servizi nautici vicini</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-gb"><use href="#fl-gb"/></svg></span><span class="t">Marine services nearby</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-de"><use href="#fl-de"/></svg></span><span class="t">Bootsservice in der Nähe</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-nl"><use href="#fl-nl"/></svg></span><span class="t">Botenservice in de buurt</span></div>
+      </div>
+
+      <div class="footer">skipily.app/clip</div>
+    </div>
+
+    <!-- ITALIANO ──────────────────────────────────── -->
+    <div class="panel">
+      <div class="header">
+        <img class="icon" src="skipily-icon.png" alt="">
+        <div class="wordmark">SKIPILY</div>
+        <div class="slogan">Always · Safe · Ready to Sail</div>
+      </div>
+
+      <div class="flag"><svg class="fi fi-it"><use href="#fl-it"/></svg></div>
+      <div class="cta">Servizi nautici vicini</div>
+
+      <div class="qr"><img src="skipily-clip-qr.svg" alt="Skipily QR Code"></div>
+
+      <div class="hint">
+        📷 Inquadra con la fotocamera
+        <span class="hint-sub">iPhone apre lo Skipily Clip · Android la versione web. Senza installazione.</span>
+      </div>
+
+      <div class="others">
+        <div class="row"><span class="f"><svg class="fi fi-fr"><use href="#fl-fr"/></svg></span><span class="t">Services nautiques à proximité</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-es"><use href="#fl-es"/></svg></span><span class="t">Servicios náuticos cercanos</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-gb"><use href="#fl-gb"/></svg></span><span class="t">Marine services nearby</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-de"><use href="#fl-de"/></svg></span><span class="t">Bootsservice in der Nähe</span></div>
+        <div class="row"><span class="f"><svg class="fi fi-nl"><use href="#fl-nl"/></svg></span><span class="t">Botenservice in de buurt</span></div>
+      </div>
+
+      <div class="footer">skipily.app/clip</div>
+    </div>
+
+    <div class="glue-tab">
+      <span>HIER KLEBEN · GLUE HERE · COLLER ICI</span>
+    </div>
+
+  </div>
+
+</body>
+</html>

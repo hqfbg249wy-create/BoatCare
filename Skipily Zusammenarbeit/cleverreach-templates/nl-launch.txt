@@ -1,0 +1,84 @@
+SKIPILY — ALWAYS · SAFE · READY TO SAIL
+=========================================
+
+Hallo {$company},
+
+Booteigenaren in {$city} en omgeving zoeken precies wat u biedt —
+{$category}. Tot nu toe vonden ze u via zoekmachines,
+mond-tot-mondreclame of helemaal niet.
+
+Met Skipily verschijnt u op een kaart die booteigenaren direct op
+hun iPhone openen wanneer ze hulp nodig hebben voor hun boot —
+of het nu in hun thuishaven is of onderweg.
+
+
+HOE BOOTEIGENAREN U OP DE KAART VINDEN
+----------------------------------------
+Skipily toont werven, dienstverleners en shipchandlers
+direct rond de boot — een tik voor adres, reviews en een
+belknop.
+
+Meer over de app:  https://skipily.app
+
+
+WAT SKIPILY U OPLEVERT
+-----------------------
+
+📍 Locatiegebaseerde zichtbaarheid
+   Booteigenaren zien uw bedrijf zodra ze in uw regio naar service
+   zoeken — ook chartergasten en reizigers.
+
+⭐ Reviews waar klanten op vertrouwen
+   Echte reviews van echte booteigenaren — goed voor u, eerlijk
+   voor de klant.
+
+🛒 Optioneel: direct onderdelen verkopen
+   Start een mini-shop in uw profiel — Apple Pay ingebouwd,
+   uitbetaling via Stripe.
+
+📱 Gratis QR-display voor uw haven
+   Wij sturen u gratis gedrukte displays — schippers scannen ze
+   aan de steiger, zonder app-installatie.
+
+
+AI-MARKTANALYSE: WAT DE VLOOT IN UW REGIO NODIG HEEFT
+------------------------------------------------------
+In het provider-portaal geeft onze AI u geanonimiseerde inzichten in
+de Skipily-gebruikersvloot: welke boottypes en fabrikanten domineren,
+welke uitrusting veroudert en waar onderhoud binnenkort nodig is.
+Daaruit leidt de AI concrete aanbod-aanbevelingen af — zo weet u
+eerder dan wie dan ook welke diensten en onderdelen nu gevraagd zijn.
+
+
+CLAIM UW PROFIEL — GRATIS
+==========================
+In 2 minuten ingesteld, zonder verplichting.
+
+→ {$claim_url}
+
+Eerst de app bekijken?
+→ https://apps.apple.com/app/id6757314378
+
+
+HOE HET WERKT
+--------------
+1. Claim uw profiel (adres, diensten, logo, foto's)
+2. Booteigenaren vinden u direct op de kaart
+3. Optioneel: verkoop onderdelen en accessoires direct
+
+
+We linken ook naar uw website:
+{$website}
+
+
+---
+Skipily — Het botenservice-platform voor eigenaren en werven
+
+U ontvangt deze e-mail omdat u in onze database als
+botenservice-aanbieder vermeld staat. Dit bericht maakt deel uit
+van ons gerechtvaardigd belang in zakelijke branchecommunicatie
+volgens art. 6 (1) (f) AVG.
+
+Afmelden:  {$unsubscribe}
+Colofon:   https://skipily.app/impressum
+Privacy:   https://skipily.app/datenschutz

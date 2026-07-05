@@ -12,18 +12,21 @@ struct CartView: View {
     @State private var showCheckout = false
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if cartManager.isEmpty {
-                    emptyCartView
-                } else {
-                    cartContent
-                }
+        // Kein eigener NavigationStack — CartView wird vom umgebenden
+        // Shop-Tab in dessen NavigationStack gepusht. Ein verschachtelter
+        // Stack führt auf iPad dazu, dass die Sicht leer bleibt und der
+        // Checkout-Push nicht funktioniert.
+        Group {
+            if cartManager.isEmpty {
+                emptyCartView
+            } else {
+                cartContent
             }
-            .navigationTitle("cart.title".loc)
-            .navigationDestination(isPresented: $showCheckout) {
-                CheckoutView()
-            }
+        }
+        .navigationTitle("cart.title".loc)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $showCheckout) {
+            CheckoutView()
         }
     }
 

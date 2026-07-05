@@ -32,6 +32,18 @@ enum StripeConfig {
     /// Merchant display name shown in Payment Sheet.
     static let merchantDisplayName = "Skipily"
 
+    /// Apple-Pay-Merchant-ID. Muss im Apple Developer Console unter
+    /// "Identifiers → Merchant IDs" angelegt sein UND im Stripe Dashboard
+    /// (Settings → Payment methods → Apple Pay) hinterlegt werden. Die
+    /// gleiche ID muss zusaetzlich als Apple-Pay-Entitlement im
+    /// Skipily.entitlements stehen (Key
+    /// com.apple.developer.in-app-payments).
+    static let applePayMerchantIdentifier = "merchant.app.skipily"
+
+    /// ISO-3166-1-Alpha-2-Code des Plattform-Sitzlandes.
+    /// Wichtig fuer Apple Pay: muss zum Stripe-Account-Land passen.
+    static let merchantCountryCode = "DE"
+
     // Supabase Edge Function URLs for payment processing
     static var createPaymentIntentURL: URL {
         URL(string: "\(SupabaseConfig.url)/functions/v1/create-payment-intent")!

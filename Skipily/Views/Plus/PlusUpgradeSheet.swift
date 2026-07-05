@@ -385,6 +385,10 @@ struct PlusUpgradeSheet: View {
         do {
             _ = try await manager.purchase(product)
         } catch {
+            if PlusSubscriptionManager.isUserCancellation(error) {
+                // User hat das Apple Payment Sheet abgebrochen — kein Fehler anzeigen.
+                return
+            }
             purchaseError = "Kauf fehlgeschlagen: \(error.localizedDescription)"
         }
     }

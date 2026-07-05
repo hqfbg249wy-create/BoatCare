@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skipily — Portrait (EN)</title>
+<!--
+  Fonts per Brand Identity 2026:
+  - Bebas Neue          → SKIP
+  - Barlow Condensed 200 → ILY (light tail)
+  - Barlow Condensed 600 → Slogan
+  - Barlow 200           → Subline
+-->
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@200;300;400;600;700;800;900&family=Barlow:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:#0A1628;
+    --deep:#08192E;
+    --blue:#1870C0;
+    --sky:#38AAEA;
+    --orange:#F56200;
+    --amber:#FF8B20;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    background:var(--navy);
+    font-family:'Barlow',sans-serif;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:40px 20px;
+  }
+  .card{
+    width:100%;
+    max-width:1024px;
+    aspect-ratio: 1024 / 1204;
+    background:var(--navy);
+    border-radius:24px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    padding:12% 8% 8%;
+    position:relative;
+    overflow:hidden;
+  }
+
+  /* ── APP ICON ──────────────────────────────── */
+  .icon-wrap{
+    width:42%;
+    aspect-ratio:1;
+    border-radius:22%;
+    overflow:hidden;
+    filter:drop-shadow(0 0 32px rgba(245,98,0,.28))
+           drop-shadow(0 0 60px rgba(56,170,234,.22));
+    animation:glow 3.8s ease-in-out infinite;
+  }
+  .icon-wrap svg{width:100%;height:100%;display:block;}
+  @keyframes glow{
+    0%,100%{filter:drop-shadow(0 0 24px rgba(245,98,0,.30)) drop-shadow(0 0 48px rgba(56,170,234,.22));}
+    50%   {filter:drop-shadow(0 0 36px rgba(245,98,0,.55)) drop-shadow(0 0 72px rgba(56,170,234,.4));}
+  }
+
+  /* ── WORDMARK ──────────────────────────────── */
+  .wordmark{
+    margin-top:8%;
+    font-family:'Barlow Condensed', sans-serif;
+    font-weight:900;            /* Uniform heavy weight, like the original */
+    font-size:clamp(54px, 13vw, 140px);
+    line-height:.95;
+    letter-spacing:.04em;
+    text-align:center;
+    color:#FFFFFF;
+    white-space:nowrap;
+  }
+
+  /* ── ORANGE DIVIDER ────────────────────────── */
+  .divider{
+    width:62%;
+    height:6px;
+    margin-top:18px;
+    border-radius:3px;
+    background:linear-gradient(90deg, var(--orange), var(--amber));
+    box-shadow:0 0 18px rgba(245,98,0,.45);
+  }
+
+  /* ── SLOGAN (Barlow Condensed 600) ─────────── */
+  .slogan{
+    font-family:'Barlow Condensed', sans-serif;
+    font-weight:600;
+    font-size:clamp(14px, 2.2vw, 22px);
+    letter-spacing:.48em;
+    text-transform:uppercase;
+    color:rgba(255,255,255,.55);
+    margin-top:22px;
+    text-align:center;
+  }
+  .slogan .dot{color:var(--orange);margin:0 .12em;}
+
+  /* ── SUBLINE (Barlow 200 and 700) ──────────── */
+  .sub-top{
+    font-family:'Barlow Condensed', sans-serif;
+    font-weight:700;
+    font-size:clamp(16px, 2.6vw, 26px);
+    letter-spacing:.22em;
+    color:#FFFFFF;
+    margin-top:10%;
+    text-align:center;
+    text-transform:uppercase;
+  }
+  .sub-bot{
+    font-family:'Barlow', sans-serif;
+    font-weight:200;
+    font-size:clamp(14px, 2.2vw, 22px);
+    letter-spacing:.28em;
+    color:rgba(255,255,255,.55);
+    margin-top:6px;
+    text-align:center;
+    text-transform:uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <!-- ═══ APP ICON ═══ -->
+  <div class="icon-wrap">
+    <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#1870C0"/>
+          <stop offset="100%" stop-color="#0F3D70"/>
+        </linearGradient>
+        <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#6DD4FF"/>
+          <stop offset="100%" stop-color="#2090E0"/>
+        </linearGradient>
+        <linearGradient id="sail" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#FFB048"/>
+          <stop offset="100%" stop-color="#F56200"/>
+        </linearGradient>
+        <linearGradient id="jib" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="rgba(255,255,255,.85)"/>
+          <stop offset="100%" stop-color="rgba(200,230,255,.40)"/>
+        </linearGradient>
+        <linearGradient id="water" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#F56200"/>
+          <stop offset="100%" stop-color="#FF8B20"/>
+        </linearGradient>
+      </defs>
+      <rect width="80" height="80" fill="url(#bg)"/>
+      <rect x="0.75" y="0.75" width="78.5" height="78.5" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="1"/>
+      <rect x="0" y="58" width="80" height="22" fill="url(#water)"/>
+      <path d="M0,64 C13,57 27,71 40,64 C53,57 67,71 80,64 L80,80 L0,80 Z" fill="rgba(255,255,255,.14)"/>
+      <path d="M11,48 L40,22 L69,48 L63,57 L17,57 Z" fill="url(#hull)"/>
+      <path d="M17,48 L40,27 L63,48" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1"/>
+      <line x1="40" y1="22" x2="40" y2="7" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M40,7 L40,26 L63,40 Z" fill="url(#sail)"/>
+      <path d="M40,14 L40,26 L20,38 Z" fill="url(#jib)"/>
+      <circle cx="40" cy="58" r="4.2" fill="white"/>
+      <circle cx="40" cy="58" r="2.2" fill="#F56200"/>
+      <circle cx="40" cy="58" r="0.8" fill="white"/>
+    </svg>
+  </div>
+
+  <!-- ═══ WORDMARK SKIPILY ═══ -->
+  <div class="wordmark">SKIPILY</div>
+
+  <!-- ═══ ORANGE DIVIDER ═══ -->
+  <div class="divider"></div>
+
+  <!-- ═══ SLOGAN ═══ -->
+  <div class="slogan">
+    ALWAYS <span class="dot">·</span> SAFE <span class="dot">·</span> SEAWORTHY
+  </div>
+
+  <!-- ═══ SUBLINE ═══ -->
+  <div class="sub-top">SERVICES &amp; PRODUCTS</div>
+  <div class="sub-bot">FOR YOU AND YOUR BOAT</div>
+
+</div>
+
+</body>
+</html>

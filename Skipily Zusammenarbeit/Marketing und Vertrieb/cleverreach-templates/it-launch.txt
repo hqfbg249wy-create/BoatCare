@@ -1,0 +1,75 @@
+SKIPILY — ALWAYS · SAFE · READY TO SAIL
+=========================================
+
+Ciao {$company},
+
+I diportisti a {$city} e dintorni cercano esattamente ciò che offrite
+voi — {$category}. Finora vi hanno trovato tramite motori di ricerca,
+passaparola o non vi hanno trovato affatto.
+
+Con Skipily apparite su una mappa che i diportisti aprono direttamente
+sull'iPhone quando hanno bisogno di assistenza per la loro barca —
+sia nel porto di casa che in navigazione.
+
+
+COME I DIPORTISTI VI TROVANO SULLA MAPPA
+------------------------------------------
+Skipily mostra cantieri, fornitori di servizi e shipchandler
+direttamente intorno alla barca — un tap per indirizzo,
+recensioni e chiamata.
+
+Scopri di piu' sull'app:  https://skipily.app
+
+
+COSA VI OFFRE SKIPILY
+----------------------
+
+📍 Visibilità basata sulla posizione
+   I diportisti vedono la vostra attività non appena cercano un
+   servizio nella vostra zona — inclusi ospiti charter e viaggiatori.
+
+⭐ Recensioni di cui i clienti si fidano
+   Recensioni reali da diportisti reali — un vantaggio per voi,
+   trasparenza per loro.
+
+🛒 Opzionale: vendita diretta di ricambi
+   Aprite un mini-shop nel vostro profilo — Apple Pay integrato,
+   accrediti via Stripe.
+
+📱 Espositore QR-code gratuito per il porto
+   Vi inviamo espositori stampati gratuiti — gli skipper li
+   scansionano in banchina, senza installare l'app.
+
+
+RIVENDICATE IL VOSTRO PROFILO — GRATIS
+========================================
+Configurato in 2 minuti, senza vincoli.
+
+→ {$claim_url}
+
+Volete vedere prima l'app?
+→ https://apps.apple.com/app/id6757314378
+
+
+COME FUNZIONA
+--------------
+1. Rivendicate il profilo (indirizzo, servizi, logo, foto)
+2. I diportisti vi trovano subito sulla mappa
+3. Opzionale: vendete ricambi e accessori direttamente
+
+
+Linkiamo anche il vostro sito web:
+{$website}
+
+
+---
+Skipily — La piattaforma di servizi nautici per armatori e cantieri
+
+Ricevete questa e-mail perché siete elencati come fornitori di
+servizi nautici nel nostro database. Questo messaggio rientra nel
+nostro legittimo interesse alla comunicazione B2B di settore ai
+sensi dell'art. 6 (1) (f) GDPR.
+
+Annulla iscrizione:  {$unsubscribe}
+Note legali:         https://skipily.app/impressum
+Privacy:             https://skipily.app/datenschutz

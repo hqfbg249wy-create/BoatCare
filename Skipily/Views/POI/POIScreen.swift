@@ -16,7 +16,70 @@ struct POIScreen: View {
     @State private var errorMessage: String?
     @State private var showingResetConfirm = false
 
+    enum SubTab: Hashable { case favorites, inquiries }
+    @State private var selectedTab: SubTab = .favorites
+    @State private var inquiryService = InquiryService.shared
+
     var body: some View {
+        VStack(spacing: 0) {
+            // Segmented Picker oben: Favoriten | Anfragen
+            Picker("", selection: $selectedTab) {
+                Label("poi.favorites".loc, systemImage: "heart.fill").tag(SubTab.favorites)
+                Label(inquiryBadgeLabel, systemImage: "envelope.fill").tag(SubTab.inquiries)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+
+            // Inhalt
+            switch selectedTab {
+            case .favorites:
+                favoritesContent
+            case .inquiries:
+                InquiriesContent()
+                    .environmentObject(authService)
+            }
+        }
+        .navigationTitle(selectedTab == .favorites ? "poi.favorites".loc : "Anfragen")
+        .toolbar {
+            if selectedTab == .favorites && !favoritesManager.favoriteIDs.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(role: .destructive) {
+                        showingResetConfirm = true
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                }
+            }
+        }
+        .confirmationDialog(
+            "poi.reset_confirm".loc,
+            isPresented: $showingResetConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("poi.delete_all".loc, role: .destructive) {
+                Task {
+                    await favoritesManager.clearAllForCurrentUser()
+                    favoriteProviders = []
+                }
+            }
+            Button("general.cancel".loc, role: .cancel) {}
+        } message: {
+            Text("poi.reset_message".loc)
+        }
+        .task {
+            await loadFavorites()
+        }
+    }
+
+    private var inquiryBadgeLabel: String {
+        let n = inquiryService.unreadCount
+        return n > 0 ? "Anfragen (\(n))" : "Anfragen"
+    }
+
+    @ViewBuilder
+    private var favoritesContent: some View {
         Group {
             if isLoading {
                 ProgressView("general.loading".loc)
@@ -59,36 +122,6 @@ struct POIScreen: View {
                 }
                 .listStyle(.plain)
             }
-        }
-        .navigationTitle("poi.favorites".loc)
-        .toolbar {
-            if !favoritesManager.favoriteIDs.isEmpty {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(role: .destructive) {
-                        showingResetConfirm = true
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                }
-            }
-        }
-        .confirmationDialog(
-            "poi.reset_confirm".loc,
-            isPresented: $showingResetConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("poi.delete_all".loc, role: .destructive) {
-                Task {
-                    await favoritesManager.clearAllForCurrentUser()
-                    favoriteProviders = []
-                }
-            }
-            Button("general.cancel".loc, role: .cancel) {}
-        } message: {
-            Text("poi.reset_message".loc)
-        }
-        .task {
-            await loadFavorites()
         }
     }
 

@@ -43,6 +43,33 @@ class AuthService: ObservableObject {
         isLoading = false
     }
 
+    // MARK: - Deep Link Handler (Supabase Auth Callback)
+
+    /// Wird vom @main / WindowGroup .onOpenURL aufgerufen, wenn Safari nach
+    /// E-Mail-Bestaetigung oder Passwort-Reset auf skipily://auth/callback
+    /// zurueckspringt. Tauscht den Token aus den URL-Query-Params gegen
+    /// eine echte Session und schaltet die App auf "eingeloggt".
+    func handleDeepLink(_ url: URL) async {
+        guard url.scheme?.lowercased() == "skipily" else { return }
+
+        do {
+            // session(from:) verarbeitet sowohl PKCE-Code (?code=...) als
+            // auch Implicit-Flow (#access_token=...) und legt die Session
+            // automatisch im Keychain ab.
+            let session = try await supabase.auth.session(from: url)
+            currentUser = AppUser(id: session.user.id,
+                                  email: session.user.email ?? "")
+            isAuthenticated = true
+            await loadProfile()
+            AppLog.info("Deep-Link-Auth erfolgreich: \(url.path)")
+        } catch {
+            // Stumm fehlschlagen — kann passieren wenn der User die App
+            // ueber einen Deep-Link oeffnet, der keine Auth-Tokens enthaelt
+            // (z.B. ein normaler skipily://-Link).
+            AppLog.warning("Deep-Link nicht als Auth-Callback verarbeitbar: \(error)")
+        }
+    }
+
     // MARK: - Sign In / Sign Up / Sign Out
 
     func signIn(email: String, password: String) async throws {
@@ -64,10 +91,21 @@ class AuthService: ObservableObject {
         // full_name direkt beim Sign-Up als Metadata mitschicken — der
         // DB-Trigger handle_new_user() (Migration 041) legt die profiles-
         // Zeile serverseitig an und zieht full_name aus raw_user_meta_data.
+        //
+        // redirectTo: Nach der E-Mail-Bestätigung soll Supabase auf den
+        // App-eigenen Deep-Link zurückspringen, damit der User direkt in
+        // der iOS-App landet (nicht im Browser auf der Provider-Portal-
+        // Seite). Der URL-Scheme "skipily://" ist in der Info.plist als
+        // CFBundleURLTypes registriert; SceneDelegate / @main verarbeitet
+        // den Token automatisch via supabase.auth.session(from:).
+        // Die URL "skipily://auth/callback" muss in der Supabase-Console
+        // unter "Additional Redirect URLs" eingetragen sein, sonst wird
+        // sie als unsicher abgelehnt.
         let response = try await supabase.auth.signUp(
             email: email,
             password: password,
-            data: ["full_name": .string(fullName)]
+            data: ["full_name": .string(fullName)],
+            redirectTo: URL(string: "skipily://auth/callback")
         )
         let user = response.user
         currentUser = AppUser(id: user.id, email: user.email ?? email)

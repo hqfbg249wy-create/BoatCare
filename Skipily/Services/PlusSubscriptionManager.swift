@@ -70,8 +70,17 @@ final class PlusSubscriptionManager: ObservableObject {
 
     // MARK: - Kauf
     /// Liefert `true` wenn der Kauf erfolgreich war, `false` bei Cancel/Pending.
+    /// Wirft NICHT bei User-Cancel (z. B. Sheet weggewischt) — auch wenn StoreKit das als Error meldet.
     func purchase(_ product: StoreKit.Product) async throws -> Bool {
-        let result = try await product.purchase()
+        let result: StoreKit.Product.PurchaseResult
+        do {
+            result = try await product.purchase()
+        } catch {
+            if Self.isUserCancellation(error) {
+                return false
+            }
+            throw error
+        }
 
         switch result {
         case .success(let verification):
@@ -90,6 +99,20 @@ final class PlusSubscriptionManager: ObservableObject {
         @unknown default:
             return false
         }
+    }
+
+    /// Erkennt User-Abbruch des Payment Sheets — inkl. der AMSError-Variante
+    /// "Payment Sheet Failed (Payment sheet dismissed with neither an error nor a result)",
+    /// die StoreKit speziell im Sandbox/TestFlight wirft, wenn der User das Sheet
+    /// wegwischt oder den Apple-ID-Auth-Dialog abbricht.
+    static func isUserCancellation(_ error: Error) -> Bool {
+        if let skError = error as? StoreKitError, case .userCancelled = skError { return true }
+        let ns = error as NSError
+        // AMSError Code 6 = "Payment Sheet Failed" (Dismiss/Cancel im Apple-Auth-Flow)
+        if ns.domain == "AMSErrorDomain" && ns.code == 6 { return true }
+        // ASDErrorDomain Code 825/907 = Cancel in App Store Daemon
+        if ns.domain == "ASDErrorDomain" && (ns.code == 825 || ns.code == 907) { return true }
+        return false
     }
 
     // MARK: - Restore

@@ -66,16 +66,18 @@ serve(async (req: Request) => {
 
     if (!toEmail) return json({ status: "no_recipient_email" });
 
+    const hint = "Bitte antworte idealerweise direkt im Skipily-Portal – so bleibt der gesamte Nachrichten-Verlauf an einem Ort und nachvollziehbar.";
     const subject = `Neue Nachricht von ${senderName} · Skipily`;
     const textBody =
-      `Du hast eine neue Nachricht auf Skipily:\n\nVon: ${senderName}\n\n${msg.content}\n\n${portalLabel}: ${portalUrl}`;
+      `Du hast eine neue Nachricht auf Skipily:\n\nVon: ${senderName}\n\n${msg.content}\n\n${hint}\n\n${portalLabel}: ${portalUrl}`;
     const htmlBody = `<!doctype html><html><body style="font-family:-apple-system,Segoe UI,Arial,sans-serif;background:#f8fafc;padding:24px">
       <div style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
         <div style="background:#0b1929;color:#fff;padding:16px 20px;font-weight:700">Skipily · Neue Nachricht</div>
         <div style="padding:20px">
           <p style="margin:0 0 6px;color:#64748b;font-size:13px">Von ${esc(senderName)}</p>
           <div style="white-space:pre-wrap;font-size:15px;color:#0f172a;line-height:1.5;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px">${esc(msg.content)}</div>
-          <a href="${portalUrl}" style="display:inline-block;margin-top:16px;background:#f97316;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600">${portalLabel}</a>
+          <p style="margin:14px 0 0;font-size:13px;color:#64748b">${esc(hint)}</p>
+          <a href="${portalUrl}" style="display:inline-block;margin-top:14px;background:#f97316;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600">${portalLabel}</a>
         </div>
       </div></body></html>`;
 

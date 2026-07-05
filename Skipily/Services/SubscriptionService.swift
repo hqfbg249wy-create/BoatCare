@@ -103,6 +103,9 @@ final class SubscriptionService: ObservableObject {
                 return false
             }
         } catch {
+            if PlusSubscriptionManager.isUserCancellation(error) {
+                return false
+            }
             lastError = "Kauf fehlgeschlagen: \(error.localizedDescription)"
             AppLog.error("SubscriptionService.purchase error: \(error)")
             return false

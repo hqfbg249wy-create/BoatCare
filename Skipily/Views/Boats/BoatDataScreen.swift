@@ -696,6 +696,9 @@ struct BoatDetailView: View {
                     }
                 }
             }
+
+            // Schaltpläne & Montagepläne sind als Reiter im Equipment-Screen
+            // erreichbar — hier kein eigener Einstieg mehr.
         }
         .navigationTitle(boat.name)
         .navigationBarTitleDisplayMode(.inline)

@@ -10,7 +10,7 @@ abgefragt um die Domain für Apple-Pay freizuschalten.
 Stripe Dashboard → Settings → Payment Method Domains → die jeweilige
 Domain anklicken → "Download Apple Pay domain association file".
 
-Datei (ohne Endung!) hier ablegen:
+Datei (ohne Endung!) hier ablegen:pmd_1TXiTvAKSxHR03mT6gjn0vLV
 
 ```
 provider-portal/public/.well-known/apple-developer-merchantid-domain-association
