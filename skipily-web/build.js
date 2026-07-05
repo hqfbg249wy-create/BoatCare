@@ -227,6 +227,9 @@ async function main() {
   fs.copyFileSync(path.join(SRC, 'skipily-style.css'), path.join(OUT, 'skipily-style.css'));
   fs.writeFileSync(path.join(OUT, 'site.css'), SITE_CSS);
   fs.cpSync(path.join(__dirname, 'assets'), path.join(OUT, 'assets'), { recursive: true });
+  // Apple App Site Association (App-Clip + Universal Links) mit ausliefern,
+  // sonst 404 → App-Clip (skipily.app/clip) wird auf iOS nicht ausgelöst.
+  fs.cpSync(path.join(SRC, '.well-known'), path.join(OUT, '.well-known'), { recursive: true });
 
   // Home
   write('index.html', doc({ lang: 'de',

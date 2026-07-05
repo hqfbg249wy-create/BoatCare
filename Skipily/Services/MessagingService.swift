@@ -110,10 +110,14 @@ final class MessagingService {
             relatedOrderId: relatedOrderId?.uuidString
         )
 
-        try await client
+        struct InsertedRow: Decodable { let id: UUID }
+        let inserted: InsertedRow = try await client
             .from("messages")
             .insert(insert)
+            .select("id")
+            .single()
             .execute()
+            .value
 
         // Update conversation timestamp
         try await client
@@ -121,6 +125,19 @@ final class MessagingService {
             .update(["last_message_at": ISO8601DateFormatter().string(from: Date())])
             .eq("id", value: conversationId.uuidString)
             .execute()
+
+        // Provider per E-Mail benachrichtigen (best-effort). Fehler ignorieren —
+        // die Nachricht ist bereits gespeichert und in-app sichtbar.
+        struct NotifyBody: Encodable { let message_id: String }
+        struct NotifyResp: Decodable {}
+        do {
+            let _: NotifyResp = try await client.functions.invoke(
+                "notify-message",
+                options: .init(body: NotifyBody(message_id: inserted.id.uuidString))
+            )
+        } catch {
+            AppLog.error("notify-message failed: \(error)")
+        }
     }
 
     // MARK: - Create or Get Conversation
