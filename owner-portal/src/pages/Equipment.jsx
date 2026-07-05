@@ -169,17 +169,17 @@ export default function Equipment() {
         if (error) throw error
       }
 
-      // Neue Fotos hochladen (Bucket equipment-photos) + in equipment_photos verknüpfen
+      // Neue Fotos hochladen (Bucket user-photos) + in equipment_photos verknüpfen
       if (savedEquipmentId && photoFiles.length > 0) {
         const startOrder = existingPhotos.length
         for (let i = 0; i < photoFiles.length; i++) {
           const file = photoFiles[i]
           const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
           const path = `${user.id}/${savedEquipmentId}/${Date.now()}_${i}.${ext}`
-          const { error: upErr } = await supabase.storage.from('equipment-photos')
+          const { error: upErr } = await supabase.storage.from('user-photos')
             .upload(path, file, { upsert: true, contentType: file.type })
           if (upErr) throw upErr
-          const { data: pub } = supabase.storage.from('equipment-photos').getPublicUrl(path)
+          const { data: pub } = supabase.storage.from('user-photos').getPublicUrl(path)
           await supabase.from('equipment_photos').insert({
             equipment_id: savedEquipmentId, photo_url: pub.publicUrl, sort_order: startOrder + i,
           })
@@ -307,7 +307,7 @@ export default function Equipment() {
                   <div className="form-group"><label>{t('eq.k18')}</label>
                     <textarea rows={3} value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} /></div>
 
-                  {/* ─── Fotos (max. 5, Bucket equipment-photos) ──────── */}
+                  {/* ─── Fotos (max. 5, Bucket user-photos) ──────── */}
                   <div className="form-group">
                     <label>{t('eq.photos')} <span className="form-label-hint">(max. 5)</span></label>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
