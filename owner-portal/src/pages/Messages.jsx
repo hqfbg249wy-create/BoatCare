@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { MessageSquare, Send, Search } from 'lucide-react'
+import { MessageSquare, Send, Search, Trash2 } from 'lucide-react'
 import { useT } from '../i18n'
 
 // Eigner-Nachrichten: nutzt dasselbe conversations/messages-System wie das
@@ -114,6 +114,15 @@ export default function Messages() {
     }
   }
 
+  async function deleteConversation(convId) {
+    if (!convId) return
+    if (!confirm(t('msg.deleteConfirm'))) return
+    const { error } = await supabase.from('conversations').delete().eq('id', convId)
+    if (error) { alert(t('common.errorPrefix') + ' ' + error.message); return }
+    if (selected?.id === convId) { setSelected(null); setMessages([]) }
+    loadConversations()
+  }
+
   const provName = (c) => c.provider?.name || t('msg.unknownProvider')
   const filtered = conversations.filter(c => !search || provName(c).toLowerCase().includes(search.toLowerCase()))
   const totalUnread = Object.values(unread).reduce((s, c) => s + c, 0)
@@ -141,9 +150,15 @@ export default function Messages() {
                      style={{ padding: '12px 14px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', background: selected?.id === c.id ? '#eff6ff' : '#fff' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontWeight: 600, fontSize: 14, color: '#1e293b' }}>{provName(c)}</span>
-                    {unread[c.id] > 0 && (
-                      <span style={{ background: '#ef4444', color: '#fff', borderRadius: '50%', minWidth: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, padding: '0 4px' }}>{unread[c.id]}</span>
-                    )}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {unread[c.id] > 0 && (
+                        <span style={{ background: '#ef4444', color: '#fff', borderRadius: '50%', minWidth: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, padding: '0 4px' }}>{unread[c.id]}</span>
+                      )}
+                      <button onClick={e => { e.stopPropagation(); deleteConversation(c.id) }} title={t('msg.deleteConv')}
+                        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 2, display: 'inline-flex' }}>
+                        <Trash2 size={14} />
+                      </button>
+                    </span>
                   </div>
                   <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
                     {new Date(c.last_message_at).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}

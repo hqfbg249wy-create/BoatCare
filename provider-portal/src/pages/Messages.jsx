@@ -226,14 +226,13 @@ export default function Messages() {
     }
   }
 
-  async function deleteConversation() {
-    if (!selected) return
+  async function deleteConversation(convId) {
+    if (!convId) return
     if (!confirm(t('msg.deleteConfirm'))) return
     // Konversation löschen → Nachrichten werden per ON DELETE CASCADE mitentfernt.
-    const { error } = await supabase.from('conversations').delete().eq('id', selected.id)
+    const { error } = await supabase.from('conversations').delete().eq('id', convId)
     if (error) { alert(t('common.errorPrefix') + ' ' + error.message); return }
-    setSelected(null)
-    setMessages([])
+    if (selected?.id === convId) { setSelected(null); setMessages([]) }
     loadConversations()
   }
 
@@ -294,16 +293,22 @@ export default function Messages() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div className="chat-contact-name">{getUserName(conv)}</div>
-                  {unreadCounts[conv.id] > 0 && (
-                    <span style={{
-                      background: selected?.id === conv.id ? 'rgba(255,255,255,0.3)' : '#ef4444',
-                      color: 'white', borderRadius: '50%',
-                      minWidth: 20, height: 20, display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, padding: '0 4px',
-                    }}>
-                      {unreadCounts[conv.id]}
-                    </span>
-                  )}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {unreadCounts[conv.id] > 0 && (
+                      <span style={{
+                        background: selected?.id === conv.id ? 'rgba(255,255,255,0.3)' : '#ef4444',
+                        color: 'white', borderRadius: '50%',
+                        minWidth: 20, height: 20, display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, padding: '0 4px',
+                      }}>
+                        {unreadCounts[conv.id]}
+                      </span>
+                    )}
+                    <button onClick={e => { e.stopPropagation(); deleteConversation(conv.id) }} title={t('msg.deleteConv')}
+                      style={{ background: 'none', border: 'none', color: selected?.id === conv.id ? 'white' : '#94a3b8', cursor: 'pointer', padding: 2, display: 'inline-flex' }}>
+                      <Trash2 size={14} />
+                    </button>
+                  </span>
                 </div>
                 <div className="chat-contact-time">
                   {new Date(conv.last_message_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
@@ -323,7 +328,7 @@ export default function Messages() {
             <>
               <div className="chat-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <strong>{getUserName(selected)}</strong>
-                <button onClick={deleteConversation} title={t('msg.deleteConv')}
+                <button onClick={() => deleteConversation(selected.id)} title={t('msg.deleteConv')}
                   style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 4, display: 'inline-flex' }}>
                   <Trash2 size={16} />
                 </button>

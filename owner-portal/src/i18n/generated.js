@@ -3,6 +3,8 @@
 // zur Laufzeit automatisch auf Deutsch zurück.
 export default {
   "en": {
+    "msg.deleteConv": "Delete conversation",
+    "msg.deleteConfirm": "Really delete this conversation and all messages?",
     "inq.shipLocation": "Boat location",
     "inq.sendLocation": "Send current location",
     "inq.locating": "Getting location…",
@@ -650,6 +652,8 @@ export default {
     "sail.position": "Position"
   },
   "fr": {
+    "msg.deleteConv": "Supprimer la conversation",
+    "msg.deleteConfirm": "Supprimer vraiment cette conversation et tous les messages ?",
     "inq.shipLocation": "Position du bateau",
     "inq.sendLocation": "Envoyer la position actuelle",
     "inq.locating": "Localisation…",
@@ -1297,6 +1301,8 @@ export default {
     "sail.position": "Position"
   },
   "it": {
+    "msg.deleteConv": "Elimina conversazione",
+    "msg.deleteConfirm": "Eliminare davvero questa conversazione e tutti i messaggi?",
     "inq.shipLocation": "Posizione della barca",
     "inq.sendLocation": "Invia posizione attuale",
     "inq.locating": "Rilevamento posizione…",
@@ -1944,6 +1950,8 @@ export default {
     "sail.position": "Posizione"
   },
   "es": {
+    "msg.deleteConv": "Eliminar conversación",
+    "msg.deleteConfirm": "¿Eliminar esta conversación y todos los mensajes?",
     "inq.shipLocation": "Ubicación del barco",
     "inq.sendLocation": "Enviar ubicación actual",
     "inq.locating": "Obteniendo ubicación…",
@@ -2591,6 +2599,8 @@ export default {
     "sail.position": "Posición"
   },
   "nl": {
+    "msg.deleteConv": "Gesprek verwijderen",
+    "msg.deleteConfirm": "Dit gesprek en alle berichten echt verwijderen?",
     "inq.shipLocation": "Locatie van de boot",
     "inq.sendLocation": "Huidige locatie sturen",
     "inq.locating": "Locatie ophalen…",
