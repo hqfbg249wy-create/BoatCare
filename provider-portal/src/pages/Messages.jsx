@@ -76,7 +76,7 @@ export default function Messages() {
       const profById = {}
       if (userIds.length) {
         const { data: profs } = await supabase
-          .from('profiles').select('id, full_name, username, email').in('id', userIds)
+          .from('profiles').select('id, full_name, email').in('id', userIds)
         for (const p of (profs || [])) profById[p.id] = p
       }
       setConversations(convList.map(c => ({ ...c, profiles: profById[c.user_id] || null })))
@@ -247,7 +247,6 @@ export default function Messages() {
 
   function getUserName(conv) {
     if (conv.profiles?.full_name) return conv.profiles.full_name
-    if (conv.profiles?.username) return conv.profiles.username
     return conv.profiles?.email || t('msg.unknownUser')
   }
 
