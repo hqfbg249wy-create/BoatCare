@@ -682,9 +682,9 @@ export default function ProviderDetail() {
                           type="checkbox"
                           checked={selectedEquipIds.includes(e.id)}
                           onChange={() => setSelectedEquipIds(prev => prev.includes(e.id) ? prev.filter(x => x !== e.id) : [...prev, e.id])}
-                          style={{ margin: 0 }}
+                          style={{ margin: 0, width: 16, height: 16, flexShrink: 0 }}
                         />
-                        <span>{e.name}{(e.manufacturer || e.model) ? ` — ${[e.manufacturer, e.model].filter(Boolean).join(' ')}` : ''}</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>{e.name}{(e.manufacturer || e.model) ? ` — ${[e.manufacturer, e.model].filter(Boolean).join(' ')}` : ''}</span>
                       </label>
                     ))}
                   </div>
