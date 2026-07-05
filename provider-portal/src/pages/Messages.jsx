@@ -127,7 +127,12 @@ export default function Messages() {
           const msg = payload.new
           // Check if message belongs to one of our conversations
           const conv = conversations.find(c => c.id === msg.conversation_id)
-          if (!conv) return
+          if (!conv) {
+            // Unbekannte Konversation (z. B. neue Anfrage/neuer Chat) → Liste neu
+            // laden, damit sie sofort in der Liste erscheint.
+            if (msg.sender_type === 'user') loadConversations()
+            return
+          }
 
           if (msg.sender_type === 'user') {
             // If we're viewing this conversation, add message and mark read
