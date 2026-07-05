@@ -331,17 +331,10 @@ export default function ProviderDetail() {
             await supabase.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conv.id)
           }
         } catch (convErr) { console.warn('Konversation anlegen:', convErr) }
-        // Benachrichtigung des Providers erfolgt IN-APP (Nachrichten-Thread +
-        // Ungelesen-Badge) — KEIN automatischer Serverversand von der Website.
-        // Zusätzlich öffnet sich das Mailprogramm des Eigners (eigener Account).
-        if (provider.email) {
-          const mail = `mailto:${provider.email}?subject=${encodeURIComponent(inquirySubject.trim())}`
-            + `&body=${encodeURIComponent(fullMessage)}`
-          window.location.href = mail
-        } else {
-          alert(t('inq.noProviderEmail'))
-        }
-        setTimeout(() => navigate('/inquiries'), 400)
+        // Das mailto öffnet der „Per E-Mail senden"-Link SELBST als Nutzer-Geste
+        // (sonst blockiert der Browser die automatische Mail-Erstellung).
+        // Hier nur speichern + weiterleiten, kein window.location.
+        setTimeout(() => navigate('/inquiries'), 300)
       } else {
         alert(t('prov.k34'))
       }
@@ -757,9 +750,23 @@ export default function ProviderDetail() {
               <button className="btn-secondary" onClick={() => saveOrSendInquiry('draft')} disabled={inquirySaving}>
                 <Clock size={14} /> {t('prov.k23')}
               </button>
-              <button className="btn-primary" onClick={() => saveOrSendInquiry('send')} disabled={inquirySaving}>
-                <Mail size={14} /> {inquirySaving ? '…' : t('inq.sendEmail')}
-              </button>
+              {provider.email ? (
+                <a
+                  className="btn-primary"
+                  href={`mailto:${provider.email}?subject=${encodeURIComponent(inquirySubject.trim())}&body=${encodeURIComponent(composeInquiryBody())}`}
+                  onClick={(e) => {
+                    if (!inquirySubject.trim() || !inquiryMessage.trim()) { e.preventDefault(); alert(t('prov.k33')); return }
+                    saveOrSendInquiry('send')
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+                >
+                  <Mail size={14} /> {t('inq.sendEmail')}
+                </a>
+              ) : (
+                <button className="btn-primary" onClick={() => saveOrSendInquiry('send')} disabled={inquirySaving}>
+                  <Mail size={14} /> {inquirySaving ? '…' : t('inq.sendEmail')}
+                </button>
+              )}
             </div>
           </div>
         </div>
