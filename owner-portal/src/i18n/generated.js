@@ -3,6 +3,9 @@
 // zur Laufzeit automatisch auf Deutsch zurück.
 export default {
   "en": {
+    "inq.searchEquip": "Search equipment…",
+    "inq.noEquipMatch": "No matching equipment found.",
+    "inq.selected": "selected",
     "boats.photo": "Photo",
     "boats.uploadPhoto": "Upload photo",
     "boats.removePhoto": "Remove",
@@ -632,6 +635,9 @@ export default {
     "sail.position": "Position"
   },
   "fr": {
+    "inq.searchEquip": "Rechercher un équipement…",
+    "inq.noEquipMatch": "Aucun équipement correspondant.",
+    "inq.selected": "sélectionné(s)",
     "boats.photo": "Photo",
     "boats.uploadPhoto": "Téléverser une photo",
     "boats.removePhoto": "Supprimer",
@@ -1261,6 +1267,9 @@ export default {
     "sail.position": "Position"
   },
   "it": {
+    "inq.searchEquip": "Cerca attrezzatura…",
+    "inq.noEquipMatch": "Nessuna attrezzatura corrispondente.",
+    "inq.selected": "selezionati",
     "boats.photo": "Foto",
     "boats.uploadPhoto": "Carica foto",
     "boats.removePhoto": "Rimuovi",
@@ -1890,6 +1899,9 @@ export default {
     "sail.position": "Posizione"
   },
   "es": {
+    "inq.searchEquip": "Buscar equipamiento…",
+    "inq.noEquipMatch": "No se encontró equipamiento.",
+    "inq.selected": "seleccionado(s)",
     "boats.photo": "Foto",
     "boats.uploadPhoto": "Subir foto",
     "boats.removePhoto": "Quitar",
@@ -2519,6 +2531,9 @@ export default {
     "sail.position": "Posición"
   },
   "nl": {
+    "inq.searchEquip": "Uitrusting zoeken…",
+    "inq.noEquipMatch": "Geen passende uitrusting gevonden.",
+    "inq.selected": "geselecteerd",
     "boats.photo": "Foto",
     "boats.uploadPhoto": "Foto uploaden",
     "boats.removePhoto": "Verwijderen",

@@ -677,6 +677,9 @@ export default {
   "inq.fEngine": "Motor",
   "inq.fPort": "Heimathafen",
   "inq.fSerial": "Seriennr.",
+  "inq.searchEquip": "Ausrüstung suchen…",
+  "inq.noEquipMatch": "Keine passende Ausrüstung gefunden.",
+  "inq.selected": "ausgewählt",
 
   "boats.photo": "Foto",
   "boats.uploadPhoto": "Foto hochladen",

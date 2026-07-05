@@ -88,6 +88,7 @@ export default function ProviderDetail() {
   const [boats, setBoats] = useState([])
   const [boatEquipment, setBoatEquipment] = useState([])
   const [selectedEquipIds, setSelectedEquipIds] = useState([])
+  const [equipSearch, setEquipSearch] = useState('')
 
   useEffect(() => {
     if (user && id) { loadProvider(); loadBoats() }
@@ -248,6 +249,7 @@ export default function ProviderDetail() {
 
   // Ausrüstung des gewählten Boots laden (für „Ausrüstung anhängen")
   useEffect(() => {
+    setEquipSearch('')
     if (!inquiryBoatId) { setBoatEquipment([]); setSelectedEquipIds([]); return }
     supabase.from('equipment')
       .select('id, name, category, manufacturer, model, serial_number')
@@ -309,13 +311,25 @@ export default function ProviderDetail() {
         owner_notes: inquiryNotes.trim() || null,
         status: mode === 'send' ? 'sent' : 'draft',
       }
-      const { error } = await supabase.from('service_inquiries').insert(payload)
+      const { data: inserted, error } = await supabase.from('service_inquiries').insert(payload).select('id').single()
       if (error) throw error
       setShowInquiryForm(false)
       // Pending-Inquiry-Kontext aufräumen (war von Equipment-Anfrage gesetzt)
       sessionStorage.removeItem('pending_inquiry')
       if (mode === 'send') {
-        // Per Mail-Account des Eigners: Mailprogramm mit vorausgefülltem, editierbarem Text öffnen.
+        // 1) Provider zuverlässig serverseitig per E-Mail benachrichtigen (Resend).
+        try {
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
+          const { data: { session } } = await supabase.auth.getSession()
+          await fetch(`${supabaseUrl}/functions/v1/send-inquiry`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+            body: JSON.stringify({ inquiry_id: inserted.id }),
+          })
+        } catch (notifyErr) {
+          console.warn('send-inquiry Benachrichtigung fehlgeschlagen:', notifyErr)
+        }
+        // 2) Zusätzlich: Mailprogramm des Eigners mit vorausgefülltem, editierbarem Text öffnen.
         if (provider.email) {
           const mail = `mailto:${provider.email}?subject=${encodeURIComponent(inquirySubject.trim())}`
             + `&body=${encodeURIComponent(fullMessage)}`
@@ -672,24 +686,39 @@ export default function ProviderDetail() {
                   </select>
                 </div>
               )}
-              {inquiryBoatId && boatEquipment.length > 0 && (
-                <div className="form-group">
-                  <label>{t('inq.attachEquip')}</label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 160, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: 8, padding: 8 }}>
-                    {boatEquipment.map(e => (
-                      <label key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={selectedEquipIds.includes(e.id)}
-                          onChange={() => setSelectedEquipIds(prev => prev.includes(e.id) ? prev.filter(x => x !== e.id) : [...prev, e.id])}
-                          style={{ margin: 0, padding: 0, width: 16, minWidth: 16, maxWidth: 16, height: 16, flexShrink: 0, boxSizing: 'border-box', appearance: 'auto' }}
-                        />
-                        <span style={{ flex: 1, minWidth: 0, whiteSpace: 'normal', wordBreak: 'break-word' }}>{e.name || t('inq.equipData')}{(e.manufacturer || e.model) ? ` — ${[e.manufacturer, e.model].filter(Boolean).join(' ')}` : ''}</span>
-                      </label>
-                    ))}
+              {inquiryBoatId && boatEquipment.length > 0 && (() => {
+                const q = equipSearch.trim().toLowerCase()
+                const filtered = q
+                  ? boatEquipment.filter(e => `${e.name || ''} ${e.manufacturer || ''} ${e.model || ''} ${e.serial_number || ''}`.toLowerCase().includes(q))
+                  : boatEquipment
+                return (
+                  <div className="form-group">
+                    <label>{t('inq.attachEquip')}</label>
+                    <input type="text" value={equipSearch} onChange={e => setEquipSearch(e.target.value)}
+                           placeholder={t('inq.searchEquip')} style={{ marginBottom: 8 }} />
+                    <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+                      {filtered.length === 0 ? (
+                        <div style={{ padding: '10px 12px', color: '#94a3b8', fontSize: 14 }}>{t('inq.noEquipMatch')}</div>
+                      ) : filtered.map(e => {
+                        const checked = selectedEquipIds.includes(e.id)
+                        const parts = [e.name, [e.manufacturer, e.model].filter(Boolean).join(' ')].filter(Boolean)
+                        const label = parts.join(' — ') || t('inq.equipData')
+                        return (
+                          <div key={e.id}
+                            onClick={() => setSelectedEquipIds(prev => checked ? prev.filter(x => x !== e.id) : [...prev, e.id])}
+                            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', background: checked ? '#fff7ed' : '#fff' }}>
+                            <span style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${checked ? '#f97316' : '#cbd5e1'}`, background: checked ? '#f97316' : '#fff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{checked ? '✓' : ''}</span>
+                            <span style={{ flex: 1, fontSize: 14, color: '#1e293b' }}>{label}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {selectedEquipIds.length > 0 && (
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{selectedEquipIds.length} {t('inq.selected')}</div>
+                    )}
                   </div>
-                </div>
-              )}
+                )
+              })()}
               <div className="form-group">
                 <label>{t('prov.k20')}</label>
                 <input
