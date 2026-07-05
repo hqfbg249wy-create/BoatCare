@@ -96,6 +96,16 @@ final class InquiryService {
             .execute()
     }
 
+    // MARK: - Spiegeln in Konversation (damit der Provider die Anfrage im
+    // Nachrichten-Bereich des Portals sieht — das Portal liest NUR
+    // conversations/messages, nicht service_inquiries).
+
+    func mirrorInquiryToConversation(ownerId: UUID, providerId: UUID, subject: String, message: String) async throws {
+        let body = subject.isEmpty ? message : "\(subject)\n\n\(message)"
+        let conv = try await MessagingService.shared.getOrCreateConversation(userId: ownerId, providerId: providerId)
+        try await MessagingService.shared.sendMessage(conversationId: conv.id, senderId: ownerId, content: body)
+    }
+
     // MARK: - Delete
 
     func deleteInquiry(id: UUID) async throws {

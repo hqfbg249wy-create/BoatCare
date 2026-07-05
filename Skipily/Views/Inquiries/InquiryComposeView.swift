@@ -899,6 +899,13 @@ struct InquiryComposeView: View {
                 )
                 if send {
                     try await InquiryService.shared.sendInquiry(id: inq.id)
+                    // Anfrage zusätzlich als Konversation spiegeln, damit sie im
+                    // Provider-Portal (Nachrichten) erscheint. Fehler nicht fatal.
+                    if let uid = authService.currentUser?.id {
+                        try? await InquiryService.shared.mirrorInquiryToConversation(
+                            ownerId: uid, providerId: inq.providerId,
+                            subject: trimmedSubject, message: trimmedMessage)
+                    }
                 }
             } else {
                 // New inquiry
@@ -915,6 +922,12 @@ struct InquiryComposeView: View {
                     notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
                     send: send
                 )
+                if send {
+                    // Anfrage als Konversation spiegeln → im Provider-Portal sichtbar.
+                    try? await InquiryService.shared.mirrorInquiryToConversation(
+                        ownerId: uid, providerId: pid,
+                        subject: trimmedSubject, message: trimmedMessage)
+                }
             }
             await onSave?()
             dismiss()
