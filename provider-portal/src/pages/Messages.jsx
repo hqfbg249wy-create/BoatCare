@@ -305,7 +305,7 @@ export default function Messages() {
                 ) : (
                   messages.map(msg => (
                     <div key={msg.id} className={`chat-bubble ${msg.sender_type === 'provider' ? 'sent' : 'received'}`}>
-                      <p>{msg.content}</p>
+                      <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.content}</p>
                       <span className="chat-time">
                         {new Date(msg.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
                       </span>
