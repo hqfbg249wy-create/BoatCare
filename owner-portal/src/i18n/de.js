@@ -663,4 +663,18 @@ export default {
   "chat.sugElectronicsLabel": "Elektronik",
   "chat.sugElectronicsPrompt": "Welche Elektronik-Updates empfiehlst du?",
   "chat.boatsSuffix": "und deren Ausrüstung.",
+
+  "inq.attachEquip": "Ausrüstung anhängen",
+  "inq.sendEmail": "Per E-Mail senden",
+  "inq.shipData": "Schiffsdaten",
+  "inq.equipData": "Ausrüstung",
+  "inq.noProviderEmail": "Für diesen Anbieter ist keine E-Mail hinterlegt. Die Anfrage wurde gespeichert.",
+  "inq.fBoat": "Boot",
+  "inq.fType": "Typ",
+  "inq.fMakeModel": "Hersteller/Modell",
+  "inq.fYear": "Baujahr",
+  "inq.fLength": "Länge",
+  "inq.fEngine": "Motor",
+  "inq.fPort": "Heimathafen",
+  "inq.fSerial": "Seriennr.",
 }

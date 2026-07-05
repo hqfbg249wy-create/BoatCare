@@ -86,6 +86,8 @@ export default function ProviderDetail() {
   const [inquiryNotes, setInquiryNotes] = useState('')
   const [inquirySaving, setInquirySaving] = useState(false)
   const [boats, setBoats] = useState([])
+  const [boatEquipment, setBoatEquipment] = useState([])
+  const [selectedEquipIds, setSelectedEquipIds] = useState([])
 
   useEffect(() => {
     if (user && id) { loadProvider(); loadBoats() }
@@ -240,8 +242,45 @@ export default function ProviderDetail() {
   }
 
   async function loadBoats() {
-    const { data } = await supabase.from('boats').select('id, name').eq('owner_id', user.id)
+    const { data } = await supabase.from('boats').select('*').eq('owner_id', user.id)
     setBoats(data || [])
+  }
+
+  // Ausrüstung des gewählten Boots laden (für „Ausrüstung anhängen")
+  useEffect(() => {
+    if (!inquiryBoatId) { setBoatEquipment([]); setSelectedEquipIds([]); return }
+    supabase.from('equipment')
+      .select('id, name, category, manufacturer, model, serial_number')
+      .eq('boat_id', inquiryBoatId)
+      .order('category')
+      .then(({ data }) => setBoatEquipment(data || []))
+  }, [inquiryBoatId])
+
+  // Anfrage-Text mit Schiffs- und Ausrüstungsdaten zusammenstellen.
+  function composeInquiryBody() {
+    const parts = [inquiryMessage.trim()]
+    const boat = boats.find(b => String(b.id) === String(inquiryBoatId))
+    if (boat) {
+      const rows = [
+        [t('inq.fBoat'), boat.name],
+        [t('inq.fType'), boat.boat_type],
+        [t('inq.fMakeModel'), [boat.manufacturer, boat.model].filter(Boolean).join(' ')],
+        [t('inq.fYear'), boat.year],
+        [t('inq.fLength'), boat.length_meters ? boat.length_meters + ' m' : ''],
+        [t('inq.fEngine'), boat.engine],
+        [t('inq.fPort'), boat.home_port],
+      ].filter(([, v]) => v)
+      if (rows.length) parts.push('\n' + t('inq.shipData') + ':\n' + rows.map(([k, v]) => `• ${k}: ${v}`).join('\n'))
+    }
+    const eq = boatEquipment.filter(e => selectedEquipIds.includes(e.id))
+    if (eq.length) {
+      parts.push('\n' + t('inq.equipData') + ':\n' + eq.map(e => {
+        const d = [e.manufacturer, e.model].filter(Boolean).join(' ')
+        const sn = e.serial_number ? ', ' + t('inq.fSerial') + ' ' + e.serial_number : ''
+        return `• ${e.name}${d ? ' (' + d + ')' : ''}${sn}`
+      }).join('\n'))
+    }
+    return parts.filter(Boolean).join('\n')
   }
 
   function openInquiryForm() {
@@ -252,31 +291,39 @@ export default function ProviderDetail() {
     setShowInquiryForm(true)
   }
 
-  async function saveOrSendInquiry(send) {
+  // mode: 'draft' = nur speichern · 'send' = speichern + per Eigner-Mailaccount (mailto) senden
+  async function saveOrSendInquiry(mode) {
     if (!inquirySubject.trim() || !inquiryMessage.trim()) {
       alert(t('prov.k33'))
       return
     }
     setInquirySaving(true)
     try {
+      const fullMessage = composeInquiryBody()
       const payload = {
         owner_id: user.id,
         provider_id: id,
         boat_id: inquiryBoatId || null,
         subject: inquirySubject.trim(),
-        message: inquiryMessage.trim(),
+        message: fullMessage,
         owner_notes: inquiryNotes.trim() || null,
-        status: send ? 'sent' : 'draft',
+        status: mode === 'send' ? 'sent' : 'draft',
       }
       const { error } = await supabase.from('service_inquiries').insert(payload)
       if (error) throw error
       setShowInquiryForm(false)
       // Pending-Inquiry-Kontext aufräumen (war von Equipment-Anfrage gesetzt)
       sessionStorage.removeItem('pending_inquiry')
-      if (send) {
-        alert(`Anfrage wurde an ${provider.name} gesendet!`)
-        // Beim Senden direkt zur Anfragen-Übersicht navigieren
-        setTimeout(() => navigate('/inquiries'), 100)
+      if (mode === 'send') {
+        // Per Mail-Account des Eigners: Mailprogramm mit vorausgefülltem, editierbarem Text öffnen.
+        if (provider.email) {
+          const mail = `mailto:${provider.email}?subject=${encodeURIComponent(inquirySubject.trim())}`
+            + `&body=${encodeURIComponent(fullMessage)}`
+          window.location.href = mail
+        } else {
+          alert(t('inq.noProviderEmail'))
+        }
+        setTimeout(() => navigate('/inquiries'), 400)
       } else {
         alert(t('prov.k34'))
       }
@@ -625,6 +672,24 @@ export default function ProviderDetail() {
                   </select>
                 </div>
               )}
+              {inquiryBoatId && boatEquipment.length > 0 && (
+                <div className="form-group">
+                  <label>{t('inq.attachEquip')}</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 160, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: 8, padding: 8 }}>
+                    {boatEquipment.map(e => (
+                      <label key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedEquipIds.includes(e.id)}
+                          onChange={() => setSelectedEquipIds(prev => prev.includes(e.id) ? prev.filter(x => x !== e.id) : [...prev, e.id])}
+                          style={{ margin: 0 }}
+                        />
+                        <span>{e.name}{(e.manufacturer || e.model) ? ` — ${[e.manufacturer, e.model].filter(Boolean).join(' ')}` : ''}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="form-group">
                 <label>{t('prov.k20')}</label>
                 <input
@@ -656,11 +721,11 @@ export default function ProviderDetail() {
             </div>
             <div className="inq-modal-actions">
               <button className="btn-ghost" onClick={() => setShowInquiryForm(false)}>{t('prov.k10')}</button>
-              <button className="btn-secondary" onClick={() => saveOrSendInquiry(false)} disabled={inquirySaving}>
+              <button className="btn-secondary" onClick={() => saveOrSendInquiry('draft')} disabled={inquirySaving}>
                 <Clock size={14} /> {t('prov.k23')}
               </button>
-              <button className="btn-primary" onClick={() => saveOrSendInquiry(true)} disabled={inquirySaving}>
-                <Send size={14} /> {inquirySaving ? 'Senden…' : 'Jetzt senden'}
+              <button className="btn-primary" onClick={() => saveOrSendInquiry('send')} disabled={inquirySaving}>
+                <Mail size={14} /> {inquirySaving ? '…' : t('inq.sendEmail')}
               </button>
             </div>
           </div>
