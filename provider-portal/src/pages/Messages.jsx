@@ -60,14 +60,24 @@ export default function Messages() {
     if (!provider) return
     setLoading(true)
     try {
+      // Ohne eingebetteten profiles-Join: conversations.user_id verweist auf
+      // auth.users (nicht direkt auf profiles), der Embed würde die Abfrage
+      // fehlschlagen lassen. Profile daher separat (best-effort) laden.
       const { data } = await supabase
         .from('conversations')
-        .select('*, profiles:user_id(full_name, username, email)')
+        .select('*')
         .eq('provider_id', provider.id)
         .order('last_message_at', { ascending: false })
 
       const convList = data || []
-      setConversations(convList)
+      const userIds = [...new Set(convList.map(c => c.user_id).filter(Boolean))]
+      const profById = {}
+      if (userIds.length) {
+        const { data: profs } = await supabase
+          .from('profiles').select('id, full_name, username, email').in('id', userIds)
+        for (const p of (profs || [])) profById[p.id] = p
+      }
+      setConversations(convList.map(c => ({ ...c, profiles: profById[c.user_id] || null })))
 
       // Load unread counts per conversation
       const counts = {}
