@@ -179,29 +179,19 @@ export default function Messages() {
 
     setSending(true)
     try {
-      const { data: inserted, error } = await supabase.from('messages').insert({
+      const { error } = await supabase.from('messages').insert({
         conversation_id: selected.id,
         sender_id: user.id,
         sender_type: 'provider',
         content: newMsg.trim(),
-      }).select('id').single()
+      })
       if (error) throw error
 
       await supabase
         .from('conversations')
         .update({ last_message_at: new Date().toISOString() })
         .eq('id', selected.id)
-
-      // Eigner per E-Mail benachrichtigen (Resend, serverseitig)
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
-        await fetch(`${supabaseUrl}/functions/v1/notify-message`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) },
-          body: JSON.stringify({ message_id: inserted.id }),
-        })
-      } catch (notifyErr) { console.warn('notify-message:', notifyErr) }
+      // Signal an den Eigner erfolgt IN-APP (Ungelesen-Badge) — kein Auto-Mailversand.
 
       setNewMsg('')
       loadMessages(selected.id)

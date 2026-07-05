@@ -311,7 +311,7 @@ export default function ProviderDetail() {
         owner_notes: inquiryNotes.trim() || null,
         status: mode === 'send' ? 'sent' : 'draft',
       }
-      const { data: inserted, error } = await supabase.from('service_inquiries').insert(payload).select('id').single()
+      const { error } = await supabase.from('service_inquiries').insert(payload)
       if (error) throw error
       setShowInquiryForm(false)
       // Pending-Inquiry-Kontext aufräumen (war von Equipment-Anfrage gesetzt)
@@ -331,19 +331,9 @@ export default function ProviderDetail() {
             await supabase.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conv.id)
           }
         } catch (convErr) { console.warn('Konversation anlegen:', convErr) }
-        // 1) Provider zuverlässig serverseitig per E-Mail benachrichtigen (Resend).
-        try {
-          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
-          const { data: { session } } = await supabase.auth.getSession()
-          await fetch(`${supabaseUrl}/functions/v1/send-inquiry`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) },
-            body: JSON.stringify({ inquiry_id: inserted.id }),
-          })
-        } catch (notifyErr) {
-          console.warn('send-inquiry Benachrichtigung fehlgeschlagen:', notifyErr)
-        }
-        // 2) Zusätzlich: Mailprogramm des Eigners mit vorausgefülltem, editierbarem Text öffnen.
+        // Benachrichtigung des Providers erfolgt IN-APP (Nachrichten-Thread +
+        // Ungelesen-Badge) — KEIN automatischer Serverversand von der Website.
+        // Zusätzlich öffnet sich das Mailprogramm des Eigners (eigener Account).
         if (provider.email) {
           const mail = `mailto:${provider.email}?subject=${encodeURIComponent(inquirySubject.trim())}`
             + `&body=${encodeURIComponent(fullMessage)}`
