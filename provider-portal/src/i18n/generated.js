@@ -750,7 +750,11 @@ export default {
     "pf.cPT": "Portugal",
     "pf.cGR": "Greece",
     "pf.cHR": "Croatia",
-    "pf.cGB": "Great Britain"
+    "pf.cGB": "Great Britain",
+    "msg.active": "Active",
+    "msg.archived": "Archived",
+    "msg.archive": "Archive",
+    "msg.unarchive": "Restore"
   },
   "fr": {
     "msg.deleteConv": "Supprimer la conversation",
@@ -1500,7 +1504,11 @@ export default {
     "pf.cPT": "Portugal",
     "pf.cGR": "Grèce",
     "pf.cHR": "Croatie",
-    "pf.cGB": "Grande-Bretagne"
+    "pf.cGB": "Grande-Bretagne",
+    "msg.active": "Actif",
+    "msg.archived": "Archivé",
+    "msg.archive": "Archiver",
+    "msg.unarchive": "Restaurer"
   },
   "it": {
     "msg.deleteConv": "Elimina conversazione",
@@ -2250,7 +2258,11 @@ export default {
     "pf.cPT": "Portogallo",
     "pf.cGR": "Grecia",
     "pf.cHR": "Croazia",
-    "pf.cGB": "Gran Bretagna"
+    "pf.cGB": "Gran Bretagna",
+    "msg.active": "Attivo",
+    "msg.archived": "Archiviato",
+    "msg.archive": "Archivia",
+    "msg.unarchive": "Ripristina"
   },
   "es": {
     "msg.deleteConv": "Eliminar conversación",
@@ -3000,7 +3012,11 @@ export default {
     "pf.cPT": "Portugal",
     "pf.cGR": "Grecia",
     "pf.cHR": "Croacia",
-    "pf.cGB": "Gran Bretaña"
+    "pf.cGB": "Gran Bretaña",
+    "msg.active": "Activo",
+    "msg.archived": "Archivado",
+    "msg.archive": "Archivar",
+    "msg.unarchive": "Desarchivar"
   },
   "nl": {
     "msg.deleteConv": "Gesprek verwijderen",
@@ -3750,6 +3766,10 @@ export default {
     "pf.cPT": "Portugal",
     "pf.cGR": "Griekenland",
     "pf.cHR": "Kroatië",
-    "pf.cGB": "Groot-Brittannië"
+    "pf.cGB": "Groot-Brittannië",
+    "msg.active": "Actief",
+    "msg.archived": "Gearchiveerd",
+    "msg.archive": "Archiveren",
+    "msg.unarchive": "Herstellen"
   }
 }

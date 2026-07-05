@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { MessageSquare, Send, Search, Trash2 } from 'lucide-react'
+import { MessageSquare, Send, Search, Trash2, Archive, ArchiveRestore } from 'lucide-react'
 import { useT } from '../i18n'
 
 // Eigner-Nachrichten: nutzt dasselbe conversations/messages-System wie das
@@ -18,7 +18,15 @@ export default function Messages() {
   const [sending, setSending] = useState(false)
   const [search, setSearch] = useState('')
   const [unread, setUnread] = useState({})
+  const [showArchived, setShowArchived] = useState(false)
   const endRef = useRef(null)
+
+  async function archiveConversation(convId, archived) {
+    const { error } = await supabase.from('conversations').update({ owner_archived: archived }).eq('id', convId)
+    if (error) { alert(t('common.errorPrefix') + ' ' + error.message); return }
+    if (selected?.id === convId) { setSelected(null); setMessages([]) }
+    loadConversations()
+  }
 
   const loadConversations = useCallback(async () => {
     if (!user) return
@@ -28,6 +36,7 @@ export default function Messages() {
         .from('conversations')
         .select('*, provider:provider_id(id, name, logo_url)')
         .eq('user_id', user.id)
+        .eq('owner_archived', showArchived)
         .order('last_message_at', { ascending: false })
       const list = data || []
       setConversations(list)
@@ -45,7 +54,7 @@ export default function Messages() {
     } finally {
       setLoading(false)
     }
-  }, [user])
+  }, [user, showArchived])
 
   useEffect(() => { loadConversations() }, [loadConversations])
   useEffect(() => { if (selected) loadMessages(selected.id) }, [selected])
@@ -141,6 +150,10 @@ export default function Messages() {
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('msg.searchProvider')}
                      style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '0.85rem', width: '100%' }} />
             </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+              <button onClick={() => setShowArchived(false)} style={{ flex: 1, padding: '5px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: !showArchived ? '#eff6ff' : '#fff', fontSize: 12, cursor: 'pointer', fontWeight: !showArchived ? 700 : 400 }}>{t('msg.active')}</button>
+              <button onClick={() => setShowArchived(true)} style={{ flex: 1, padding: '5px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: showArchived ? '#eff6ff' : '#fff', fontSize: 12, cursor: 'pointer', fontWeight: showArchived ? 700 : 400 }}>{t('msg.archived')}</button>
+            </div>
           </div>
           <div style={{ overflowY: 'auto', flex: 1 }}>
             {loading ? <div style={{ padding: 16, color: '#94a3b8' }}>{t('common.loading')}</div>
@@ -154,6 +167,10 @@ export default function Messages() {
                       {unread[c.id] > 0 && (
                         <span style={{ background: '#ef4444', color: '#fff', borderRadius: '50%', minWidth: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, padding: '0 4px' }}>{unread[c.id]}</span>
                       )}
+                      <button onClick={e => { e.stopPropagation(); archiveConversation(c.id, !showArchived) }} title={showArchived ? t('msg.unarchive') : t('msg.archive')}
+                        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 2, display: 'inline-flex' }}>
+                        {showArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                      </button>
                       <button onClick={e => { e.stopPropagation(); deleteConversation(c.id) }} title={t('msg.deleteConv')}
                         style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 2, display: 'inline-flex' }}>
                         <Trash2 size={14} />

@@ -649,7 +649,11 @@ export default {
     "sail.keineAngabe": "— no information —",
     "sail.backbordBb": "Port (PS)",
     "sail.steuerbordStb": "Starboard (SB)",
-    "sail.position": "Position"
+    "sail.position": "Position",
+    "msg.active": "Active",
+    "msg.archived": "Archived",
+    "msg.archive": "Archive",
+    "msg.unarchive": "Restore"
   },
   "fr": {
     "msg.deleteConv": "Supprimer la conversation",
@@ -1298,7 +1302,11 @@ export default {
     "sail.keineAngabe": "— aucune indication —",
     "sail.backbordBb": "Bâbord (BB)",
     "sail.steuerbordStb": "Tribord (STB)",
-    "sail.position": "Position"
+    "sail.position": "Position",
+    "msg.active": "Actif",
+    "msg.archived": "Archivé",
+    "msg.archive": "Archiver",
+    "msg.unarchive": "Restaurer"
   },
   "it": {
     "msg.deleteConv": "Elimina conversazione",
@@ -1947,7 +1955,11 @@ export default {
     "sail.keineAngabe": "— nessuna indicazione —",
     "sail.backbordBb": "Babordo (BB)",
     "sail.steuerbordStb": "Tribordo (STB)",
-    "sail.position": "Posizione"
+    "sail.position": "Posizione",
+    "msg.active": "Attivo",
+    "msg.archived": "Archiviato",
+    "msg.archive": "Archivia",
+    "msg.unarchive": "Ripristina"
   },
   "es": {
     "msg.deleteConv": "Eliminar conversación",
@@ -2596,7 +2608,11 @@ export default {
     "sail.keineAngabe": "— sin indicación —",
     "sail.backbordBb": "Babor (BB)",
     "sail.steuerbordStb": "Estribor (STB)",
-    "sail.position": "Posición"
+    "sail.position": "Posición",
+    "msg.active": "Activo",
+    "msg.archived": "Archivado",
+    "msg.archive": "Archivar",
+    "msg.unarchive": "Restaurar"
   },
   "nl": {
     "msg.deleteConv": "Gesprek verwijderen",
@@ -3245,6 +3261,10 @@ export default {
     "sail.keineAngabe": "— geen opgave —",
     "sail.backbordBb": "Bakboord (BB)",
     "sail.steuerbordStb": "Stuurboord (STB)",
-    "sail.position": "Positie"
+    "sail.position": "Positie",
+    "msg.active": "Actief",
+    "msg.archived": "Gearchiveerd",
+    "msg.archive": "Archiveren",
+    "msg.unarchive": "Herstellen"
   }
 }

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import { supabase } from '../lib/supabase'
-import { MessageSquare, Send, Search, Sparkles, Loader, Trash2 } from 'lucide-react'
+import { MessageSquare, Send, Search, Sparkles, Loader, Trash2, Archive, ArchiveRestore } from 'lucide-react'
 import { useT } from '../i18n'
 
 export default function Messages() {
@@ -17,6 +17,7 @@ export default function Messages() {
   const [sending, setSending] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [unreadCounts, setUnreadCounts] = useState({})
+  const [showArchived, setShowArchived] = useState(false)
   const [suggestingReply, setSuggestingReply] = useState(false)
   const [suggestError, setSuggestError] = useState(null)
   const messagesEnd = useRef(null)
@@ -67,6 +68,7 @@ export default function Messages() {
         .from('conversations')
         .select('*')
         .eq('provider_id', provider.id)
+        .eq('provider_archived', showArchived)
         .order('last_message_at', { ascending: false })
 
       const convList = data || []
@@ -96,7 +98,7 @@ export default function Messages() {
     } finally {
       setLoading(false)
     }
-  }, [provider])
+  }, [provider, showArchived])
 
   useEffect(() => {
     loadConversations()
@@ -226,6 +228,13 @@ export default function Messages() {
     }
   }
 
+  async function archiveConversation(convId, archived) {
+    const { error } = await supabase.from('conversations').update({ provider_archived: archived }).eq('id', convId)
+    if (error) { alert(t('common.errorPrefix') + ' ' + error.message); return }
+    if (selected?.id === convId) { setSelected(null); setMessages([]) }
+    loadConversations()
+  }
+
   async function deleteConversation(convId) {
     if (!convId) return
     if (!confirm(t('msg.deleteConfirm'))) return
@@ -278,6 +287,10 @@ export default function Messages() {
                 style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '0.85rem', width: '100%' }}
               />
             </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+              <button onClick={() => setShowArchived(false)} style={{ flex: 1, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--gray-200)', background: !showArchived ? '#eff6ff' : '#fff', fontSize: 12, cursor: 'pointer', fontWeight: !showArchived ? 700 : 400 }}>{t('msg.active')}</button>
+              <button onClick={() => setShowArchived(true)} style={{ flex: 1, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--gray-200)', background: showArchived ? '#eff6ff' : '#fff', fontSize: 12, cursor: 'pointer', fontWeight: showArchived ? 700 : 400 }}>{t('msg.archived')}</button>
+            </div>
           </div>
 
           {loading ? (
@@ -304,6 +317,10 @@ export default function Messages() {
                         {unreadCounts[conv.id]}
                       </span>
                     )}
+                    <button onClick={e => { e.stopPropagation(); archiveConversation(conv.id, !showArchived) }} title={showArchived ? t('msg.unarchive') : t('msg.archive')}
+                      style={{ background: 'none', border: 'none', color: selected?.id === conv.id ? 'white' : '#94a3b8', cursor: 'pointer', padding: 2, display: 'inline-flex' }}>
+                      {showArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                    </button>
                     <button onClick={e => { e.stopPropagation(); deleteConversation(conv.id) }} title={t('msg.deleteConv')}
                       style={{ background: 'none', border: 'none', color: selected?.id === conv.id ? 'white' : '#94a3b8', cursor: 'pointer', padding: 2, display: 'inline-flex' }}>
                       <Trash2 size={14} />
