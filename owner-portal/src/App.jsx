@@ -19,6 +19,7 @@ import ServiceSearch from './pages/ServiceSearch'
 import AIChat from './pages/AIChat'
 import Checkout from './pages/Checkout'
 import Inquiries from './pages/Inquiries'
+import Messages from './pages/Messages'
 import ResetPassword from './pages/ResetPassword'
 import AuthCallback from './pages/AuthCallback'
 
@@ -56,6 +57,7 @@ function ProtectedRoutes() {
         <Route path="checkout" element={<Checkout />} />
         <Route path="checkout/success" element={<Checkout />} />
         <Route path="inquiries" element={<Inquiries />} />
+        <Route path="messages" element={<Messages />} />
         <Route path="profile" element={<Profile />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

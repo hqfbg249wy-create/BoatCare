@@ -317,6 +317,20 @@ export default function ProviderDetail() {
       // Pending-Inquiry-Kontext aufräumen (war von Equipment-Anfrage gesetzt)
       sessionStorage.removeItem('pending_inquiry')
       if (mode === 'send') {
+        // 0) Konversations-Thread anlegen/finden + Anfrage als erste Nachricht
+        //    posten → beide Seiten sehen den Verlauf (conversations/messages).
+        try {
+          const { data: conv } = await supabase.from('conversations')
+            .upsert({ user_id: user.id, provider_id: id }, { onConflict: 'user_id,provider_id' })
+            .select('id').single()
+          if (conv) {
+            await supabase.from('messages').insert({
+              conversation_id: conv.id, sender_id: user.id, sender_type: 'user',
+              content: `${inquirySubject.trim()}\n\n${fullMessage}`,
+            })
+            await supabase.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conv.id)
+          }
+        } catch (convErr) { console.warn('Konversation anlegen:', convErr) }
         // 1) Provider zuverlässig serverseitig per E-Mail benachrichtigen (Resend).
         try {
           const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'

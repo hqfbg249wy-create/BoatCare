@@ -3,6 +3,13 @@
 // zur Laufzeit automatisch auf Deutsch zurück.
 export default {
   "en": {
+    "nav.messages": "Messages",
+    "msg.unknownProvider": "Provider",
+    "msg.searchProvider": "Search provider…",
+    "msg.noConversations": "No messages yet.",
+    "msg.selectConversation": "Select a conversation.",
+    "msg.noMessages": "No messages in this conversation yet.",
+    "msg.inputPlaceholder": "Write a message…",
     "inq.searchEquip": "Search equipment…",
     "inq.noEquipMatch": "No matching equipment found.",
     "inq.selected": "selected",
@@ -635,6 +642,13 @@ export default {
     "sail.position": "Position"
   },
   "fr": {
+    "nav.messages": "Messages",
+    "msg.unknownProvider": "Prestataire",
+    "msg.searchProvider": "Rechercher un prestataire…",
+    "msg.noConversations": "Aucun message pour l’instant.",
+    "msg.selectConversation": "Sélectionnez une conversation.",
+    "msg.noMessages": "Aucun message dans cette conversation.",
+    "msg.inputPlaceholder": "Écrire un message…",
     "inq.searchEquip": "Rechercher un équipement…",
     "inq.noEquipMatch": "Aucun équipement correspondant.",
     "inq.selected": "sélectionné(s)",
@@ -1267,6 +1281,13 @@ export default {
     "sail.position": "Position"
   },
   "it": {
+    "nav.messages": "Messaggi",
+    "msg.unknownProvider": "Fornitore",
+    "msg.searchProvider": "Cerca fornitore…",
+    "msg.noConversations": "Ancora nessun messaggio.",
+    "msg.selectConversation": "Seleziona una conversazione.",
+    "msg.noMessages": "Nessun messaggio in questa conversazione.",
+    "msg.inputPlaceholder": "Scrivi un messaggio…",
     "inq.searchEquip": "Cerca attrezzatura…",
     "inq.noEquipMatch": "Nessuna attrezzatura corrispondente.",
     "inq.selected": "selezionati",
@@ -1899,6 +1920,13 @@ export default {
     "sail.position": "Posizione"
   },
   "es": {
+    "nav.messages": "Mensajes",
+    "msg.unknownProvider": "Proveedor",
+    "msg.searchProvider": "Buscar proveedor…",
+    "msg.noConversations": "Aún no hay mensajes.",
+    "msg.selectConversation": "Selecciona una conversación.",
+    "msg.noMessages": "Aún no hay mensajes en esta conversación.",
+    "msg.inputPlaceholder": "Escribe un mensaje…",
     "inq.searchEquip": "Buscar equipamiento…",
     "inq.noEquipMatch": "No se encontró equipamiento.",
     "inq.selected": "seleccionado(s)",
@@ -2531,6 +2559,13 @@ export default {
     "sail.position": "Posición"
   },
   "nl": {
+    "nav.messages": "Berichten",
+    "msg.unknownProvider": "Aanbieder",
+    "msg.searchProvider": "Aanbieder zoeken…",
+    "msg.noConversations": "Nog geen berichten.",
+    "msg.selectConversation": "Kies een gesprek.",
+    "msg.noMessages": "Nog geen berichten in dit gesprek.",
+    "msg.inputPlaceholder": "Schrijf een bericht…",
     "inq.searchEquip": "Uitrusting zoeken…",
     "inq.noEquipMatch": "Geen passende uitrusting gevonden.",
     "inq.selected": "geselecteerd",
