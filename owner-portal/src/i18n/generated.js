@@ -3,6 +3,10 @@
 // zur Laufzeit automatisch auf Deutsch zurück.
 export default {
   "en": {
+    "boats.photo": "Photo",
+    "boats.uploadPhoto": "Upload photo",
+    "boats.removePhoto": "Remove",
+    "eq.photos": "Photos",
     "inq.attachEquip": "Attach equipment",
     "inq.sendEmail": "Send by email",
     "inq.shipData": "Boat details",
@@ -628,6 +632,10 @@ export default {
     "sail.position": "Position"
   },
   "fr": {
+    "boats.photo": "Photo",
+    "boats.uploadPhoto": "Téléverser une photo",
+    "boats.removePhoto": "Supprimer",
+    "eq.photos": "Photos",
     "inq.attachEquip": "Joindre l’équipement",
     "inq.sendEmail": "Envoyer par e-mail",
     "inq.shipData": "Données du bateau",
@@ -1253,6 +1261,10 @@ export default {
     "sail.position": "Position"
   },
   "it": {
+    "boats.photo": "Foto",
+    "boats.uploadPhoto": "Carica foto",
+    "boats.removePhoto": "Rimuovi",
+    "eq.photos": "Foto",
     "inq.attachEquip": "Allega attrezzatura",
     "inq.sendEmail": "Invia via e-mail",
     "inq.shipData": "Dati imbarcazione",
@@ -1878,6 +1890,10 @@ export default {
     "sail.position": "Posizione"
   },
   "es": {
+    "boats.photo": "Foto",
+    "boats.uploadPhoto": "Subir foto",
+    "boats.removePhoto": "Quitar",
+    "eq.photos": "Fotos",
     "inq.attachEquip": "Adjuntar equipamiento",
     "inq.sendEmail": "Enviar por correo",
     "inq.shipData": "Datos del barco",
@@ -2503,6 +2519,10 @@ export default {
     "sail.position": "Posición"
   },
   "nl": {
+    "boats.photo": "Foto",
+    "boats.uploadPhoto": "Foto uploaden",
+    "boats.removePhoto": "Verwijderen",
+    "eq.photos": "Foto's",
     "inq.attachEquip": "Uitrusting toevoegen",
     "inq.sendEmail": "Per e-mail versturen",
     "inq.shipData": "Bootgegevens",

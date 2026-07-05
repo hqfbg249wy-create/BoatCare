@@ -6,6 +6,7 @@
 import { Capacitor } from '@capacitor/core'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useUnreadInquiries } from '../hooks/useUnreadInquiries'
 import { useT } from '../i18n'
 import LanguageSwitcher from './LanguageSwitcher'
 import {
@@ -42,6 +43,7 @@ function LayoutDesktop() {
   const { profile, signOut } = useAuth()
   const { t } = useT()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const unreadInquiries = useUnreadInquiries()
 
   return (
     <div className="layout">
@@ -62,7 +64,12 @@ function LayoutDesktop() {
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
               onClick={() => setSidebarOpen(false)}
             >
-              <item.icon size={18} />
+              <span style={{ position: 'relative', display: 'inline-flex' }}>
+                <item.icon size={18} />
+                {item.to === '/inquiries' && unreadInquiries > 0 && (
+                  <span style={{ position: 'absolute', top: -6, right: -8, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{unreadInquiries}</span>
+                )}
+              </span>
               <span>{t(item.key)}</span>
             </NavLink>
           ))}

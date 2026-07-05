@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { Ship, Plus, Pencil, Trash2, X, Save, Ruler, Gauge, MapPin, Hash, Package, Wrench, Bot } from 'lucide-react'
 import { useT } from '../i18n'
 
-const emptyBoat = { name: '', boat_type: '', manufacturer: '', model: '', year: '', length_meters: '', width: '', draft: '', engine: '', home_port: '', registration_number: '', hin: '' }
+const emptyBoat = { name: '', boat_type: '', manufacturer: '', model: '', year: '', length_meters: '', width: '', draft: '', engine: '', home_port: '', registration_number: '', hin: '', image_url: '' }
 
 // value = gespeicherter Wert (bleibt Deutsch, damit Bestandsdaten passen),
 // key   = Übersetzungs-Key für die Anzeige
@@ -29,6 +29,24 @@ export default function Boats() {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyBoat)
   const [saving, setSaving] = useState(false)
+  const [uploadingImg, setUploadingImg] = useState(false)
+
+  async function uploadBoatImage(file) {
+    if (!file) return
+    setUploadingImg(true)
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+      const path = `${user.id}/${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage.from('boat-images')
+        .upload(path, file, { upsert: true, contentType: file.type })
+      if (upErr) throw upErr
+      const { data: pub } = supabase.storage.from('boat-images').getPublicUrl(path)
+      setForm(f => ({ ...f, image_url: pub.publicUrl }))
+    } catch (err) {
+      alert(t('common.errorPrefix') + ' ' + err.message)
+    }
+    setUploadingImg(false)
+  }
 
   // Gespeicherten (deutschen) Bootstyp für die Anzeige übersetzen.
   const boatTypeLabel = (value) => {
@@ -50,7 +68,8 @@ export default function Boats() {
       name: boat.name || '', boat_type: boat.boat_type || '', manufacturer: boat.manufacturer || '',
       model: boat.model || '', year: boat.year || '', length_meters: boat.length_meters || '',
       width: boat.width || '', draft: boat.draft || '', engine: boat.engine || '',
-      home_port: boat.home_port || '', registration_number: boat.registration_number || '', hin: boat.hin || ''
+      home_port: boat.home_port || '', registration_number: boat.registration_number || '', hin: boat.hin || '',
+      image_url: boat.image_url || ''
     })
     setEditing(boat.id)
   }
@@ -109,6 +128,21 @@ export default function Boats() {
               <button className="btn-icon" onClick={() => setEditing(null)}><X size={20} /></button>
             </div>
             <form onSubmit={saveBoat} className="modal-body">
+              <div className="form-group">
+                <label>{t('boats.photo')}</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ width: 80, height: 80, borderRadius: 12, border: '1px solid #e2e8f0', background: '#f8fafc', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {form.image_url ? <img src={form.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Ship size={28} color="#cbd5e1" />}
+                  </div>
+                  <label className="btn-secondary" style={{ cursor: 'pointer', margin: 0 }}>
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => uploadBoatImage(e.target.files?.[0])} />
+                    {uploadingImg ? t('common.saving') : t('boats.uploadPhoto')}
+                  </label>
+                  {form.image_url && (
+                    <button type="button" className="btn-ghost" onClick={() => setForm(f => ({ ...f, image_url: '' }))}>{t('boats.removePhoto')}</button>
+                  )}
+                </div>
+              </div>
               <div className="form-row">
                 <div className="form-group"><label>{t('boats.name')} *</label>
                   <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder={t('boats.namePlaceholder')} /></div>

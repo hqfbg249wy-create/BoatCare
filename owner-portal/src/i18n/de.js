@@ -677,4 +677,9 @@ export default {
   "inq.fEngine": "Motor",
   "inq.fPort": "Heimathafen",
   "inq.fSerial": "Seriennr.",
+
+  "boats.photo": "Foto",
+  "boats.uploadPhoto": "Foto hochladen",
+  "boats.removePhoto": "Entfernen",
+  "eq.photos": "Fotos",
 }

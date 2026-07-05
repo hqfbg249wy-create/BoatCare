@@ -33,6 +33,15 @@ export default function Equipment() {
   const [form, setForm] = useState(emptyItem)
   const [saving, setSaving] = useState(false)
   const [sailForm, setSailForm] = useState(emptySailForm)
+  const [photoFiles, setPhotoFiles] = useState([])       // neue Fotos (Upload beim Speichern)
+  const [existingPhotos, setExistingPhotos] = useState([]) // bereits gespeicherte URLs (beim Bearbeiten)
+
+  async function deleteExistingPhoto(url) {
+    setExistingPhotos(prev => prev.filter(u => u !== url))
+    if (editing && editing !== 'new') {
+      await supabase.from('equipment_photos').delete().eq('equipment_id', editing).eq('photo_url', url)
+    }
+  }
 
   useEffect(() => { if (user) loadData() }, [user])
 
@@ -95,6 +104,7 @@ export default function Equipment() {
       category: filterCat || emptyItem.category,
     })
     setSailForm(emptySailForm)
+    setPhotoFiles([]); setExistingPhotos([])
     setEditing('new')
   }
   async function startEdit(item) {
@@ -106,6 +116,7 @@ export default function Equipment() {
       last_maintenance_date: item.last_maintenance_date || '', notes: item.notes || '',
       boat_id: item.boat_id || ''
     })
+    setPhotoFiles([]); setExistingPhotos(item.photos || [])
     // Bei Segel-Equipment: existierendes Maßblatt mitladen
     if (item.category === 'sails') {
       const { data: sail } = await supabase.from('sail_measurements').select('*').eq('equipment_id', item.id).maybeSingle()
@@ -156,6 +167,23 @@ export default function Equipment() {
       } else {
         const { error } = await supabase.from('equipment').update(payload).eq('id', editing)
         if (error) throw error
+      }
+
+      // Neue Fotos hochladen (Bucket equipment-photos) + in equipment_photos verknüpfen
+      if (savedEquipmentId && photoFiles.length > 0) {
+        const startOrder = existingPhotos.length
+        for (let i = 0; i < photoFiles.length; i++) {
+          const file = photoFiles[i]
+          const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+          const path = `${user.id}/${savedEquipmentId}/${Date.now()}_${i}.${ext}`
+          const { error: upErr } = await supabase.storage.from('equipment-photos')
+            .upload(path, file, { upsert: true, contentType: file.type })
+          if (upErr) throw upErr
+          const { data: pub } = supabase.storage.from('equipment-photos').getPublicUrl(path)
+          await supabase.from('equipment_photos').insert({
+            equipment_id: savedEquipmentId, photo_url: pub.publicUrl, sort_order: startOrder + i,
+          })
+        }
       }
 
       // Bei Segeln zusätzlich das Maßblatt speichern
@@ -278,6 +306,39 @@ export default function Equipment() {
                   </div>
                   <div className="form-group"><label>{t('eq.k18')}</label>
                     <textarea rows={3} value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} /></div>
+
+                  {/* ─── Fotos (max. 5, Bucket equipment-photos) ──────── */}
+                  <div className="form-group">
+                    <label>{t('eq.photos')} <span className="form-label-hint">(max. 5)</span></label>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                      {existingPhotos.map((url, i) => (
+                        <div key={'ex' + i} style={{ position: 'relative', width: 64, height: 64 }}>
+                          <img src={url} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                          <button type="button" onClick={() => deleteExistingPhoto(url)} aria-label="remove"
+                            style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 9, background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 11, lineHeight: 1 }}>×</button>
+                        </div>
+                      ))}
+                      {photoFiles.map((f, i) => (
+                        <div key={'new' + i} style={{ position: 'relative', width: 64, height: 64 }}>
+                          <img src={URL.createObjectURL(f)} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid #93c5fd' }} />
+                          <button type="button" onClick={() => setPhotoFiles(prev => prev.filter((_, j) => j !== i))} aria-label="remove"
+                            style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 9, background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 11, lineHeight: 1 }}>×</button>
+                        </div>
+                      ))}
+                      {existingPhotos.length + photoFiles.length < 5 && (
+                        <label style={{ width: 64, height: 64, borderRadius: 8, border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
+                          <input type="file" accept="image/*" multiple style={{ display: 'none' }}
+                            onChange={e => {
+                              const files = Array.from(e.target.files || [])
+                              const room = 5 - existingPhotos.length - photoFiles.length
+                              setPhotoFiles(prev => [...prev, ...files.slice(0, room)])
+                              e.target.value = ''
+                            }} />
+                          <Plus size={20} />
+                        </label>
+                      )}
+                    </div>
+                  </div>
 
                   {/* ─── Segel-Maßblatt (nur wenn category=sails) ──────── */}
                   {form.category === 'sails' && (
