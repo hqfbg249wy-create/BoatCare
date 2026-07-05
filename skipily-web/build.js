@@ -263,6 +263,10 @@ async function main() {
   // Konto löschen (eigenständig, bereits zweisprachig) — 1:1 übernehmen
   write('account-deletion/index.html', fs.readFileSync(path.join(SRC, 'account-deletion.html'), 'utf8'));
 
+  // Clip-Aufsteller-Landing (QR-Ziel skipily.app/clip) — eigenständig,
+  // plattform-erkennend: iPhone → App Store, Android → Web-App.
+  write('clip/index.html', fs.readFileSync(path.join(SRC, 'skipily-clip.html'), 'utf8'));
+
   // FAQ live aus Supabase
   try {
     const faqs = await fetchFaqs();
