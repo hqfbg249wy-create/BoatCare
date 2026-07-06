@@ -416,6 +416,11 @@ Ausrüstung unter Boote ergänzen.";
 
 // MARK: - Messages
 "messages.title" = "Nachrichten";
+"msg.active" = "Aktiv";
+"msg.archived" = "Archiviert";
+"msg.archive" = "Archivieren";
+"msg.unarchive" = "Wiederherstellen";
+"msg.deleteConv" = "Konversation löschen";
 "messages.loading" = "Nachrichten laden...";
 "messages.search_prompt" = "Anbieter suchen...";
 

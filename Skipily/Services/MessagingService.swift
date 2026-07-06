@@ -26,13 +26,14 @@ final class MessagingService {
 
     // MARK: - Conversations
 
-    func loadConversations(userId: UUID) async {
+    func loadConversations(userId: UUID, archived: Bool = false) async {
         isLoading = true
         do {
             let data: [Conversation] = try await client
                 .from("conversations")
                 .select("*, service_providers(id, name, city)")
                 .eq("user_id", value: userId.uuidString)
+                .eq("owner_archived", value: archived)
                 .order("last_message_at", ascending: false)
                 .execute()
                 .value
@@ -43,6 +44,24 @@ final class MessagingService {
             AppLog.error("Load conversations error: \(error)")
         }
         isLoading = false
+    }
+
+    /// Konversation für den Eigner archivieren / wiederherstellen (owner_archived).
+    func archiveConversation(id: UUID, archived: Bool) async throws {
+        try await client
+            .from("conversations")
+            .update(["owner_archived": archived])
+            .eq("id", value: id.uuidString)
+            .execute()
+    }
+
+    /// Konversation endgültig löschen (Nachrichten via ON DELETE CASCADE).
+    func deleteConversation(id: UUID) async throws {
+        try await client
+            .from("conversations")
+            .delete()
+            .eq("id", value: id.uuidString)
+            .execute()
     }
 
     func loadUnreadCount(userId: UUID) async {

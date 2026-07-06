@@ -412,6 +412,11 @@
 
 // MARK: - Messages
 "messages.title" = "Messages";
+"msg.active" = "Active";
+"msg.archived" = "Archived";
+"msg.archive" = "Archive";
+"msg.unarchive" = "Restore";
+"msg.deleteConv" = "Delete conversation";
 "messages.loading" = "Loading messages...";
 "messages.search_prompt" = "Search providers...";
 

@@ -408,6 +408,11 @@
 
 // MARK: - Messages
 "messages.title" = "Messaggi";
+"msg.active" = "Attive";
+"msg.archived" = "Archiviate";
+"msg.archive" = "Archivia";
+"msg.unarchive" = "Ripristina";
+"msg.deleteConv" = "Elimina conversazione";
 "messages.loading" = "Caricamento messaggi...";
 "messages.search_prompt" = "Cerca fornitori...";
 

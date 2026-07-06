@@ -408,6 +408,11 @@
 
 // MARK: - Messages
 "messages.title" = "Berichten";
+"msg.active" = "Actief";
+"msg.archived" = "Gearchiveerd";
+"msg.archive" = "Archiveren";
+"msg.unarchive" = "Herstellen";
+"msg.deleteConv" = "Gesprek verwijderen";
 "messages.loading" = "Berichten laden...";
 "messages.search_prompt" = "Aanbieders zoeken...";
 

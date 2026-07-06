@@ -14,20 +14,34 @@ struct ConversationsContent: View {
 
     @State private var conversations: [Conversation] = []
     @State private var isLoading = true
+    @State private var showArchived = false
 
     var body: some View {
-        Group {
-            if isLoading {
-                ProgressView("messages.loading".loc)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if conversations.isEmpty {
-                emptyView
-            } else {
-                conversationList
+        VStack(spacing: 0) {
+            Picker("", selection: $showArchived) {
+                Text("msg.active".loc).tag(false)
+                Text("msg.archived".loc).tag(true)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+
+            Group {
+                if isLoading {
+                    ProgressView("messages.loading".loc)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if conversations.isEmpty {
+                    emptyView
+                } else {
+                    conversationList
+                }
             }
         }
         .task { await loadConversations() }
         .refreshable { await loadConversations() }
+        .onChange(of: showArchived) { _, _ in
+            Task { await loadConversations() }
+        }
     }
 
     private var conversationList: some View {
@@ -35,12 +49,44 @@ struct ConversationsContent: View {
             NavigationLink(value: conv.id) {
                 conversationRow(conv)
             }
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                Button(role: .destructive) {
+                    Task { await deleteConversation(conv.id) }
+                } label: {
+                    Label("msg.deleteConv".loc, systemImage: "trash")
+                }
+                Button {
+                    Task { await archiveConversation(conv.id, archived: !showArchived) }
+                } label: {
+                    Label(showArchived ? "msg.unarchive".loc : "msg.archive".loc,
+                          systemImage: showArchived ? "tray.and.arrow.up" : "archivebox")
+                }
+                .tint(.orange)
+            }
         }
         .listStyle(.plain)
         .navigationDestination(for: UUID.self) { convId in
             if let conv = conversations.first(where: { $0.id == convId }) {
                 ChatView(conversation: conv)
             }
+        }
+    }
+
+    private func archiveConversation(_ id: UUID, archived: Bool) async {
+        do {
+            try await MessagingService.shared.archiveConversation(id: id, archived: archived)
+            await loadConversations()
+        } catch {
+            AppLog.error("Archive conversation: \(error)")
+        }
+    }
+
+    private func deleteConversation(_ id: UUID) async {
+        do {
+            try await MessagingService.shared.deleteConversation(id: id)
+            await loadConversations()
+        } catch {
+            AppLog.error("Delete conversation: \(error)")
         }
     }
 
@@ -99,7 +145,7 @@ struct ConversationsContent: View {
             isLoading = false
             return
         }
-        await MessagingService.shared.loadConversations(userId: userId)
+        await MessagingService.shared.loadConversations(userId: userId, archived: showArchived)
         conversations = MessagingService.shared.conversations
         isLoading = false
     }
