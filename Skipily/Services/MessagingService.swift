@@ -85,13 +85,14 @@ final class MessagingService {
         return messages
     }
 
-    func sendMessage(conversationId: UUID, senderId: UUID, content: String, relatedOrderId: UUID? = nil) async throws {
+    func sendMessage(conversationId: UUID, senderId: UUID, content: String, relatedOrderId: UUID? = nil, attachmentUrls: [String] = []) async throws {
         struct MessageInsert: Codable {
             let conversationId: String
             let senderId: String
             let senderType: String
             let content: String
             let relatedOrderId: String?
+            let attachmentUrls: [String]
 
             enum CodingKeys: String, CodingKey {
                 case conversationId = "conversation_id"
@@ -99,6 +100,7 @@ final class MessagingService {
                 case senderType = "sender_type"
                 case content
                 case relatedOrderId = "related_order_id"
+                case attachmentUrls = "attachment_urls"
             }
         }
 
@@ -107,7 +109,8 @@ final class MessagingService {
             senderId: senderId.uuidString,
             senderType: "user",
             content: content,
-            relatedOrderId: relatedOrderId?.uuidString
+            relatedOrderId: relatedOrderId?.uuidString,
+            attachmentUrls: attachmentUrls
         )
 
         struct InsertedRow: Decodable { let id: UUID }

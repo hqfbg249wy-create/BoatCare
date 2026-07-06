@@ -57,7 +57,16 @@ serve(async (req: Request) => {
 
     // Empfänger = die andere Partei
     const ownerSent = msg.sender_type === "user";
-    const toEmail = ownerSent ? provider?.email : owner?.email;
+
+    // Fallback: fehlt die Eigner-E-Mail im Profil, aus auth.users holen
+    // (Service-Role hat Admin-Zugriff). Sonst käme keine Mail beim Eigner an.
+    let ownerEmail = owner?.email as string | undefined;
+    if (!ownerSent && !ownerEmail) {
+      const { data: authUser } = await supabase.auth.admin.getUserById(conv.user_id);
+      ownerEmail = authUser?.user?.email ?? undefined;
+    }
+
+    const toEmail = ownerSent ? provider?.email : ownerEmail;
     const senderName = ownerSent
       ? (owner?.full_name || "Ein Bootseigner")
       : (provider?.name || "Ein Anbieter");

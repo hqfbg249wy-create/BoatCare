@@ -356,6 +356,15 @@ export default function Messages() {
                   messages.map(msg => (
                     <div key={msg.id} className={`chat-bubble ${msg.sender_type === 'provider' ? 'sent' : 'received'}`}>
                       <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.content}</p>
+                      {Array.isArray(msg.attachment_urls) && msg.attachment_urls.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                          {msg.attachment_urls.map((url, i) => (
+                            <a key={i} href={url} target="_blank" rel="noreferrer">
+                              <img src={url} alt="" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--gray-200)' }} />
+                            </a>
+                          ))}
+                        </div>
+                      )}
                       <span className="chat-time">
                         {new Date(msg.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
                       </span>

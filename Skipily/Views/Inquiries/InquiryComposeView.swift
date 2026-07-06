@@ -887,6 +887,13 @@ struct InquiryComposeView: View {
             trimmedMessage = pre
         }
 
+        // Fotos einmal hochladen (nur beim tatsächlichen Senden), damit der
+        // Provider die Bilder auch im Nachrichten-Verlauf sieht (nicht nur per Mail).
+        var uploadedImageUrls: [String] = []
+        if send, !photos.isEmpty, let uid = authService.currentUser?.id {
+            uploadedImageUrls = await InquiryService.shared.uploadInquiryPhotos(photos, ownerId: uid)
+        }
+
         do {
             if let inq = editing {
                 // Update existing draft
@@ -904,7 +911,8 @@ struct InquiryComposeView: View {
                     if let uid = authService.currentUser?.id {
                         try? await InquiryService.shared.mirrorInquiryToConversation(
                             ownerId: uid, providerId: inq.providerId,
-                            subject: trimmedSubject, message: trimmedMessage)
+                            subject: trimmedSubject, message: trimmedMessage,
+                            imageUrls: uploadedImageUrls)
                     }
                 }
             } else {
@@ -926,7 +934,8 @@ struct InquiryComposeView: View {
                     // Anfrage als Konversation spiegeln → im Provider-Portal sichtbar.
                     try? await InquiryService.shared.mirrorInquiryToConversation(
                         ownerId: uid, providerId: pid,
-                        subject: trimmedSubject, message: trimmedMessage)
+                        subject: trimmedSubject, message: trimmedMessage,
+                        imageUrls: uploadedImageUrls)
                 }
             }
             await onSave?()

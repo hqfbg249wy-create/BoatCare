@@ -48,6 +48,7 @@ struct ChatMessage: Codable, Identifiable, Sendable {
     let isRead: Bool
     let relatedOrderId: UUID?
     let relatedProductId: UUID?
+    let attachmentUrls: [String]?
     let createdAt: String?
 
     enum CodingKeys: String, CodingKey {
@@ -59,6 +60,7 @@ struct ChatMessage: Codable, Identifiable, Sendable {
         case isRead = "is_read"
         case relatedOrderId = "related_order_id"
         case relatedProductId = "related_product_id"
+        case attachmentUrls = "attachment_urls"
         case createdAt = "created_at"
     }
 

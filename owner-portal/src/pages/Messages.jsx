@@ -200,6 +200,15 @@ export default function Messages() {
                     return (
                       <div key={m.id} style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '78%', background: mine ? '#f97316' : '#fff', color: mine ? '#fff' : '#1e293b', border: mine ? 'none' : '1px solid #e2e8f0', borderRadius: 12, padding: '8px 12px' }}>
                         <div style={{ whiteSpace: 'pre-wrap', fontSize: 14, lineHeight: 1.4 }}>{m.content}</div>
+                        {Array.isArray(m.attachment_urls) && m.attachment_urls.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                            {m.attachment_urls.map((url, i) => (
+                              <a key={i} href={url} target="_blank" rel="noreferrer">
+                                <img src={url} alt="" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8 }} />
+                              </a>
+                            ))}
+                          </div>
+                        )}
                         <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4, textAlign: 'right' }}>{new Date(m.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</div>
                       </div>
                     )
