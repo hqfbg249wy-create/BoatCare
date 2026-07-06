@@ -653,7 +653,11 @@ export default {
     "msg.active": "Active",
     "msg.archived": "Archived",
     "msg.archive": "Archive",
-    "msg.unarchive": "Restore"
+    "msg.unarchive": "Restore",
+    "guest.subtitle": "Boat service nearby",
+    "guest.install": "Install web app",
+    "guest.openApp": "Go to full app",
+    "guest.route": "Route"
   },
   "fr": {
     "msg.deleteConv": "Supprimer la conversation",
@@ -1306,7 +1310,11 @@ export default {
     "msg.active": "Actif",
     "msg.archived": "Archivé",
     "msg.archive": "Archiver",
-    "msg.unarchive": "Restaurer"
+    "msg.unarchive": "Restaurer",
+    "guest.subtitle": "Service nautique à proximité",
+    "guest.install": "Installer l'application web",
+    "guest.openApp": "Accéder à l'application complète",
+    "guest.route": "Itinéraire"
   },
   "it": {
     "msg.deleteConv": "Elimina conversazione",
@@ -1959,7 +1967,11 @@ export default {
     "msg.active": "Attivo",
     "msg.archived": "Archiviato",
     "msg.archive": "Archivia",
-    "msg.unarchive": "Ripristina"
+    "msg.unarchive": "Ripristina",
+    "guest.subtitle": "Servizio barche nelle vicinanze",
+    "guest.install": "Installa l'app web",
+    "guest.openApp": "Vai all'app completa",
+    "guest.route": "Percorso"
   },
   "es": {
     "msg.deleteConv": "Eliminar conversación",
@@ -2612,7 +2624,11 @@ export default {
     "msg.active": "Activo",
     "msg.archived": "Archivado",
     "msg.archive": "Archivar",
-    "msg.unarchive": "Restaurar"
+    "msg.unarchive": "Restaurar",
+    "guest.subtitle": "Servicio de barcos cercano",
+    "guest.install": "Instalar aplicación web",
+    "guest.openApp": "Ir a la aplicación completa",
+    "guest.route": "Ruta"
   },
   "nl": {
     "msg.deleteConv": "Gesprek verwijderen",
@@ -3265,6 +3281,10 @@ export default {
     "msg.active": "Actief",
     "msg.archived": "Gearchiveerd",
     "msg.archive": "Archiveren",
-    "msg.unarchive": "Herstellen"
+    "msg.unarchive": "Herstellen",
+    "guest.subtitle": "Bootservice in de buurt",
+    "guest.install": "Web-app installeren",
+    "guest.openApp": "Naar de volledige app",
+    "guest.route": "Route"
   }
 }

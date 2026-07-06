@@ -22,6 +22,7 @@ import Inquiries from './pages/Inquiries'
 import Messages from './pages/Messages'
 import ResetPassword from './pages/ResetPassword'
 import AuthCallback from './pages/AuthCallback'
+import GuestMap from './pages/GuestMap'
 
 function ProtectedRoutes() {
   const { user, loading, mfaRequired } = useAuth()
@@ -76,6 +77,8 @@ export default function App() {
               temporaere Session aus dem URL-Hash. */}
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          {/* Öffentliche Gäste-Karte (kein Login) — Android-Pendant zum iPhone-App-Clip. */}
+          <Route path="/entdecken" element={<GuestMap />} />
           <Route path="/*" element={<ProtectedRoutes />} />
         </Routes>
       </AuthProvider>
