@@ -270,6 +270,14 @@ async function main() {
   // plattform-erkennend: iPhone → App Store, Android → Web-App.
   write('clip/index.html', fs.readFileSync(path.join(SRC, 'skipily-clip.html'), 'utf8'));
 
+  // Link-in-Bio-Landing (skipily.app/start) — für Social-Profile.
+  const social = path.join(ROOT, 'marketing', 'social');
+  write('start/index.html', fs.readFileSync(path.join(social, 'link-in-bio.html'), 'utf8'));
+  for (const img of ['app-map.jpg', 'app-boats.jpg', 'app-ki.jpg']) {
+    fs.mkdirSync(path.join(OUT, 'start', 'assets'), { recursive: true });
+    fs.copyFileSync(path.join(social, 'assets', img), path.join(OUT, 'start', 'assets', img));
+  }
+
   // FAQ live aus Supabase
   try {
     const faqs = await fetchFaqs();
