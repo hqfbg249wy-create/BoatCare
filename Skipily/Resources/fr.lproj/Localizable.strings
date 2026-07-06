@@ -68,6 +68,7 @@
 "provider.write_review" = "Écrire un avis";
 "provider.verified" = "Vérifié";
 "provider.more_details" = "Plus de détails";
+"provider.send_inquiry" = "Envoyer une demande";
 "provider.special_offer" = "Offre spéciale";
 "provider.go_to_shop" = "Vers la boutique";
 "provider.swipe_hint" = "Glisser pour plus de prestataires";

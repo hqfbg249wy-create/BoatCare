@@ -72,6 +72,7 @@
 "provider.write_review" = "Bewertung schreiben";
 "provider.verified" = "Verifiziert";
 "provider.more_details" = "Mehr Details";
+"provider.send_inquiry" = "Anfrage senden";
 "provider.google_rating" = "Google-Bewertung";
 "provider.special_offer" = "Sonderangebot";
 "provider.go_to_shop" = "Zum Shop";

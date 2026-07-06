@@ -1968,6 +1968,7 @@ struct ProviderDetailCard: View {
     @State private var showingDetailView = false
     @State private var showingLoginRequired = false
     @State private var showingLogin = false
+    @State private var showingInquiry = false
     @State private var serviceNames: [String] = []
     
     private var isFavorite: Bool {
@@ -2110,7 +2111,33 @@ struct ProviderDetailCard: View {
                     .background(Color.cyan)
                     .cornerRadius(8)
                 }
-                
+
+                // Anfrage senden — direkt aus der Kurzansicht (Login erforderlich).
+                // So sehen Eigner sofort, dass eine Anfrage möglich ist.
+                Button {
+                    if authService.isAuthenticated {
+                        showingInquiry = true
+                    } else {
+                        showingLoginRequired = true
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "paperplane.fill")
+                            .font(.caption)
+                        Text("provider.send_inquiry".loc)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(AppColors.primary)
+                    .cornerRadius(8)
+                }
+
                 // Kontakt-Buttons - KOMPAKT
                 HStack(spacing: 6) {
                     if let phone = provider.phone, !phone.isEmpty {
@@ -2188,6 +2215,15 @@ struct ProviderDetailCard: View {
         .sheet(isPresented: $showingLogin) {
             LoginView()
                 .environmentObject(authService)
+        }
+        .sheet(isPresented: $showingInquiry) {
+            InquiryComposeView(
+                editing: nil,
+                providerId: provider.id,
+                providerName: provider.name,
+                providerEmail: provider.email
+            )
+            .environmentObject(authService)
         }
         .alert("map.login_required".loc, isPresented: $showingLoginRequired) {
             Button("general.cancel".loc, role: .cancel) {}

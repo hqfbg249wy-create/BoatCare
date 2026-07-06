@@ -73,6 +73,7 @@
 "provider.write_review" = "Write a Review";
 "provider.verified" = "Verified";
 "provider.more_details" = "More Details";
+"provider.send_inquiry" = "Send inquiry";
 "provider.google_rating" = "Google Rating";
 "provider.special_offer" = "Special Offer";
 "provider.go_to_shop" = "Go to Shop";
