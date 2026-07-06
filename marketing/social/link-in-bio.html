@@ -136,12 +136,33 @@
       document.querySelectorAll('[data-i]').forEach(function (el) {
         var k = el.getAttribute('data-i'); if (t[k]) el.textContent = t[k];
       });
+      fitBadgeText();
       document.documentElement.lang = lang;
       document.querySelectorAll('#langs button').forEach(function (b) {
         b.classList.toggle('active', b.dataset.lang === lang);
       });
       try { localStorage.setItem('skipily_lang', lang); } catch (e) {}
     }
+
+    // Badge-Texte (SVG) bei Überlauf auf die Badge-Breite stauchen. Kurze
+    // Texte bleiben unverändert — nur zu lange werden per textLength geklemmt.
+    // Verfügbare Breite ab x≈41 in der 120er-viewBox: ~74 Einheiten.
+    function fitBadgeText() {
+      document.querySelectorAll('svg text[data-i]').forEach(function (el) {
+        el.removeAttribute('textLength');
+        el.removeAttribute('lengthAdjust');
+        try {
+          var max = 74;
+          if (el.getComputedTextLength() > max) {
+            el.setAttribute('textLength', max);
+            el.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+          }
+        } catch (e) {}
+      });
+    }
+    // Nach Font-Load erneut messen (erste Messung kann vor dem Laden erfolgen).
+    window.addEventListener('load', fitBadgeText);
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(fitBadgeText); }
 
     (function () {
       var sw = document.getElementById('langs');

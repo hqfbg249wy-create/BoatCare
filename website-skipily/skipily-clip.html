@@ -59,8 +59,8 @@
             <ellipse cx="11" cy="11" rx="4.3" ry="10.2"/>
             <path d="M1 11 h20.4 M2.6 5.2 h16.8 M2.6 16.8 h16.8"/>
           </g>
-          <text x="41" y="15.5" fill="#fff" font-family="Helvetica,Arial,sans-serif" font-size="6.6" textLength="74" lengthAdjust="spacingAndGlyphs" data-i="webSmall">Für Android · im Browser</text>
-          <text x="41" y="31" fill="#fff" font-family="Helvetica,Arial,sans-serif" font-size="15.5" font-weight="600" letter-spacing="-0.3" textLength="74" lengthAdjust="spacingAndGlyphs" data-i="webBig">Web-App öffnen</text>
+          <text x="41" y="15.5" fill="#fff" font-family="Helvetica,Arial,sans-serif" font-size="6.6" data-i="webSmall">Für Android · im Browser</text>
+          <text x="41" y="31" fill="#fff" font-family="Helvetica,Arial,sans-serif" font-size="15.5" font-weight="600" letter-spacing="-0.3" data-i="webBig">Web-App öffnen</text>
         </svg>
       </a>
     </div>
@@ -89,6 +89,7 @@
       document.querySelectorAll('[data-i]').forEach(function (el) {
         var k = el.getAttribute('data-i'); if (t[k]) el.textContent = t[k];
       });
+      fitBadgeText();
       document.documentElement.lang = lang;
       document.querySelectorAll('#langs button').forEach(function (b) {
         b.classList.toggle('active', b.dataset.lang === lang);
@@ -96,6 +97,23 @@
       applyPlatformHint(lang);
       try { localStorage.setItem('skipily_lang', lang); } catch (e) {}
     }
+
+    // Badge-Texte (SVG) nur bei Überlauf auf die Badge-Breite (~74) stauchen —
+    // kurze Texte bleiben unverzerrt, lange werden per textLength geklemmt.
+    function fitBadgeText() {
+      document.querySelectorAll('svg text[data-i]').forEach(function (el) {
+        el.removeAttribute('textLength');
+        el.removeAttribute('lengthAdjust');
+        try {
+          if (el.getComputedTextLength() > 74) {
+            el.setAttribute('textLength', 74);
+            el.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+          }
+        } catch (e) {}
+      });
+    }
+    window.addEventListener('load', fitBadgeText);
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(fitBadgeText); }
     var _platform = 'other';
     function applyPlatformHint(lang) {
       var hint = document.getElementById('hint'); if (!hint) return;
