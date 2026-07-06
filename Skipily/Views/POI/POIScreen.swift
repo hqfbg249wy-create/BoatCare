@@ -223,6 +223,9 @@ struct FavoriteRow: View {
     let provider: BoatServiceProvider
     let onRemove: () -> Void
 
+    @EnvironmentObject var authService: AuthService
+    @State private var showingInquiry = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
 
@@ -295,14 +298,21 @@ struct FavoriteRow: View {
                 .buttonStyle(.plain)
             }
 
-            // MARK: Kontakt-Buttons: Route | Telefon | E-Mail | Website
+            // MARK: Kontakt-Buttons: Anfrage | Route | Telefon | E-Mail | Website
             let hasRoute   = provider.latitude != 0 || provider.longitude != 0
             let hasPhone   = provider.phone != nil
             let hasEmail   = provider.email != nil
             let hasWebsite = provider.website != nil
 
-            if hasRoute || hasPhone || hasEmail || hasWebsite {
-                HStack(spacing: 10) {
+            HStack(spacing: 10) {
+                    // Anfrage immer zuerst — Favoriten werden am häufigsten kontaktiert.
+                    contactButton(
+                        icon: "paperplane.fill",
+                        label: "provider.send_inquiry".loc,
+                        color: AppColors.primary
+                    ) {
+                        showingInquiry = true
+                    }
                     if hasRoute {
                         contactButton(
                             icon: "arrow.triangle.turn.up.right.circle.fill",
@@ -348,10 +358,18 @@ struct FavoriteRow: View {
                         }
                     }
                     Spacer()
-                }
             }
         }
         .padding(.vertical, 8)
+        .sheet(isPresented: $showingInquiry) {
+            InquiryComposeView(
+                editing: nil,
+                providerId: provider.id,
+                providerName: provider.name,
+                providerEmail: provider.email
+            )
+            .environmentObject(authService)
+        }
     }
 
     // MARK: - Helpers
