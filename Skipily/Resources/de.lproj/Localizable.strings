@@ -78,10 +78,10 @@
 "provider.swipe_hint" = "Wischen für weitere Betriebe";
 
 // MARK: - Favorites / POI
-"favorites.title" = "Favoriten";
+"favorites.title" = "Kontakte";
 "favorites.empty" = "Noch keine Favoriten";
 "favorites.add_hint" = "Tippe das Herz-Symbol bei einem Betrieb, um ihn zu speichern";
-"poi.favorites" = "Favoriten";
+"poi.favorites" = "Kontakte";
 "poi.no_favorites" = "Noch keine Favoriten";
 "poi.no_favorites_hint" = "Tippe auf das Herz-Symbol bei einem Betrieb, um ihn zu speichern.";
 

@@ -2,50 +2,36 @@
 //  ConversationsView.swift
 //  Skipily
 //
-//  List of all chat conversations for the current user
+//  List of all chat conversations for the current user.
+//  ConversationsContent ist ohne eigenen NavigationStack, damit es in POIScreen
+//  (Tab "Kontakte") als Segment eingebettet werden kann.
 //
 
 import SwiftUI
-struct ConversationsView: View {
+
+struct ConversationsContent: View {
     @EnvironmentObject var authService: AuthService
 
     @State private var conversations: [Conversation] = []
     @State private var isLoading = true
-    @State private var searchText = ""
-
-    private var filteredConversations: [Conversation] {
-        guard !searchText.isEmpty else { return conversations }
-        return conversations.filter { conv in
-            let name = conv.provider?.companyName ?? ""
-            return name.localizedCaseInsensitiveContains(searchText)
-        }
-    }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if isLoading {
-                    ProgressView("messages.loading".loc)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if filteredConversations.isEmpty {
-                    emptyView
-                } else {
-                    conversationList
-                }
-            }
-            .navigationTitle("messages.title".loc)
-            .searchable(text: $searchText, prompt: "messages.search_prompt".loc)
-            .task {
-                await loadConversations()
-            }
-            .refreshable {
-                await loadConversations()
+        Group {
+            if isLoading {
+                ProgressView("messages.loading".loc)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if conversations.isEmpty {
+                emptyView
+            } else {
+                conversationList
             }
         }
+        .task { await loadConversations() }
+        .refreshable { await loadConversations() }
     }
 
     private var conversationList: some View {
-        List(filteredConversations) { conv in
+        List(conversations) { conv in
             NavigationLink(value: conv.id) {
                 conversationRow(conv)
             }
@@ -60,7 +46,6 @@ struct ConversationsView: View {
 
     private func conversationRow(_ conv: Conversation) -> some View {
         HStack(spacing: 12) {
-            // Provider avatar
             ZStack {
                 Circle()
                     .fill(AppColors.primary.opacity(0.15))
@@ -114,9 +99,20 @@ struct ConversationsView: View {
             isLoading = false
             return
         }
-
         await MessagingService.shared.loadConversations(userId: userId)
         conversations = MessagingService.shared.conversations
         isLoading = false
+    }
+}
+
+/// Eigenständige Variante (mit NavigationStack) — für ggf. separate Nutzung.
+struct ConversationsView: View {
+    @EnvironmentObject var authService: AuthService
+
+    var body: some View {
+        NavigationStack {
+            ConversationsContent()
+                .navigationTitle("messages.title".loc)
+        }
     }
 }

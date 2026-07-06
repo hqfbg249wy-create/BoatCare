@@ -73,7 +73,7 @@
 "provider.swipe_hint" = "Scorri per altri fornitori";
 
 // MARK: - Favorites
-"favorites.title" = "Preferiti";
+"favorites.title" = "Contatti";
 "favorites.empty" = "Nessun preferito ancora";
 "favorites.add_hint" = "Tocca il cuore di un fornitore per salvarlo";
 
@@ -161,7 +161,7 @@
 "boats.home_port" = "Porto di origine";
 
 // MARK: - POI / Favorites
-"poi.favorites" = "Preferiti";
+"poi.favorites" = "Contatti";
 "poi.no_favorites" = "Nessun preferito";
 "poi.no_favorites_hint" = "Tocca il cuore di un fornitore per salvarlo qui.";
 

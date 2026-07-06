@@ -16,15 +16,17 @@ struct POIScreen: View {
     @State private var errorMessage: String?
     @State private var showingResetConfirm = false
 
-    enum SubTab: Hashable { case favorites, inquiries }
+    enum SubTab: Hashable { case favorites, messages, inquiries }
     @State private var selectedTab: SubTab = .favorites
     @State private var inquiryService = InquiryService.shared
+    @State private var messagingService = MessagingService.shared
 
     var body: some View {
         VStack(spacing: 0) {
-            // Segmented Picker oben: Favoriten | Anfragen
+            // Segmented Picker oben: Kontakte | Nachrichten | Anfragen
             Picker("", selection: $selectedTab) {
                 Label("poi.favorites".loc, systemImage: "heart.fill").tag(SubTab.favorites)
+                Label(messagesBadgeLabel, systemImage: "bubble.left.and.bubble.right.fill").tag(SubTab.messages)
                 Label(inquiryBadgeLabel, systemImage: "envelope.fill").tag(SubTab.inquiries)
             }
             .pickerStyle(.segmented)
@@ -36,12 +38,15 @@ struct POIScreen: View {
             switch selectedTab {
             case .favorites:
                 favoritesContent
+            case .messages:
+                ConversationsContent()
+                    .environmentObject(authService)
             case .inquiries:
                 InquiriesContent()
                     .environmentObject(authService)
             }
         }
-        .navigationTitle(selectedTab == .favorites ? "poi.favorites".loc : "Anfragen")
+        .navigationTitle(navTitle)
         .toolbar {
             if selectedTab == .favorites && !favoritesManager.favoriteIDs.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -70,12 +75,28 @@ struct POIScreen: View {
         }
         .task {
             await loadFavorites()
+            if let uid = authService.currentUser?.id {
+                await messagingService.loadConversations(userId: uid)
+            }
         }
     }
 
     private var inquiryBadgeLabel: String {
         let n = inquiryService.unreadCount
         return n > 0 ? "Anfragen (\(n))" : "Anfragen"
+    }
+
+    private var messagesBadgeLabel: String {
+        let n = messagingService.unreadCount
+        return n > 0 ? "\("messages.title".loc) (\(n))" : "messages.title".loc
+    }
+
+    private var navTitle: String {
+        switch selectedTab {
+        case .favorites: return "poi.favorites".loc
+        case .messages:  return "messages.title".loc
+        case .inquiries: return "Anfragen"
+        }
     }
 
     @ViewBuilder

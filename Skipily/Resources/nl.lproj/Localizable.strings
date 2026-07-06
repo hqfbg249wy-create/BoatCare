@@ -73,7 +73,7 @@
 "provider.swipe_hint" = "Veeg voor meer aanbieders";
 
 // MARK: - Favorites
-"favorites.title" = "Favorieten";
+"favorites.title" = "Contacten";
 "favorites.empty" = "Nog geen favorieten";
 "favorites.add_hint" = "Tik op het hartpictogram van een aanbieder om het op te slaan";
 
@@ -161,7 +161,7 @@
 "boats.home_port" = "Thuishaven";
 
 // MARK: - POI / Favorites
-"poi.favorites" = "Favorieten";
+"poi.favorites" = "Contacten";
 "poi.no_favorites" = "Nog geen favorieten";
 "poi.no_favorites_hint" = "Tik op het hartje van een provider om het op te slaan.";
 

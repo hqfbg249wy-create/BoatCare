@@ -23,6 +23,7 @@ struct MainTabView: View {
     @EnvironmentObject var favoritesManager: FavoritesManager
     @Environment(CartManager.self) private var cartManager
     @State private var messagingService = MessagingService.shared
+    @State private var inquiryService = InquiryService.shared
     @State private var offlineService = OfflineStorageService.shared
     @StateObject private var locationManagerForOffline = LocationManager()
 
@@ -103,12 +104,13 @@ struct MainTabView: View {
             }
             .badge(cartManager.itemCount)
 
-            // MARK: - Favoriten
+            // MARK: - Kontakte (Favoriten + Nachrichten + Anfragen)
             Tab("favorites.title".loc, systemImage: "heart.fill", value: AppTab.favorites) {
                 NavigationStack(path: $favoritesNavigationPath) {
                     POIScreen()
                 }
             }
+            .badge(messagingService.unreadCount + inquiryService.unreadCount)
         }
         .tint(AppColors.primary)
         .overlay(alignment: .top) {
@@ -128,6 +130,11 @@ struct MainTabView: View {
             offlineService.start()
             locationManagerForOffline.requestPermission()
             await offlineService.syncIfNeeded()
+            // Ungelesen-Zähler für den Kontakte-Badge laden
+            if let uid = authService.currentUser?.id {
+                await messagingService.loadConversations(userId: uid)
+                await inquiryService.loadInquiries(ownerId: uid)
+            }
         }
         .onChange(of: locationManagerForOffline.location) { _, newLocation in
             if let loc = newLocation {

@@ -79,10 +79,10 @@
 "provider.swipe_hint" = "Swipe for more providers";
 
 // MARK: - Favorites / POI
-"favorites.title" = "Favorites";
+"favorites.title" = "Contacts";
 "favorites.empty" = "No favorites yet";
 "favorites.add_hint" = "Tap the heart icon on a provider to save it";
-"poi.favorites" = "Favorites";
+"poi.favorites" = "Contacts";
 "poi.no_favorites" = "No favorites yet";
 "poi.no_favorites_hint" = "Tap the heart icon on a provider to save it here.";
 
