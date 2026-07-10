@@ -26,6 +26,83 @@ if (webhookSecrets.length === 0) {
   console.error("Kein STRIPE_WEBHOOK_SECRET* in den Secrets gesetzt — Webhook wird jede Anfrage ablehnen.");
 }
 
+// ── Transaktionsmail: "Abo aktiv"-Willkommensmail (Resend) ──────────────────
+const RESEND_API_URL = "https://api.resend.com/emails";
+const FROM_EMAIL     = "Skipily <noreply@skipily.app>";
+const PORTAL_URL     = "https://provider.skipily.app/profile";
+
+function planLabel(planCode: string | null): string {
+  return planCode && planCode.startsWith("ent") ? "Enterprise" : "Pro";
+}
+
+// Schickt einmalig die "Abo aktiv"-Mail mit Link zum Rechnungs-/Billing-Portal.
+// Die eigentliche Rechnung erzeugt & versendet Stripe (siehe Dashboard-Setting).
+async function sendProWelcomeEmail(
+  email: string,
+  name: string | null,
+  planCode: string | null,
+): Promise<boolean> {
+  const resendKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendKey) {
+    console.warn("RESEND_API_KEY nicht gesetzt — Pro-Willkommensmail übersprungen");
+    return false;
+  }
+  const label = planLabel(planCode);
+  const hallo = name && name.trim() ? name.trim() : "Anbieter";
+  const subject = `Dein Skipily ${label}-Abo ist aktiv 🎉`;
+
+  const text =
+`Hallo ${hallo},
+
+dein Skipily ${label}-Abo ist jetzt aktiv. Vielen Dank!
+
+Rechnungen & Zahlung
+Deine Rechnungen erhältst du automatisch per E-Mail von Stripe und findest sie
+außerdem jederzeit im Rechnungs-Portal (Rechnungen ansehen/herunterladen,
+Zahlungsmethode ändern, kündigen):
+${PORTAL_URL}
+
+Fragen? Antworte einfach auf diese E-Mail.
+
+Immer · Sicher · Seeklar
+Dein Skipily-Team`;
+
+  const html =
+`<!doctype html><html><body style="margin:0;background:#eef2f6;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0f2033">
+  <div style="max-width:560px;margin:0 auto;padding:24px">
+    <div style="background:#04101d;border-radius:16px 16px 0 0;padding:26px 28px;text-align:center">
+      <div style="font-size:22px;font-weight:800;letter-spacing:.06em;color:#fff">SKIPILY</div>
+      <div style="height:3px;width:120px;background:#f2911e;border-radius:2px;margin:10px auto 8px"></div>
+      <div style="font-size:11px;letter-spacing:.28em;color:#93a8bd">IMMER · SICHER · SEEKLAR</div>
+    </div>
+    <div style="background:#fff;border-radius:0 0 16px 16px;padding:28px;border:1px solid #e2e8f0;border-top:none">
+      <h1 style="margin:0 0 6px;font-size:20px">Dein ${label}-Abo ist aktiv 🎉</h1>
+      <p style="margin:0 0 18px;color:#475569;line-height:1.55">Hallo ${hallo}, vielen Dank! Alle ${label}-Funktionen stehen dir ab sofort zur Verfügung.</p>
+      <div style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;margin:0 0 18px">
+        <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#64748b;font-weight:700;margin-bottom:6px">Rechnungen &amp; Zahlung</div>
+        <p style="margin:0;color:#475569;line-height:1.55;font-size:14px">Deine Rechnung kommt automatisch per E-Mail von Stripe. Im Rechnungs-Portal kannst du alle Rechnungen ansehen/herunterladen, die Zahlungsmethode ändern oder kündigen.</p>
+      </div>
+      <a href="${PORTAL_URL}" style="display:inline-block;background:#f2911e;color:#211200;font-weight:800;text-decoration:none;padding:12px 22px;border-radius:10px;font-size:15px">Rechnungen verwalten</a>
+      <p style="margin:22px 0 0;color:#94a3b8;font-size:13px;line-height:1.5">Fragen? Antworte einfach auf diese E-Mail.</p>
+    </div>
+    <p style="text-align:center;color:#94a3b8;font-size:12px;margin:16px 0 0">© Skipily · Service &amp; Produkte für dich und dein Boot</p>
+  </div>
+</body></html>`;
+
+  const res = await fetch(RESEND_API_URL, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from: FROM_EMAIL, to: [email], subject, text, html }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    console.error("Resend-Fehler (Pro-Willkommensmail):", JSON.stringify(data));
+    return false;
+  }
+  console.log("Pro-Willkommensmail gesendet:", data.id, "→", email);
+  return true;
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -268,6 +345,32 @@ serve(async (req: Request) => {
           console.error(`Subscription update failed for ${sub.id}:`, updErr);
         } else {
           console.log(`Subscription ${event.type} → ${providerId || sub.customer}: tier=${effectiveTier}, status=${ourStatus}`);
+
+          // (b) Einmalige "Abo aktiv"-Willkommensmail bei Aktivierung.
+          if (ourStatus === "active" && event.type !== "customer.subscription.deleted") {
+            try {
+              let sel = supabase
+                .from("service_providers")
+                .select("id, name, email, subscription_plan, pro_welcome_email_sent_at");
+              sel = providerId
+                ? sel.eq("id", providerId)
+                : sel.eq("stripe_customer_id", sub.customer);
+              const { data: prov } = await sel.single();
+              if (prov?.email && !prov.pro_welcome_email_sent_at) {
+                const sent = await sendProWelcomeEmail(
+                  prov.email, prov.name, prov.subscription_plan || planCode,
+                );
+                if (sent) {
+                  await supabase
+                    .from("service_providers")
+                    .update({ pro_welcome_email_sent_at: new Date().toISOString() })
+                    .eq("id", prov.id);
+                }
+              }
+            } catch (mailErr) {
+              console.error("Pro-Willkommensmail fehlgeschlagen:", mailErr);
+            }
+          }
         }
         break;
       }
