@@ -158,7 +158,7 @@ export function AuthProvider({ children }) {
   }
 
   async function signUp({ email, password, companyName, category, city, agbVersion,
-                          taxId, taxNumber, isSmallBusiness, businessDeclared }) {
+                          taxId, taxNumber, isSmallBusiness, businessDeclared, locale }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -180,6 +180,7 @@ export function AuthProvider({ children }) {
           tax_number: taxNumber || null,
           is_small_business: !!isSmallBusiness,
           business_declared: !!businessDeclared,
+          locale: locale || null,
         },
         emailRedirectTo: `${window.location.origin}/`,
       },

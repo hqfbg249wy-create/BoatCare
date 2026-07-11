@@ -24,7 +24,7 @@ const PROVIDER_AGB_VERSION = '2026-05'
 
 export default function Signup() {
   const { signUp } = useAuth()
-  const { t } = useT()
+  const { t, lang } = useT()
   const [form, setForm] = useState({
     email: '', password: '', companyName: '', category: 'repair', city: '',
     taxId: '', taxNumber: '', isSmallBusiness: false, businessDeclared: false,
@@ -86,6 +86,7 @@ export default function Signup() {
         taxNumber: form.taxNumber.trim() || null,
         isSmallBusiness: form.isSmallBusiness,
         businessDeclared: form.businessDeclared,
+        locale: lang,
       })
       setSuccess(true)
     } catch (err) {
