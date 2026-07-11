@@ -56,8 +56,9 @@ async function checkVies(rawVat: string): Promise<{
     clearTimeout(to);
     if (!res.ok) return { checkable: true, valid: false, name: null, country, error: `VIES HTTP ${res.status}` };
     const d = await res.json();
+    // VIES-REST liefert das Gültigkeitsflag als "isValid" (nicht "valid").
     const name = (d.name && d.name !== "---") ? d.name : null;
-    return { checkable: true, valid: !!d.valid, name, country };
+    return { checkable: true, valid: !!d.isValid, name, country };
   } catch (e) {
     return { checkable: true, valid: false, name: null, country, error: (e as Error)?.message ?? "VIES error" };
   }
