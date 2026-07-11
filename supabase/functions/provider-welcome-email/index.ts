@@ -69,7 +69,7 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { data: p, error } = await supabase
       .from("service_providers")
-      .select("id, name, email, agb_accepted_version, agb_accepted_at, welcome_email_sent_at, locale")
+      .select("*")   // "*" statt expliziter locale-Spalte: Function bleibt lauffähig, auch bevor Migration 108 die Spalte anlegt (locale dann undefined → Fallback Englisch)
       .eq("id", provider_id)
       .single();
 
