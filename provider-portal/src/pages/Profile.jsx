@@ -560,6 +560,12 @@ export default function Profile() {
   ]
 
   async function startSubscriptionCheckout(priceId) {
+    // USt-IdNr für Abo-Buchung einfordern (außer Kleinunternehmer).
+    if (!provider.tax_id && !provider.is_small_business) {
+      setSubscriptionMessage({ type: 'error', text: t('profile.vatRequiredForAbo') })
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
     setSubscriptionLoading(true)
     setSubscriptionMessage(null)
     try {
@@ -1023,6 +1029,16 @@ export default function Profile() {
 
       {message && (
         <div className={`message message-${message.type}`}>{message.text}</div>
+      )}
+
+      {/* Marker: USt-IdNr fehlt (Bestandsprovider werden nicht rückwirkend geprüft,
+          aber fehlende Nummer wird hier oben angemahnt). */}
+      {!provider.tax_id && !provider.is_small_business && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', marginBottom: 14,
+                      background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 10, color: '#92400e', fontWeight: 600 }}>
+          <span style={{ fontSize: '1.15rem' }}>⚠️</span>
+          <span>{t('profile.vatMissingBanner')}</span>
+        </div>
       )}
 
       <CollapsibleGroup title={t('profile.grpPayments')} defaultOpen>

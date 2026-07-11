@@ -792,6 +792,8 @@ export default {
 
   // ── Stammdaten: einklappbare Themen-Gruppen ──
   'profile.grpPayments': 'Zahlungen & Darstellung',
+  'profile.vatMissingBanner': 'USt-IdNr fehlt — bitte ergänze deine Umsatzsteuer-ID in den Stammdaten (Feld „USt-IdNr").',
+  'profile.vatRequiredForAbo': 'Für ein Abo ist eine USt-IdNr nötig. Bitte ergänze sie zuerst in den Stammdaten (Feld „USt-IdNr").',
   'profile.grpCompany': 'Unternehmensdaten',
   'profile.grpShipping': 'Versand & Verpackung',
   'profile.grpContact': 'Kontakt & Angebot',
