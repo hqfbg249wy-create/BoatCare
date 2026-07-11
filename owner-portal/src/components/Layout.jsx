@@ -33,12 +33,13 @@ const navItems = [
   { to: '/profile', icon: User, key: 'nav.profile' },
 ]
 
+// Bottom-Tabs identisch zur iOS-App (MainTabView): Karte · Boote · Wartung · Shop · Kontakte
 const bottomTabs = [
   { to: '/map', icon: Map, key: 'nav.map' },
   { to: '/boats', icon: Ship, key: 'nav.boatsShort' },
   { to: '/maintenance', icon: Wrench, key: 'nav.maintenance' },
-  { to: '/inquiries', icon: Mail, key: 'nav.inquiries' },
-  { to: '/favorites', icon: Heart, key: 'nav.favorites' },
+  { to: '/shop', icon: ShoppingCart, key: 'nav.shop' },
+  { to: '/favorites', icon: Heart, key: 'nav.contacts' },
 ]
 
 function LayoutDesktop() {

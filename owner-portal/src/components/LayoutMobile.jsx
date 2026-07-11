@@ -20,7 +20,7 @@ const bottomTabs = [
   { to: '/boats',       icon: Ship,         key: 'nav.boatsShort' },
   { to: '/maintenance', icon: Wrench,       key: 'nav.maintenance' },
   { to: '/shop',        icon: ShoppingCart, key: 'nav.shop' },
-  { to: '/favorites',   icon: Heart,        key: 'nav.favorites' },
+  { to: '/favorites',   icon: Heart,        key: 'nav.contacts' },
 ]
 
 const profileMenu = [

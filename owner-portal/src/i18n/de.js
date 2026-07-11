@@ -22,6 +22,7 @@ export default {
   'nav.services': 'Service-Suche',
   'nav.orders': 'Bestellungen',
   'nav.favorites': 'Favoriten',
+  'nav.contacts': 'Kontakte',
   'nav.inquiries': 'Anfragen',
   'nav.chat': 'KI-Assistent',
   'nav.profile': 'Mein Profil',
