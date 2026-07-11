@@ -1452,6 +1452,7 @@ function showProviderDetails(provider) {
                 <strong>USt-Prüfung</strong> ${vatBadge(provider)}
             </div>
             <p style="margin:2px 0;"><strong>USt-IdNr:</strong> ${provider.tax_id || '—'}</p>
+            <p style="margin:2px 0;"><strong>Steuernummer:</strong> ${provider.tax_number || '—'}</p>
             <p style="margin:2px 0;"><strong>Gewerblich bestätigt:</strong> ${provider.business_declared_at ? new Date(provider.business_declared_at).toLocaleString('de-DE') : '—'}</p>
             <p style="margin:2px 0;"><strong>Kleinunternehmer:</strong> ${provider.is_small_business ? 'Ja' : 'Nein'}</p>
             ${provider.vat_verified_name ? `<p style="margin:2px 0;"><strong>VIES-Name:</strong> ${provider.vat_verified_name}</p>` : ''}

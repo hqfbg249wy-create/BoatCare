@@ -27,7 +27,7 @@ export default function Signup() {
   const { t } = useT()
   const [form, setForm] = useState({
     email: '', password: '', companyName: '', category: 'repair', city: '',
-    taxId: '', isSmallBusiness: false, businessDeclared: false,
+    taxId: '', taxNumber: '', isSmallBusiness: false, businessDeclared: false,
     agbAccepted: false,
   })
   const [error,   setError]   = useState('')
@@ -69,6 +69,9 @@ export default function Signup() {
     if (!form.isSmallBusiness) {
       if (!form.taxId.trim()) { setError(t('signup.vatRequired')); return }
       if (!vat || vat.valid !== true) { setError(t('signup.vatNotValid')); return }
+    } else {
+      // Kleinunternehmer: Steuernummer Pflicht (keine einfache Umgehung).
+      if (!form.taxNumber.trim()) { setError(t('signup.taxNumberRequired')); return }
     }
     if (!form.agbAccepted) {
       setError(t('signup.acceptTerms'))
@@ -80,6 +83,7 @@ export default function Signup() {
         ...form,
         agbVersion: PROVIDER_AGB_VERSION,
         taxId: form.taxId.trim() || null,
+        taxNumber: form.taxNumber.trim() || null,
         isSmallBusiness: form.isSmallBusiness,
         businessDeclared: form.businessDeclared,
       })
@@ -188,6 +192,15 @@ export default function Signup() {
               style={{ marginTop: 3, flexShrink: 0 }} />
             <span>{t('signup.smallBusinessLabel')}</span>
           </label>
+
+          {form.isSmallBusiness && (
+            <div className="form-group">
+              <label>{t('signup.taxNumberLabel')}</label>
+              <input type="text" value={form.taxNumber} onChange={set('taxNumber')}
+                     placeholder={t('signup.taxNumberPlaceholder')} />
+              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: 4 }}>{t('signup.taxNumberHint')}</div>
+            </div>
+          )}
           <div style={{ borderTop: '1px solid #e2e8f0', margin: '4px 0 12px' }} />
 
           <div className="form-group">

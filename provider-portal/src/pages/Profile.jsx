@@ -213,6 +213,7 @@ export default function Profile() {
         website: provider.website || '',
         opening_hours: provider.opening_hours || '',
         tax_id: provider.tax_id || '',
+        tax_number: provider.tax_number || '',
         shop_description: provider.shop_description || '',
         slogan: provider.slogan || '',
         epr_registration_number: provider.epr_registration_number || '',
@@ -778,6 +779,7 @@ export default function Profile() {
           website: form.website,
           opening_hours: form.opening_hours,
           tax_id: form.tax_id,
+          tax_number: form.tax_number,
           shop_description: form.shop_description,
           slogan: form.slogan,
           epr_registration_number: form.epr_registration_number || null,
@@ -1612,6 +1614,10 @@ export default function Profile() {
             <div className="form-group">
               <label>{t('profile.vatId')}</label>
               <input name="tax_id" value={form.tax_id} onChange={handleChange} placeholder="DE123456789" />
+            </div>
+            <div className="form-group">
+              <label>{t('profile.taxNumber')}</label>
+              <input name="tax_number" value={form.tax_number} onChange={handleChange} placeholder="12/345/67890" />
             </div>
           </div>
         </div>

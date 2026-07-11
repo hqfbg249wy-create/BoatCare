@@ -158,7 +158,7 @@ export function AuthProvider({ children }) {
   }
 
   async function signUp({ email, password, companyName, category, city, agbVersion,
-                          taxId, isSmallBusiness, businessDeclared }) {
+                          taxId, taxNumber, isSmallBusiness, businessDeclared }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -177,6 +177,7 @@ export function AuthProvider({ children }) {
           // Der Signup-Trigger schreibt tax_id/is_small_business/business_declared_at
           // in service_providers; der VAT-Trigger prüft die USt-IdNr per VIES.
           tax_id: taxId || null,
+          tax_number: taxNumber || null,
           is_small_business: !!isSmallBusiness,
           business_declared: !!businessDeclared,
         },
