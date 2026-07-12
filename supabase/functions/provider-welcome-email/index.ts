@@ -113,12 +113,12 @@ ${tr.help}
 ${tr.team}`;
 
     const html =
-`<!doctype html><html><body style="margin:0;background:#eef2f6;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0f2033">
+`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head><body style="margin:0;background:#eef2f6;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0f2033">
   <div style="max-width:560px;margin:0 auto;padding:24px">
     <div style="background:#04101d;border-radius:16px 16px 0 0;padding:26px 28px;text-align:center">
       <div style="font-size:22px;font-weight:800;letter-spacing:.06em;color:#fff">SKIPILY</div>
       <div style="height:3px;width:120px;background:#f2911e;border-radius:2px;margin:10px auto 8px"></div>
-      <div style="font-size:11px;letter-spacing:.28em;color:#93a8bd">IMMER · SICHER · SEEKLAR</div>
+      <div style="font-size:11px;letter-spacing:.28em;color:#93a8bd">ALWAYS · SAFE · READY TO SAIL</div>
     </div>
     <div style="background:#fff;border-radius:0 0 16px 16px;padding:28px;border:1px solid #e2e8f0;border-top:none">
       <h1 style="margin:0 0 6px;font-size:20px">${greetHtml}</h1>
