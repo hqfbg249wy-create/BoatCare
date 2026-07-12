@@ -157,7 +157,8 @@ export function AuthProvider({ children }) {
     await refreshMfaStatus()
   }
 
-  async function signUp({ email, password, companyName, category, city, agbVersion }) {
+  async function signUp({ email, password, companyName, category, city, agbVersion,
+                          taxId, taxNumber, isSmallBusiness, businessDeclared, locale }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -172,6 +173,14 @@ export function AuthProvider({ children }) {
           // Der Provider-Signup-Trigger setzt damit
           // service_providers.agb_accepted_at = NOW() + agb_accepted_version.
           agb_version: agbVersion || null,
+          // Gewerblich-Nachweis + USt-IdNr (Migration 106).
+          // Der Signup-Trigger schreibt tax_id/is_small_business/business_declared_at
+          // in service_providers; der VAT-Trigger prüft die USt-IdNr per VIES.
+          tax_id: taxId || null,
+          tax_number: taxNumber || null,
+          is_small_business: !!isSmallBusiness,
+          business_declared: !!businessDeclared,
+          locale: locale || null,
         },
         emailRedirectTo: `${window.location.origin}/`,
       },

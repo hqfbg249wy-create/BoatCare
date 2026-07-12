@@ -68,12 +68,13 @@
 "provider.write_review" = "Escribir una reseña";
 "provider.verified" = "Verificado";
 "provider.more_details" = "Más detalles";
+"provider.send_inquiry" = "Enviar solicitud";
 "provider.special_offer" = "Oferta especial";
 "provider.go_to_shop" = "Ir a la tienda";
 "provider.swipe_hint" = "Deslizar para más proveedores";
 
 // MARK: - Favorites
-"favorites.title" = "Favoritos";
+"favorites.title" = "Contactos";
 "favorites.empty" = "Sin favoritos todavía";
 "favorites.add_hint" = "Toca el corazón de un proveedor para guardarlo";
 
@@ -161,7 +162,7 @@
 "boats.home_port" = "Puerto base";
 
 // MARK: - POI / Favorites
-"poi.favorites" = "Favoritos";
+"poi.favorites" = "Contactos";
 "poi.no_favorites" = "Sin favoritos aún";
 "poi.no_favorites_hint" = "Toca el corazón de un proveedor para guardarlo aquí.";
 
@@ -274,6 +275,10 @@
 "equipment.dimensions" = "Dimensiones";
 "equipment.photo_url" = "URL de la foto";
 "equipment.manage_hint" = "Gestionar el equipo de tu barco";
+"equipment.hint.title" = "Cuanto más preciso, mejor te encuentran";
+"equipment.hint.body" = "Introduce tu equipo con la mayor precisión posible – con fabricante, modelo y número de pieza. Cuanto más precisos sean los datos, mejor encontrarás recambios, servicios y ofertas adecuados.";
+"equipment.hint.gotit" = "Entendido";
+"equipment.hint.dismiss" = "No volver a mostrar";
 "equipment.cat.navigation" = "Navegación";
 "equipment.cat.safety" = "Seguridad";
 "equipment.cat.engine" = "Motor";
@@ -403,6 +408,11 @@
 
 // MARK: - Messages
 "messages.title" = "Mensajes";
+"msg.active" = "Activas";
+"msg.archived" = "Archivadas";
+"msg.archive" = "Archivar";
+"msg.unarchive" = "Restaurar";
+"msg.deleteConv" = "Eliminar conversación";
 "messages.loading" = "Cargando mensajes...";
 "messages.search_prompt" = "Buscar proveedores...";
 
@@ -558,6 +568,7 @@
 "equipment.other_providers" = "Otros proveedores";
 "equipment.article_no" = "Nº de art.:";
 "shop.title" = "Tienda";
+"shop.details" = "Ver detalles";
 "data_quality.hint" = "Cuanto más precisas sean tus entradas, más fácil será para la IA ayudarte y para la tienda encontrar la pieza adecuada.";
 "shop.filter_min" = "Mín";
 "shop.filter_max" = "Máx";

@@ -26,13 +26,14 @@ final class MessagingService {
 
     // MARK: - Conversations
 
-    func loadConversations(userId: UUID) async {
+    func loadConversations(userId: UUID, archived: Bool = false) async {
         isLoading = true
         do {
             let data: [Conversation] = try await client
                 .from("conversations")
                 .select("*, service_providers(id, name, city)")
                 .eq("user_id", value: userId.uuidString)
+                .eq("owner_archived", value: archived)
                 .order("last_message_at", ascending: false)
                 .execute()
                 .value
@@ -43,6 +44,24 @@ final class MessagingService {
             AppLog.error("Load conversations error: \(error)")
         }
         isLoading = false
+    }
+
+    /// Konversation für den Eigner archivieren / wiederherstellen (owner_archived).
+    func archiveConversation(id: UUID, archived: Bool) async throws {
+        try await client
+            .from("conversations")
+            .update(["owner_archived": archived])
+            .eq("id", value: id.uuidString)
+            .execute()
+    }
+
+    /// Konversation endgültig löschen (Nachrichten via ON DELETE CASCADE).
+    func deleteConversation(id: UUID) async throws {
+        try await client
+            .from("conversations")
+            .delete()
+            .eq("id", value: id.uuidString)
+            .execute()
     }
 
     func loadUnreadCount(userId: UUID) async {
@@ -85,13 +104,14 @@ final class MessagingService {
         return messages
     }
 
-    func sendMessage(conversationId: UUID, senderId: UUID, content: String, relatedOrderId: UUID? = nil) async throws {
+    func sendMessage(conversationId: UUID, senderId: UUID, content: String, relatedOrderId: UUID? = nil, attachmentUrls: [String] = []) async throws {
         struct MessageInsert: Codable {
             let conversationId: String
             let senderId: String
             let senderType: String
             let content: String
             let relatedOrderId: String?
+            let attachmentUrls: [String]
 
             enum CodingKeys: String, CodingKey {
                 case conversationId = "conversation_id"
@@ -99,6 +119,7 @@ final class MessagingService {
                 case senderType = "sender_type"
                 case content
                 case relatedOrderId = "related_order_id"
+                case attachmentUrls = "attachment_urls"
             }
         }
 
@@ -107,13 +128,18 @@ final class MessagingService {
             senderId: senderId.uuidString,
             senderType: "user",
             content: content,
-            relatedOrderId: relatedOrderId?.uuidString
+            relatedOrderId: relatedOrderId?.uuidString,
+            attachmentUrls: attachmentUrls
         )
 
-        try await client
+        struct InsertedRow: Decodable { let id: UUID }
+        let inserted: InsertedRow = try await client
             .from("messages")
             .insert(insert)
+            .select("id")
+            .single()
             .execute()
+            .value
 
         // Update conversation timestamp
         try await client
@@ -121,6 +147,19 @@ final class MessagingService {
             .update(["last_message_at": ISO8601DateFormatter().string(from: Date())])
             .eq("id", value: conversationId.uuidString)
             .execute()
+
+        // Provider per E-Mail benachrichtigen (best-effort). Fehler ignorieren —
+        // die Nachricht ist bereits gespeichert und in-app sichtbar.
+        struct NotifyBody: Encodable { let message_id: String }
+        struct NotifyResp: Decodable {}
+        do {
+            let _: NotifyResp = try await client.functions.invoke(
+                "notify-message",
+                options: .init(body: NotifyBody(message_id: inserted.id.uuidString))
+            )
+        } catch {
+            AppLog.error("notify-message failed: \(error)")
+        }
     }
 
     // MARK: - Create or Get Conversation

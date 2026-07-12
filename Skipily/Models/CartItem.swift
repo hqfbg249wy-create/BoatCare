@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct CartItem: Identifiable, Sendable {
+struct CartItem: Identifiable, Sendable, Codable {
     let id: UUID
     let product: Product
     var quantity: Int

@@ -19,8 +19,10 @@ import ServiceSearch from './pages/ServiceSearch'
 import AIChat from './pages/AIChat'
 import Checkout from './pages/Checkout'
 import Inquiries from './pages/Inquiries'
+import Messages from './pages/Messages'
 import ResetPassword from './pages/ResetPassword'
 import AuthCallback from './pages/AuthCallback'
+import GuestMap from './pages/GuestMap'
 
 function ProtectedRoutes() {
   const { user, loading, mfaRequired } = useAuth()
@@ -56,6 +58,7 @@ function ProtectedRoutes() {
         <Route path="checkout" element={<Checkout />} />
         <Route path="checkout/success" element={<Checkout />} />
         <Route path="inquiries" element={<Inquiries />} />
+        <Route path="messages" element={<Messages />} />
         <Route path="profile" element={<Profile />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
@@ -74,6 +77,8 @@ export default function App() {
               temporaere Session aus dem URL-Hash. */}
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          {/* Öffentliche Gäste-Karte (kein Login) — Android-Pendant zum iPhone-App-Clip. */}
+          <Route path="/entdecken" element={<GuestMap />} />
           <Route path="/*" element={<ProtectedRoutes />} />
         </Routes>
       </AuthProvider>

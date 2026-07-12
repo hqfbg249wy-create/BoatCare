@@ -155,6 +155,14 @@ final class PaymentService {
             ephemeralKeySecret: paymentResponse.ephemeralKey
         )
         config.appearance = boatCareAppearance
+        // Apple Pay aktivieren — bringt den Apple-Pay-Button im PaymentSheet,
+        // wenn der User das Gerät und eine kompatible Karte eingerichtet hat.
+        // Erfordert: Merchant-ID im Apple Dev Console + Entitlement
+        // com.apple.developer.in-app-payments + Stripe-Dashboard-Eintrag.
+        config.applePay = .init(
+            merchantId: StripeConfig.applePayMerchantIdentifier,
+            merchantCountryCode: StripeConfig.merchantCountryCode
+        )
 
         return PaymentSheet(
             paymentIntentClientSecret: paymentResponse.clientSecret,

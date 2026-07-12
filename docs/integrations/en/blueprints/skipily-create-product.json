@@ -1,0 +1,69 @@
+{
+    "name": "Skipily – Create product (Part A)",
+    "flow": [
+        {
+            "id": 1,
+            "module": "http:ActionSendData",
+            "version": 3,
+            "parameters": {
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+            },
+            "mapper": {
+                "url": "https://vcjwlyqkfkszumdrfvtm.supabase.co/functions/v1/products-api",
+                "method": "post",
+                "headers": [
+                    {
+                        "name": "Authorization",
+                        "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjandseXFrZmtzenVtZHJmdnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMDQ4NTksImV4cCI6MjA4NDY4MDg1OX0.VOlhRdvShU325xG18SSSTWdFfGEdyeX-7CAovE2vesQ"
+                    },
+                    {
+                        "name": "x-api-key",
+                        "value": "PASTE-YOUR-SKIPILY-API-KEY-HERE"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "qs": [],
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "data": "{\n  \"name\": \"MAP-PRODUCT-NAME-HERE\",\n  \"sku\": \"MAP-ITEM-NUMBER-HERE\",\n  \"price\": 0,\n  \"currency\": \"EUR\",\n  \"stock_quantity\": 0,\n  \"in_stock\": true,\n  \"description\": \"MAP-DESCRIPTION-HERE\"\n}",
+                "timeout": "30",
+                "shareCookies": false,
+                "parseResponse": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "followAllRedirects": false,
+                "rejectUnauthorized": true
+            },
+            "metadata": {
+                "designer": {
+                    "x": 300,
+                    "y": 0,
+                    "name": "Skipily: Create product (products-api)",
+                    "notes": "Place your shop trigger BEFORE this module (e.g. WooCommerce/Shopify 'Watch Products' or Odoo 'Watch Records'). Then: 1) replace x-api-key with your Skipily API key, 2) in the body replace the MAP-...-placeholders with your shop's fields (click the coloured chips)."
+                }
+            }
+        }
+    ],
+    "metadata": {
+        "instant": false,
+        "version": 1,
+        "scenario": {
+            "roundtrips": 1,
+            "maxErrors": 3,
+            "autoCommit": true,
+            "autoCommitTriggerLast": true,
+            "sequential": false,
+            "confidential": false,
+            "dataloss": false,
+            "dlq": false,
+            "freshVariables": false
+        },
+        "designer": {
+            "orphans": []
+        }
+    }
+}

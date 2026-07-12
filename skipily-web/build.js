@@ -227,6 +227,9 @@ async function main() {
   fs.copyFileSync(path.join(SRC, 'skipily-style.css'), path.join(OUT, 'skipily-style.css'));
   fs.writeFileSync(path.join(OUT, 'site.css'), SITE_CSS);
   fs.cpSync(path.join(__dirname, 'assets'), path.join(OUT, 'assets'), { recursive: true });
+  // Apple App Site Association (App-Clip + Universal Links) mit ausliefern,
+  // sonst 404 → App-Clip (skipily.app/clip) wird auf iOS nicht ausgelöst.
+  fs.cpSync(path.join(SRC, '.well-known'), path.join(OUT, '.well-known'), { recursive: true });
 
   // Home
   write('index.html', doc({ lang: 'de',
@@ -262,6 +265,18 @@ async function main() {
 
   // Konto löschen (eigenständig, bereits zweisprachig) — 1:1 übernehmen
   write('account-deletion/index.html', fs.readFileSync(path.join(SRC, 'account-deletion.html'), 'utf8'));
+
+  // Clip-Aufsteller-Landing (QR-Ziel skipily.app/clip) — eigenständig,
+  // plattform-erkennend: iPhone → App Store, Android → Web-App.
+  write('clip/index.html', fs.readFileSync(path.join(SRC, 'skipily-clip.html'), 'utf8'));
+
+  // Link-in-Bio-Landing (skipily.app/start) — für Social-Profile.
+  const social = path.join(ROOT, 'marketing', 'social');
+  write('start/index.html', fs.readFileSync(path.join(social, 'link-in-bio.html'), 'utf8'));
+  for (const img of ['app-map.jpg', 'app-boats.jpg', 'app-ki.jpg']) {
+    fs.mkdirSync(path.join(OUT, 'start', 'assets'), { recursive: true });
+    fs.copyFileSync(path.join(social, 'assets', img), path.join(OUT, 'start', 'assets', img));
+  }
 
   // FAQ live aus Supabase
   try {

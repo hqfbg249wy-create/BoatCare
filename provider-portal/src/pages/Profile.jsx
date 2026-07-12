@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import FeatureLock from '../components/FeatureLock'
 import { supabase } from '../lib/supabase'
-import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe, Image as ImageIcon, Upload, Trash2, Tag, Wrench, Plus, X, Eye, Lock } from 'lucide-react'
+import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe, Image as ImageIcon, Upload, Trash2, Tag, Wrench, Plus, X, Eye, Lock, Truck, ShieldCheck, RotateCcw, FileText, ChevronDown } from 'lucide-react'
 import { useT } from '../i18n'
 
 // Storage bucket created by database/038_provider_images_bucket.sql
@@ -24,10 +24,74 @@ const CATEGORY_OPTIONS = [
   ['marina', '🌊', 'cat.marina'],
 ]
 
+// EPR-/Verpackungsregister je Land — rein informativ (siehe Disclaimer im UI).
+// Register/Ansprechpartner für die Verpackungs-EPR; ohne Gewähr.
+const EPR_REGISTERS = {
+  DE: { name: 'LUCID – Verpackungsregister (ZSVR)', url: 'https://www.verpackungsregister.org' },
+  AT: { name: 'EDM – Elektronisches Datenmanagement', url: 'https://www.edm.gv.at' },
+  FR: { name: 'ADEME – SYDEREP (identifiant unique)', url: 'https://syderep.ademe.fr' },
+  IT: { name: 'CONAI', url: 'https://www.conai.org' },
+  ES: { name: 'MITECO – Registro de Productores', url: 'https://sede.miteco.gob.es' },
+  NL: { name: 'Afvalfonds Verpakkingen', url: 'https://www.afvalfondsverpakkingen.nl' },
+  BE: { name: 'Fost Plus', url: 'https://www.fostplus.be' },
+  LU: { name: 'Valorlux', url: 'https://www.valorlux.lu' },
+  PT: { name: 'Sociedade Ponto Verde', url: 'https://www.pontoverde.pt' },
+  PL: { name: 'BDO – Baza danych o odpadach', url: 'https://bdo.mos.gov.pl' },
+  SE: { name: 'Naturvårdsverket', url: 'https://www.naturvardsverket.se' },
+  DK: { name: 'Dansk Producentansvar (DPA)', url: 'https://www.dpa-system.dk' },
+  FI: { name: 'Rinki – tuottajarekisteri', url: 'https://rinkiin.fi' },
+  IE: { name: 'Repak', url: 'https://www.repak.ie' },
+  CZ: { name: 'EKO-KOM', url: 'https://www.ekokom.cz' },
+  SK: { name: 'ENVI-PAK', url: 'https://www.envipak.sk' },
+  HU: { name: 'MOHU', url: 'https://mohu.hu' },
+  RO: { name: 'Administrația Fondului pentru Mediu', url: 'https://www.afm.ro' },
+  GR: { name: 'HERRCO / EOAN', url: 'https://www.herrco.gr' },
+  HR: { name: 'FZOEU', url: 'https://www.fzoeu.hr' },
+  SI: { name: 'Slopak', url: 'https://www.slopak.si' },
+  BG: { name: 'Ecopack Bulgaria', url: 'https://www.ecopack.bg' },
+  EE: { name: 'ETO – Pakendiregister', url: 'https://www.eto.ee' },
+  LV: { name: 'Latvijas Zaļais punkts', url: 'https://www.zalais.lv' },
+  LT: { name: 'GPAIS – Žaliasis taškas', url: 'https://www.gpais.eu' },
+  CY: { name: 'Green Dot Cyprus', url: 'https://www.greendot.com.cy' },
+  MT: { name: 'GreenPak Malta', url: 'https://www.greenpak.com.mt' },
+  NO: { name: 'Grønt Punkt Norge', url: 'https://www.grontpunkt.no' },
+  IS: { name: 'Úrvinnslusjóður', url: 'https://www.urvinnslusjodur.is' },
+  LI: { name: 'Amt für Umwelt (LI)', url: 'https://www.llv.li' },
+  CH: { name: 'Schweiz – keine EU-EPR-Registrierung', url: 'https://www.swissrecycling.ch' },
+  GB: { name: 'UK Packaging EPR (GOV.UK)', url: 'https://www.gov.uk/guidance/extended-producer-responsibility-for-packaging' },
+}
+
+// Einklappbare Themen-Gruppe für die (lang gewordene) Stammdaten-Seite.
+// Eigene Auf/Zu-Logik; Inhalte bleiben im React-State erhalten (kontrollierte
+// Felder), auch wenn eine Gruppe zugeklappt und damit ausgehängt ist.
+function CollapsibleGroup({ title, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 12, background: '#0b1929', color: '#fff', border: 'none', cursor: 'pointer',
+          padding: '12px 16px', borderRadius: 10, marginBottom: open ? 12 : 0,
+        }}
+      >
+        <span style={{ fontWeight: 700, fontSize: 15, letterSpacing: 0.2 }}>{title}</span>
+        <ChevronDown size={20} style={{ transition: 'transform .15s', transform: open ? 'rotate(180deg)' : 'none' }} />
+      </button>
+      {open && <div>{children}</div>}
+    </div>
+  )
+}
+
 export default function Profile() {
   const { provider, loadProvider, user } = useAuth()
   const access = useFeatureAccess()
-  const { t } = useT()
+  const { t, lang } = useT()
+  const sendcloudGuideUrl = lang === 'de'
+    ? '/anleitungen/04-Sendcloud-Versand.pdf'
+    : '/anleitungen/en/04-Sendcloud-Shipping.pdf'
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
@@ -149,8 +213,10 @@ export default function Profile() {
         website: provider.website || '',
         opening_hours: provider.opening_hours || '',
         tax_id: provider.tax_id || '',
+        tax_number: provider.tax_number || '',
         shop_description: provider.shop_description || '',
         slogan: provider.slogan || '',
+        epr_registration_number: provider.epr_registration_number || '',
       })
       setServices(Array.isArray(provider.services) ? provider.services : [])
       setBrands(Array.isArray(provider.brands) ? provider.brands : [])
@@ -241,6 +307,108 @@ export default function Profile() {
     }
   }
   const setShip = (k, v) => setShipRule(r => ({ ...r, [k]: v }))
+
+  // ─── Sendcloud-Versandintegration ────────────────────────────────────────
+  // Der Client liest NUR den Status (kein secret_key — durch Spalten-GRANTs in
+  // Migration 099 abgesichert). Verbinden/Trennen läuft über die Edge Function.
+  const [sc, setSc] = useState(null)          // Zeile aus provider_sendcloud
+  const [scPublic, setScPublic] = useState('')
+  const [scSecret, setScSecret] = useState('')
+  const [scBusy, setScBusy] = useState(false)
+  const [scMsg, setScMsg] = useState(null)
+
+  useEffect(() => {
+    if (!provider?.id) return
+    supabase
+      .from('provider_sendcloud')
+      .select('status, account_name, account_email, connected_at, last_checked_at')
+      .eq('provider_id', provider.id)
+      .maybeSingle()
+      .then(({ data }) => setSc(data || null))
+  }, [provider?.id])
+
+  const scConnected = sc?.status === 'connected'
+
+  async function callSendcloud(payload) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error('Nicht angemeldet')
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
+    const res = await fetch(`${supabaseUrl}/functions/v1/sendcloud-connect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ provider_id: provider.id, ...payload }),
+    })
+    const data = await res.json().catch(() => ({}))
+    return { ok: res.ok, data }
+  }
+
+  function reloadSendcloud() {
+    return supabase
+      .from('provider_sendcloud')
+      .select('status, account_name, account_email, connected_at, last_checked_at')
+      .eq('provider_id', provider.id)
+      .maybeSingle()
+      .then(({ data }) => setSc(data || null))
+  }
+
+  async function connectSendcloud() {
+    setScMsg(null)
+    if (!scPublic.trim() || !scSecret.trim()) {
+      setScMsg({ type: 'error', text: t('sc.msgEnterKeys') })
+      return
+    }
+    setScBusy(true)
+    try {
+      const { ok, data } = await callSendcloud({
+        action: 'connect',
+        public_key: scPublic.trim(),
+        secret_key: scSecret.trim(),
+      })
+      if (!ok) {
+        const map = { invalid_keys: 'sc.msgInvalidKeys', missing_keys: 'sc.msgEnterKeys', api_error: 'sc.msgApiError' }
+        throw new Error(t(map[data.error] || 'sc.msgApiError'))
+      }
+      setScPublic(''); setScSecret('')
+      await reloadSendcloud()
+      setScMsg({ type: 'success', text: t('sc.msgConnected') })
+    } catch (err) {
+      setScMsg({ type: 'error', text: err.message })
+    } finally {
+      setScBusy(false)
+    }
+  }
+
+  async function disconnectSendcloud() {
+    if (!confirm(t('sc.disconnectConfirm'))) return
+    setScMsg(null); setScBusy(true)
+    try {
+      const { ok, data } = await callSendcloud({ action: 'disconnect' })
+      if (!ok) throw new Error(data.error || 'Fehler')
+      await reloadSendcloud()
+      setScMsg({ type: 'success', text: t('sc.msgDisconnected') })
+    } catch (err) {
+      setScMsg({ type: 'error', text: err.message })
+    } finally {
+      setScBusy(false)
+    }
+  }
+
+  async function testSendcloud() {
+    setScMsg(null); setScBusy(true)
+    try {
+      const { ok, data } = await callSendcloud({ action: 'test' })
+      await reloadSendcloud()
+      if (ok && data.status === 'connected') {
+        setScMsg({ type: 'success', text: t('sc.msgTestedOk') })
+      } else {
+        setScMsg({ type: 'error', text: t('sc.msgInvalidKeys') })
+      }
+    } catch (err) {
+      setScMsg({ type: 'error', text: err.message })
+    } finally {
+      setScBusy(false)
+    }
+  }
 
   // Load shop products (used for auto-suggesting brands/services + linking chips)
   useEffect(() => {
@@ -393,6 +561,12 @@ export default function Profile() {
   ]
 
   async function startSubscriptionCheckout(priceId) {
+    // USt-IdNr für Abo-Buchung einfordern (außer Kleinunternehmer).
+    if (!provider.tax_id && !provider.is_small_business) {
+      setSubscriptionMessage({ type: 'error', text: t('profile.vatRequiredForAbo') })
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
     setSubscriptionLoading(true)
     setSubscriptionMessage(null)
     try {
@@ -605,8 +779,10 @@ export default function Profile() {
           website: form.website,
           opening_hours: form.opening_hours,
           tax_id: form.tax_id,
+          tax_number: form.tax_number,
           shop_description: form.shop_description,
           slogan: form.slogan,
+          epr_registration_number: form.epr_registration_number || null,
           services,
           brands,
           // null = unkonfiguriert (kein expliziter Save); [] und Arrays werden
@@ -857,6 +1033,17 @@ export default function Profile() {
         <div className={`message message-${message.type}`}>{message.text}</div>
       )}
 
+      {/* Marker: USt-IdNr fehlt (Bestandsprovider werden nicht rückwirkend geprüft,
+          aber fehlende Nummer wird hier oben angemahnt). */}
+      {!provider.tax_id && !provider.is_small_business && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', marginBottom: 14,
+                      background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 10, color: '#92400e', fontWeight: 600 }}>
+          <span style={{ fontSize: '1.15rem' }}>⚠️</span>
+          <span>{t('profile.vatMissingBanner')}</span>
+        </div>
+      )}
+
+      <CollapsibleGroup title={t('profile.grpPayments')} defaultOpen>
       {/* Stripe Connect Section */}
       <div className="card" style={{ borderLeft: `4px solid ${stripeInfo.color}` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -1352,7 +1539,10 @@ export default function Profile() {
         </div>
       </div>
 
+      </CollapsibleGroup>
+
       <form onSubmit={handleSubmit}>
+      <CollapsibleGroup title={t('profile.grpCompany')} defaultOpen>
         <div className="card">
           <h2>{t('profile.secCompany')}</h2>
           <div className="form-row">
@@ -1418,6 +1608,23 @@ export default function Profile() {
           </div>
         </div>
 
+        <div className="card">
+          <h2>{t('profile.secBusiness')}</h2>
+          <div className="form-row">
+            <div className="form-group">
+              <label>{t('profile.vatId')}</label>
+              <input name="tax_id" value={form.tax_id} onChange={handleChange} placeholder="DE123456789" />
+            </div>
+            <div className="form-group">
+              <label>{t('profile.taxNumber')}</label>
+              <input name="tax_number" value={form.tax_number} onChange={handleChange} placeholder="12/345/67890" />
+            </div>
+          </div>
+        </div>
+
+      </CollapsibleGroup>
+
+      <CollapsibleGroup title={t('profile.grpShipping')}>
         {/* ─── Lieferländer (EU-Verpackungsverordnung / EPR) ───────────────── */}
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -1528,6 +1735,60 @@ export default function Profile() {
               )
             })}
           </div>
+
+          {/* ── EPR-Registrierungsnummer (Stammdaten) ── */}
+          <div className="form-group" style={{ marginTop: 18 }}>
+            <label>{t('epr.numberLabel')}</label>
+            <input
+              name="epr_registration_number"
+              value={form.epr_registration_number || ''}
+              onChange={handleChange}
+              placeholder={t('epr.numberPh')}
+              disabled={!canAdmin}
+            />
+            <p className="hint" style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginTop: 4 }}>
+              {t('epr.numberHint')}
+            </p>
+          </div>
+
+          {/* ── EPR-Hinweisbox je Lieferland (rein informativ) ── */}
+          <div style={{ marginTop: 12, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <FileText size={16} style={{ color: 'var(--primary)' }} />
+              <strong style={{ fontSize: '0.92rem' }}>{t('epr.boxTitle')}</strong>
+            </div>
+            {currentShipping.length === 0 ? (
+              <p className="hint" style={{ margin: 0, fontSize: '0.85rem', color: 'var(--gray-500)' }}>
+                {t('epr.selectFirst')}
+              </p>
+            ) : (
+              <>
+                <p className="hint" style={{ margin: '0 0 8px', fontSize: '0.85rem', color: 'var(--gray-500)' }}>
+                  {t('epr.boxIntro')}
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 6 }}>
+                  {[...currentShipping].sort().map(code => {
+                    const reg = EPR_REGISTERS[code]
+                    return (
+                      <div key={code} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12.5 }}>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#475569' }}>{code}</span>
+                        <span style={{ flex: 1, color: '#1e293b' }}>{reg ? reg.name : t('epr.genericNote')}</span>
+                        {reg && (
+                          <a href={reg.url} target="_blank" rel="noopener noreferrer"
+                             style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--primary)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                            {t('epr.openRegister')} <ExternalLink size={11} />
+                          </a>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+            <p style={{ margin: '10px 0 0', fontSize: '0.75rem', color: 'var(--gray-500)', lineHeight: 1.5 }}>
+              {t('epr.disclaimer')}
+            </p>
+          </div>
         </div>
 
         {/* ── Versandkosten-Engine ── */}
@@ -1592,6 +1853,158 @@ export default function Profile() {
         </div>
         )}
 
+        {/* ── Sendcloud-Versandintegration ── */}
+        {(() => {
+          const accent = sc?.status === 'connected' ? 'var(--green)'
+            : sc?.status === 'error' ? '#ef4444' : 'var(--gray-400)'
+          const pillBg = sc?.status === 'connected' ? '#d1fae5'
+            : sc?.status === 'error' ? '#fee2e2' : 'var(--gray-100)'
+          const pillColor = sc?.status === 'connected' ? '#065f46'
+            : sc?.status === 'error' ? '#991b1b' : 'var(--gray-500)'
+          const StatusIcon = sc?.status === 'connected' ? CheckCircle
+            : sc?.status === 'error' ? AlertCircle : AlertCircle
+          const statusLabel = sc?.status === 'connected' ? t('sc.statusConnected')
+            : sc?.status === 'error' ? t('sc.statusError') : t('sc.statusNotConnected')
+          const benefits = [1, 2, 3, 4, 5, 6].map(n => [t(`sc.benefit${n}Title`), t(`sc.benefit${n}Desc`)])
+          const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''
+          return (
+            <div className="card" style={{ borderLeft: `4px solid ${accent}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+                <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Truck size={20} style={{ color: 'var(--primary)' }} />
+                  {t('sc.section')}
+                </h2>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '4px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 600,
+                  background: pillBg, color: pillColor,
+                }}>
+                  <StatusIcon size={14} />
+                  {statusLabel}
+                </span>
+              </div>
+
+              <p style={{ fontSize: '0.9rem', color: '#64748b', marginTop: 0, lineHeight: 1.6 }}>
+                {t('sc.tagline')}
+              </p>
+
+              {/* Vorteile */}
+              <div style={{
+                background: 'linear-gradient(135deg, #f0f9ff 0%, #ecfeff 100%)',
+                border: '1px solid #bae6fd', borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+              }}>
+                <h3 style={{ margin: '0 0 4px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  ⭐ {t('sc.benefitsTitle')}
+                </h3>
+                <p style={{ margin: '0 0 12px', fontSize: '0.82rem', color: '#475569', lineHeight: 1.55 }}>
+                  {t('sc.whatIsDesc')}
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
+                  {benefits.map(([title, desc]) => (
+                    <div key={title} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <CheckCircle size={16} style={{ color: 'var(--green)', flexShrink: 0, marginTop: 2 }} />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0f172a' }}>{title}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.45 }}>{desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {scMsg && (
+                <div className={`message message-${scMsg.type}`} style={{ marginBottom: 12 }}>{scMsg.text}</div>
+              )}
+
+              {scConnected ? (
+                <div>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+                    padding: '12px 14px', borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0',
+                    marginBottom: 14, flexWrap: 'wrap',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{t('sc.connectedAccount')}</div>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                        {sc?.account_name || sc?.account_email || 'Sendcloud'}
+                      </div>
+                      {sc?.connected_at && (
+                        <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 2 }}>
+                          {t('sc.connectedSince')} {fmtDate(sc.connected_at)}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 34, lineHeight: 1 }}>📦</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <button type="button" className="btn-secondary" onClick={testSendcloud} disabled={scBusy}>
+                      {scBusy ? <><Loader size={14} className="spin" /> {t('sc.testing')}</> : <><RefreshCw size={14} /> {t('sc.testConnection')}</>}
+                    </button>
+                    {canAdmin && (
+                      <button type="button" className="btn-secondary" onClick={disconnectSendcloud} disabled={scBusy}
+                        style={{ color: '#b91c1c', borderColor: '#fecaca' }}>
+                        <RotateCcw size={14} /> {t('sc.disconnect')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  {/* Anleitung */}
+                  <h3 style={{ fontSize: '0.95rem', margin: '4px 0 8px' }}>{t('sc.howtoTitle')}</h3>
+                  <ol style={{ margin: '0 0 12px', paddingLeft: 20, fontSize: '0.85rem', color: '#475569', lineHeight: 1.7 }}>
+                    <li>{t('sc.howtoStep1')}</li>
+                    <li>{t('sc.howtoStep2')}</li>
+                    <li>{t('sc.howtoStep3')}</li>
+                    <li>{t('sc.howtoStep4')}</li>
+                  </ol>
+                  <a href="https://app.sendcloud.com/" target="_blank" rel="noopener noreferrer"
+                     className="btn-secondary"
+                     style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', marginBottom: 14 }}>
+                    <ExternalLink size={16} /> {t('sc.openSendcloud')}
+                  </a>
+
+                  {canAdmin ? (
+                    <>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>{t('sc.publicKey')}</label>
+                          <input type="text" value={scPublic} onChange={e => setScPublic(e.target.value)}
+                                 placeholder={t('sc.publicKeyPh')} autoComplete="off" />
+                        </div>
+                        <div className="form-group">
+                          <label>{t('sc.secretKey')}</label>
+                          <input type="password" value={scSecret} onChange={e => setScSecret(e.target.value)}
+                                 placeholder={t('sc.secretKeyPh')} autoComplete="off" />
+                        </div>
+                      </div>
+                      <button type="button" className="btn-primary" onClick={connectSendcloud} disabled={scBusy}>
+                        {scBusy ? <><Loader size={16} className="spin" /> {t('sc.connecting')}</> : <><Truck size={16} /> {t('sc.connect')}</>}
+                      </button>
+                    </>
+                  ) : (
+                    <div className="alert" style={{ background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412' }}>
+                      {t('sc.adminOnly')}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginTop: 14 }}>
+                <p style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: '0.78rem', color: 'var(--gray-500)', margin: 0, lineHeight: 1.5, flex: 1, minWidth: 220 }}>
+                  <ShieldCheck size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {t('sc.securityNote')}
+                </p>
+                <a href={sendcloudGuideUrl} target="_blank" rel="noopener noreferrer"
+                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: 'var(--primary)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                  <ExternalLink size={14} /> {t('sc.guidePdf')}
+                </a>
+              </div>
+            </div>
+          )
+        })()}
+      </CollapsibleGroup>
+
+      <CollapsibleGroup title={t('profile.grpContact')}>
         <div className="card">
           <h2>{t('profile.secContact')}</h2>
           <div className="form-row">
@@ -1810,17 +2223,9 @@ export default function Profile() {
             </p>
           )}
         </div>
+      </CollapsibleGroup>
 
-        <div className="card">
-          <h2>{t('profile.secBusiness')}</h2>
-          <div className="form-row">
-            <div className="form-group">
-              <label>{t('profile.vatId')}</label>
-              <input name="tax_id" value={form.tax_id} onChange={handleChange} placeholder="DE123456789" />
-            </div>
-          </div>
-        </div>
-
+      <CollapsibleGroup title={t('profile.grpTeam')}>
         {/* ─── Team-Verwaltung (Enterprise only) ──────────────────────── */}
         <div className="card" style={{ borderLeft: '4px solid #7e22ce' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -1977,7 +2382,9 @@ export default function Profile() {
             </>
           )}
         </div>
+      </CollapsibleGroup>
 
+      <CollapsibleGroup title={t('profile.grpApi')}>
         {/* API Integration Section — Pro+ */}
         <div className="card" style={{ borderLeft: '4px solid var(--primary)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
@@ -2075,6 +2482,7 @@ export default function Profile() {
           </>
           )}
         </div>
+      </CollapsibleGroup>
 
         <div className="form-actions">
           <button type="submit" className="btn-primary" disabled={saving || !canAdmin}>

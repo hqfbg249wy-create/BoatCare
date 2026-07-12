@@ -2,52 +2,66 @@
 //  ConversationsView.swift
 //  Skipily
 //
-//  List of all chat conversations for the current user
+//  List of all chat conversations for the current user.
+//  ConversationsContent ist ohne eigenen NavigationStack, damit es in POIScreen
+//  (Tab "Kontakte") als Segment eingebettet werden kann.
 //
 
 import SwiftUI
-struct ConversationsView: View {
+
+struct ConversationsContent: View {
     @EnvironmentObject var authService: AuthService
 
     @State private var conversations: [Conversation] = []
     @State private var isLoading = true
-    @State private var searchText = ""
-
-    private var filteredConversations: [Conversation] {
-        guard !searchText.isEmpty else { return conversations }
-        return conversations.filter { conv in
-            let name = conv.provider?.companyName ?? ""
-            return name.localizedCaseInsensitiveContains(searchText)
-        }
-    }
+    @State private var showArchived = false
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            Picker("", selection: $showArchived) {
+                Text("msg.active".loc).tag(false)
+                Text("msg.archived".loc).tag(true)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+
             Group {
                 if isLoading {
                     ProgressView("messages.loading".loc)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if filteredConversations.isEmpty {
+                } else if conversations.isEmpty {
                     emptyView
                 } else {
                     conversationList
                 }
             }
-            .navigationTitle("messages.title".loc)
-            .searchable(text: $searchText, prompt: "messages.search_prompt".loc)
-            .task {
-                await loadConversations()
-            }
-            .refreshable {
-                await loadConversations()
-            }
+        }
+        .task { await loadConversations() }
+        .refreshable { await loadConversations() }
+        .onChange(of: showArchived) { _, _ in
+            Task { await loadConversations() }
         }
     }
 
     private var conversationList: some View {
-        List(filteredConversations) { conv in
+        List(conversations) { conv in
             NavigationLink(value: conv.id) {
                 conversationRow(conv)
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                Button(role: .destructive) {
+                    Task { await deleteConversation(conv.id) }
+                } label: {
+                    Label("msg.deleteConv".loc, systemImage: "trash")
+                }
+                Button {
+                    Task { await archiveConversation(conv.id, archived: !showArchived) }
+                } label: {
+                    Label(showArchived ? "msg.unarchive".loc : "msg.archive".loc,
+                          systemImage: showArchived ? "tray.and.arrow.up" : "archivebox")
+                }
+                .tint(.orange)
             }
         }
         .listStyle(.plain)
@@ -58,9 +72,26 @@ struct ConversationsView: View {
         }
     }
 
+    private func archiveConversation(_ id: UUID, archived: Bool) async {
+        do {
+            try await MessagingService.shared.archiveConversation(id: id, archived: archived)
+            await loadConversations()
+        } catch {
+            AppLog.error("Archive conversation: \(error)")
+        }
+    }
+
+    private func deleteConversation(_ id: UUID) async {
+        do {
+            try await MessagingService.shared.deleteConversation(id: id)
+            await loadConversations()
+        } catch {
+            AppLog.error("Delete conversation: \(error)")
+        }
+    }
+
     private func conversationRow(_ conv: Conversation) -> some View {
         HStack(spacing: 12) {
-            // Provider avatar
             ZStack {
                 Circle()
                     .fill(AppColors.primary.opacity(0.15))
@@ -114,9 +145,20 @@ struct ConversationsView: View {
             isLoading = false
             return
         }
-
-        await MessagingService.shared.loadConversations(userId: userId)
+        await MessagingService.shared.loadConversations(userId: userId, archived: showArchived)
         conversations = MessagingService.shared.conversations
         isLoading = false
+    }
+}
+
+/// Eigenständige Variante (mit NavigationStack) — für ggf. separate Nutzung.
+struct ConversationsView: View {
+    @EnvironmentObject var authService: AuthService
+
+    var body: some View {
+        NavigationStack {
+            ConversationsContent()
+                .navigationTitle("messages.title".loc)
+        }
     }
 }

@@ -1161,6 +1161,18 @@ function _filterProviders(providers, query) {
 /** Cache nach Änderungen (Add/Delete/Edit) invalidieren */
 function _invalidateProviderCache() { _providerCache = null; }
 
+// USt-Status-Badge (farbig) für Liste + Detailansicht.
+function vatBadge(p) {
+    const map = {
+        verified: ['#dcfce7', '#166534', '✓ USt geprüft'],
+        invalid:  ['#fee2e2', '#991b1b', '✕ USt ungültig'],
+        review:   ['#fef3c7', '#92400e', '⏳ manuell prüfen'],
+        pending:  ['#e2e8f0', '#475569', '… ausstehend'],
+    };
+    const [bg, fg, txt] = map[p.vat_status] || map.pending;
+    return `<span style="background:${bg};color:${fg};padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;white-space:nowrap;">${txt}</span>`;
+}
+
 function displayProviders(providers) {
     const list = document.getElementById('providers-list');
     const info = document.getElementById('provider-search-info');
@@ -1197,6 +1209,7 @@ function displayProviders(providers) {
             </div>
             <div class="list-item-content">${cats || 'Keine Kategorie'}</div>
             <div class="list-item-meta">
+                ${vatBadge(provider)}
                 <span>📍 ${provider.city || 'Keine Stadt'}</span>
                 ${provider.phone ? `<span>📞 ${provider.phone}</span>` : ''}
                 ${brands   ? `<span>🔧 ${brands}</span>`   : ''}
@@ -1434,12 +1447,53 @@ function showProviderDetails(provider) {
             ${provider.services ? `<p><strong>Leistungen:</strong> ${provider.services.join(', ')}</p>` : ''}
             ${provider.brands ? `<p><strong>Marken:</strong> ${provider.brands.join(', ')}</p>` : ''}
         </div>
+        <div style="margin:16px 0;padding:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <strong>USt-Prüfung</strong> ${vatBadge(provider)}
+            </div>
+            <p style="margin:2px 0;"><strong>USt-IdNr:</strong> ${provider.tax_id || '—'}</p>
+            <p style="margin:2px 0;"><strong>Steuernummer:</strong> ${provider.tax_number || '—'}</p>
+            <p style="margin:2px 0;"><strong>Gewerblich bestätigt:</strong> ${provider.business_declared_at ? new Date(provider.business_declared_at).toLocaleString('de-DE') : '—'}</p>
+            <p style="margin:2px 0;"><strong>Kleinunternehmer:</strong> ${provider.is_small_business ? 'Ja' : 'Nein'}</p>
+            ${provider.vat_verified_name ? `<p style="margin:2px 0;"><strong>VIES-Name:</strong> ${provider.vat_verified_name}</p>` : ''}
+            ${provider.vat_checked_at ? `<p style="margin:2px 0;color:#64748b;font-size:13px;">Zuletzt geprüft: ${new Date(provider.vat_checked_at).toLocaleString('de-DE')}</p>` : ''}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                ${provider.tax_id ? `<button class="btn-secondary" onclick="recheckProviderVat('${provider.id}', '${(provider.tax_id || '').replace(/'/g, '')}')">🔄 Per VIES prüfen</button>` : ''}
+                <button class="btn-secondary" style="background:#16a34a;color:#fff;" onclick="setProviderVat('${provider.id}','verified',true)">✅ Freigeben</button>
+                <button class="btn-secondary" style="background:var(--danger-color,#dc2626);color:#fff;" onclick="setProviderVat('${provider.id}','invalid',false)">🚫 Ablehnen</button>
+            </div>
+        </div>
         <div class="form-actions">
             <button class="btn-primary" onclick="editProvider('${provider.id}')">✏️ Bearbeiten</button>
         </div>
     `;
 
     modal.classList.add('active');
+}
+
+// USt-Status manuell setzen (Freigeben/Ablehnen) — Admin schreibt direkt.
+async function setProviderVat(id, status, verified, name) {
+    const upd = { vat_status: status, vat_checked_at: new Date().toISOString() };
+    if (verified !== undefined) upd.vat_verified = verified;
+    if (name !== undefined) upd.vat_verified_name = name;
+    const { error } = await supabaseClient.from('service_providers').update(upd).eq('id', id);
+    if (error) { alert('Fehler: ' + error.message); return; }
+    _invalidateProviderCache();
+    await loadProviders(document.getElementById('provider-search')?.value.trim() || '');
+    const { data: fresh } = await supabaseClient.from('service_providers').select('*').eq('id', id).single();
+    if (fresh) showProviderDetails(fresh);
+}
+
+// USt-IdNr erneut offiziell über VIES prüfen (Edge Function validate-vat, Pre-Check-Modus).
+async function recheckProviderVat(id, taxId) {
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('validate-vat', { body: { vat_id: taxId } });
+        if (error) throw error;
+        const status = data.valid === true ? 'verified' : data.valid === false ? 'invalid' : 'review';
+        await setProviderVat(id, status, data.valid === null ? undefined : data.valid, data.name || undefined);
+    } catch (e) {
+        alert('VIES-Prüfung fehlgeschlagen: ' + (e.message || e));
+    }
 }
 
 function editProvider(providerId) {
@@ -10873,6 +10927,7 @@ window.loadCleverReachStats = loadCleverReachStats;
 let _crLangPollTimer = null;
 async function startCleverReachLanguageSync() {
     const dryRun = document.getElementById('cleverreach-lang-dryrun')?.checked !== false;
+    const includeSynced = document.getElementById('cleverreach-lang-includesynced')?.checked === true;
     const btn = document.getElementById('cleverreach-lang-btn');
     if (btn) btn.disabled = true;
 
@@ -10881,12 +10936,12 @@ async function startCleverReachLanguageSync() {
     const logEl = document.getElementById('cleverreach-log');
     if (logEl) logEl.innerHTML = '';
 
-    cleverreachLog(`🌍 Starte Sprach-Sync (${dryRun ? 'Trockenlauf' : 'ECHT'}) als Hintergrund-Job …`, 'info');
+    cleverreachLog(`🌍 Starte Sprach-Sync (${dryRun ? 'Trockenlauf' : 'ECHT'}${includeSynced ? ', voller Re-Push' : ''}) als Hintergrund-Job …`, 'info');
     try {
         const resp = await fetch(`${SCRAPER_URL}/api/cleverreach-language-sync`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ dryRun, onlyVerified: true }),
+            body: JSON.stringify({ dryRun, onlyVerified: true, includeSynced }),
         });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${(await resp.text()).substring(0, 200)}`);
         cleverreachLog(`⏳ Job läuft serverseitig — Fortschritt wird alle 3 s aktualisiert (kein Timeout/502).`, 'info');

@@ -14,7 +14,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { review_id, comment, rating } = await req.json();
+    // Interner Endpoint: NUR per Shared-Secret aufrufbar (DB-Trigger nach
+    // Review-INSERT), nicht von Clients. Verhindert das Verstecken fremder
+    // Reviews (Zensur) und den Moderations-Bypass über sauberen Client-Text.
+    const providedSecret = req.headers.get("x-moderation-secret") ?? "";
+    const expectedSecret = Deno.env.get("MODERATION_SECRET") ?? "";
+    if (!expectedSecret || providedSecret !== expectedSecret) {
+      return new Response(JSON.stringify({ error: "forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    const { review_id } = await req.json();
 
     if (!review_id) {
       return new Response(JSON.stringify({ error: "review_id fehlt" }), {
@@ -27,6 +38,20 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Inhalt AUTORITATIV aus der DB lesen — niemals dem Aufrufer vertrauen.
+    const { data: review, error: revErr } = await supabase
+      .from("reviews")
+      .select("comment, rating")
+      .eq("id", review_id)
+      .single();
+    if (revErr || !review) {
+      return new Response(JSON.stringify({ error: "review not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    const comment: string = review.comment ?? "";
+    const rating = review.rating;
 
     // Nur wenn ein Kommentar vorhanden ist, prüfen
     // Reine Sternebewertungen ohne Text werden automatisch freigegeben

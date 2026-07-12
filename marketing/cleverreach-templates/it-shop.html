@@ -41,10 +41,10 @@ I diportisti con inventario dell'equipaggiamento verificato cercano esattamente 
         <tr>
           <td style="padding:40px 40px 0;" class="px">
             <h2 style="margin:0 0 16px; font-size:22px; line-height:1.3;">
-              Ciao {$company},
+              Ciao {COMPANY},
             </h2>
             <p style="margin:0 0 18px; font-size:16px; line-height:1.6; color:#334155;">
-              Vendete <strong>{$category}</strong> online. Il vostro problema di marketing
+              Vendete <strong>{CATEGORY}</strong> online. Il vostro problema di marketing
               lo conosciamo: pagate annunci di ricerca che colpiscono anche gli appassionati
               del fai-da-te. I diportisti che hanno bisogno <em>proprio del vostro assortimento</em>
               li trovate spesso solo con ricerche faticose — quando li trovate.
@@ -129,6 +129,23 @@ I diportisti con inventario dell'equipaggiamento verificato cercano esattamente 
           </td>
         </tr>
 
+        <!-- Analisi di mercato IA -->
+        <tr><td style="height:30px;"></td></tr>
+        <tr>
+          <td style="padding:0 40px;" class="px">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1D3A; border-radius:12px;">
+              <tr>
+                <td style="padding:28px; color:#ffffff;">
+                  <div style="font-size:13px; color:#f97316; font-weight:700; letter-spacing:1px;">📈 ANALISI DI MERCATO IA</div>
+                  <h3 style="margin:6px 0 12px; font-size:20px; color:#ffffff;">Pianifica il tuo assortimento con dati reali della flotta</h3>
+                  <p style="margin:0 0 16px; font-size:14px; line-height:1.6; color:#cbd5e1;">Nel portale shop, la nostra IA ti mostra analisi anonimizzate della flotta degli utenti Skipily: quali tipi di barca e produttori dominano, quali categorie di attrezzatura invecchiano e dove la manutenzione è in scadenza.</p>
+                  <p style="margin:0; font-size:14px; line-height:1.6; color:#cbd5e1;">Da questi dati l'IA ricava raccomandazioni d'assortimento concrete — così sai prima di tutti quali ricambi e accessori sono richiesti in questo momento.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
         <!-- App-Vorschau -->
         <tr><td style="height:30px;"></td></tr>
         <tr>
@@ -158,7 +175,7 @@ I diportisti con inventario dell'equipaggiamento verificato cercano esattamente 
             <p style="margin:0 0 20px; font-size:17px;">
               <strong>6 mesi di prova gratis, 7 % di commissione early bird da assicurarsi.</strong> Finché siete tra i primi 100 shop — posti limitati.
             </p>
-            <a href="{$claim_url}" class="btn" style="background:#f97316; color:#ffffff !important; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:600; font-size:16px;">
+            <a href="{CLAIM_URL[STD:https://provider.skipily.app]}" class="btn" style="background:#f97316; color:#ffffff !important; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:600; font-size:16px;">
               🔌 Rivendica il profilo shop
             </a>
             <p style="margin:18px 0 0; font-size:13px; color:#64748b;">
@@ -195,7 +212,7 @@ I diportisti con inventario dell'equipaggiamento verificato cercano esattamente 
               <tr>
                 <td style="padding:18px 22px;">
                   <p style="margin:0 0 8px; font-size:13px; color:#64748b;">📎 Il vostro shop, che mettiamo in link:</p>
-                  <a href="{$website}" style="color:#0B1D3A; font-weight:600; font-size:14px; word-break:break-all;">{$website}</a>
+                  <a href="{WEBSITE}" style="color:#0B1D3A; font-weight:600; font-size:14px; word-break:break-all;">{WEBSITE}</a>
                 </td>
               </tr>
             </table>
@@ -212,7 +229,7 @@ I diportisti con inventario dell'equipaggiamento verificato cercano esattamente 
               Ricevete questa e-mail in quanto rivenditore online di accessori nautici presente nel nostro database di settore. Questa comunicazione B2B di settore avviene nel legittimo interesse ai sensi dell'art. 6 par. 1 lett. f del GDPR.
             </p>
             <p style="margin:0; font-size:12px; color:#94a3b8;">
-              <a href="{$unsubscribe}" style="color:#94a3b8;">Annulla iscrizione</a> ·
+              <a href="{UNSUBSCRIBE}" style="color:#94a3b8;">Annulla iscrizione</a> ·
               <a href="https://skipily.app/impressum" style="color:#94a3b8;">Note legali</a> ·
               <a href="https://skipily.app/datenschutz" style="color:#94a3b8;">Privacy</a>
             </p>

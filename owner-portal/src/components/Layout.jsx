@@ -6,11 +6,13 @@
 import { Capacitor } from '@capacitor/core'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useUnreadInquiries } from '../hooks/useUnreadInquiries'
+import { useUnreadMessages } from '../hooks/useUnreadMessages'
 import { useT } from '../i18n'
 import LanguageSwitcher from './LanguageSwitcher'
 import {
   LayoutDashboard, Ship, Wrench, ShoppingBag, ShoppingCart,
-  Heart, User, LogOut, Menu, X, Package, Map, Search, MessageSquare, Mail
+  Heart, User, LogOut, Menu, X, Package, Map, Search, MessageSquare, MessageCircle, Mail
 } from 'lucide-react'
 import { useState } from 'react'
 import LayoutMobile from './LayoutMobile'
@@ -26,22 +28,27 @@ const navItems = [
   { to: '/orders', icon: ShoppingBag, key: 'nav.orders' },
   { to: '/favorites', icon: Heart, key: 'nav.favorites' },
   { to: '/inquiries', icon: Mail, key: 'nav.inquiries' },
+  { to: '/messages', icon: MessageCircle, key: 'nav.messages' },
   { to: '/chat', icon: MessageSquare, key: 'nav.chat' },
   { to: '/profile', icon: User, key: 'nav.profile' },
 ]
 
+// Bottom-Tabs identisch zur iOS-App (MainTabView): Karte · Boote · Wartung · Shop · Kontakte
 const bottomTabs = [
   { to: '/map', icon: Map, key: 'nav.map' },
   { to: '/boats', icon: Ship, key: 'nav.boatsShort' },
   { to: '/maintenance', icon: Wrench, key: 'nav.maintenance' },
-  { to: '/inquiries', icon: Mail, key: 'nav.inquiries' },
-  { to: '/favorites', icon: Heart, key: 'nav.favorites' },
+  { to: '/shop', icon: ShoppingCart, key: 'nav.shop' },
+  { to: '/favorites', icon: Heart, key: 'nav.contacts' },
 ]
 
 function LayoutDesktop() {
   const { profile, signOut } = useAuth()
   const { t } = useT()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const unreadInquiries = useUnreadInquiries()
+  const unreadMessages = useUnreadMessages()
+  const badgeFor = (to) => to === '/inquiries' ? unreadInquiries : to === '/messages' ? unreadMessages : 0
 
   return (
     <div className="layout">
@@ -62,7 +69,12 @@ function LayoutDesktop() {
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
               onClick={() => setSidebarOpen(false)}
             >
-              <item.icon size={18} />
+              <span style={{ position: 'relative', display: 'inline-flex' }}>
+                <item.icon size={18} />
+                {badgeFor(item.to) > 0 && (
+                  <span style={{ position: 'absolute', top: -6, right: -8, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{badgeFor(item.to)}</span>
+                )}
+              </span>
               <span>{t(item.key)}</span>
             </NavLink>
           ))}

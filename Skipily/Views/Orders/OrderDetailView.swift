@@ -24,6 +24,11 @@ struct OrderDetailView: View {
     @State private var paymentSheet: PaymentSheet?
     @State private var paymentMessage: String?
 
+    // Storno-State
+    @State private var showCancelConfirm = false
+    @State private var isCancelling = false
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         Group {
             if isLoading {
@@ -388,7 +393,26 @@ struct OrderDetailView: View {
                 .foregroundStyle(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
-            .disabled(isPreparingPayment)
+            .disabled(isPreparingPayment || isCancelling)
+
+            Button {
+                showCancelConfirm = true
+            } label: {
+                HStack(spacing: 6) {
+                    if isCancelling {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "xmark.circle")
+                    }
+                    Text("Bestellung stornieren")
+                        .fontWeight(.medium)
+                }
+                .font(.subheadline)
+                .frame(maxWidth: .infinity)
+                .frame(height: 40)
+                .foregroundStyle(AppColors.error)
+            }
+            .disabled(isPreparingPayment || isCancelling)
         }
         .padding(16)
         .background(AppColors.warning.opacity(0.10))
@@ -397,6 +421,30 @@ struct OrderDetailView: View {
                 .stroke(AppColors.warning.opacity(0.40), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .confirmationDialog(
+            "Bestellung stornieren?",
+            isPresented: $showCancelConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Stornieren", role: .destructive) {
+                Task { await cancelOrder() }
+            }
+            Button("Abbrechen", role: .cancel) {}
+        } message: {
+            Text("Die Bestellung wird auf \"Storniert\" gesetzt. Die Artikel bleiben in deinem Warenkorb erhalten, falls du sie später neu bestellen möchtest.")
+        }
+    }
+
+    @MainActor
+    private func cancelOrder() async {
+        isCancelling = true
+        defer { isCancelling = false }
+        do {
+            try await OrderService.shared.cancelOrder(id: orderId)
+            dismiss()
+        } catch {
+            paymentMessage = "Stornierung fehlgeschlagen: \(error.localizedDescription)"
+        }
     }
 
     /// Baut erneut ein PaymentSheet fuer DIESE Bestellung und praesentiert es.

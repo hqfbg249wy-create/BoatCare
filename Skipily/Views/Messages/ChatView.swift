@@ -89,6 +89,26 @@ struct ChatView: View {
                     .foregroundStyle(msg.isSent ? .white : AppColors.gray900)
                     .clipShape(RoundedRectangle(cornerRadius: 18))
 
+                // Bildanhänge (z. B. Fotos des Problems)
+                if let urls = msg.attachmentUrls, !urls.isEmpty {
+                    ForEach(urls, id: \.self) { urlStr in
+                        if let url = URL(string: urlStr) {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image.resizable().scaledToFill()
+                                case .failure:
+                                    Image(systemName: "photo").foregroundStyle(AppColors.gray400)
+                                default:
+                                    ProgressView()
+                                }
+                            }
+                            .frame(width: 200, height: 200)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                    }
+                }
+
                 Text(msg.displayTime)
                     .font(.caption2)
                     .foregroundStyle(AppColors.gray400)

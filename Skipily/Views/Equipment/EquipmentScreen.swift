@@ -202,6 +202,58 @@ struct EquipmentRowNav: Identifiable, Hashable {
 }
 
 // MARK: - Equipment Screen (Supabase)
+// MARK: - Ausrüstungs-Hinweis (Pop-up vor dem Eintragen)
+/// Markanter Hinweis, dass genaues Eintragen zu besseren Such-/Matching-
+/// Ergebnissen führt. Kann per Klick dauerhaft abgeschaltet werden.
+struct EquipmentHintSheet: View {
+    let onClose: () -> Void
+    let onDismissForever: () -> Void
+
+    private let brandOrange = Color(red: 0.976, green: 0.451, blue: 0.086) // #f97316
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Spacer(minLength: 8)
+            ZStack {
+                Circle().fill(brandOrange.opacity(0.15)).frame(width: 56, height: 56)
+                Image(systemName: "magnifyingglass.circle.fill")
+                    .font(.system(size: 30, weight: .semibold))
+                    .foregroundStyle(brandOrange)
+            }
+            Text("equipment.hint.title".loc)
+                .font(.title3).bold()
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 20)
+            Text("equipment.hint.body".loc)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 24)
+            Spacer(minLength: 8)
+            VStack(spacing: 12) {
+                Button(action: onClose) {
+                    Text("equipment.hint.gotit".loc)
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(brandOrange)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                }
+                Button(action: onDismissForever) {
+                    Text("equipment.hint.dismiss".loc)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 16)
+        }
+    }
+}
+
 struct EquipmentScreen: View {
     let boatId: UUID
     let boatName: String
@@ -228,6 +280,11 @@ struct EquipmentScreen: View {
     @State private var searchText = ""
     @State private var selectedCategory: String? = nil
     @State private var errorMessage: String?
+
+    /// Hinweis "genau eintragen = bessere Ergebnisse": erscheint als Pop-up vor
+    /// dem Eintragen und kann per Klick dauerhaft abgeschaltet werden.
+    @AppStorage("equipment_hint_dismissed") private var equipmentHintDismissed = false
+    @State private var showEquipmentHint = false
 
     init(boatId: UUID, boatName: String, onNavigate: ((EquipmentNavTarget) -> Void)? = nil) {
         self.boatId = boatId
@@ -287,6 +344,18 @@ struct EquipmentScreen: View {
             }
         }
         .navigationTitle("equipment.title".loc)
+        .onAppear {
+            // Pop-up vor dem Eintragen zeigen, solange nicht dauerhaft abgeschaltet.
+            if !equipmentHintDismissed { showEquipmentHint = true }
+        }
+        .sheet(isPresented: $showEquipmentHint) {
+            EquipmentHintSheet(
+                onClose: { showEquipmentHint = false },
+                onDismissForever: { equipmentHintDismissed = true; showEquipmentHint = false }
+            )
+            .presentationDetents([.fraction(0.55), .large])
+            .presentationDragIndicator(.visible)
+        }
         .searchable(text: $searchText, prompt: "general.search".loc)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {

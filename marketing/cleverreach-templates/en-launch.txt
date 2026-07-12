@@ -1,10 +1,10 @@
 SKIPILY — ALWAYS · SAFE · READY TO SAIL
 =========================================
 
-Hello {$company},
+Hello {COMPANY},
 
-Boat owners in {$city} and the surrounding area are looking for
-exactly what you offer — {$category}. So far, they've found you
+Boat owners in {CITY} and the surrounding area are looking for
+exactly what you offer as a {CATEGORY}. So far, they've found you
 through search engines, word of mouth, or not at all.
 
 With Skipily, you appear on a map that boat owners open directly
@@ -41,11 +41,21 @@ WHAT SKIPILY DELIVERS
    the dock, no app install needed.
 
 
+AI MARKET ANALYSIS: WHAT THE FLEET IN YOUR REGION NEEDS
+--------------------------------------------------------
+In the provider portal, our AI gives you anonymised insights into
+the Skipily user fleet: which boat types and manufacturers dominate,
+which equipment is ageing and where maintenance is coming due. From
+this the AI derives concrete offer recommendations — so you know
+before anyone else which services and spare parts are in demand
+right now.
+
+
 CLAIM YOUR PROFILE — FREE
 ==========================
 Set up in 2 minutes, no commitment.
 
-→ {$claim_url}
+→ {CLAIM_URL[STD:https://provider.skipily.app]}
 
 Want to see the app first?
 → https://apps.apple.com/app/id6757314378
@@ -59,7 +69,7 @@ HOW IT WORKS
 
 
 We also link to your website:
-{$website}
+{WEBSITE}
 
 
 ---
@@ -70,6 +80,6 @@ service provider in our database. This message is part of our
 legitimate B2B industry communication interest under GDPR
 Art. 6 (1) (f).
 
-Unsubscribe: {$unsubscribe}
+Unsubscribe: {UNSUBSCRIBE}
 Imprint:     https://skipily.app/impressum
 Privacy:     https://skipily.app/datenschutz

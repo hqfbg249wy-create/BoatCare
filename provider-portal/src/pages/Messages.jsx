@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import { supabase } from '../lib/supabase'
-import { MessageSquare, Send, Search, Sparkles, Loader } from 'lucide-react'
+import { MessageSquare, Send, Search, Sparkles, Loader, Trash2, Archive, ArchiveRestore } from 'lucide-react'
 import { useT } from '../i18n'
 
 export default function Messages() {
@@ -17,6 +17,7 @@ export default function Messages() {
   const [sending, setSending] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [unreadCounts, setUnreadCounts] = useState({})
+  const [showArchived, setShowArchived] = useState(false)
   const [suggestingReply, setSuggestingReply] = useState(false)
   const [suggestError, setSuggestError] = useState(null)
   const messagesEnd = useRef(null)
@@ -60,14 +61,25 @@ export default function Messages() {
     if (!provider) return
     setLoading(true)
     try {
+      // Ohne eingebetteten profiles-Join: conversations.user_id verweist auf
+      // auth.users (nicht direkt auf profiles), der Embed würde die Abfrage
+      // fehlschlagen lassen. Profile daher separat (best-effort) laden.
       const { data } = await supabase
         .from('conversations')
-        .select('*, profiles:user_id(full_name, username, email)')
+        .select('*')
         .eq('provider_id', provider.id)
+        .eq('provider_archived', showArchived)
         .order('last_message_at', { ascending: false })
 
       const convList = data || []
-      setConversations(convList)
+      const userIds = [...new Set(convList.map(c => c.user_id).filter(Boolean))]
+      const profById = {}
+      if (userIds.length) {
+        const { data: profs } = await supabase
+          .from('profiles').select('id, full_name, email').in('id', userIds)
+        for (const p of (profs || [])) profById[p.id] = p
+      }
+      setConversations(convList.map(c => ({ ...c, profiles: profById[c.user_id] || null })))
 
       // Load unread counts per conversation
       const counts = {}
@@ -86,7 +98,7 @@ export default function Messages() {
     } finally {
       setLoading(false)
     }
-  }, [provider])
+  }, [provider, showArchived])
 
   useEffect(() => {
     loadConversations()
@@ -117,7 +129,12 @@ export default function Messages() {
           const msg = payload.new
           // Check if message belongs to one of our conversations
           const conv = conversations.find(c => c.id === msg.conversation_id)
-          if (!conv) return
+          if (!conv) {
+            // Unbekannte Konversation (z. B. neue Anfrage/neuer Chat) → Liste neu
+            // laden, damit sie sofort in der Liste erscheint.
+            if (msg.sender_type === 'user') loadConversations()
+            return
+          }
 
           if (msg.sender_type === 'user') {
             // If we're viewing this conversation, add message and mark read
@@ -179,18 +196,28 @@ export default function Messages() {
 
     setSending(true)
     try {
-      const { error } = await supabase.from('messages').insert({
+      const { data: inserted, error } = await supabase.from('messages').insert({
         conversation_id: selected.id,
         sender_id: user.id,
         sender_type: 'provider',
         content: newMsg.trim(),
-      })
+      }).select('id').single()
       if (error) throw error
 
       await supabase
         .from('conversations')
         .update({ last_message_at: new Date().toISOString() })
         .eq('id', selected.id)
+      // Eigner serverseitig per E-Mail benachrichtigen (Resend, mit Portal-Hinweis)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
+        await fetch(`${supabaseUrl}/functions/v1/notify-message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+          body: JSON.stringify({ message_id: inserted.id }),
+        })
+      } catch (notifyErr) { console.warn('notify-message:', notifyErr) }
 
       setNewMsg('')
       loadMessages(selected.id)
@@ -201,9 +228,25 @@ export default function Messages() {
     }
   }
 
+  async function archiveConversation(convId, archived) {
+    const { error } = await supabase.from('conversations').update({ provider_archived: archived }).eq('id', convId)
+    if (error) { alert(t('common.errorPrefix') + ' ' + error.message); return }
+    if (selected?.id === convId) { setSelected(null); setMessages([]) }
+    loadConversations()
+  }
+
+  async function deleteConversation(convId) {
+    if (!convId) return
+    if (!confirm(t('msg.deleteConfirm'))) return
+    // Konversation löschen → Nachrichten werden per ON DELETE CASCADE mitentfernt.
+    const { error } = await supabase.from('conversations').delete().eq('id', convId)
+    if (error) { alert(t('common.errorPrefix') + ' ' + error.message); return }
+    if (selected?.id === convId) { setSelected(null); setMessages([]) }
+    loadConversations()
+  }
+
   function getUserName(conv) {
     if (conv.profiles?.full_name) return conv.profiles.full_name
-    if (conv.profiles?.username) return conv.profiles.username
     return conv.profiles?.email || t('msg.unknownUser')
   }
 
@@ -243,6 +286,10 @@ export default function Messages() {
                 style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '0.85rem', width: '100%' }}
               />
             </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+              <button onClick={() => setShowArchived(false)} style={{ flex: 1, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--gray-200)', background: !showArchived ? '#eff6ff' : '#fff', fontSize: 12, cursor: 'pointer', fontWeight: !showArchived ? 700 : 400 }}>{t('msg.active')}</button>
+              <button onClick={() => setShowArchived(true)} style={{ flex: 1, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--gray-200)', background: showArchived ? '#eff6ff' : '#fff', fontSize: 12, cursor: 'pointer', fontWeight: showArchived ? 700 : 400 }}>{t('msg.archived')}</button>
+            </div>
           </div>
 
           {loading ? (
@@ -258,16 +305,26 @@ export default function Messages() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div className="chat-contact-name">{getUserName(conv)}</div>
-                  {unreadCounts[conv.id] > 0 && (
-                    <span style={{
-                      background: selected?.id === conv.id ? 'rgba(255,255,255,0.3)' : '#ef4444',
-                      color: 'white', borderRadius: '50%',
-                      minWidth: 20, height: 20, display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, padding: '0 4px',
-                    }}>
-                      {unreadCounts[conv.id]}
-                    </span>
-                  )}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {unreadCounts[conv.id] > 0 && (
+                      <span style={{
+                        background: selected?.id === conv.id ? 'rgba(255,255,255,0.3)' : '#ef4444',
+                        color: 'white', borderRadius: '50%',
+                        minWidth: 20, height: 20, display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, padding: '0 4px',
+                      }}>
+                        {unreadCounts[conv.id]}
+                      </span>
+                    )}
+                    <button onClick={e => { e.stopPropagation(); archiveConversation(conv.id, !showArchived) }} title={showArchived ? t('msg.unarchive') : t('msg.archive')}
+                      style={{ background: 'none', border: 'none', color: selected?.id === conv.id ? 'white' : '#94a3b8', cursor: 'pointer', padding: 2, display: 'inline-flex' }}>
+                      {showArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); deleteConversation(conv.id) }} title={t('msg.deleteConv')}
+                      style={{ background: 'none', border: 'none', color: selected?.id === conv.id ? 'white' : '#94a3b8', cursor: 'pointer', padding: 2, display: 'inline-flex' }}>
+                      <Trash2 size={14} />
+                    </button>
+                  </span>
                 </div>
                 <div className="chat-contact-time">
                   {new Date(conv.last_message_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
@@ -285,8 +342,12 @@ export default function Messages() {
             </div>
           ) : (
             <>
-              <div className="chat-header">
+              <div className="chat-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <strong>{getUserName(selected)}</strong>
+                <button onClick={() => deleteConversation(selected.id)} title={t('msg.deleteConv')}
+                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 4, display: 'inline-flex' }}>
+                  <Trash2 size={16} />
+                </button>
               </div>
               <div className="chat-messages">
                 {messages.length === 0 ? (
@@ -294,7 +355,16 @@ export default function Messages() {
                 ) : (
                   messages.map(msg => (
                     <div key={msg.id} className={`chat-bubble ${msg.sender_type === 'provider' ? 'sent' : 'received'}`}>
-                      <p>{msg.content}</p>
+                      <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.content}</p>
+                      {Array.isArray(msg.attachment_urls) && msg.attachment_urls.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                          {msg.attachment_urls.map((url, i) => (
+                            <a key={i} href={url} target="_blank" rel="noreferrer">
+                              <img src={url} alt="" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--gray-200)' }} />
+                            </a>
+                          ))}
+                        </div>
+                      )}
                       <span className="chat-time">
                         {new Date(msg.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
                       </span>

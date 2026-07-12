@@ -73,16 +73,17 @@
 "provider.write_review" = "Write a Review";
 "provider.verified" = "Verified";
 "provider.more_details" = "More Details";
+"provider.send_inquiry" = "Send inquiry";
 "provider.google_rating" = "Google Rating";
 "provider.special_offer" = "Special Offer";
 "provider.go_to_shop" = "Go to Shop";
 "provider.swipe_hint" = "Swipe for more providers";
 
 // MARK: - Favorites / POI
-"favorites.title" = "Favorites";
+"favorites.title" = "Contacts";
 "favorites.empty" = "No favorites yet";
 "favorites.add_hint" = "Tap the heart icon on a provider to save it";
-"poi.favorites" = "Favorites";
+"poi.favorites" = "Contacts";
 "poi.no_favorites" = "No favorites yet";
 "poi.no_favorites_hint" = "Tap the heart icon on a provider to save it here.";
 
@@ -242,6 +243,10 @@
 "equipment.dimensions" = "Dimensions";
 "equipment.photo_url" = "Photo URL";
 "equipment.manage_hint" = "Manage your boat equipment";
+"equipment.hint.title" = "The more precise, the easier you're found";
+"equipment.hint.body" = "Enter your equipment as precisely as possible – with manufacturer, model and part number. The more accurate the details, the better you'll find matching spare parts, services and offers.";
+"equipment.hint.gotit" = "Got it";
+"equipment.hint.dismiss" = "Don't show again";
 "equipment.cat.navigation" = "Navigation";
 "equipment.cat.safety" = "Safety";
 "equipment.cat.engine" = "Engine";
@@ -407,6 +412,11 @@
 
 // MARK: - Messages
 "messages.title" = "Messages";
+"msg.active" = "Active";
+"msg.archived" = "Archived";
+"msg.archive" = "Archive";
+"msg.unarchive" = "Restore";
+"msg.deleteConv" = "Delete conversation";
 "messages.loading" = "Loading messages...";
 "messages.search_prompt" = "Search providers...";
 
@@ -562,6 +572,7 @@
 "equipment.other_providers" = "Other providers";
 "equipment.article_no" = "Item no.:";
 "shop.title" = "Shop";
+"shop.details" = "View details";
 "data_quality.hint" = "The more accurate your entries, the easier it is for the AI to help you and the shop to find the right part.";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";

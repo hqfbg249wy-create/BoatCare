@@ -41,6 +41,13 @@ async function requireAdmin(req, res, next) {
         const token = authH.startsWith('Bearer ') ? authH.slice(7) : '';
         if (!token) return res.status(401).json({ error: 'Authentifizierung erforderlich' });
 
+        // Cron-/Service-Zugang: fester CRON_SECRET-Bearer für geplante Jobs
+        // (GitHub Actions) — umgeht den Admin-Session-Check.
+        if (CONFIG.CRON_SECRET && token === CONFIG.CRON_SECRET) {
+            req.adminUserId = 'cron';
+            return next();
+        }
+
         const ur = await fetch(`${CONFIG.SUPABASE_URL}/auth/v1/user`, {
             headers: { apikey: CONFIG.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${token}` },
         });
@@ -71,6 +78,7 @@ const CONFIG = {
     GOOGLE_PLACES_API_KEY: process.env.GOOGLE_PLACES_API_KEY || '',
     SUPABASE_URL: process.env.SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co',
     SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY || '', // Service Role Key für direkten DB-Zugriff
+    CRON_SECRET: process.env.CRON_SECRET || '', // Statischer Bearer-Token für geplante Jobs (GitHub Actions) — umgeht Admin-Login
     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjandseXFrZmtzenVtZHJmdnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMDQ4NTksImV4cCI6MjA4NDY4MDg1OX0.VOlhRdvShU325xG18SSSTWdFfGEdyeX-7CAovE2vesQ'
 };
 
@@ -3426,9 +3434,16 @@ async function cleverreachUpsertReceiver(groupId, provider) {
         registered: Math.floor(Date.now() / 1000),
         activated: Math.floor(Date.now() / 1000),  // Double-Opt-In hier umgangen — siehe Hinweis
         source: 'Skipily Import',
-        // CleverReach erlaubt benutzerdefinierte Attribute, die du im
-        // Newsletter-Template als Platzhalter nutzen kannst ({$company}, {$claim_url})
-        attributes: {
+        // CleverReach trennt Standardfelder (global_attributes) von eigenen
+        // Custom-Feldern (attributes). Standardfelder in attributes werden
+        // NICHT erkannt → müssen in global_attributes. Platzhalter im Template:
+        // {COMPANY} {CITY} {COUNTRY} (Standard) sowie {CATEGORY} {WEBSITE}
+        // {CLAIM_URL} {LANGUAGE} (Custom, müssen als GLOBALE Attribute existieren).
+        // In diesem Account sind auch die Custom-Felder als GLOBALE Attribute
+        // angelegt (CleverReach-Standard). Der global_attributes-Bucket funktioniert
+        // (company/city/country kamen an), der attributes-Bucket nicht → daher ALLE
+        // Felder in global_attributes.
+        global_attributes: {
             company: provider.name || '',
             city: provider.city || '',
             country: provider.country || '',

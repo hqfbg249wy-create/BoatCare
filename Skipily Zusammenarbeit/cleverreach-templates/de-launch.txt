@@ -1,0 +1,85 @@
+SKIPILY — ALWAYS · SAFE · READY TO SAIL
+=========================================
+
+Hallo Team {$company},
+
+Bootseigner in {$city} und Umgebung suchen genau das, was Sie
+anbieten — {$category}. Bisher haben sie Sie ueber Suchmaschinen,
+Empfehlungen oder gar nicht gefunden.
+
+Mit Skipily stehen Sie auf einer Karte, die Bootseigner direkt auf
+ihrem iPhone oeffnen, wenn sie Hilfe fuer ihr Boot brauchen — egal
+ob im Heimathafen oder unterwegs.
+
+
+SO FINDEN BOOTSEIGNER SIE AUF DER KARTE
+------------------------------------------
+Skipily zeigt Werften, Service-Anbieter und Zubehoer-Shops
+direkt in der Umgebung des Bootes — ein Tippen genuegt fuer
+Adresse, Bewertungen und Anruf.
+
+Mehr ueber die App:  https://skipily.app
+
+
+WAS SKIPILY IHNEN BRINGT
+-------------------------
+
+📍 Standort-basierte Sichtbarkeit
+   Bootseigner sehen Ihren Betrieb sobald sie in Ihrer Region
+   nach Service suchen — auch Charter-Gaeste und Reisende.
+
+⭐ Bewertungen, denen Kunden vertrauen
+   Echte Bewertungen von echten Bootseignern — gut fuer Sie,
+   ehrlich fuer die Kunden.
+
+🛒 Optional: Direktverkauf von Ersatzteilen
+   Bauen Sie einen Mini-Shop in Ihrem Profil — mit Apple Pay
+   und Stripe-Auszahlung.
+
+📱 QR-Code-Aufsteller fuer Ihren Hafen
+   Wir senden Ihnen kostenlose Aufsteller, die Skipper am Steg
+   scannen koennen — ohne App-Installation.
+
+
+KI-MARKTANALYSE: WAS DIE FLOTTE IN IHRER REGION BRAUCHT
+--------------------------------------------------------
+Im Provider-Portal liefert Ihnen unsere KI anonymisierte Einblicke
+in die Skipily-Nutzerflotte: welche Bootstypen und Hersteller
+dominieren, welche Ausruestung altert und wo gerade Wartung faellig
+wird. Daraus leitet die KI konkrete Angebots-Empfehlungen ab — so
+wissen Sie vor allen anderen, welche Services und Ersatzteile jetzt
+nachgefragt werden.
+
+
+PROFIL KOSTENLOS BEANSPRUCHEN
+==============================
+In 2 Minuten eingerichtet, keine Bindung.
+
+→ {$claim_url}
+
+Oder schauen Sie sich zuerst die App an:
+→ https://apps.apple.com/app/id6757314378
+
+
+SO FUNKTIONIERT'S
+------------------
+1. Profil beanspruchen (Adresse, Leistungen, Logo, Fotos)
+2. Bootseigner finden Sie sofort auf der Karte
+3. Optional: Ersatzteile direkt im Profil verkaufen
+
+
+Ihre Website wird verlinkt:
+{$website}
+
+
+---
+Skipily — Die Boot-Service-Plattform fuer Eigner und Werften
+
+Sie erhalten diese E-Mail, weil Sie als marine Service-Anbieter
+in unserer Datenbank gelistet sind. Diese E-Mail ist Teil unseres
+berechtigten Interesses an Branchen-kommunikation gem. Art. 6
+Abs. 1 lit. f DSGVO.
+
+Abmelden:    {$unsubscribe}
+Impressum:   https://skipily.app/impressum
+Datenschutz: https://skipily.app/datenschutz

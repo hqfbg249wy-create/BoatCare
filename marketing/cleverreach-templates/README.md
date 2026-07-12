@@ -29,11 +29,11 @@ In den Templates verwendete CleverReach-Variablen — werden aus der CSV
 
 | Variable | Quelle | Beispiel |
 |---|---|---|
-| `{$company}` | CSV-Spalte `company` | „Bottsand Bootsbau GmbH" |
-| `{$city}` | CSV-Spalte `city` | „Heikendorf" |
-| `{$category}` | CSV-Spalte `category` | „Bootsbauer" |
-| `{$website}` | CSV-Spalte `website` | https://bottsand-bootsbau.de |
-| `{$unsubscribe}` | CleverReach automatisch | (Abmelde-Link) |
+| `{COMPANY}` | CSV-Spalte `company` | „Bottsand Bootsbau GmbH" |
+| `{CITY}` | CSV-Spalte `city` | „Heikendorf" |
+| `{CATEGORY}` | CSV-Spalte `category` | „Bootsbauer" |
+| `{WEBSITE}` | CSV-Spalte `website` | https://bottsand-bootsbau.de |
+| `{UNSUBSCRIBE}` | CleverReach automatisch | (Abmelde-Link) |
 
 CleverReach füllt diese Platzhalter automatisch aus, wenn die CSV
 beim Import korrekt gemappt wurde.
@@ -58,7 +58,7 @@ Aus `SUBJECTS.md` für die jeweilige Sprache:
 1. Inhalt von z. B. `de-launch.html` öffnen
 2. Komplett kopieren
 3. Im Source-Editor von CleverReach einfügen
-4. **Vorschau** → checken ob Variablen wie `{$company}` korrekt erkannt
+4. **Vorschau** → checken ob Variablen wie `{COMPANY}` korrekt erkannt
    werden (CleverReach zeigt mit Beispiel-Daten aus der Liste)
 
 ### 4. Text-Version (Pflicht für gute Spam-Werte)
@@ -85,7 +85,7 @@ CleverReach → Subject-Line-Split:
 ### 7. Test-Versand vor Live-Versand
 
 **Pflicht-Check**: Mailing an dich selbst senden + 1-2 Kollegen:
-- Variablen korrekt befüllt? `{$company}` → „Bottsand Bootsbau GmbH"
+- Variablen korrekt befüllt? `{COMPANY}` → „Bottsand Bootsbau GmbH"
 - Logo lädt?
 - Buttons funktionieren? (App-Store-Link, Provider-Portal-Link)
 - Abmelde-Link funktioniert?

@@ -44,17 +44,23 @@ jobs:
           FILTER="${{ github.event.inputs.filter || 'older_than_30d' }}"
           LIMIT="${{ github.event.inputs.limit || '200' }}"
 
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "❌ GitHub-Secret CRON_SECRET fehlt (Settings → Secrets and variables → Actions)."
+            echo "   Muss denselben Wert haben wie die Fly-Env CRON_SECRET des Scrapers."
+            exit 1
+          fi
+
           echo "📧 E-Mail-Verifizierung: filter=$FILTER, limit=$LIMIT"
           echo "────────────────────────────────────────────────"
 
           # Erst pingen damit die Fly-VM aus dem Idle aufwacht
           curl -sf -m 30 https://skipily-scraper.fly.dev/health > /dev/null
 
-          # Verifizierung starten — Timeout grosszuegig, da Provider sequentiell
-          # geprueft werden (2-5s pro Stueck, also bis zu 17 Min bei 200)
+          # Verifizierung starten — mit Cron-Secret authentifiziert (requireAdmin-Bypass)
           RESPONSE=$(curl -sf -m 1500 -X POST \
             https://skipily-scraper.fly.dev/api/verify-emails-batch \
             -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -d "{\"filter\":\"$FILTER\",\"limit\":$LIMIT}")
 
           echo "$RESPONSE" | jq -r '

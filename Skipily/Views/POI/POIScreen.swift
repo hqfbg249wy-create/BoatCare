@@ -16,7 +16,91 @@ struct POIScreen: View {
     @State private var errorMessage: String?
     @State private var showingResetConfirm = false
 
+    enum SubTab: Hashable { case favorites, messages, inquiries }
+    @State private var selectedTab: SubTab = .favorites
+    @State private var inquiryService = InquiryService.shared
+    @State private var messagingService = MessagingService.shared
+
     var body: some View {
+        VStack(spacing: 0) {
+            // Segmented Picker oben: Kontakte | Nachrichten | Anfragen
+            Picker("", selection: $selectedTab) {
+                Label("poi.favorites".loc, systemImage: "heart.fill").tag(SubTab.favorites)
+                Label(messagesBadgeLabel, systemImage: "bubble.left.and.bubble.right.fill").tag(SubTab.messages)
+                Label(inquiryBadgeLabel, systemImage: "envelope.fill").tag(SubTab.inquiries)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+
+            // Inhalt
+            switch selectedTab {
+            case .favorites:
+                favoritesContent
+            case .messages:
+                ConversationsContent()
+                    .environmentObject(authService)
+            case .inquiries:
+                InquiriesContent()
+                    .environmentObject(authService)
+            }
+        }
+        .navigationTitle(navTitle)
+        .toolbar {
+            if selectedTab == .favorites && !favoritesManager.favoriteIDs.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(role: .destructive) {
+                        showingResetConfirm = true
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                }
+            }
+        }
+        .confirmationDialog(
+            "poi.reset_confirm".loc,
+            isPresented: $showingResetConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("poi.delete_all".loc, role: .destructive) {
+                Task {
+                    await favoritesManager.clearAllForCurrentUser()
+                    favoriteProviders = []
+                }
+            }
+            Button("general.cancel".loc, role: .cancel) {}
+        } message: {
+            Text("poi.reset_message".loc)
+        }
+        .task {
+            await loadFavorites()
+            if let uid = authService.currentUser?.id {
+                await messagingService.loadConversations(userId: uid)
+            }
+        }
+    }
+
+    private var inquiryBadgeLabel: String {
+        let n = inquiryService.unreadCount
+        return n > 0 ? "Anfragen (\(n))" : "Anfragen"
+    }
+
+    private var messagesBadgeLabel: String {
+        let n = messagingService.unreadCount
+        return n > 0 ? "\("messages.title".loc) (\(n))" : "messages.title".loc
+    }
+
+    private var navTitle: String {
+        switch selectedTab {
+        case .favorites: return "poi.favorites".loc
+        case .messages:  return "messages.title".loc
+        case .inquiries: return "Anfragen"
+        }
+    }
+
+    @ViewBuilder
+    private var favoritesContent: some View {
         Group {
             if isLoading {
                 ProgressView("general.loading".loc)
@@ -59,36 +143,6 @@ struct POIScreen: View {
                 }
                 .listStyle(.plain)
             }
-        }
-        .navigationTitle("poi.favorites".loc)
-        .toolbar {
-            if !favoritesManager.favoriteIDs.isEmpty {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(role: .destructive) {
-                        showingResetConfirm = true
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                }
-            }
-        }
-        .confirmationDialog(
-            "poi.reset_confirm".loc,
-            isPresented: $showingResetConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("poi.delete_all".loc, role: .destructive) {
-                Task {
-                    await favoritesManager.clearAllForCurrentUser()
-                    favoriteProviders = []
-                }
-            }
-            Button("general.cancel".loc, role: .cancel) {}
-        } message: {
-            Text("poi.reset_message".loc)
-        }
-        .task {
-            await loadFavorites()
         }
     }
 
@@ -169,6 +223,9 @@ struct FavoriteRow: View {
     let provider: BoatServiceProvider
     let onRemove: () -> Void
 
+    @EnvironmentObject var authService: AuthService
+    @State private var showingInquiry = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
 
@@ -241,14 +298,21 @@ struct FavoriteRow: View {
                 .buttonStyle(.plain)
             }
 
-            // MARK: Kontakt-Buttons: Route | Telefon | E-Mail | Website
+            // MARK: Kontakt-Buttons: Anfrage | Route | Telefon | E-Mail | Website
             let hasRoute   = provider.latitude != 0 || provider.longitude != 0
             let hasPhone   = provider.phone != nil
             let hasEmail   = provider.email != nil
             let hasWebsite = provider.website != nil
 
-            if hasRoute || hasPhone || hasEmail || hasWebsite {
-                HStack(spacing: 10) {
+            HStack(spacing: 10) {
+                    // Anfrage immer zuerst — Favoriten werden am häufigsten kontaktiert.
+                    contactButton(
+                        icon: "paperplane.fill",
+                        label: "provider.send_inquiry".loc,
+                        color: AppColors.primary
+                    ) {
+                        showingInquiry = true
+                    }
                     if hasRoute {
                         contactButton(
                             icon: "arrow.triangle.turn.up.right.circle.fill",
@@ -294,10 +358,18 @@ struct FavoriteRow: View {
                         }
                     }
                     Spacer()
-                }
             }
         }
         .padding(.vertical, 8)
+        .sheet(isPresented: $showingInquiry) {
+            InquiryComposeView(
+                editing: nil,
+                providerId: provider.id,
+                providerName: provider.name,
+                providerEmail: provider.email
+            )
+            .environmentObject(authService)
+        }
     }
 
     // MARK: - Helpers

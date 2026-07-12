@@ -29,15 +29,19 @@ struct ShopView: View {
     @State private var equipmentKeywords: [String] = []
     @State private var equipmentDealProducts: [Product] = []
     @State private var cartToast: String?
+    /// Button-basierte Navigation zur Produktdetailseite (zuverlässiger als ein
+    /// Ganz-Kachel-NavigationLink, der auf iPad im Vollbild nicht auslöste).
+    @State private var selectedProduct: Product?
 
     private let productService = ProductService.shared
     private let recommendationService = RecommendationService.shared
     private let promotionService = PromotionService.shared
     private let pageSize = 20
 
+    // Adaptive Spalten: iPhone bleibt 2-spaltig (~180 pt), iPad füllt mit
+    // gleich breiten Kacheln auf → Foto-Proportionen wie auf dem iPhone.
     private let columns = [
-        GridItem(.flexible(), spacing: 12),
-        GridItem(.flexible(), spacing: 12)
+        GridItem(.adaptive(minimum: 160, maximum: 210), spacing: 12)
     ]
 
     var body: some View {
@@ -133,6 +137,9 @@ struct ShopView: View {
         }
         .navigationTitle("shop.title".loc)
         .navigationDestination(for: Product.self) { product in
+            ProductDetailView(product: product)
+        }
+        .navigationDestination(item: $selectedProduct) { product in
             ProductDetailView(product: product)
         }
         .task {
@@ -781,14 +788,30 @@ struct ShopView: View {
         VStack(spacing: 12) {
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(products) { product in
-                    NavigationLink(value: product) {
+                    VStack(spacing: 8) {
                         ProductCardView(
                             product: product,
                             promotionBadge: promotionService.promotionBadgeText(for: product),
                             discountedPrice: promotionService.displayDiscountedPrice(for: product)
                         )
+                        // Zuverlässiger Details-Button (Button-Action navigiert
+                        // auch auf iPad im Vollbild, anders als der Ganz-Kachel-Tap).
+                        Button {
+                            selectedProduct = product
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "info.circle.fill")
+                                Text("shop.details".loc)
+                            }
+                            .font(.subheadline).fontWeight(.semibold)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(AppColors.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                     .onAppear {
                         // Infinite scroll: load more when nearing the end
                         if product.id == products.last?.id && hasMoreProducts && !isLoadingMore {

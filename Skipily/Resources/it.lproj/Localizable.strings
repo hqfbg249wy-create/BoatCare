@@ -68,12 +68,13 @@
 "provider.write_review" = "Scrivi una recensione";
 "provider.verified" = "Verificato";
 "provider.more_details" = "Maggiori dettagli";
+"provider.send_inquiry" = "Invia richiesta";
 "provider.special_offer" = "Offerta speciale";
 "provider.go_to_shop" = "Vai al negozio";
 "provider.swipe_hint" = "Scorri per altri fornitori";
 
 // MARK: - Favorites
-"favorites.title" = "Preferiti";
+"favorites.title" = "Contatti";
 "favorites.empty" = "Nessun preferito ancora";
 "favorites.add_hint" = "Tocca il cuore di un fornitore per salvarlo";
 
@@ -161,7 +162,7 @@
 "boats.home_port" = "Porto di origine";
 
 // MARK: - POI / Favorites
-"poi.favorites" = "Preferiti";
+"poi.favorites" = "Contatti";
 "poi.no_favorites" = "Nessun preferito";
 "poi.no_favorites_hint" = "Tocca il cuore di un fornitore per salvarlo qui.";
 
@@ -274,6 +275,10 @@
 "equipment.dimensions" = "Dimensioni";
 "equipment.photo_url" = "URL foto";
 "equipment.manage_hint" = "Gestisci l'attrezzatura della tua barca";
+"equipment.hint.title" = "Più preciso, più facile ti trovano";
+"equipment.hint.body" = "Inserisci la tua attrezzatura nel modo più preciso possibile – con produttore, modello e codice ricambio. Più i dati sono precisi, meglio troverai ricambi, servizi e offerte adatti.";
+"equipment.hint.gotit" = "Capito";
+"equipment.hint.dismiss" = "Non mostrare più";
 "equipment.cat.navigation" = "Navigazione";
 "equipment.cat.safety" = "Sicurezza";
 "equipment.cat.engine" = "Motore";
@@ -403,6 +408,11 @@
 
 // MARK: - Messages
 "messages.title" = "Messaggi";
+"msg.active" = "Attive";
+"msg.archived" = "Archiviate";
+"msg.archive" = "Archivia";
+"msg.unarchive" = "Ripristina";
+"msg.deleteConv" = "Elimina conversazione";
 "messages.loading" = "Caricamento messaggi...";
 "messages.search_prompt" = "Cerca fornitori...";
 
@@ -558,6 +568,7 @@
 "equipment.other_providers" = "Altri fornitori";
 "equipment.article_no" = "Art. n.:";
 "shop.title" = "Negozio";
+"shop.details" = "Vedi dettagli";
 "data_quality.hint" = "Più precise sono le tue voci, più facile sarà per l'IA aiutarti e per il negozio trovare il pezzo giusto.";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";

@@ -20,6 +20,35 @@ final class OrderService {
         *, order_items(*), service_providers(id, name, city)
         """
 
+    // MARK: - Cancel / Delete
+
+    /// Storniert eine pending Order (Status → "cancelled"). Erlaubt nur, wenn
+    /// die Order noch nicht bezahlt wurde — bei bereits geleisteter Zahlung
+    /// muss ein Refund-Flow ueber Stripe laufen, das ist hier NICHT abgedeckt.
+    func cancelOrder(id: UUID) async throws {
+        try await client
+            .from("orders")
+            .update(["status": "cancelled"])
+            .eq("id", value: id.uuidString)
+            .execute()
+    }
+
+    /// Loescht eine Order komplett aus der DB inkl. order_items.
+    /// Nur fuer pending unpaid orders sinnvoll — bei bezahlten Orders sind
+    /// Aufbewahrungspflichten zu beachten.
+    func deleteOrder(id: UUID) async throws {
+        try await client
+            .from("order_items")
+            .delete()
+            .eq("order_id", value: id.uuidString)
+            .execute()
+        try await client
+            .from("orders")
+            .delete()
+            .eq("id", value: id.uuidString)
+            .execute()
+    }
+
     // MARK: - Fetch Orders
 
     func fetchOrders(buyerId: UUID) async throws -> [Order] {

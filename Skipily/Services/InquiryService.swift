@@ -8,6 +8,7 @@
 import Foundation
 import Supabase
 import Observation
+import UIKit
 
 @Observable
 @MainActor
@@ -94,6 +95,35 @@ final class InquiryService {
             .update(["status": "sent"])
             .eq("id", value: id.uuidString)
             .execute()
+    }
+
+    // MARK: - Spiegeln in Konversation (damit der Provider die Anfrage im
+    // Nachrichten-Bereich des Portals sieht — das Portal liest NUR
+    // conversations/messages, nicht service_inquiries).
+
+    func mirrorInquiryToConversation(ownerId: UUID, providerId: UUID, subject: String, message: String, imageUrls: [String] = []) async throws {
+        let body = subject.isEmpty ? message : "\(subject)\n\n\(message)"
+        let conv = try await MessagingService.shared.getOrCreateConversation(userId: ownerId, providerId: providerId)
+        try await MessagingService.shared.sendMessage(conversationId: conv.id, senderId: ownerId, content: body, attachmentUrls: imageUrls)
+    }
+
+    /// Lädt Anfrage-Fotos in den Bucket user-photos und liefert die öffentlichen URLs.
+    func uploadInquiryPhotos(_ images: [UIImage], ownerId: UUID) async -> [String] {
+        var urls: [String] = []
+        let stamp = Int(Date().timeIntervalSince1970)
+        for (idx, image) in images.enumerated() {
+            guard let jpeg = image.jpegData(compressionQuality: 0.7) else { continue }
+            let path = "inquiries/\(ownerId.uuidString)/\(stamp)_\(idx).jpg"
+            do {
+                try await client.storage.from("user-photos")
+                    .upload(path, data: jpeg, options: .init(contentType: "image/jpeg", upsert: true))
+                let url = try client.storage.from("user-photos").getPublicURL(path: path)
+                urls.append(url.absoluteString)
+            } catch {
+                AppLog.error("Inquiry photo upload: \(error)")
+            }
+        }
+        return urls
     }
 
     // MARK: - Delete

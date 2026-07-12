@@ -11,7 +11,39 @@ import Observation
 @Observable
 @MainActor
 final class CartManager {
-    var items: [CartItem] = []
+    /// UserDefaults-Key fuer die Persistenz des Warenkorbs. Cart ueberlebt
+    /// damit App-Restarts und abgebrochene Checkouts — Items verschwinden
+    /// nur noch durch expliziten User-Eingriff oder erfolgreichen Kauf.
+    private static let persistenceKey = "Skipily.CartItems.v1"
+
+    var items: [CartItem] = [] {
+        didSet { persist() }
+    }
+
+    init() {
+        load()
+    }
+
+    private func persist() {
+        do {
+            let data = try JSONEncoder().encode(items)
+            UserDefaults.standard.set(data, forKey: Self.persistenceKey)
+        } catch {
+            AppLog.warning("CartManager.persist failed: \(error)")
+        }
+    }
+
+    private func load() {
+        guard let data = UserDefaults.standard.data(forKey: Self.persistenceKey) else { return }
+        do {
+            let restored = try JSONDecoder().decode([CartItem].self, from: data)
+            // Direkt zuweisen ohne didSet-Triggern: wir wollen keinen
+            // sofortigen Re-Save mit den gerade geladenen Daten.
+            items = restored
+        } catch {
+            AppLog.warning("CartManager.load failed (ignoring stored cart): \(error)")
+        }
+    }
 
     var itemCount: Int {
         items.reduce(0) { $0 + $1.quantity }

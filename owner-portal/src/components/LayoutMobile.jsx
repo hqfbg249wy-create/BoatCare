@@ -5,11 +5,13 @@
  */
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useUnreadInquiries } from '../hooks/useUnreadInquiries'
+import { useUnreadMessages } from '../hooks/useUnreadMessages'
 import { useT } from '../i18n'
 import LanguageSwitcher from './LanguageSwitcher'
 import {
   Ship, Wrench, ShoppingCart, Heart, User, LogOut, Map, Mail,
-  LayoutDashboard, ShoppingBag, MessageSquare, ChevronDown,
+  LayoutDashboard, ShoppingBag, MessageSquare, MessageCircle, ChevronDown,
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 
@@ -18,7 +20,7 @@ const bottomTabs = [
   { to: '/boats',       icon: Ship,         key: 'nav.boatsShort' },
   { to: '/maintenance', icon: Wrench,       key: 'nav.maintenance' },
   { to: '/shop',        icon: ShoppingCart, key: 'nav.shop' },
-  { to: '/favorites',   icon: Heart,        key: 'nav.favorites' },
+  { to: '/favorites',   icon: Heart,        key: 'nav.contacts' },
 ]
 
 const profileMenu = [
@@ -31,6 +33,8 @@ const profileMenu = [
 export default function LayoutMobile() {
   const { profile, signOut } = useAuth()
   const { t } = useT()
+  const unreadInquiries = useUnreadInquiries()
+  const unreadMessages = useUnreadMessages()
   const navigate = useNavigate()
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef(null)
@@ -61,8 +65,17 @@ export default function LayoutMobile() {
           <span>Skipily</span>
         </div>
         <div className="topbar-actions">
-          <NavLink to="/inquiries" className="topbar-icon-btn" aria-label={t('nav.inquiries')}>
+          <NavLink to="/messages" className="topbar-icon-btn" aria-label={t('nav.messages')} style={{ position: 'relative' }}>
+            <MessageCircle size={20} />
+            {unreadMessages > 0 && (
+              <span style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{unreadMessages}</span>
+            )}
+          </NavLink>
+          <NavLink to="/inquiries" className="topbar-icon-btn" aria-label={t('nav.inquiries')} style={{ position: 'relative' }}>
             <Mail size={20} />
+            {unreadInquiries > 0 && (
+              <span style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{unreadInquiries}</span>
+            )}
           </NavLink>
           <div className="profile-wrap" ref={profileRef}>
             <button

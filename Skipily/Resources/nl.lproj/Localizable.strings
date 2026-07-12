@@ -68,12 +68,13 @@
 "provider.write_review" = "Schrijf een beoordeling";
 "provider.verified" = "Geverifieerd";
 "provider.more_details" = "Meer details";
+"provider.send_inquiry" = "Aanvraag versturen";
 "provider.special_offer" = "Speciale aanbieding";
 "provider.go_to_shop" = "Naar de winkel";
 "provider.swipe_hint" = "Veeg voor meer aanbieders";
 
 // MARK: - Favorites
-"favorites.title" = "Favorieten";
+"favorites.title" = "Contacten";
 "favorites.empty" = "Nog geen favorieten";
 "favorites.add_hint" = "Tik op het hartpictogram van een aanbieder om het op te slaan";
 
@@ -161,7 +162,7 @@
 "boats.home_port" = "Thuishaven";
 
 // MARK: - POI / Favorites
-"poi.favorites" = "Favorieten";
+"poi.favorites" = "Contacten";
 "poi.no_favorites" = "Nog geen favorieten";
 "poi.no_favorites_hint" = "Tik op het hartje van een provider om het op te slaan.";
 
@@ -274,6 +275,10 @@
 "equipment.dimensions" = "Afmetingen";
 "equipment.photo_url" = "Foto-URL";
 "equipment.manage_hint" = "Beheer de uitrusting van je boot";
+"equipment.hint.title" = "Hoe nauwkeuriger, hoe beter gevonden";
+"equipment.hint.body" = "Voer je uitrusting zo nauwkeurig mogelijk in – met fabrikant, model en onderdeelnummer. Hoe preciezer de gegevens, hoe beter je passende onderdelen, services en aanbiedingen vindt.";
+"equipment.hint.gotit" = "Begrepen";
+"equipment.hint.dismiss" = "Niet meer tonen";
 "equipment.cat.navigation" = "Navigatie";
 "equipment.cat.safety" = "Veiligheid";
 "equipment.cat.engine" = "Motor";
@@ -403,6 +408,11 @@
 
 // MARK: - Messages
 "messages.title" = "Berichten";
+"msg.active" = "Actief";
+"msg.archived" = "Gearchiveerd";
+"msg.archive" = "Archiveren";
+"msg.unarchive" = "Herstellen";
+"msg.deleteConv" = "Gesprek verwijderen";
 "messages.loading" = "Berichten laden...";
 "messages.search_prompt" = "Aanbieders zoeken...";
 
@@ -558,6 +568,7 @@
 "equipment.other_providers" = "Overige aanbieders";
 "equipment.article_no" = "Art.nr.:";
 "shop.title" = "Winkel";
+"shop.details" = "Details bekijken";
 "data_quality.hint" = "Hoe nauwkeuriger je invoer, hoe gemakkelijker de AI je kan helpen en de winkel het juiste onderdeel kan vinden.";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";

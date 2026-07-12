@@ -72,16 +72,17 @@
 "provider.write_review" = "Bewertung schreiben";
 "provider.verified" = "Verifiziert";
 "provider.more_details" = "Mehr Details";
+"provider.send_inquiry" = "Anfrage senden";
 "provider.google_rating" = "Google-Bewertung";
 "provider.special_offer" = "Sonderangebot";
 "provider.go_to_shop" = "Zum Shop";
 "provider.swipe_hint" = "Wischen für weitere Betriebe";
 
 // MARK: - Favorites / POI
-"favorites.title" = "Favoriten";
+"favorites.title" = "Kontakte";
 "favorites.empty" = "Noch keine Favoriten";
 "favorites.add_hint" = "Tippe das Herz-Symbol bei einem Betrieb, um ihn zu speichern";
-"poi.favorites" = "Favoriten";
+"poi.favorites" = "Kontakte";
 "poi.no_favorites" = "Noch keine Favoriten";
 "poi.no_favorites_hint" = "Tippe auf das Herz-Symbol bei einem Betrieb, um ihn zu speichern.";
 
@@ -211,6 +212,10 @@ Ausrüstung unter Boote ergänzen.";
 "equipment.defect_hint" = "Gerät als defekt markiert";
 "equipment.delete_confirm" = "Ausrüstung löschen?";
 "equipment.manage_hint" = "Ausrüstung verwalten & Wartungszyklen";
+"equipment.hint.title" = "Je genauer, desto besser gefunden";
+"equipment.hint.body" = "Trage deine Ausrüstung möglichst genau ein – mit Hersteller, Modell und Teilenummer. Je präziser die Angaben, desto besser findest du passende Ersatzteile, Services und Angebote.";
+"equipment.hint.gotit" = "Verstanden";
+"equipment.hint.dismiss" = "Nicht mehr anzeigen";
 "equipment.maintenance" = "Wartung";
 "equipment.maintenance_ok" = "OK";
 "equipment.cycle" = "Wartungszyklus (Jahre)";
@@ -411,6 +416,11 @@ Ausrüstung unter Boote ergänzen.";
 
 // MARK: - Messages
 "messages.title" = "Nachrichten";
+"msg.active" = "Aktiv";
+"msg.archived" = "Archiviert";
+"msg.archive" = "Archivieren";
+"msg.unarchive" = "Wiederherstellen";
+"msg.deleteConv" = "Konversation löschen";
 "messages.loading" = "Nachrichten laden...";
 "messages.search_prompt" = "Anbieter suchen...";
 
@@ -566,6 +576,7 @@ Ausrüstung unter Boote ergänzen.";
 "equipment.other_providers" = "Weitere Anbieter";
 "equipment.article_no" = "Art.-Nr.:";
 "shop.title" = "Shop";
+"shop.details" = "Details ansehen";
 "data_quality.hint" = "Je genauer Deine Eingaben sind, desto leichter kann Dir die KI helfen und der Shop das passende Teil finden.";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";

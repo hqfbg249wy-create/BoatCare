@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import { getCurrentLocation } from '../lib/geo'
 import { Heart, MapPin, Phone, Mail, Globe, Star, Navigation, Tag, Clock, ChevronLeft, ShoppingBag, Wrench, Package, Pencil, Trash2, Send, X, MessageSquarePlus } from 'lucide-react'
 import { useT } from '../i18n'
 import { translateProviders, translateProducts, isTranslatableLang } from '../lib/dbTranslate'
@@ -86,6 +87,23 @@ export default function ProviderDetail() {
   const [inquiryNotes, setInquiryNotes] = useState('')
   const [inquirySaving, setInquirySaving] = useState(false)
   const [boats, setBoats] = useState([])
+  const [boatEquipment, setBoatEquipment] = useState([])
+  const [selectedEquipIds, setSelectedEquipIds] = useState([])
+  const [equipSearch, setEquipSearch] = useState('')
+  const [shipLocation, setShipLocation] = useState(null) // { lat, lon }
+  const [locating, setLocating] = useState(false)
+
+  async function attachShipLocation() {
+    setLocating(true)
+    try {
+      const { lat, lon } = await getCurrentLocation()
+      setShipLocation({ lat, lon })
+    } catch (err) {
+      alert(t('inq.locationError') + ' ' + (err.message || ''))
+    } finally {
+      setLocating(false)
+    }
+  }
 
   useEffect(() => {
     if (user && id) { loadProvider(); loadBoats() }
@@ -189,19 +207,10 @@ export default function ProviderDetail() {
         savedId = data.id
       }
 
-      // KI-Moderation im Hintergrund (blockiert UI nicht)
-      if (reviewComment?.trim()) {
-        supabase.functions.invoke('moderate-review', {
-          body: { review_id: savedId, comment: reviewComment, rating: reviewRating }
-        }).then(({ data: mod }) => {
-          if (mod?.flagged) {
-            // Hinweis anzeigen wenn Bewertung zur Prüfung weitergeleitet wurde
-            setTimeout(() => alert(
-              'Deine Bewertung wurde zur Prüfung weitergeleitet und wird nach Freigabe durch unser Team sichtbar.'
-            ), 300)
-          }
-        }).catch(err => console.warn('Moderation fehlgeschlagen (ignoriert):', err))
-      }
+      // KI-Moderation läuft jetzt serverseitig per DB-Trigger (AFTER INSERT auf
+      // reviews) mit dem gespeicherten Inhalt — kein Client-Aufruf mehr nötig.
+      // Grund: der frühere öffentliche moderate-review-Aufruf erlaubte das
+      // Verstecken fremder Reviews (Zensur) und das Umgehen der Moderation.
 
       setShowReviewForm(false)
       await loadProvider()
@@ -249,8 +258,51 @@ export default function ProviderDetail() {
   }
 
   async function loadBoats() {
-    const { data } = await supabase.from('boats').select('id, name').eq('owner_id', user.id)
+    const { data } = await supabase.from('boats').select('*').eq('owner_id', user.id)
     setBoats(data || [])
+  }
+
+  // Ausrüstung des gewählten Boots laden (für „Ausrüstung anhängen")
+  useEffect(() => {
+    setEquipSearch('')
+    if (!inquiryBoatId) { setBoatEquipment([]); setSelectedEquipIds([]); return }
+    supabase.from('equipment')
+      .select('id, name, category, manufacturer, model, serial_number')
+      .eq('boat_id', inquiryBoatId)
+      .order('category')
+      .then(({ data }) => setBoatEquipment(data || []))
+  }, [inquiryBoatId])
+
+  // Anfrage-Text mit Schiffs- und Ausrüstungsdaten zusammenstellen.
+  function composeInquiryBody() {
+    const parts = [inquiryMessage.trim()]
+    const boat = boats.find(b => String(b.id) === String(inquiryBoatId))
+    if (boat) {
+      const rows = [
+        [t('inq.fBoat'), boat.name],
+        [t('inq.fType'), boat.boat_type],
+        [t('inq.fMakeModel'), [boat.manufacturer, boat.model].filter(Boolean).join(' ')],
+        [t('inq.fYear'), boat.year],
+        [t('inq.fLength'), boat.length_meters ? boat.length_meters + ' m' : ''],
+        [t('inq.fEngine'), boat.engine],
+        [t('inq.fPort'), boat.home_port],
+      ].filter(([, v]) => v)
+      if (rows.length) parts.push('\n' + t('inq.shipData') + ':\n' + rows.map(([k, v]) => `• ${k}: ${v}`).join('\n'))
+    }
+    const eq = boatEquipment.filter(e => selectedEquipIds.includes(e.id))
+    if (eq.length) {
+      parts.push('\n' + t('inq.equipData') + ':\n' + eq.map(e => {
+        const d = [e.manufacturer, e.model].filter(Boolean).join(' ')
+        const sn = e.serial_number ? ', ' + t('inq.fSerial') + ' ' + e.serial_number : ''
+        return `• ${e.name}${d ? ' (' + d + ')' : ''}${sn}`
+      }).join('\n'))
+    }
+    if (shipLocation) {
+      parts.push('\n' + t('inq.shipLocation') + ':\n'
+        + `• ${shipLocation.lat.toFixed(5)}, ${shipLocation.lon.toFixed(5)}\n`
+        + `• https://maps.google.com/?q=${shipLocation.lat},${shipLocation.lon}`)
+    }
+    return parts.filter(Boolean).join('\n')
   }
 
   function openInquiryForm() {
@@ -258,34 +310,64 @@ export default function ProviderDetail() {
     setInquiryMessage('')
     setInquiryBoatId('')
     setInquiryNotes('')
+    setShipLocation(null)
     setShowInquiryForm(true)
   }
 
-  async function saveOrSendInquiry(send) {
+  // mode: 'draft' = nur speichern · 'send' = speichern + per Eigner-Mailaccount (mailto) senden
+  async function saveOrSendInquiry(mode) {
     if (!inquirySubject.trim() || !inquiryMessage.trim()) {
       alert(t('prov.k33'))
       return
     }
     setInquirySaving(true)
     try {
+      const fullMessage = composeInquiryBody()
       const payload = {
         owner_id: user.id,
         provider_id: id,
         boat_id: inquiryBoatId || null,
         subject: inquirySubject.trim(),
-        message: inquiryMessage.trim(),
+        message: fullMessage,
         owner_notes: inquiryNotes.trim() || null,
-        status: send ? 'sent' : 'draft',
+        status: mode === 'send' ? 'sent' : 'draft',
       }
       const { error } = await supabase.from('service_inquiries').insert(payload)
       if (error) throw error
       setShowInquiryForm(false)
       // Pending-Inquiry-Kontext aufräumen (war von Equipment-Anfrage gesetzt)
       sessionStorage.removeItem('pending_inquiry')
-      if (send) {
-        alert(`Anfrage wurde an ${provider.name} gesendet!`)
-        // Beim Senden direkt zur Anfragen-Übersicht navigieren
-        setTimeout(() => navigate('/inquiries'), 100)
+      if (mode === 'send') {
+        // 0) Konversations-Thread anlegen/finden + Anfrage als erste Nachricht
+        //    posten → beide Seiten sehen den Verlauf (conversations/messages).
+        try {
+          const { data: conv } = await supabase.from('conversations')
+            .upsert({ user_id: user.id, provider_id: id }, { onConflict: 'user_id,provider_id' })
+            .select('id').single()
+          if (conv) {
+            const { data: firstMsg } = await supabase.from('messages').insert({
+              conversation_id: conv.id, sender_id: user.id, sender_type: 'user',
+              content: `${inquirySubject.trim()}\n\n${fullMessage}`,
+            }).select('id').single()
+            await supabase.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conv.id)
+            // Provider serverseitig per E-Mail benachrichtigen (Resend, mit Portal-Hinweis)
+            if (firstMsg) {
+              try {
+                const { data: { session } } = await supabase.auth.getSession()
+                const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
+                await fetch(`${supabaseUrl}/functions/v1/notify-message`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+                  body: JSON.stringify({ message_id: firstMsg.id }),
+                })
+              } catch (notifyErr) { console.warn('notify-message:', notifyErr) }
+            }
+          }
+        } catch (convErr) { console.warn('Konversation anlegen:', convErr) }
+        // Das mailto öffnet der „Per E-Mail senden"-Link SELBST als Nutzer-Geste
+        // (sonst blockiert der Browser die automatische Mail-Erstellung).
+        // Hier nur speichern + weiterleiten, kein window.location.
+        setTimeout(() => navigate('/inquiries'), 300)
       } else {
         alert(t('prov.k34'))
       }
@@ -634,6 +716,54 @@ export default function ProviderDetail() {
                   </select>
                 </div>
               )}
+              {inquiryBoatId && boatEquipment.length > 0 && (() => {
+                const q = equipSearch.trim().toLowerCase()
+                const filtered = q
+                  ? boatEquipment.filter(e => `${e.name || ''} ${e.manufacturer || ''} ${e.model || ''} ${e.serial_number || ''}`.toLowerCase().includes(q))
+                  : boatEquipment
+                return (
+                  <div className="form-group">
+                    <label>{t('inq.attachEquip')}</label>
+                    <input type="text" value={equipSearch} onChange={e => setEquipSearch(e.target.value)}
+                           placeholder={t('inq.searchEquip')} style={{ marginBottom: 8 }} />
+                    <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+                      {filtered.length === 0 ? (
+                        <div style={{ padding: '10px 12px', color: '#94a3b8', fontSize: 14 }}>{t('inq.noEquipMatch')}</div>
+                      ) : filtered.map(e => {
+                        const checked = selectedEquipIds.includes(e.id)
+                        const parts = [e.name, [e.manufacturer, e.model].filter(Boolean).join(' ')].filter(Boolean)
+                        const label = parts.join(' — ') || t('inq.equipData')
+                        return (
+                          <div key={e.id}
+                            onClick={() => setSelectedEquipIds(prev => checked ? prev.filter(x => x !== e.id) : [...prev, e.id])}
+                            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', background: checked ? '#fff7ed' : '#fff' }}>
+                            <span style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${checked ? '#f97316' : '#cbd5e1'}`, background: checked ? '#f97316' : '#fff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{checked ? '✓' : ''}</span>
+                            <span style={{ flex: 1, fontSize: 14, color: '#1e293b' }}>{label}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {selectedEquipIds.length > 0 && (
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{selectedEquipIds.length} {t('inq.selected')}</div>
+                    )}
+                  </div>
+                )
+              })()}
+              <div className="form-group">
+                <label>{t('inq.shipLocation')}</label>
+                {shipLocation ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 14 }}>📍 {shipLocation.lat.toFixed(5)}, {shipLocation.lon.toFixed(5)}</span>
+                    <a href={`https://maps.google.com/?q=${shipLocation.lat},${shipLocation.lon}`} target="_blank" rel="noopener" style={{ fontSize: 13 }}>{t('inq.showMap')}</a>
+                    <button type="button" className="btn-ghost" onClick={() => setShipLocation(null)}>{t('inq.remove')}</button>
+                  </div>
+                ) : (
+                  <button type="button" className="btn-secondary" onClick={attachShipLocation} disabled={locating} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <MapPin size={14} /> {locating ? t('inq.locating') : t('inq.sendLocation')}
+                  </button>
+                )}
+                <p className="form-label-hint" style={{ marginTop: 4, fontSize: 12, color: '#94a3b8' }}>{t('inq.locationHint')}</p>
+              </div>
               <div className="form-group">
                 <label>{t('prov.k20')}</label>
                 <input
@@ -665,12 +795,26 @@ export default function ProviderDetail() {
             </div>
             <div className="inq-modal-actions">
               <button className="btn-ghost" onClick={() => setShowInquiryForm(false)}>{t('prov.k10')}</button>
-              <button className="btn-secondary" onClick={() => saveOrSendInquiry(false)} disabled={inquirySaving}>
+              <button className="btn-secondary" onClick={() => saveOrSendInquiry('draft')} disabled={inquirySaving}>
                 <Clock size={14} /> {t('prov.k23')}
               </button>
-              <button className="btn-primary" onClick={() => saveOrSendInquiry(true)} disabled={inquirySaving}>
-                <Send size={14} /> {inquirySaving ? 'Senden…' : 'Jetzt senden'}
-              </button>
+              {provider.email ? (
+                <a
+                  className="btn-primary"
+                  href={`mailto:${provider.email}?subject=${encodeURIComponent(inquirySubject.trim())}&body=${encodeURIComponent(composeInquiryBody() + '\n\n' + t('inq.mailPortalHint'))}`}
+                  onClick={(e) => {
+                    if (!inquirySubject.trim() || !inquiryMessage.trim()) { e.preventDefault(); alert(t('prov.k33')); return }
+                    saveOrSendInquiry('send')
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+                >
+                  <Mail size={14} /> {t('inq.sendEmail')}
+                </a>
+              ) : (
+                <button className="btn-primary" onClick={() => saveOrSendInquiry('send')} disabled={inquirySaving}>
+                  <Mail size={14} /> {inquirySaving ? '…' : t('inq.sendEmail')}
+                </button>
+              )}
             </div>
           </div>
         </div>

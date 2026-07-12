@@ -17,27 +17,29 @@ struct OrdersView: View {
     private let filters = ["pending", "confirmed", "shipped", "delivered", "cancelled"]
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // Status filter
-                filterChips
+        // Kein eigener NavigationStack — OrdersView wird vom Shop-Tab in
+        // dessen NavigationStack gepusht. Verschachtelte Stacks führen auf
+        // iPad dazu, dass die Sicht leer bleibt.
+        VStack(spacing: 0) {
+            // Status filter
+            filterChips
 
-                if isLoading {
-                    ProgressView("orders.loading".loc)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if filteredOrders.isEmpty {
-                    emptyView
-                } else {
-                    orderList
-                }
+            if isLoading {
+                ProgressView("orders.loading".loc)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if filteredOrders.isEmpty {
+                emptyView
+            } else {
+                orderList
             }
-            .navigationTitle("orders.title".loc)
-            .task {
-                await loadOrders()
-            }
-            .refreshable {
-                await loadOrders()
-            }
+        }
+        .navigationTitle("orders.title".loc)
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await loadOrders()
+        }
+        .refreshable {
+            await loadOrders()
         }
     }
 

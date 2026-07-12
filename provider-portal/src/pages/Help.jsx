@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../hooks/useAuth'
 import { useT } from '../i18n'
-import { HelpCircle, ChevronDown } from 'lucide-react'
+import { HelpCircle, ChevronDown, FileText, ExternalLink } from 'lucide-react'
 
 const LANGS = [
   { code: 'de', label: 'Deutsch' },
@@ -30,6 +29,32 @@ const CATEGORY_LABELS = {
   commission:      { de: 'Provision & Pakete', en: 'Commission & plans', fr: 'Commission & forfaits', it: 'Commissione & pacchetti', es: 'Comisión y paquetes', nl: 'Commissie & pakketten' },
   advantages:      { de: 'Marktvorteile Skipily', en: 'Skipily advantages', fr: 'Avantages Skipily', it: 'Vantaggi Skipily', es: 'Ventajas de Skipily', nl: 'Skipily-voordelen' },
 }
+// Anleitungen als PDF (in provider-portal/public/anleitungen). DE + EN vorhanden;
+// übrige Sprachen fallen auf EN zurück (Sendcloud nur DE).
+const GUIDES = [
+  { key: 'basics', icon: '📘',
+    title: { de: 'Anbindung – Grundlagen', en: 'Integration basics', fr: 'Bases de l’intégration', it: 'Basi dell’integrazione', es: 'Fundamentos de la integración', nl: 'Integratie – basis' },
+    file: { de: '/anleitungen/00-Skipily-Anbindung-Grundlagen.pdf', en: '/anleitungen/en/00-Skipily-Integration-Basics.pdf' } },
+  { key: 'woo', icon: '🛒',
+    title: { de: 'WooCommerce anbinden', en: 'Connect WooCommerce', fr: 'Connecter WooCommerce', it: 'Collegare WooCommerce', es: 'Conectar WooCommerce', nl: 'WooCommerce koppelen' },
+    file: { de: '/anleitungen/01-WooCommerce.pdf', en: '/anleitungen/en/01-WooCommerce.pdf' } },
+  { key: 'shopify', icon: '🛍️',
+    title: { de: 'Shopify anbinden', en: 'Connect Shopify', fr: 'Connecter Shopify', it: 'Collegare Shopify', es: 'Conectar Shopify', nl: 'Shopify koppelen' },
+    file: { de: '/anleitungen/02-Shopify.pdf', en: '/anleitungen/en/02-Shopify.pdf' } },
+  { key: 'odoo', icon: '🧩',
+    title: { de: 'Odoo / ERP anbinden', en: 'Connect Odoo / ERP', fr: 'Connecter Odoo / ERP', it: 'Collegare Odoo / ERP', es: 'Conectar Odoo / ERP', nl: 'Odoo / ERP koppelen' },
+    file: { de: '/anleitungen/03-Odoo-ERP.pdf', en: '/anleitungen/en/03-Odoo-ERP.pdf' } },
+  { key: 'sendcloud', icon: '🚚',
+    title: { de: 'Sendcloud-Versand', en: 'Sendcloud shipping', fr: 'Expédition Sendcloud', it: 'Spedizioni Sendcloud', es: 'Envíos con Sendcloud', nl: 'Sendcloud-verzending' },
+    file: { de: '/anleitungen/04-Sendcloud-Versand.pdf', en: '/anleitungen/en/04-Sendcloud-Shipping.pdf' } },
+]
+const GUIDES_UI = {
+  title: { de: 'Anleitungen & Downloads', en: 'Guides & downloads', fr: 'Guides & téléchargements', it: 'Guide & download', es: 'Guías y descargas', nl: 'Handleidingen & downloads' },
+  sub:   { de: 'Schritt-für-Schritt-PDFs für die Anbindung deiner Systeme.', en: 'Step-by-step PDFs for connecting your systems.', fr: 'PDF pas à pas pour connecter vos systèmes.', it: 'PDF passo-passo per collegare i tuoi sistemi.', es: 'PDF paso a paso para conectar tus sistemas.', nl: 'Stap-voor-stap-PDF’s om je systemen te koppelen.' },
+  open:  { de: 'PDF öffnen', en: 'Open PDF', fr: 'Ouvrir le PDF', it: 'Apri PDF', es: 'Abrir PDF', nl: 'PDF openen' },
+}
+const guideUrl = (g, lang) => g.file[lang] || g.file.en || g.file.de
+
 const UI = {
   title:    { de: 'Hilfe & FAQ', en: 'Help & FAQ', fr: 'Aide & FAQ', it: 'Aiuto & FAQ', es: 'Ayuda y FAQ', nl: 'Help & FAQ' },
   subtitle: { de: 'Antworten auf häufige Fragen rund um dein Anbieter-Konto.', en: 'Answers to common questions about your provider account.', fr: 'Réponses aux questions fréquentes sur votre compte fournisseur.', it: 'Risposte alle domande frequenti sul tuo account fornitore.', es: 'Respuestas a preguntas frecuentes sobre tu cuenta de proveedor.', nl: 'Antwoorden op veelgestelde vragen over je aanbiederaccount.' },
@@ -87,7 +112,30 @@ export default function Help() {
       </div>
       <p style={{ color: '#64748b', marginTop: 0 }}>{pick(UI.subtitle, lang)}</p>
 
-      {loading && <p style={{ color: '#94a3b8' }}>…</p>}
+      {/* Anleitungen & Downloads (PDF) */}
+      <section style={{ marginTop: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <FileText size={20} style={{ color: '#f97316' }} />
+          <h2 style={{ fontSize: 17, margin: 0 }}>{pick(GUIDES_UI.title, lang)}</h2>
+        </div>
+        <p style={{ color: '#64748b', margin: '4px 0 12px', fontSize: 14 }}>{pick(GUIDES_UI.sub, lang)}</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
+          {GUIDES.map(g => (
+            <a key={g.key} href={guideUrl(g, lang)} target="_blank" rel="noopener noreferrer"
+               style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: 10, background: '#fff', textDecoration: 'none', color: 'inherit' }}>
+              <span style={{ fontSize: 22 }}>{g.icon}</span>
+              <span style={{ flex: 1 }}>
+                <span style={{ display: 'block', fontWeight: 600, fontSize: 14 }}>{pick(g.title, lang)}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#f97316' }}>
+                  {pick(GUIDES_UI.open, lang)} <ExternalLink size={12} />
+                </span>
+              </span>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {loading && <p style={{ color: '#94a3b8', marginTop: 24 }}>…</p>}
       {!loading && cats.length === 0 && <p style={{ color: '#94a3b8' }}>{pick(UI.empty, lang)}</p>}
 
       {cats.map(cat => (

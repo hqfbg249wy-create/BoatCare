@@ -68,12 +68,13 @@
 "provider.write_review" = "Écrire un avis";
 "provider.verified" = "Vérifié";
 "provider.more_details" = "Plus de détails";
+"provider.send_inquiry" = "Envoyer une demande";
 "provider.special_offer" = "Offre spéciale";
 "provider.go_to_shop" = "Vers la boutique";
 "provider.swipe_hint" = "Glisser pour plus de prestataires";
 
 // MARK: - Favorites
-"favorites.title" = "Favoris";
+"favorites.title" = "Contacts";
 "favorites.empty" = "Aucun favori pour l'instant";
 "favorites.add_hint" = "Appuyez sur le cœur d'un prestataire pour l'enregistrer";
 
@@ -161,7 +162,7 @@
 "boats.home_port" = "Port d'attache";
 
 // MARK: - POI / Favorites
-"poi.favorites" = "Favoris";
+"poi.favorites" = "Contacts";
 "poi.no_favorites" = "Pas encore de favoris";
 "poi.no_favorites_hint" = "Appuyez sur le cœur d'un prestataire pour le sauvegarder.";
 
@@ -274,6 +275,10 @@
 "equipment.dimensions" = "Dimensions";
 "equipment.photo_url" = "URL de la photo";
 "equipment.manage_hint" = "Gérer l'équipement de votre bateau";
+"equipment.hint.title" = "Plus c'est précis, mieux vous êtes trouvé";
+"equipment.hint.body" = "Saisissez votre équipement le plus précisément possible – avec le fabricant, le modèle et la référence. Plus les données sont précises, mieux vous trouverez pièces, services et offres adaptés.";
+"equipment.hint.gotit" = "Compris";
+"equipment.hint.dismiss" = "Ne plus afficher";
 "equipment.cat.navigation" = "Navigation";
 "equipment.cat.safety" = "Sécurité";
 "equipment.cat.engine" = "Moteur";
@@ -403,6 +408,11 @@
 
 // MARK: - Messages
 "messages.title" = "Messages";
+"msg.active" = "Actives";
+"msg.archived" = "Archivées";
+"msg.archive" = "Archiver";
+"msg.unarchive" = "Restaurer";
+"msg.deleteConv" = "Supprimer la conversation";
 "messages.loading" = "Chargement des messages...";
 "messages.search_prompt" = "Rechercher un prestataire...";
 
@@ -558,6 +568,7 @@
 "equipment.other_providers" = "Autres prestataires";
 "equipment.article_no" = "Réf.:";
 "shop.title" = "Boutique";
+"shop.details" = "Voir les détails";
 "data_quality.hint" = "Plus vos saisies sont précises, plus il est facile pour l'IA de vous aider et pour la boutique de trouver la bonne pièce.";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";

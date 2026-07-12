@@ -1,0 +1,40 @@
+{
+    "name": "Skipily – Receive order (Part B)",
+    "flow": [
+        {
+            "id": 1,
+            "module": "gateway:CustomWebHook",
+            "version": 1,
+            "parameters": {
+                "maxResults": 1
+            },
+            "mapper": {},
+            "metadata": {
+                "designer": {
+                    "x": 0,
+                    "y": 0,
+                    "name": "Skipily order webhook",
+                    "notes": "On import you'll be asked to create a webhook ('Add' -> name: Skipily orders). Copy the shown URL and enter it in the Skipily provider portal under Settings -> Integrations -> 'Webhook URL for orders' (or send it to support@skipily.app). AFTER this module attach the 'create order' module of your system (WooCommerce/Shopify 'Create an Order' or Odoo 'Create a Record' with model sale.order)."
+                }
+            }
+        }
+    ],
+    "metadata": {
+        "instant": true,
+        "version": 1,
+        "scenario": {
+            "roundtrips": 1,
+            "maxErrors": 3,
+            "autoCommit": true,
+            "autoCommitTriggerLast": true,
+            "sequential": false,
+            "confidential": false,
+            "dataloss": false,
+            "dlq": false,
+            "freshVariables": false
+        },
+        "designer": {
+            "orphans": []
+        }
+    }
+}
