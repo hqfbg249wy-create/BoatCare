@@ -679,6 +679,7 @@ export default {
   "eqcat.communication": "Kommunikation",
   "eqcat.rigging": "Rigg & Takelage",
   "eqcat.sails": "Segel & Tuch",
+  "eqcat.rope": "Tauwerk",
   "eqcat.hull": "Rumpf & Unterwasser",
   "eqcat.deck": "Deck & Beschläge",
   "eqcat.anchor": "Anker & Kette",

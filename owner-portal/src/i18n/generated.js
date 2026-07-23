@@ -735,7 +735,8 @@ export default {
     "rope.end.augspleiss_low_friction": "Eye splice with low friction ring",
     "rope.end.augspleiss_kausch_edelstahl": "Eye splice with thimble (stainless steel)",
     "rope.end.augspleiss_kausch_verzinkt": "Eye splice with thimble (galvanised)",
-    "rope.end.augspleiss_zubehoer": "Eye splice with accessory"
+    "rope.end.augspleiss_zubehoer": "Eye splice with accessory",
+    "eqcat.rope": "Rope"
   },
   "fr": {
     "msg.deleteConv": "Supprimer la conversation",
@@ -1470,7 +1471,8 @@ export default {
     "rope.end.augspleiss_low_friction": "Épissure à œil avec anneau à faible friction",
     "rope.end.augspleiss_kausch_edelstahl": "Épissure à œil avec cosse (inox)",
     "rope.end.augspleiss_kausch_verzinkt": "Épissure à œil avec cosse (galvanisé)",
-    "rope.end.augspleiss_zubehoer": "Épissure à œil avec accessoire"
+    "rope.end.augspleiss_zubehoer": "Épissure à œil avec accessoire",
+    "eqcat.rope": "Cordage"
   },
   "it": {
     "msg.deleteConv": "Elimina conversazione",
@@ -2205,7 +2207,8 @@ export default {
     "rope.end.augspleiss_low_friction": "Gassa con anello a basso attrito",
     "rope.end.augspleiss_kausch_edelstahl": "Gassa con redancia (acciaio inox)",
     "rope.end.augspleiss_kausch_verzinkt": "Gassa con redancia (zincata)",
-    "rope.end.augspleiss_zubehoer": "Gassa con accessorio"
+    "rope.end.augspleiss_zubehoer": "Gassa con accessorio",
+    "eqcat.rope": "Cordame"
   },
   "es": {
     "msg.deleteConv": "Eliminar conversación",
@@ -2940,7 +2943,8 @@ export default {
     "rope.end.augspleiss_low_friction": "Gaza con anillo de baja fricción",
     "rope.end.augspleiss_kausch_edelstahl": "Gaza con guardacabo (acero inoxidable)",
     "rope.end.augspleiss_kausch_verzinkt": "Gaza con guardacabo (galvanizado)",
-    "rope.end.augspleiss_zubehoer": "Gaza con accesorio"
+    "rope.end.augspleiss_zubehoer": "Gaza con accesorio",
+    "eqcat.rope": "Aparejo de cuerdas"
   },
   "nl": {
     "msg.deleteConv": "Gesprek verwijderen",
@@ -3675,6 +3679,7 @@ export default {
     "rope.end.augspleiss_low_friction": "Oogsplits met Low Friction Ring",
     "rope.end.augspleiss_kausch_edelstahl": "Oogsplits met kous (roestvrij staal)",
     "rope.end.augspleiss_kausch_verzinkt": "Oogsplits met kous (verzinkt)",
-    "rope.end.augspleiss_zubehoer": "Oogsplits met accessoire"
+    "rope.end.augspleiss_zubehoer": "Oogsplits met accessoire",
+    "eqcat.rope": "Tauwerk"
   }
 }

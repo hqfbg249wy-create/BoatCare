@@ -9,11 +9,11 @@ import { buildShopQuery, buildServiceQuery, buildAIQuestion, buildInquirySubject
 import { buildSparePartsParams } from '../lib/sparePartsSearch'
 import SailMeasurementForm, { emptySailForm, sailFormToPayload } from '../components/SailMeasurementForm'
 
-const categories = ['engine', 'electrical', 'navigation', 'safety', 'communication', 'rigging', 'sails', 'hull', 'deck', 'anchor', 'other']
+const categories = ['engine', 'electrical', 'navigation', 'safety', 'communication', 'rigging', 'sails', 'rope', 'hull', 'deck', 'anchor', 'other']
 const categoryLabels = {
   engine: 'eqcat.engine', electrical: 'eqcat.electrical', navigation: 'eqcat.navigation',
   safety: 'eqcat.safety', communication: 'eqcat.communication', rigging: 'eqcat.rigging',
-  sails: 'eqcat.sails',
+  sails: 'eqcat.sails', rope: 'eqcat.rope',
   hull: 'eqcat.hull', deck: 'eqcat.deck', anchor: 'eqcat.anchor', other: 'eqcat.other'
 }
 
