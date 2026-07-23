@@ -3577,6 +3577,7 @@ app.post('/api/cleverreach-sync', async (req, res) => {
         onlyVerified = true,
         country = null,
         groupMode = 'country',   // 'country' (alt) oder 'language' (12 Sprach-Gruppen)
+        providerIds = null,      // gezielter Push: nur genau diese Provider-IDs
     } = req.body || {};
 
     if (!CONFIG.SUPABASE_SERVICE_KEY) {
@@ -3586,8 +3587,8 @@ app.post('/api/cleverreach-sync', async (req, res) => {
     // ── NEU: Sprach-Modus — 6 Provider + 6 Shop Gruppen ──
     if (groupMode === 'language') {
         try {
-            const providers = await loadAllProvidersForLanguageSync({ onlyVerified, includeSynced: true });
-            console.log(`\n🌍 CleverReach Sprach-Sync: ${providers.length} Provider, dryRun=${dryRun}`);
+            const providers = await loadAllProvidersForLanguageSync({ onlyVerified, includeSynced: true, providerIds });
+            console.log(`\n🌍 CleverReach Sprach-Sync: ${providers.length} Provider, dryRun=${dryRun}${providerIds ? ' (gezielt)' : ''}`);
 
             const counts = { synced: 0, skipped: 0, errors: 0 };
             const perGroup = {}; // key: "provider:de" etc.
@@ -3635,8 +3636,8 @@ app.post('/api/cleverreach-sync', async (req, res) => {
     }
 
     try {
-        const providers = await loadProvidersForCleverReach({ limit, onlyVerified, country });
-        console.log(`\n📧 CleverReach-Sync: ${providers.length} Provider, dryRun=${dryRun}`);
+        const providers = await loadProvidersForCleverReach({ limit, onlyVerified, country, providerIds });
+        console.log(`\n📧 CleverReach-Sync: ${providers.length} Provider, dryRun=${dryRun}${providerIds ? ' (gezielt)' : ''}`);
 
         const results = [];
         const counts = { synced: 0, skipped: 0, errors: 0 };
@@ -3976,10 +3977,19 @@ app.get('/api/cleverreach-stats', async (req, res) => {
  * onlyVerified: nur email_check_status='valid'.
  * includeSynced: auch bereits synchronisierte erneut pushen (Upsert ist idempotent).
  */
-async function loadAllProvidersForLanguageSync({ onlyVerified = true, includeSynced = true } = {}) {
+async function loadAllProvidersForLanguageSync({ onlyVerified = true, includeSynced = true, providerIds = null } = {}) {
     let filter = 'email=not.is.null&email=neq.';
-    if (onlyVerified) filter += '&email_check_status=eq.valid';
-    if (!includeSynced) filter += '&cleverreach_synced_at=is.null';
+    const targeted = Array.isArray(providerIds) && providerIds.length > 0;
+    if (targeted) {
+        // Gezielter Push: genau diese Provider. Verified-Filter nur wenn
+        // ausdrücklich verlangt, KEIN synced-Filter (Re-Push erlaubt).
+        const inList = providerIds.map(id => `"${id}"`).join(',');
+        filter += `&id=in.(${inList})`;
+        if (onlyVerified) filter += '&email_check_status=eq.valid';
+    } else {
+        if (onlyVerified) filter += '&email_check_status=eq.valid';
+        if (!includeSynced) filter += '&cleverreach_synced_at=is.null';
+    }
 
     const fetchPage = (offset, pageSize) => new Promise((resolve, reject) => {
         const u = new URL(CONFIG.SUPABASE_URL);
@@ -4010,21 +4020,30 @@ async function loadAllProvidersForLanguageSync({ onlyVerified = true, includeSyn
     return all;
 }
 
-async function loadProvidersForCleverReach({ limit, onlyVerified, country }) {
+async function loadProvidersForCleverReach({ limit, onlyVerified, country, providerIds = null }) {
     // Wir filtern den Country-Filter NICHT direkt in der DB-Query, weil
     // die DB gemischte Schreibweisen hat ("DE" / "Deutschland" / "Germany").
     // Stattdessen laden wir mit grosszuegigem Limit und filtern in JS
     // ueber normalizeCountryCode, sodass alle Varianten gemappt werden.
     let filterClause = '&email=not.is.null&email=neq.';
-    if (onlyVerified) {
-        filterClause += '&email_check_status=eq.valid';
+    const targeted = Array.isArray(providerIds) && providerIds.length > 0;
+    if (targeted) {
+        // Gezielter Push: genau diese Provider, KEIN synced-Filter (Re-Push),
+        // Verified-Filter nur wenn ausdrücklich verlangt.
+        const inList = providerIds.map(id => `"${id}"`).join(',');
+        filterClause += `&id=in.(${inList})`;
+        if (onlyVerified) filterClause += '&email_check_status=eq.valid';
+    } else {
+        if (onlyVerified) {
+            filterClause += '&email_check_status=eq.valid';
+        }
+        filterClause += '&cleverreach_synced_at=is.null';
     }
-    filterClause += '&cleverreach_synced_at=is.null';
 
     // Wenn ein Country-Filter gesetzt ist, holen wir mehr Daten und
     // filtern nach normalisierung — sonst koennten wir die DE-Provider
     // verpassen die als "Deutschland" gespeichert sind.
-    const dbLimit = country ? Math.max(limit * 5, 500) : limit;
+    const dbLimit = targeted ? providerIds.length : (country ? Math.max(limit * 5, 500) : limit);
     const url = `${CONFIG.SUPABASE_URL}/rest/v1/service_providers?select=id,name,email,city,country,category,website,provider_secrets(claim_token)&${filterClause.substring(1)}&order=country&limit=${dbLimit}`;
 
     const raw = await new Promise((resolve, reject) => {
@@ -4047,6 +4066,7 @@ async function loadProvidersForCleverReach({ limit, onlyVerified, country }) {
         req.on('error', reject);
     });
 
+    if (targeted) return raw;            // gezielter Push: keine Country-Filterung
     if (!country) return raw.slice(0, limit);
 
     // Country-Filter nach Normalisierung anwenden

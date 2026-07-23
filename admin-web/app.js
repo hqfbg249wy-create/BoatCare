@@ -10923,6 +10923,130 @@ function renderCleverReachResults(data) {
 window.startCleverReachSync = startCleverReachSync;
 window.loadCleverReachStats = loadCleverReachStats;
 
+// ════════════════════════════════════════════════════════════════
+// GEZIELTER PUSH + MANUELLE VERIFIZIERUNG einzelner Provider
+// ════════════════════════════════════════════════════════════════
+
+function crEsc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => (
+        { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]
+    ));
+}
+
+/** Kleiner Status-Badge für den E-Mail-Verifizierungsstatus. */
+function crVerifiedBadge(status) {
+    if (status === 'valid') return '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:10px;font-size:12px;">✓ verifiziert</span>';
+    if (!status)            return '<span style="background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:10px;font-size:12px;">– ungeprüft</span>';
+    return `<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;font-size:12px;">${crEsc(status)}</span>`;
+}
+
+/** Sucht Provider (Name/E-Mail) und rendert sie mit Verify-/Push-Buttons. */
+async function crSearchProviders() {
+    const box = document.getElementById('cr-target-results');
+    const q = (document.getElementById('cr-target-search')?.value || '').trim();
+    if (!box) return;
+    if (q.length < 2) { box.innerHTML = '<span style="color:#94a3b8;">Mindestens 2 Zeichen eingeben.</span>'; return; }
+
+    box.innerHTML = '<span style="color:#94a3b8;">Suche …</span>';
+    try {
+        const like = `%${q}%`;
+        const { data, error } = await supabaseClient
+            .from('service_providers')
+            .select('id,name,email,city,country,email_check_status,cleverreach_synced_at,cleverreach_status')
+            .or(`name.ilike.${like},email.ilike.${like}`)
+            .not('email', 'is', null)
+            .neq('email', '')
+            .order('name')
+            .limit(25);
+        if (error) throw error;
+        if (!data || data.length === 0) { box.innerHTML = '<span style="color:#94a3b8;">Keine Provider mit E-Mail gefunden.</span>'; return; }
+
+        box.innerHTML = data.map(p => {
+            const synced = p.cleverreach_synced_at
+                ? `<span style="color:#166534;font-size:12px;">✓ gepusht ${new Date(p.cleverreach_synced_at).toLocaleDateString('de-DE')}</span>`
+                : '<span style="color:#94a3b8;font-size:12px;">noch nicht gepusht</span>';
+            const isVerified = p.email_check_status === 'valid';
+            return `
+            <div style="border:1px solid #e9d5ff;border-radius:8px;padding:12px;margin-bottom:8px;background:#fff;">
+                <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;">
+                    <div style="min-width:200px;">
+                        <div style="font-weight:600;">${crEsc(p.name || '—')}</div>
+                        <div style="font-size:13px;color:#475569;">${crEsc(p.email)}${p.city ? ' · ' + crEsc(p.city) : ''}${p.country ? ' · ' + crEsc(p.country) : ''}</div>
+                        <div style="margin-top:4px;">${crVerifiedBadge(p.email_check_status)} &nbsp; ${synced}</div>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        ${isVerified ? '' : `<button class="btn-secondary" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:8px 12px;cursor:pointer;" onclick="window.crVerifyProvider('${p.id}')">✅ Verifizieren</button>`}
+                        <button class="btn-primary" style="background:#9333ea;color:#fff;border:none;border-radius:6px;padding:8px 12px;cursor:pointer;" onclick="window.crPushProvider('${p.id}', this)">📤 Jetzt pushen</button>
+                    </div>
+                </div>
+                <div id="cr-target-msg-${p.id}" style="margin-top:8px;font-size:13px;"></div>
+            </div>`;
+        }).join('');
+    } catch (err) {
+        box.innerHTML = `<span style="color:#b91c1c;">Fehler: ${crEsc(err.message || err)}</span>`;
+    }
+}
+
+/** Markiert einen Provider manuell als E-Mail-verifiziert (Status = valid). */
+async function crVerifyProvider(id) {
+    const msg = document.getElementById(`cr-target-msg-${id}`);
+    if (msg) msg.innerHTML = '<span style="color:#64748b;">Verifiziere …</span>';
+    try {
+        const { error } = await supabaseClient
+            .from('service_providers')
+            .update({
+                email_check_status: 'valid',
+                last_email_check_at: new Date().toISOString(),
+                email_check_note: 'Manuell im Admin verifiziert',
+            })
+            .eq('id', id);
+        if (error) throw error;
+        if (msg) msg.innerHTML = '<span style="color:#166534;">✓ Als verifiziert markiert.</span>';
+        // Liste aktualisieren, damit Badge/Buttons stimmen.
+        await crSearchProviders();
+    } catch (err) {
+        if (msg) msg.innerHTML = `<span style="color:#b91c1c;">Fehler: ${crEsc(err.message || err)}</span>`;
+    }
+}
+
+/** Pusht genau einen Provider sofort in seine CleverReach-Sprachgruppe. */
+async function crPushProvider(id, btn) {
+    const msg = document.getElementById(`cr-target-msg-${id}`);
+    if (btn) btn.disabled = true;
+    if (msg) msg.innerHTML = '<span style="color:#64748b;">Pushe zu CleverReach …</span>';
+    try {
+        const resp = await fetch(`${SCRAPER_URL}/api/cleverreach-sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            // Sprach-Gruppen-Modus (= der empfohlene Sync), gezielt, ohne
+            // Verified-Zwang (der Admin entscheidet bewusst), kein Trockenlauf.
+            body: JSON.stringify({ groupMode: 'language', providerIds: [id], onlyVerified: false, dryRun: false }),
+        });
+        if (!resp.ok) { const t = await resp.text(); throw new Error(`HTTP ${resp.status}: ${t.substring(0, 200)}`); }
+        const data = await resp.json();
+        const c = data.counts || {};
+        if ((c.synced || 0) > 0) {
+            if (msg) msg.innerHTML = '<span style="color:#166534;">✓ Erfolgreich in CleverReach gepusht.</span>';
+        } else if ((c.skipped || 0) > 0) {
+            if (msg) msg.innerHTML = '<span style="color:#92400e;">⏭ Übersprungen — vermutlich keine CleverReach-Gruppe für Sprache/Typ konfiguriert.</span>';
+        } else if ((c.errors || 0) > 0) {
+            const e = (data.results || []).find(r => r.status === 'error');
+            if (msg) msg.innerHTML = `<span style="color:#b91c1c;">❌ Fehler: ${crEsc(e?.error || 'unbekannt')}</span>`;
+        } else {
+            if (msg) msg.innerHTML = '<span style="color:#92400e;">Keine passende E-Mail/Adresse gefunden (evtl. E-Mail leer).</span>';
+        }
+        await crSearchProviders();
+    } catch (err) {
+        if (msg) msg.innerHTML = `<span style="color:#b91c1c;">Fehler: ${crEsc(err.message || err)}</span>`;
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+window.crSearchProviders = crSearchProviders;
+window.crVerifyProvider  = crVerifyProvider;
+window.crPushProvider    = crPushProvider;
+
 // ── NEU: Sprach-Sync in 12 Gruppen (6 Provider + 6 Shop) ──
 let _crLangPollTimer = null;
 async function startCleverReachLanguageSync() {

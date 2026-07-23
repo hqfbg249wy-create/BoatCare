@@ -1000,6 +1000,24 @@
                     <strong>⏳ Lade Konfiguration …</strong>
                 </div>
 
+                <!-- ★ NEU: Gezielter Push + manuelle Verifizierung einzelner Provider -->
+                <div style="background:#faf5ff; border:1px solid #c084fc; border-radius:8px; padding:18px; margin-bottom:20px;">
+                    <h3 style="margin-top:0;">🎯 Gezielter Push &amp; manuelle Verifizierung</h3>
+                    <p style="font-size:13px; color:#6b21a8; margin:0 0 12px;">
+                        Einzelne Provider suchen, bei Bedarf manuell als <strong>verifiziert</strong> markieren
+                        (E-Mail-Status = valid) und direkt in die passende CleverReach-Sprachgruppe pushen —
+                        unabhängig vom großen Sync.
+                    </p>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                        <input type="text" id="cr-target-search" placeholder="Name oder E-Mail …"
+                               onkeydown="if(event.key==='Enter'){event.preventDefault();window.crSearchProviders();}"
+                               style="flex:1; min-width:220px; padding:9px 12px; border:1px solid #d8b4fe; border-radius:6px;">
+                        <button class="btn-primary" onclick="window.crSearchProviders()"
+                                style="background:#9333ea; color:#fff;">🔍 Suchen</button>
+                    </div>
+                    <div id="cr-target-results" style="margin-top:14px;"></div>
+                </div>
+
                 <!-- CSV-Export-Sektion (PRIMÄR-Methode, keine API-Setup nötig) -->
                 <div style="background:#eff6ff; border:1px solid #3b82f6; border-radius:8px; padding:18px; margin-bottom:20px;">
                     <h3 style="margin-top:0;">📥 CSV-Export für CleverReach-Upload</h3>
@@ -2248,7 +2266,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260711-vat2"></script>
+    <script src="app.js?v=20260723-crtarget"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;
