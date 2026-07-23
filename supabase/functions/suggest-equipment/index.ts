@@ -75,7 +75,13 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { boat, existing_equipment, lang, providerId } = body ?? {};
+    const { boat, existing_equipment, lang, providerId, focus } = body ?? {};
+    // focus (optional): ein konkretes Gerät, dessen typische Ersatz-/
+    // Verschleißteile vorgeschlagen werden sollen (z.B. Motor "Yanmar 3JH5E"
+    // → Impeller, Seewasserpumpe, Ölfilter, Dieselvorfilter …).
+    const focusItem = (focus && typeof focus === "object") ? focus as {
+      name?: string; category?: string; manufacturer?: string; model?: string;
+    } : null;
 
     // ── AI-Quota-Check vor dem teuren API-Call
     const quota = await checkAiQuota({
@@ -114,6 +120,39 @@ Deno.serve(async (req) => {
           `- ${e.name ?? "?"} (${e.category ?? "?"})`).join("\n")
       : "(none)";
 
+    // Fokus-Zeile für den Spare-Parts-Modus.
+    const focusLine = focusItem
+      ? [
+          focusItem.name ? `Name: ${focusItem.name}` : null,
+          focusItem.category ? `Category: ${focusItem.category}` : null,
+          focusItem.manufacturer ? `Manufacturer: ${focusItem.manufacturer}` : null,
+          focusItem.model ? `Model: ${focusItem.model}` : null,
+        ].filter(Boolean).join(", ")
+      : "";
+
+    const taskBlock = focusItem
+      ? `The owner has this SPECIFIC piece of equipment installed:
+  ${focusLine || "(no details given)"}
+
+List the typical WEAR PARTS, CONSUMABLES and SPARE PARTS that genuinely fit
+THIS EXACT unit and that an owner should keep on board or replace
+periodically. Example — for a Yanmar 3JH5E engine: impeller / raw-water
+pump, engine oil filter, fuel pre-filter, fuel filter, zinc anodes, V-belt,
+thermostat, coolant.
+
+CREDIBILITY RULES (very important — the app's trust depends on this):
+- Only list parts that REALLY apply to this exact manufacturer/model. If you
+  are not certain the model exists or its exact parts, list only the GENERIC
+  part TYPES that are standard for such a unit.
+- NEVER invent specific part numbers or fake product names.
+- Do NOT include the unit itself — only its serviceable parts/consumables.
+- Skip parts that are already in the owner's existing list.
+- Return 5-10 items.`
+      : `Suggest 6-10 additional items the owner SHOULD typically maintain or
+inspect on this kind of boat but has NOT yet listed. Focus on
+maintenance-relevant gear: filters, impellers, anodes, batteries, ropes,
+EPIRBs, fire extinguishers, life raft, gas detector, bilge pump, …`;
+
     const userPrompt = `You are an experienced marine technician advising a boat owner.
 
 Boat: ${boatLine || "(no details given)"}
@@ -121,10 +160,7 @@ Boat: ${boatLine || "(no details given)"}
 Equipment the owner has already documented:
 ${existingLines}
 
-Suggest 6-10 additional items the owner SHOULD typically maintain or
-inspect on this kind of boat but has NOT yet listed. Focus on
-maintenance-relevant gear: filters, impellers, anodes, batteries, ropes,
-EPIRBs, fire extinguishers, life raft, gas detector, bilge pump, …
+${taskBlock}
 
 For each suggestion return JSON like:
   {
