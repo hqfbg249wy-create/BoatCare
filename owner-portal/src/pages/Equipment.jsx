@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Filter, ShoppingCart, MapPin, Bot, Mail } from 'lucide-react'
+import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Filter, ShoppingCart, MapPin, Bot, Mail, Sparkles } from 'lucide-react'
 import { useT } from '../i18n'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { buildShopQuery, buildServiceQuery, buildAIQuestion, buildInquirySubject, buildInquiryMessage } from '../lib/equipmentSearch'
@@ -19,12 +19,20 @@ const categoryLabels = {
 const emptyItem = { name: '', category: 'engine', manufacturer: '', model: '', serial_number: '', installation_date: '', warranty_expiry: '', maintenance_cycle_years: '', last_maintenance_date: '', notes: '', boat_id: '' }
 
 export default function Equipment() {
-  const { t } = useT()
+  const { t, lang } = useT()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [items, setItems] = useState([])
   const [boats, setBoats] = useState([])
+
+  // KI-Vorschläge (Ersatzteile pro Gerät ODER Ausrüstungsliste pro Boot)
+  const [sug, setSug] = useState(null) // { mode:'spare'|'boat', boatId, boatName, focusName? }
+  const [sugLoading, setSugLoading] = useState(false)
+  const [sugList, setSugList] = useState([])
+  const [sugError, setSugError] = useState(null)
+  const [sugAdding, setSugAdding] = useState(() => new Set())
+  const [sugAdded, setSugAdded] = useState(() => new Set())
   // Vorselektion via URL: /equipment?boat=<uuid>
   const [selectedBoat, setSelectedBoat] = useState(searchParams.get('boat') || '')
   const [filterCat, setFilterCat] = useState('')
@@ -44,6 +52,109 @@ export default function Equipment() {
   }
 
   useEffect(() => { if (user) loadData() }, [user])
+
+  // Chat-Button "Ausrüstungsliste anzeigen" → /equipment?suggest=1
+  useEffect(() => {
+    if (searchParams.get('suggest') && boats.length > 0 && !sug) {
+      const boat = boats.find(b => b.id === selectedBoat) || boats[0]
+      openBoatSuggestions(boat.id, boat.name)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boats])
+
+  // --- KI-Vorschläge ---
+
+  // Lädt volle Bootsdaten (für Kontext) — boats-State hat nur id+name.
+  async function loadBoatRow(boatId) {
+    const { data } = await supabase
+      .from('boats')
+      .select('boat_type, manufacturer, model, year, length_meters, engine')
+      .eq('id', boatId).single()
+    return data || {}
+  }
+
+  function openSpareParts(item) {
+    const boatName = boats.find(b => b.id === item.boat_id)?.name || ''
+    setSug({ mode: 'spare', boatId: item.boat_id, boatName, focusName: item.name, focus: item })
+    fetchSuggestions({ boatId: item.boat_id, focus: item })
+  }
+
+  function openBoatSuggestions(boatId, boatName) {
+    setSug({ mode: 'boat', boatId, boatName })
+    fetchSuggestions({ boatId })
+  }
+
+  async function fetchSuggestions({ boatId, focus }) {
+    setSugLoading(true); setSugError(null); setSugList([]); setSugAdded(new Set()); setSugAdding(new Set())
+    try {
+      const boatRow = await loadBoatRow(boatId)
+      const existing = items.filter(i => i.boat_id === boatId).map(i => ({ name: i.name, category: i.category }))
+      const body = {
+        boat: {
+          type: boatRow.boat_type || null,
+          manufacturer: boatRow.manufacturer || null,
+          model: boatRow.model || null,
+          year: boatRow.year || null,
+          length: boatRow.length_meters || null,
+          engine: boatRow.engine || null,
+        },
+        existing_equipment: existing,
+        lang,
+        ...(focus ? { focus: { name: focus.name, category: focus.category, manufacturer: focus.manufacturer || null, model: focus.model || null } } : {}),
+      }
+      const { data, error } = await supabase.functions.invoke('suggest-equipment', { body })
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+      setSugList(Array.isArray(data?.suggestions) ? data.suggestions : [])
+    } catch (err) {
+      console.error('suggest-equipment:', err)
+      setSugError(t('eq.sugError'))
+    } finally {
+      setSugLoading(false)
+    }
+  }
+
+  function sugKey(s) { return `${s.name}|${s.category}` }
+
+  async function acceptSuggestion(s) {
+    if (!sug?.boatId) return
+    const key = sugKey(s)
+    setSugAdding(prev => new Set(prev).add(key))
+    try {
+      const cycle = Number.isInteger(s.maintenance_cycle_years) ? s.maintenance_cycle_years : null
+      const today = new Date().toISOString().slice(0, 10)
+      let next = null
+      if (cycle) { const d = new Date(); d.setFullYear(d.getFullYear() + cycle); next = d.toISOString().slice(0, 10) }
+      const payload = {
+        boat_id: sug.boatId,
+        name: s.name,
+        category: categories.includes(s.category) ? s.category : 'other',
+        manufacturer: s.manufacturer_hint || null,
+        maintenance_cycle_years: cycle,
+        notes: s.why || null,
+        last_maintenance_date: cycle ? today : null,
+        next_maintenance_date: next,
+      }
+      const { error } = await supabase.from('equipment').insert(payload)
+      if (error) throw error
+      setSugAdded(prev => new Set(prev).add(key))
+      loadData()
+    } catch (err) {
+      console.error('accept suggestion:', err)
+      alert(t('eq.sugAddError') + (err.message || ''))
+    } finally {
+      setSugAdding(prev => { const n = new Set(prev); n.delete(key); return n })
+    }
+  }
+
+  function rejectSuggestion(s) {
+    const key = sugKey(s)
+    setSugList(prev => prev.filter(x => sugKey(x) !== key))
+  }
+
+  function closeSuggestions() {
+    setSug(null); setSugList([]); setSugError(null)
+  }
 
   async function loadData() {
     setLoading(true)
@@ -423,6 +534,10 @@ export default function Equipment() {
                         onClick={() => navigate(`/chat?question=${encodeURIComponent(buildAIQuestion(item, boatName(item.boat_id)))}`)}>
                         <Bot size={13} /> {t('eq.k25')}
                       </button>
+                      <button className="eq-action-btn eq-action-spare" title={t('eq.spareTitle')}
+                        onClick={() => openSpareParts(item)}>
+                        <Sparkles size={13} /> {t('eq.spareBtn')}
+                      </button>
                     </div>
                   </div>
                 )
@@ -430,6 +545,63 @@ export default function Equipment() {
             </div>
           )}
         </>
+      )}
+
+      {/* KI-Vorschläge: Ersatzteile (spare) oder Ausrüstungsliste (boat) */}
+      {sug && (
+        <div className="modal-overlay" onClick={closeSuggestions}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
+            <div className="modal-header">
+              <h2><Sparkles size={18} /> {sug.mode === 'spare' ? t('eq.spareTitle') : t('eq.sugBoatTitle')}</h2>
+              <button className="btn-icon" onClick={closeSuggestions}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: 13, color: '#64748b', marginTop: 0 }}>
+                {sug.mode === 'spare'
+                  ? `${t('eq.spareIntro')} „${sug.focusName || ''}“`
+                  : t('eq.sugBoatIntro')}
+              </p>
+              {sugLoading && <p style={{ color: '#64748b' }}>{t('eq.sugLoading')}</p>}
+              {sugError && <p style={{ color: '#dc2626' }}>{sugError}</p>}
+              {!sugLoading && !sugError && sugList.length === 0 && (
+                <p style={{ color: '#64748b' }}>{t('eq.sugEmpty')}</p>
+              )}
+              {sugList.map(s => {
+                const key = sugKey(s)
+                const adding = sugAdding.has(key)
+                const added = sugAdded.has(key)
+                const catLabel = categoryLabels[s.category] ? t(categoryLabels[s.category]) : s.category
+                return (
+                  <div key={key} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600 }}>{s.name}</div>
+                      <div style={{ fontSize: 12, color: '#64748b' }}>
+                        {catLabel}{s.maintenance_cycle_years ? ` · ${s.maintenance_cycle_years} ${t('eq.yearsShort')}` : ''}
+                      </div>
+                      {s.why && <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{s.why}</div>}
+                      {s.manufacturer_hint && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{s.manufacturer_hint}</div>}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      {!added && (
+                        <button className="btn-icon" onClick={() => rejectSuggestion(s)} disabled={adding}
+                          title={t('eq.sugReject')} style={{ color: '#94a3b8' }}>
+                          <X size={18} />
+                        </button>
+                      )}
+                      <button className="btn-icon" onClick={() => acceptSuggestion(s)} disabled={adding || added}
+                        title={t('eq.sugAccept')} style={{ color: added ? '#10b981' : '#ea580c' }}>
+                        {added ? <CheckCircle size={18} /> : adding ? '…' : <Plus size={18} />}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={closeSuggestions}>{t('eq.sugDone')}</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

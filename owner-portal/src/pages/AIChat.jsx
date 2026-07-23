@@ -1,13 +1,23 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Send, Wrench, Trash2, Anchor, Clock, Plus, X } from 'lucide-react'
-import { useSearchParams } from 'react-router-dom'
+import { Send, Wrench, Trash2, Anchor, Clock, Plus, X, ImagePlus, Camera, Search, ClipboardList } from 'lucide-react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useT } from '../i18n'
+import { parseChatActions } from '../lib/chatActions'
+
+// Tippbarer Aktions-Chip unter KI-Antworten (Shop-Suche / Ausrüstungsliste).
+const chipStyle = {
+  display: 'inline-flex', alignItems: 'center', gap: 5,
+  padding: '6px 12px', borderRadius: 999,
+  background: '#fff7ed', color: '#c2410c',
+  border: '1px solid #fdba74', fontSize: 13, cursor: 'pointer',
+}
 
 export default function AIChat() {
   const { t } = useT()
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState(searchParams.get('question') || '')
@@ -21,7 +31,13 @@ export default function AIChat() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
 
+  // Foto-Anhänge für die nächste Nachricht ({ file, preview }-Objekte)
+  const [attachedImages, setAttachedImages] = useState([])
+  const [uploadingImages, setUploadingImages] = useState(false)
+
   const messagesEndRef = useRef(null)
+  const cameraInputRef = useRef(null)
+  const libraryInputRef = useRef(null)
 
   useEffect(() => {
     if (user) {
@@ -63,17 +79,20 @@ export default function AIChat() {
         length: b.length_meters,
         engine: b.engine,
         homePort: b.home_port,
+        // Schlüssel snake_case — genau so liest sie die ai-chat Edge Function aus
+        // (eq.last_maintenance_date, eq.location …). Vorher camelCase + falsche
+        // Spaltennamen → die KI bekam Wartungsdaten/Ort nie mit.
         equipment: (equipment || []).filter(e => e.boat_id === b.id).map(e => ({
           name: e.name,
           category: e.category,
           manufacturer: e.manufacturer,
           model: e.model,
-          installationDate: e.installation_date,
-          lastMaintenanceDate: e.last_maintenance,
-          nextMaintenanceDate: e.next_maintenance,
-          maintenanceCycleYears: e.maintenance_cycle_years,
-          serialNumber: e.serial_number,
-          location: e.location,
+          installation_date: e.installation_date,
+          last_maintenance_date: e.last_maintenance_date,
+          next_maintenance_date: e.next_maintenance_date,
+          maintenance_cycle_years: e.maintenance_cycle_years,
+          serial_number: e.serial_number,
+          location: e.location_on_boat,
         }))
       }))
 
@@ -120,7 +139,7 @@ export default function AIChat() {
     }
   }
 
-  async function saveMessageRow(sid, role, content) {
+  async function saveMessageRow(sid, role, content, attachmentUrls) {
     if (!sid) return
     try {
       await supabase.from('ai_chat_messages').insert({
@@ -128,6 +147,7 @@ export default function AIChat() {
         user_id: user.id,
         role,
         content,
+        attachment_urls: attachmentUrls?.length ? attachmentUrls : null,
       })
     } catch (err) {
       console.error('Message speichern fehlgeschlagen:', err)
@@ -140,12 +160,24 @@ export default function AIChat() {
     try {
       const { data, error } = await supabase
         .from('ai_chat_messages')
-        .select('id, role, content, created_at')
+        .select('id, role, content, attachment_urls, created_at')
         .eq('session_id', sid)
         .order('created_at', { ascending: true })
       if (error) throw error
       setSessionId(sid)
-      setMessages((data || []).map(m => ({ role: m.role, content: m.content })))
+      setMessages((data || []).map(m => {
+        if (m.role === 'assistant') {
+          const parsed = parseChatActions(m.content)
+          return {
+            role: 'assistant',
+            content: parsed.text,
+            shopSearchTerms: parsed.shopSearchTerms,
+            equipmentChecklist: parsed.equipmentChecklist,
+            attachment_urls: m.attachment_urls || undefined,
+          }
+        }
+        return { role: m.role, content: m.content, attachment_urls: m.attachment_urls || undefined }
+      }))
     } catch (err) {
       console.error('Session laden fehlgeschlagen:', err)
     } finally {
@@ -171,6 +203,56 @@ export default function AIChat() {
     setInput('')
   }
 
+  // ------- Foto-Anhänge -------
+
+  function onPickImages(e) {
+    const files = Array.from(e.target.files || [])
+    e.target.value = '' // erlaubt erneutes Wählen derselben Datei
+    if (!files.length) return
+    setAttachedImages(prev => {
+      const room = Math.max(0, 5 - prev.length)
+      const next = files.slice(0, room).map(file => ({ file, preview: URL.createObjectURL(file) }))
+      return [...prev, ...next]
+    })
+  }
+
+  function removeAttached(idx) {
+    setAttachedImages(prev => {
+      const copy = [...prev]
+      const [gone] = copy.splice(idx, 1)
+      if (gone) URL.revokeObjectURL(gone.preview)
+      return copy
+    })
+  }
+
+  // Lädt die angehängten Bilder in den Bucket ai-chat-photos und liefert public URLs.
+  async function uploadAttachedImages() {
+    if (!attachedImages.length) return []
+    setUploadingImages(true)
+    const urls = []
+    const stamp = Date.now()
+    try {
+      for (let i = 0; i < attachedImages.length; i++) {
+        try {
+          const file = attachedImages[i].file
+          const ext = (file.name?.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
+          const path = `${user.id}/${stamp}_${i}.${ext}`
+          const { error } = await supabase.storage.from('ai-chat-photos')
+            .upload(path, file, { contentType: file.type || 'image/jpeg', upsert: true })
+          if (error) { console.error('AI-Foto-Upload:', error); continue }
+          const { data } = supabase.storage.from('ai-chat-photos').getPublicUrl(path)
+          if (data?.publicUrl) urls.push(data.publicUrl)
+        } catch (err) {
+          // Ein fehlgeschlagener Foto-Upload darf das Senden NIE stumm abbrechen.
+          console.error('AI-Foto-Upload (Ausnahme):', err)
+        }
+      }
+    } finally {
+      setUploadingImages(false)
+    }
+    return urls
+  }
+
   // ------- Senden -------
 
   async function sendWithMessages(msgs, opts = {}) {
@@ -186,20 +268,34 @@ export default function AIChat() {
       const sid = await ensureSession(firstUserText)
       const lastUser = msgs[msgs.length - 1]
       if (sid && lastUser?.role === 'user') {
-        await saveMessageRow(sid, 'user', lastUser.content)
+        await saveMessageRow(sid, 'user', lastUser.content, lastUser.attachment_urls)
       }
 
-      const apiMessages = msgs.slice(-20).map(m => ({ role: m.role, content: m.content }))
+      const apiMessages = msgs.slice(-20).map(m => ({
+        role: m.role,
+        content: m.content,
+        ...(m.attachment_urls?.length ? { attachment_urls: m.attachment_urls } : {}),
+      }))
 
-      const response = await fetch(`https://vcjwlyqkfkszumdrfvtm.supabase.co/functions/v1/ai-chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjandseXFrZmtzenVtZHJmdnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMDQ4NTksImV4cCI6MjA4NDY4MDg1OX0.VOlhRdvShU325xG18SSSTWdFfGEdyeX-7CAovE2vesQ',
-        },
-        body: JSON.stringify({ messages: apiMessages, boatContext }),
-      })
+      // Claude braucht mit Kontext/Vision teils >30s — großzügiges Timeout,
+      // damit der Browser den Request nicht vorzeitig abbricht.
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 120000)
+      let response
+      try {
+        response = await fetch(`https://vcjwlyqkfkszumdrfvtm.supabase.co/functions/v1/ai-chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjandseXFrZmtzenVtZHJmdnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMDQ4NTksImV4cCI6MjA4NDY4MDg1OX0.VOlhRdvShU325xG18SSSTWdFfGEdyeX-7CAovE2vesQ',
+          },
+          body: JSON.stringify({ messages: apiMessages, boatContext }),
+          signal: controller.signal,
+        })
+      } finally {
+        clearTimeout(timeout)
+      }
 
       if (!response.ok) {
         const errText = await response.text()
@@ -210,23 +306,44 @@ export default function AIChat() {
       if (data.error) throw new Error(data.error)
 
       const reply = data.reply
-      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
+      // Aktions-Block vom sichtbaren Text trennen (Shop-Chips + Checkliste).
+      const parsed = parseChatActions(reply)
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: parsed.text,
+        shopSearchTerms: parsed.shopSearchTerms,
+        equipmentChecklist: parsed.equipmentChecklist,
+      }])
+      // ROH-Text (inkl. Block) persistieren → beim Laden erneut parsen.
       if (sid) await saveMessageRow(sid, 'assistant', reply)
       // Update Sessions-Liste (für updated_at)
       loadSessions()
     } catch (err) {
       console.error('AI Chat error:', err)
-      setMessages(prev => [...prev, { role: 'assistant', content: `Fehler: ${err.message}. Bitte versuchen Sie es erneut.` }])
+      const msg = err.name === 'AbortError'
+        ? t('chat.errTimeout')
+        : `${t('chat.errPrefix')}${err.message}`
+      setMessages(prev => [...prev, { role: 'assistant', content: msg }])
     }
     setLoading(false)
   }
 
   async function sendMessage() {
     const text = input.trim()
-    if (!text || loading) return
+    if ((!text && attachedImages.length === 0) || loading || uploadingImages) return
+
+    // Bilder zuerst hochladen (public URLs), dann als attachment_urls anhängen.
+    const urls = await uploadAttachedImages()
+    // Preview-Objekte freigeben + Anhang-Leiste leeren
+    attachedImages.forEach(a => URL.revokeObjectURL(a.preview))
+    setAttachedImages([])
 
     setInput('')
-    const userMessage = { role: 'user', content: text }
+    const userMessage = {
+      role: 'user',
+      content: text || (urls.length ? '📷' : ''),
+      ...(urls.length ? { attachment_urls: urls } : {}),
+    }
     const newMessages = [...messages, userMessage]
     setMessages(newMessages)
     await sendWithMessages(newMessages)
@@ -294,9 +411,40 @@ export default function AIChat() {
                 <div className="chat-avatar"><Wrench size={16} /></div>
               )}
               <div className="chat-bubble">
+                {Array.isArray(msg.attachment_urls) && msg.attachment_urls.length > 0 && (
+                  <div className="chat-bubble-images">
+                    {msg.attachment_urls.map((url, k) => (
+                      <a key={k} href={url} target="_blank" rel="noopener noreferrer">
+                        <img src={url} alt="" />
+                      </a>
+                    ))}
+                  </div>
+                )}
                 {msg.content.split('\n').map((line, j) => (
                   <p key={j}>{line || '\u00A0'}</p>
                 ))}
+
+                {/* Aktionen aus dem KI-Aktionsblock */}
+                {msg.role === 'assistant' && Array.isArray(msg.shopSearchTerms) && msg.shopSearchTerms.length > 0 && (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>{t('chat.shopHeader')}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {msg.shopSearchTerms.map((term, k) => (
+                        <button key={k} onClick={() => navigate(`/shop?q=${encodeURIComponent(term)}`)}
+                          style={chipStyle}>
+                          <Search size={13} /> {term}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {msg.role === 'assistant' && msg.equipmentChecklist && (
+                  <div style={{ marginTop: 10 }}>
+                    <button onClick={() => navigate('/equipment?suggest=1')} style={{ ...chipStyle, fontWeight: 600 }}>
+                      <ClipboardList size={14} /> {t('chat.checklistBtn')}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -316,8 +464,39 @@ export default function AIChat() {
         </div>
       </div>
 
+      {/* Anhang-Vorschau */}
+      {attachedImages.length > 0 && (
+        <div className="chat-attach-strip">
+          {attachedImages.map((a, i) => (
+            <div key={i} className="chat-attach-thumb">
+              <img src={a.preview} alt="" />
+              <button onClick={() => removeAttached(i)} aria-label={t('inq.remove')}><X size={12} /></button>
+            </div>
+          ))}
+          {uploadingImages && <span className="chat-attach-hint">⏳</span>}
+        </div>
+      )}
+
       {/* Input */}
       <div className="chat-input-bar">
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onPickImages} />
+        <input ref={libraryInputRef} type="file" accept="image/*" multiple hidden onChange={onPickImages} />
+        <button
+          className="chat-attach-btn"
+          title="Kamera"
+          onClick={() => cameraInputRef.current?.click()}
+          disabled={loading || uploadingImages || attachedImages.length >= 5}
+        >
+          <Camera size={20} />
+        </button>
+        <button
+          className="chat-attach-btn"
+          title="Aus Mediathek"
+          onClick={() => libraryInputRef.current?.click()}
+          disabled={loading || uploadingImages || attachedImages.length >= 5}
+        >
+          <ImagePlus size={20} />
+        </button>
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -325,7 +504,11 @@ export default function AIChat() {
           placeholder={t('chat.k8')}
           disabled={loading}
         />
-        <button className="chat-send-btn" onClick={sendMessage} disabled={!input.trim() || loading}>
+        <button
+          className="chat-send-btn"
+          onClick={sendMessage}
+          disabled={(!input.trim() && attachedImages.length === 0) || loading || uploadingImages}
+        >
           <Send size={20} />
         </button>
       </div>
