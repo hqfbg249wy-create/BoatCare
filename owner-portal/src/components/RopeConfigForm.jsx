@@ -106,6 +106,12 @@ export default function RopeConfigForm({ open, equipmentId, boatName, onClose })
         : supabase.from('rope_configurations').insert(payload)
       const { error } = await q
       if (error) throw error
+
+      // Tauwerk-Art als feste Kategorie am Equipment verankern.
+      if (form.material) {
+        await supabase.from('equipment').update({ rope_type: form.material }).eq('id', equipmentId)
+      }
+
       setStatus(matchedId ? t('rope.savedMatched') : t('rope.savedOffer'))
       setTimeout(onClose, 1400)
     } catch (err) {

@@ -290,6 +290,16 @@ struct RopeConfigFormView: View {
                     .from("rope_configurations")
                     .insert(payload).execute()
             }
+
+            // Tauwerk-Art als feste Kategorie am Equipment verankern.
+            if !material.isEmpty {
+                try? await SupabaseManager.shared.client
+                    .from("equipment")
+                    .update(["rope_type": material])
+                    .eq("id", value: equipmentId.uuidString)
+                    .execute()
+            }
+
             statusMessage = matchedId != nil ? "rope.saved_matched".loc : "rope.saved_offer".loc
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { dismiss() }
         } catch {

@@ -689,7 +689,7 @@ Ausrüstung unter Boote ergänzen.";
 "equipment.suggestions_title" = "Vorschläge";
 "equipment.suggestions_intro" = "Diese Ausrüstung haben Boote wie deins typischerweise zur Wartung. Tippe + um sie anzulegen.";
 "equipment.spare_parts_ai" = "Typische Ersatzteile (KI)";
-"rope.title" = "Tauwerk konfigurieren";
+"rope.title" = "Tauwerk-Konfiguration";
 "rope.form_title" = "Tauwerk-Konfiguration";
 "rope.intro" = "Deine Angaben ergeben ein Angebot über den Shop.";
 "rope.submit" = "Speichern";
