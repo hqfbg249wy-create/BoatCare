@@ -770,6 +770,7 @@ struct EquipmentDetailView: View {
     @State private var showingDeleteConfirm = false
     @State private var showingBriefing = false
     @State private var showingSpareParts = false
+    @State private var showingRopeConfig = false
     @State private var selectedPhotoIndex = 0
 
     private var photoURLs: [URL] {
@@ -914,6 +915,12 @@ struct EquipmentDetailView: View {
                         .foregroundStyle(.orange)
                 }
                 Button {
+                    showingRopeConfig = true
+                } label: {
+                    Label("rope.title".loc, systemImage: "link")
+                        .foregroundStyle(.teal)
+                }
+                Button {
                     showingBriefing = true
                 } label: {
                     Label("Service-Anfrage senden", systemImage: "paperplane.fill")
@@ -958,6 +965,9 @@ struct EquipmentDetailView: View {
                 focusItem: item,
                 onAdded: {}
             )
+        }
+        .sheet(isPresented: $showingRopeConfig) {
+            RopeConfigFormView(equipmentId: item.id, boatName: boatName)
         }
         .confirmationDialog("equipment.delete_confirm".loc, isPresented: $showingDeleteConfirm, titleVisibility: .visible) {
             Button("general.delete".loc, role: .destructive) { onDelete(); dismiss() }

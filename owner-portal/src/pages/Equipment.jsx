@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Filter, ShoppingCart, MapPin, Bot, Mail, Sparkles } from 'lucide-react'
+import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Filter, ShoppingCart, MapPin, Bot, Mail, Sparkles, Link2 } from 'lucide-react'
+import RopeConfigForm from '../components/RopeConfigForm'
 import { useT } from '../i18n'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { buildShopQuery, buildServiceQuery, buildAIQuestion, buildInquirySubject, buildInquiryMessage } from '../lib/equipmentSearch'
@@ -33,6 +34,9 @@ export default function Equipment() {
   const [sugError, setSugError] = useState(null)
   const [sugAdding, setSugAdding] = useState(() => new Set())
   const [sugAdded, setSugAdded] = useState(() => new Set())
+
+  // Tauwerk-Konfigurator
+  const [ropeFor, setRopeFor] = useState(null)
   // Vorselektion via URL: /equipment?boat=<uuid>
   const [selectedBoat, setSelectedBoat] = useState(searchParams.get('boat') || '')
   const [filterCat, setFilterCat] = useState('')
@@ -538,6 +542,10 @@ export default function Equipment() {
                         onClick={() => openSpareParts(item)}>
                         <Sparkles size={13} /> {t('eq.spareBtn')}
                       </button>
+                      <button className="eq-action-btn eq-action-rope" title={t('rope.title')}
+                        onClick={() => setRopeFor(item)}>
+                        <Link2 size={13} /> {t('rope.btn')}
+                      </button>
                     </div>
                   </div>
                 )
@@ -546,6 +554,14 @@ export default function Equipment() {
           )}
         </>
       )}
+
+      {/* Tauwerk-Konfigurator */}
+      <RopeConfigForm
+        open={!!ropeFor}
+        equipmentId={ropeFor?.id}
+        boatName={ropeFor ? boatName(ropeFor.boat_id) : ''}
+        onClose={() => setRopeFor(null)}
+      />
 
       {/* KI-Vorschläge: Ersatzteile (spare) oder Ausrüstungsliste (boat) */}
       {sug && (
