@@ -736,7 +736,9 @@ export default {
     "rope.end.augspleiss_kausch_edelstahl": "Eye splice with thimble (stainless steel)",
     "rope.end.augspleiss_kausch_verzinkt": "Eye splice with thimble (galvanised)",
     "rope.end.augspleiss_zubehoer": "Eye splice with accessory",
-    "eqcat.rope": "Rope"
+    "eqcat.rope": "Rope",
+    "eq.sailForm": "Open sail measurement sheet",
+    "eq.sailFormBtn": "Measurement sheet"
   },
   "fr": {
     "msg.deleteConv": "Supprimer la conversation",
@@ -1472,7 +1474,9 @@ export default {
     "rope.end.augspleiss_kausch_edelstahl": "Épissure à œil avec cosse (inox)",
     "rope.end.augspleiss_kausch_verzinkt": "Épissure à œil avec cosse (galvanisé)",
     "rope.end.augspleiss_zubehoer": "Épissure à œil avec accessoire",
-    "eqcat.rope": "Cordage"
+    "eqcat.rope": "Cordage",
+    "eq.sailForm": "Ouvrir la fiche de mesures de voile",
+    "eq.sailFormBtn": "Fiche de mesures"
   },
   "it": {
     "msg.deleteConv": "Elimina conversazione",
@@ -2208,7 +2212,9 @@ export default {
     "rope.end.augspleiss_kausch_edelstahl": "Gassa con redancia (acciaio inox)",
     "rope.end.augspleiss_kausch_verzinkt": "Gassa con redancia (zincata)",
     "rope.end.augspleiss_zubehoer": "Gassa con accessorio",
-    "eqcat.rope": "Cordame"
+    "eqcat.rope": "Cordame",
+    "eq.sailForm": "Apri la scheda misure della vela",
+    "eq.sailFormBtn": "Scheda misure"
   },
   "es": {
     "msg.deleteConv": "Eliminar conversación",
@@ -2944,7 +2950,9 @@ export default {
     "rope.end.augspleiss_kausch_edelstahl": "Gaza con guardacabo (acero inoxidable)",
     "rope.end.augspleiss_kausch_verzinkt": "Gaza con guardacabo (galvanizado)",
     "rope.end.augspleiss_zubehoer": "Gaza con accesorio",
-    "eqcat.rope": "Aparejo de cuerdas"
+    "eqcat.rope": "Aparejo de cuerdas",
+    "eq.sailForm": "Abrir hoja de medidas de vela",
+    "eq.sailFormBtn": "Hoja de medidas"
   },
   "nl": {
     "msg.deleteConv": "Gesprek verwijderen",
@@ -3680,6 +3688,8 @@ export default {
     "rope.end.augspleiss_kausch_edelstahl": "Oogsplits met kous (roestvrij staal)",
     "rope.end.augspleiss_kausch_verzinkt": "Oogsplits met kous (verzinkt)",
     "rope.end.augspleiss_zubehoer": "Oogsplits met accessoire",
-    "eqcat.rope": "Tauwerk"
+    "eqcat.rope": "Tauwerk",
+    "eq.sailForm": "Zeilmeetblad openen",
+    "eq.sailFormBtn": "Meetblad"
   }
 }

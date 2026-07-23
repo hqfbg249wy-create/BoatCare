@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Filter, ShoppingCart, MapPin, Bot, Mail, Sparkles, Link2 } from 'lucide-react'
+import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Filter, ShoppingCart, MapPin, Bot, Mail, Sparkles, Link2, FileText } from 'lucide-react'
 import RopeConfigForm from '../components/RopeConfigForm'
 import { useT } from '../i18n'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -542,10 +542,18 @@ export default function Equipment() {
                         onClick={() => openSpareParts(item)}>
                         <Sparkles size={13} /> {t('eq.spareBtn')}
                       </button>
-                      <button className="eq-action-btn eq-action-rope" title={t('rope.title')}
-                        onClick={() => setRopeFor(item)}>
-                        <Link2 size={13} /> {t('rope.btn')}
-                      </button>
+                      {item.category === 'sails' && (
+                        <button className="eq-action-btn eq-action-sail" title={t('eq.sailForm')}
+                          onClick={() => startEdit(item)}>
+                          <FileText size={13} /> {t('eq.sailFormBtn')}
+                        </button>
+                      )}
+                      {item.category === 'rope' && (
+                        <button className="eq-action-btn eq-action-rope" title={t('rope.title')}
+                          onClick={() => setRopeFor(item)}>
+                          <Link2 size={13} /> {t('rope.btn')}
+                        </button>
+                      )}
                     </div>
                   </div>
                 )

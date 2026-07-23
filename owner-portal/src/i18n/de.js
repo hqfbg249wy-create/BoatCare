@@ -182,6 +182,8 @@ export default {
   'eq.k29': "Anfrage an Service-Partner senden",
   'eq.k30': "KI zu diesem Gerät fragen",
   'eq.spareBtn': "Ersatzteile",
+  'eq.sailForm': "Segel-Maßblatt öffnen",
+  'eq.sailFormBtn': "Maßblatt",
   'rope.title': "Tauwerk-Konfiguration",
   'rope.btn': "Tauwerk-Konfiguration",
   'rope.intro': "Deine Angaben ergeben ein Angebot über den Shop.",

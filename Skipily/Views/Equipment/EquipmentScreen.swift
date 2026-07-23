@@ -575,6 +575,7 @@ struct EquipmentExpandableRow: View {
     @State private var showActions = false
     @State private var showingEdit = false
     @State private var showingSailForm = false
+    @State private var showingRopeConfig = false
     @State private var rowNavigation: EquipmentRowNav?
 
     var body: some View {
@@ -661,10 +662,18 @@ struct EquipmentExpandableRow: View {
                     }
                     .buttonStyle(.borderless)
 
-                    // Maßblatt (nur für Segel-Kategorie)
-                    if isSailCategory {
+                    // Maßblatt (nur für Segel-Kategorie, nicht für Tauwerk)
+                    if isSailCategory && !isRopeCategory {
                         Button { showingSailForm = true } label: {
                             EquipmentActionButton(title: "equipment.action_sail_form".loc, icon: "doc.text.fill", color: .teal)
+                        }
+                        .buttonStyle(.borderless)
+                    }
+
+                    // Tauwerk-Konfiguration (nur für Tauwerk-Kategorie)
+                    if isRopeCategory {
+                        Button { showingRopeConfig = true } label: {
+                            EquipmentActionButton(title: "rope.title".loc, icon: "link", color: .mint)
                         }
                         .buttonStyle(.borderless)
                     }
@@ -709,6 +718,14 @@ struct EquipmentExpandableRow: View {
         .sheet(isPresented: $showingSailForm) {
             SailMeasurementGateway(equipmentId: item.id, boatName: boatName)
         }
+        .sheet(isPresented: $showingRopeConfig) {
+            RopeConfigFormView(equipmentId: item.id, boatName: boatName)
+        }
+    }
+
+    private var isRopeCategory: Bool {
+        let cat = item.category.lowercased()
+        return cat.contains("rope") || cat.contains("tauwerk")
     }
 
     private var isSailCategory: Bool {
@@ -914,11 +931,13 @@ struct EquipmentDetailView: View {
                     Label("equipment.spare_parts_ai".loc, systemImage: "sparkles")
                         .foregroundStyle(.orange)
                 }
-                Button {
-                    showingRopeConfig = true
-                } label: {
-                    Label("rope.title".loc, systemImage: "link")
-                        .foregroundStyle(.teal)
+                if item.category.lowercased().contains("rope") || item.category.lowercased().contains("tauwerk") {
+                    Button {
+                        showingRopeConfig = true
+                    } label: {
+                        Label("rope.title".loc, systemImage: "link")
+                            .foregroundStyle(.teal)
+                    }
                 }
                 Button {
                     showingBriefing = true
