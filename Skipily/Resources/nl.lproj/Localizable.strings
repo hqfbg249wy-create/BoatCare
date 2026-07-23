@@ -35,6 +35,13 @@
 "map.call" = "Bellen";
 "map.open_in_maps" = "Openen in Kaarten";
 "map.add_business" = "Bedrijf toevoegen";
+"map.photo_section" = "Bedrijf vastleggen via foto";
+"map.photo_hint" = "Fotografeer een bord, gevel of visitekaartje – de AI vult het formulier in. Controleer daarna en verstuur.";
+"map.photo_take" = "Foto maken";
+"map.photo_gallery" = "Kies uit galerij";
+"map.photo_analyzing" = "AI analyseert de foto …";
+"map.photo_done" = "Foto geanalyseerd – controleer de gegevens.";
+"map.photo_failed" = "Kan de foto niet analyseren. Voer de gegevens handmatig in.";
 "map.submitted" = "Ingediend!";
 "map.submitted_hint" = "Je bedrijf is ingediend ter beoordeling en verschijnt op de kaart na goedkeuring.";
 "map.section_basic" = "Basisgegevens";
@@ -569,7 +576,11 @@
 "equipment.article_no" = "Art.nr.:";
 "shop.title" = "Winkel";
 "shop.details" = "Details bekijken";
-"data_quality.hint" = "Hoe nauwkeuriger je invoer, hoe gemakkelijker de AI je kan helpen en de winkel het juiste onderdeel kan vinden.";
+"data_quality.hint" = "Hoe nauwkeuriger je invoer, hoe gemakkelijker de AI je kan helpen en de winkel het juiste onderdeel kan vinden. Voer je uitrusting idealiter tot in detail in – zoals oliefilter, waterpomp of impeller.";
+"chat.shop_search_header" = "Vind passende onderdelen in de shop:";
+"chat.shop_search_title" = "Zoeken in de shop";
+"chat.shop_search_empty" = "Geen passende producten gevonden. Probeer een andere term of vraag een servicebedrijf.";
+"chat.equipment_checklist_button" = "Toon aanbevolen uitrustingslijst";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";
 "product.stock_remaining" = "Nog %d stuks";
@@ -674,6 +685,11 @@
 // Equipment suggestions
 "equipment.suggestions_title" = "Suggesties";
 "equipment.suggestions_intro" = "Boten zoals de jouwe onderhouden meestal deze items. Tik + om ze toe te voegen.";
+"equipment.spare_parts_ai" = "Typische reserveonderdelen (AI)";
+"equipment.spare_parts_title" = "Onderdeel-suggesties";
+"equipment.spare_parts_intro" = "Typische slijtage- en reserveonderdelen voor ‘%@’. Tik ➕ om toe te voegen of ✕ om af te wijzen.";
+"equipment.suggestion_accept" = "Toevoegen";
+"equipment.suggestion_reject" = "Afwijzen";
 "equipment.suggestions_loading" = "AI analyseert je boot…";
 "equipment.suggestions_no_boat" = "Boot niet gevonden.";
 "equipment.years_short" = "j";
@@ -807,6 +823,7 @@
 "inquiry.loading_equipment" = "Boten & uitrusting laden…";
 "inquiry.boat_and_equipment" = "Boot & uitrusting";
 "inquiry.category" = "Categorie";
+"inquiry.category_none" = "Zonder categorie";
 "inquiry.selected_count" = "%d geselecteerd";
 "inquiry.no_equipment" = "Geen uitrusting geregistreerd. Bootgegevens worden bijgevoegd als een boot is geselecteerd.";
 "inquiry.attach_measurement" = "Zeilmaatblad bijvoegen (PDF)";
@@ -815,6 +832,14 @@
 "inquiry.camera" = "Camera";
 "inquiry.photos_label" = "Foto's van het probleem";
 "inquiry.photos_hint" = "Optioneel. Maximaal 5 foto's. Worden meegestuurd als bijlage.";
+"inquiry.video_label" = "Video van het probleem";
+"inquiry.video_hint" = "Optioneel – een korte video (max. 1 min) helpt de aanbieder het probleem in te schatten. Wordt als link in de aanvraag meegestuurd.";
+"inquiry.video_library" = "Uit bibliotheek";
+"inquiry.video_record" = "Video opnemen";
+"inquiry.video_attached" = "Video toegevoegd";
+"inquiry.video_uploading" = "Video wordt geüpload…";
+"inquiry.video_error" = "Video kon niet worden verwerkt.";
+"inquiry.video_too_large" = "Video is te groot (max. 60 MB).";
 "inquiry.notes_label" = "Privé-notities";
 "inquiry.notes_hint" = "Alleen voor jou zichtbaar – niet naar de provider gestuurd.";
 "inquiry.notes_placeholder" = "Eigen gedachten, budget, planning…";

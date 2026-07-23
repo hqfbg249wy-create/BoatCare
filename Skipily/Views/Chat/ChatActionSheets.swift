@@ -346,3 +346,300 @@ struct PhotoBundle: Identifiable {
     let id = UUID()
     let urls: [String]
 }
+
+/// Identifiable-Wrapper für sheet(item:) mit einem Shop-Suchbegriff.
+struct ShopQuery: Identifiable {
+    let id = UUID()
+    let query: String
+}
+
+// MARK: - Aktions-Block aus KI-Antworten
+
+/// Maschinenlesbare Aktionen, die Claude am Ende einer Antwort in einem
+/// `[[skipily-actions]]{…}[[/skipily-actions]]`-Block liefert.
+struct ChatActions: Equatable {
+    var shopSearchTerms: [String] = []
+    var showsEquipmentChecklist: Bool = false
+}
+
+enum ChatActionParser {
+    private static let openMarker = "[[skipily-actions]]"
+    private static let closeMarker = "[[/skipily-actions]]"
+
+    /// Trennt den sichtbaren Antworttext vom Aktions-Block. Der Block wird immer
+    /// entfernt — auch bei kaputtem JSON —, damit der Nutzer nie Rohmarker sieht.
+    static func parse(_ raw: String) -> (text: String, actions: ChatActions) {
+        guard let open = raw.range(of: openMarker) else {
+            return (raw, ChatActions())
+        }
+
+        let visible = String(raw[..<open.lowerBound])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // JSON zwischen den Markern (schließender Marker optional).
+        let afterOpen = raw[open.upperBound...]
+        let jsonSlice: Substring = afterOpen.range(of: closeMarker)
+            .map { afterOpen[..<$0.lowerBound] } ?? afterOpen
+        let jsonString = jsonSlice.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var actions = ChatActions()
+        if let data = jsonString.data(using: .utf8),
+           let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
+            if let shop = obj["shop"] as? [Any] {
+                var seen = Set<String>()
+                for case let s as String in shop {
+                    let term = s.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard term.count >= 2, term.count <= 40 else { continue }
+                    if seen.insert(term.lowercased()).inserted {
+                        actions.shopSearchTerms.append(term)
+                    }
+                    if actions.shopSearchTerms.count >= 5 { break }
+                }
+            }
+            if let flag = obj["equipment_checklist"] as? Bool {
+                actions.showsEquipmentChecklist = flag
+            }
+        }
+
+        return (visible, actions)
+    }
+}
+
+// MARK: - Aktions-Leiste unter einer Assistant-Antwort
+
+/// Rendert die aus dem Aktions-Block abgeleiteten Schaltflächen: tippbare
+/// Shop-Such-Chips und/oder den Button für die Ausrüstungsliste.
+struct ChatMessageActions: View {
+    let message: LocalChatMessage
+    let onShopSearch: (String) -> Void
+    let onEquipmentChecklist: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if !message.shopSearchTerms.isEmpty {
+                Text("chat.shop_search_header".loc)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(message.shopSearchTerms, id: \.self) { term in
+                            Button {
+                                onShopSearch(term)
+                            } label: {
+                                Label(term, systemImage: "magnifyingglass")
+                                    .font(.caption.weight(.medium))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .background(AppColors.primary.opacity(0.12))
+                                    .foregroundStyle(AppColors.primary)
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 1)
+                }
+            }
+
+            if message.showsEquipmentChecklist {
+                Button {
+                    onEquipmentChecklist()
+                } label: {
+                    Label("chat.equipment_checklist_button".loc, systemImage: "checklist")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 9)
+                        .background(AppColors.primary.opacity(0.12))
+                        .foregroundStyle(AppColors.primary)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - 3) Shop-Suche zu einem empfohlenen Teil
+
+/// Selbst-enthaltenes Suchergebnis-Sheet: sucht mit dem von der KI
+/// vorgeschlagenen Begriff im Shop und zeigt passende Produkte. Der Nutzer
+/// bleibt im Chat-Kontext (kein Tab-Wechsel).
+struct ChatShopSearchSheet: View {
+    let query: String
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var products: [Product] = []
+    @State private var isLoading = true
+    @State private var selectedProduct: Product?
+
+    private let columns = [GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 12)]
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if isLoading {
+                    ProgressView("general.loading".loc)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if products.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.largeTitle)
+                            .foregroundStyle(.secondary)
+                        Text("chat.shop_search_empty".loc)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 12) {
+                            ForEach(products) { product in
+                                VStack(spacing: 8) {
+                                    ProductCardView(product: product)
+                                    // Expliziter Details-Button (navigiert auch
+                                    // auf iPad zuverlässig, anders als Tile-Tap).
+                                    Button {
+                                        selectedProduct = product
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "info.circle.fill")
+                                            Text("shop.details".loc)
+                                        }
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .background(AppColors.primary)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                        .padding()
+                    }
+                }
+            }
+            .navigationTitle(query)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("general.done".loc) { dismiss() }
+                }
+            }
+            .navigationDestination(item: $selectedProduct) { product in
+                ProductDetailView(product: product)
+            }
+            .task { await search() }
+        }
+    }
+
+    private func search() async {
+        isLoading = true
+        defer { isLoading = false }
+        products = (try? await ProductService.shared.searchProductsBroad(query: query)) ?? []
+    }
+}
+
+// MARK: - 4) Bootspezifische Ausrüstungsliste zum Übernehmen
+
+/// Löst das Boot des Nutzers auf (bei mehreren: Picker) und zeigt dann die
+/// bestehende `EquipmentSuggestionsSheet` mit den auf das Boot zugeschnittenen
+/// Ausrüstungs-Vorschlägen, die einzeln übernommen werden können.
+struct ChatEquipmentChecklistSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authService: AuthService
+
+    @State private var boats: [BoatLite] = []
+    @State private var selected: BoatLite?
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+
+    struct BoatLite: Identifiable, Codable, Hashable {
+        let id: UUID
+        let name: String?
+    }
+
+    var body: some View {
+        Group {
+            if let boat = selected {
+                // EquipmentSuggestionsSheet bringt eigenen NavigationStack +
+                // Dismiss mit — dismiss schließt dann dieses Sheet.
+                EquipmentSuggestionsSheet(
+                    boatId: boat.id,
+                    boatName: boat.name ?? "boats.boat".loc,
+                    onAdded: {}
+                )
+            } else {
+                NavigationStack {
+                    Group {
+                        if isLoading {
+                            ProgressView("general.loading".loc)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else if let err = errorMessage {
+                            Text(err).foregroundStyle(.red).padding()
+                        } else {
+                            boatPicker
+                        }
+                    }
+                    .navigationTitle("chat.equipment_checklist_button".loc)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("general.cancel".loc) { dismiss() }
+                        }
+                    }
+                }
+            }
+        }
+        .task { await loadBoats() }
+    }
+
+    private var boatPicker: some View {
+        List {
+            Section(header: Text("chat.equipment_pick_boat".loc)) {
+                if boats.isEmpty {
+                    Text("provider.briefing_empty".loc).foregroundStyle(.secondary)
+                }
+                ForEach(boats) { boat in
+                    Button {
+                        selected = boat
+                    } label: {
+                        HStack {
+                            Image(systemName: "sailboat.fill").foregroundStyle(.blue)
+                            Text(boat.name ?? "boats.boat".loc)
+                            Spacer()
+                            Image(systemName: "chevron.right").foregroundStyle(.tertiary).font(.caption)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func loadBoats() async {
+        guard selected == nil, boats.isEmpty else { return }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            guard let userId = authService.currentUser?.id else { return }
+            let loaded: [BoatLite] = try await authService.supabase
+                .from("boats")
+                .select("id, name")
+                .eq("owner_id", value: userId.uuidString)
+                .order("length_meters", ascending: false)
+                .execute().value
+            boats = loaded
+            // Nur ein Boot? Direkt auswählen. Sonst das größte als Default oben.
+            if loaded.count == 1 {
+                selected = loaded[0]
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+}

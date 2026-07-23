@@ -35,6 +35,13 @@
 "map.call" = "Llamar";
 "map.open_in_maps" = "Abrir en Mapas";
 "map.add_business" = "Añadir negocio";
+"map.photo_section" = "Capturar negocio con foto";
+"map.photo_hint" = "Fotografía un cartel, escaparate o tarjeta de visita – la IA rellena el formulario. Revisa y envía.";
+"map.photo_take" = "Hacer foto";
+"map.photo_gallery" = "Elegir de la galería";
+"map.photo_analyzing" = "La IA está analizando la foto …";
+"map.photo_done" = "Foto analizada – revisa los datos.";
+"map.photo_failed" = "No se pudo analizar la foto. Introduce los datos manualmente.";
 "map.submitted" = "¡Enviado!";
 "map.submitted_hint" = "Tu negocio ha sido enviado para revisión y aparecerá en el mapa tras la aprobación.";
 "map.section_basic" = "Información básica";
@@ -569,7 +576,11 @@
 "equipment.article_no" = "Nº de art.:";
 "shop.title" = "Tienda";
 "shop.details" = "Ver detalles";
-"data_quality.hint" = "Cuanto más precisas sean tus entradas, más fácil será para la IA ayudarte y para la tienda encontrar la pieza adecuada.";
+"data_quality.hint" = "Cuanto más precisas sean tus entradas, más fácil será para la IA ayudarte y para la tienda encontrar la pieza adecuada. Lo ideal es que registres tu equipamiento hasta el más mínimo detalle, como el filtro de aceite, la bomba de agua o el impulsor.";
+"chat.shop_search_header" = "Encuentra piezas compatibles en la tienda:";
+"chat.shop_search_title" = "Buscar en la tienda";
+"chat.shop_search_empty" = "No se encontraron productos. Prueba con otro término o pregunta a un taller.";
+"chat.equipment_checklist_button" = "Ver lista de equipamiento sugerida";
 "shop.filter_min" = "Mín";
 "shop.filter_max" = "Máx";
 "product.stock_remaining" = "Solo quedan %d";
@@ -674,6 +685,11 @@
 // Equipment suggestions
 "equipment.suggestions_title" = "Sugerencias";
 "equipment.suggestions_intro" = "Barcos como el tuyo suelen mantener estos elementos. Pulsa + para añadirlos.";
+"equipment.spare_parts_ai" = "Repuestos típicos (IA)";
+"equipment.spare_parts_title" = "Sugerencias de repuestos";
+"equipment.spare_parts_intro" = "Repuestos y piezas de desgaste típicos para «%@». Pulsa ➕ para añadir o ✕ para descartar.";
+"equipment.suggestion_accept" = "Añadir";
+"equipment.suggestion_reject" = "Descartar";
 "equipment.suggestions_loading" = "La IA analiza tu barco…";
 "equipment.suggestions_no_boat" = "Barco no encontrado.";
 "equipment.years_short" = "a";
@@ -807,6 +823,7 @@
 "inquiry.loading_equipment" = "Cargando barcos y equipamiento…";
 "inquiry.boat_and_equipment" = "Barco y equipamiento";
 "inquiry.category" = "Categoría";
+"inquiry.category_none" = "Sin categoría";
 "inquiry.selected_count" = "%d seleccionados";
 "inquiry.no_equipment" = "Sin equipamiento. Se adjuntarán los datos del barco si está seleccionado arriba.";
 "inquiry.attach_measurement" = "Adjuntar medidas de vela (PDF)";
@@ -815,6 +832,14 @@
 "inquiry.camera" = "Cámara";
 "inquiry.photos_label" = "Fotos del problema";
 "inquiry.photos_hint" = "Opcional. Máximo 5 fotos. Se envían como adjunto.";
+"inquiry.video_label" = "Vídeo del problema";
+"inquiry.video_hint" = "Opcional: un vídeo corto (máx. 1 min) ayuda al proveedor a evaluar el problema. Se envía como enlace en la solicitud.";
+"inquiry.video_library" = "Desde la galería";
+"inquiry.video_record" = "Grabar vídeo";
+"inquiry.video_attached" = "Vídeo adjuntado";
+"inquiry.video_uploading" = "Subiendo vídeo…";
+"inquiry.video_error" = "No se pudo procesar el vídeo.";
+"inquiry.video_too_large" = "El vídeo es demasiado grande (máx. 60 MB).";
 "inquiry.notes_label" = "Notas privadas";
 "inquiry.notes_hint" = "Solo visibles para ti – no se envían al proveedor.";
 "inquiry.notes_placeholder" = "Tus ideas, presupuesto, plazos…";

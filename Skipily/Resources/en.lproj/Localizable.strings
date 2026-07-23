@@ -39,6 +39,13 @@
 "map.call" = "Call";
 "map.open_in_maps" = "Open in Maps";
 "map.add_business" = "Add Business";
+"map.photo_section" = "Capture business by photo";
+"map.photo_hint" = "Photograph a sign, storefront or business card – the AI fills in the form. Please review, then submit.";
+"map.photo_take" = "Take photo";
+"map.photo_gallery" = "Choose from gallery";
+"map.photo_analyzing" = "AI is analyzing the photo …";
+"map.photo_done" = "Photo analyzed – please review the details.";
+"map.photo_failed" = "Couldn't analyze the photo. Please enter the details manually.";
 "map.submitted" = "Submitted!";
 "map.submitted_hint" = "Your business has been submitted for review and will appear on the map once approved.";
 "map.section_basic" = "Basic Info";
@@ -573,7 +580,11 @@
 "equipment.article_no" = "Item no.:";
 "shop.title" = "Shop";
 "shop.details" = "View details";
-"data_quality.hint" = "The more accurate your entries, the easier it is for the AI to help you and the shop to find the right part.";
+"data_quality.hint" = "The more accurate your entries, the easier it is for the AI to help you and the shop to find the right part. Ideally, add your equipment right down to the individual part – such as oil filter, water pump or impeller.";
+"chat.shop_search_header" = "Find matching parts in the shop:";
+"chat.shop_search_title" = "Search the shop";
+"chat.shop_search_empty" = "No matching products found. Try another term or ask a service provider.";
+"chat.equipment_checklist_button" = "Show suggested equipment list";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";
 "product.stock_remaining" = "Only %d left";
@@ -674,6 +685,11 @@
 // Equipment suggestions
 "equipment.suggestions_title" = "Suggestions";
 "equipment.suggestions_intro" = "Boats like yours typically maintain these items. Tap + to add them.";
+"equipment.spare_parts_ai" = "Typical spare parts (AI)";
+"equipment.spare_parts_title" = "Spare part suggestions";
+"equipment.spare_parts_intro" = "Typical wear and spare parts for “%@”. Tap ➕ to add or ✕ to dismiss.";
+"equipment.suggestion_accept" = "Add";
+"equipment.suggestion_reject" = "Dismiss";
 "equipment.suggestions_loading" = "AI is analyzing your boat…";
 "equipment.suggestions_no_boat" = "Boat not found.";
 "equipment.years_short" = "y";
@@ -791,6 +807,7 @@
 "inquiry.loading_equipment" = "Loading boats & equipment…";
 "inquiry.boat_and_equipment" = "Boat & Equipment";
 "inquiry.category" = "Category";
+"inquiry.category_none" = "Uncategorized";
 "inquiry.selected_count" = "%d selected";
 "inquiry.no_equipment" = "No equipment registered. Boat data will be attached if a boat is selected above.";
 "inquiry.attach_measurement" = "Attach sail measurement (PDF)";
@@ -799,6 +816,14 @@
 "inquiry.camera" = "Camera";
 "inquiry.photos_label" = "Photos of the issue";
 "inquiry.photos_hint" = "Optional. Max 5 photos. Sent as email attachment.";
+"inquiry.video_label" = "Video of the problem";
+"inquiry.video_hint" = "Optional – a short video (max. 1 min) helps the provider assess the problem. Sent as a link in the inquiry.";
+"inquiry.video_library" = "From library";
+"inquiry.video_record" = "Record video";
+"inquiry.video_attached" = "Video attached";
+"inquiry.video_uploading" = "Uploading video…";
+"inquiry.video_error" = "Video could not be processed.";
+"inquiry.video_too_large" = "Video is too large (max. 60 MB).";
 "inquiry.notes_label" = "Private notes";
 "inquiry.notes_hint" = "Only visible to you – not sent to the provider.";
 "inquiry.notes_placeholder" = "Your own thoughts, budget, timeline…";

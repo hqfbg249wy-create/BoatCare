@@ -769,6 +769,7 @@ struct EquipmentDetailView: View {
     @State private var showingEdit = false
     @State private var showingDeleteConfirm = false
     @State private var showingBriefing = false
+    @State private var showingSpareParts = false
     @State private var selectedPhotoIndex = 0
 
     private var photoURLs: [URL] {
@@ -907,6 +908,12 @@ struct EquipmentDetailView: View {
                         .foregroundStyle(.purple)
                 }
                 Button {
+                    showingSpareParts = true
+                } label: {
+                    Label("equipment.spare_parts_ai".loc, systemImage: "sparkles")
+                        .foregroundStyle(.orange)
+                }
+                Button {
                     showingBriefing = true
                 } label: {
                     Label("Service-Anfrage senden", systemImage: "paperplane.fill")
@@ -943,6 +950,14 @@ struct EquipmentDetailView: View {
         .sheet(isPresented: $showingBriefing) {
             ServiceRequestFlow(equipmentId: item.id, boatId: item.boatId)
                 .environmentObject(authService)
+        }
+        .sheet(isPresented: $showingSpareParts) {
+            EquipmentSuggestionsSheet(
+                boatId: item.boatId,
+                boatName: boatName,
+                focusItem: item,
+                onAdded: {}
+            )
         }
         .confirmationDialog("equipment.delete_confirm".loc, isPresented: $showingDeleteConfirm, titleVisibility: .visible) {
             Button("general.delete".loc, role: .destructive) { onDelete(); dismiss() }

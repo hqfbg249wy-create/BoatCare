@@ -35,6 +35,13 @@
 "map.call" = "Appeler";
 "map.open_in_maps" = "Ouvrir dans Plans";
 "map.add_business" = "Ajouter un prestataire";
+"map.photo_section" = "Saisir via une photo";
+"map.photo_hint" = "Photographie une enseigne, une vitrine ou une carte de visite – l'IA remplit le formulaire. Vérifie puis envoie.";
+"map.photo_take" = "Prendre une photo";
+"map.photo_gallery" = "Choisir dans la galerie";
+"map.photo_analyzing" = "L'IA analyse la photo …";
+"map.photo_done" = "Photo analysée – vérifie les informations.";
+"map.photo_failed" = "Impossible d'analyser la photo. Saisis les informations manuellement.";
 "map.submitted" = "Soumis !";
 "map.submitted_hint" = "Votre prestataire a été soumis pour examen et apparaîtra sur la carte après approbation.";
 "map.section_basic" = "Informations de base";
@@ -569,7 +576,11 @@
 "equipment.article_no" = "Réf.:";
 "shop.title" = "Boutique";
 "shop.details" = "Voir les détails";
-"data_quality.hint" = "Plus vos saisies sont précises, plus il est facile pour l'IA de vous aider et pour la boutique de trouver la bonne pièce.";
+"data_quality.hint" = "Plus vos saisies sont précises, plus il est facile pour l'IA de vous aider et pour la boutique de trouver la bonne pièce. Idéalement, saisissez votre équipement jusqu'au moindre détail – par exemple filtre à huile, pompe à eau ou turbine.";
+"chat.shop_search_header" = "Trouver les pièces adaptées dans la boutique :";
+"chat.shop_search_title" = "Rechercher dans la boutique";
+"chat.shop_search_empty" = "Aucun produit correspondant trouvé. Essayez un autre terme ou contactez un professionnel.";
+"chat.equipment_checklist_button" = "Afficher la liste d'équipement suggérée";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";
 "product.stock_remaining" = "Plus que %d";
@@ -674,6 +685,11 @@
 // Equipment suggestions
 "equipment.suggestions_title" = "Suggestions";
 "equipment.suggestions_intro" = "Les bateaux comme le tien ont typiquement cet équipement à entretenir. Touche + pour l'ajouter.";
+"equipment.spare_parts_ai" = "Pièces de rechange typiques (IA)";
+"equipment.spare_parts_title" = "Suggestions de pièces";
+"equipment.spare_parts_intro" = "Pièces d'usure et de rechange typiques pour « %@ ». Touche ➕ pour ajouter ou ✕ pour rejeter.";
+"equipment.suggestion_accept" = "Ajouter";
+"equipment.suggestion_reject" = "Rejeter";
 "equipment.suggestions_loading" = "L'IA analyse ton bateau…";
 "equipment.suggestions_no_boat" = "Bateau introuvable.";
 "equipment.years_short" = "a";
@@ -807,6 +823,7 @@
 "inquiry.loading_equipment" = "Chargement des bateaux et équipements…";
 "inquiry.boat_and_equipment" = "Bateau et équipement";
 "inquiry.category" = "Catégorie";
+"inquiry.category_none" = "Sans catégorie";
 "inquiry.selected_count" = "%d sélectionnés";
 "inquiry.no_equipment" = "Aucun équipement enregistré. Les données du bateau seront jointes si un bateau est choisi ci-dessus.";
 "inquiry.attach_measurement" = "Joindre les mesures de voile (PDF)";
@@ -815,6 +832,14 @@
 "inquiry.camera" = "Appareil photo";
 "inquiry.photos_label" = "Photos du problème";
 "inquiry.photos_hint" = "Facultatif. 5 photos maximum. Envoyées en pièce jointe.";
+"inquiry.video_label" = "Vidéo du problème";
+"inquiry.video_hint" = "Facultatif – une courte vidéo (max. 1 min) aide le prestataire à évaluer le problème. Envoyée sous forme de lien dans la demande.";
+"inquiry.video_library" = "Depuis la galerie";
+"inquiry.video_record" = "Enregistrer une vidéo";
+"inquiry.video_attached" = "Vidéo jointe";
+"inquiry.video_uploading" = "Téléversement de la vidéo…";
+"inquiry.video_error" = "La vidéo n'a pas pu être traitée.";
+"inquiry.video_too_large" = "La vidéo est trop volumineuse (max. 60 Mo).";
 "inquiry.notes_label" = "Notes privées";
 "inquiry.notes_hint" = "Visibles uniquement par vous – non envoyées au prestataire.";
 "inquiry.notes_placeholder" = "Vos propres réflexions, budget, planning…";

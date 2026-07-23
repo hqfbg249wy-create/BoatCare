@@ -109,8 +109,13 @@ class AIChatService {
 
     private init() {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 45
+        // Claude (Sonnet, max_tokens 2048) braucht mit Boots-Kontext und – vor
+        // allem – Foto-Analyse (Vision) regelmäßig deutlich länger als 30 s.
+        // Die Edge-Function selbst setzt kein Timeout auf den Anthropic-Call,
+        // also war bisher der Client der Flaschenhals ("Zeitüberschreitung bei
+        // der Anforderung"). Großzügig bemessen, damit echte Antworten ankommen.
+        config.timeoutIntervalForRequest = 120
+        config.timeoutIntervalForResource = 180
         session = URLSession(configuration: config)
     }
 
