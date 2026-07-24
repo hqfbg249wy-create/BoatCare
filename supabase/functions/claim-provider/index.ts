@@ -17,6 +17,13 @@
 //
 // POST /functions/v1/claim-provider
 //   { "token": "<uuid>", "password": "<min 8 chars>" }
+//
+// ⚠️ ÖFFENTLICHE FUNCTION — IMMER mit --no-verify-jwt deployen:
+//     supabase functions deploy claim-provider --no-verify-jwt
+//   Der Aufrufer ist noch NICHT eingeloggt (er beansprucht ja erst sein
+//   Profil). Mit verify_jwt=true lehnt das Gateway den Call sonst mit 401 ab,
+//   bevor diese Function läuft. Absicherung = Claim-Token (provider_secrets)
+//   + Passwort, NICHT das anon-JWT. Ohne das Flag → "Fehler 401" beim Claim.
 // ════════════════════════════════════════════════════════════════════
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
