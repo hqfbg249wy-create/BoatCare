@@ -786,7 +786,10 @@ export default {
     "mi.rope.empty": "No rope & cordage configurations requested yet.",
     "mi.rope.offerPrefix": "Demand from market analysis",
     "profile.vatMissingBanner": "VAT ID missing — please add your VAT ID in the master data (field \"VAT ID\").",
-    "profile.vatRequiredForAbo": "A VAT ID is required for a subscription. Please add it first in the master data (field \"VAT ID\")."
+    "profile.vatRequiredForAbo": "A VAT ID is required for a subscription. Please add it first in the master data (field \"VAT ID\").",
+    "team.seatsUnlimited": "💎 Unlimited",
+    "team.seatsLimited": "Up to {n} seats",
+    "team.seatsFull": "Seat limit reached ({n}). Upgrade to Enterprise for additional seats (e.g. IT administrator)."
   },
   "fr": {
     "msg.deleteConv": "Supprimer la conversation",
@@ -1572,7 +1575,10 @@ export default {
     "mi.rope.empty": "Aucune configuration de cordage demandée pour l'instant.",
     "mi.rope.offerPrefix": "Demande issue de l'analyse de marché",
     "profile.vatMissingBanner": "Numéro de TVA manquant — veuillez compléter votre numéro de TVA intracommunautaire dans les données de base (champ « N° de TVA intracommunautaire »).",
-    "profile.vatRequiredForAbo": "Un abonnement nécessite un numéro de TVA. Veuillez d'abord le compléter dans les données de base (champ « N° de TVA intracommunautaire »)."
+    "profile.vatRequiredForAbo": "Un abonnement nécessite un numéro de TVA. Veuillez d'abord le compléter dans les données de base (champ « N° de TVA intracommunautaire »).",
+    "team.seatsUnlimited": "💎 Illimité",
+    "team.seatsLimited": "Jusqu'à {n} accès",
+    "team.seatsFull": "Limite de sièges atteinte ({n}). Pour des accès supplémentaires (p. ex. administrateur IT), passez à Enterprise."
   },
   "it": {
     "msg.deleteConv": "Elimina conversazione",
@@ -2358,7 +2364,10 @@ export default {
     "mi.rope.empty": "Nessuna configurazione di cordame ancora richiesta.",
     "mi.rope.offerPrefix": "Domanda dall'analisi di mercato",
     "profile.vatMissingBanner": "Partita IVA mancante — aggiungi il tuo numero IVA nei dati anagrafici (campo \"Partita IVA\").",
-    "profile.vatRequiredForAbo": "Per un abbonamento è necessaria una Partita IVA. Aggiungila prima nei dati anagrafici (campo \"Partita IVA\")."
+    "profile.vatRequiredForAbo": "Per un abbonamento è necessaria una Partita IVA. Aggiungila prima nei dati anagrafici (campo \"Partita IVA\").",
+    "team.seatsUnlimited": "💎 Illimitato",
+    "team.seatsLimited": "Fino a {n} accessi",
+    "team.seatsFull": "Limite di posti raggiunto ({n}). Per ulteriori accessi (es. amministratore IT) passa a Enterprise."
   },
   "es": {
     "msg.deleteConv": "Eliminar conversación",
@@ -3144,7 +3153,10 @@ export default {
     "mi.rope.empty": "Aún no se han solicitado configuraciones de cordaje.",
     "mi.rope.offerPrefix": "Demanda del análisis de mercado",
     "profile.vatMissingBanner": "Falta el NIF-IVA — por favor, añade tu número de IVA en los datos maestros (campo «NIF-IVA»).",
-    "profile.vatRequiredForAbo": "Para una suscripción es necesario un NIF-IVA. Por favor, añádelo primero en los datos maestros (campo «NIF-IVA»)."
+    "profile.vatRequiredForAbo": "Para una suscripción es necesario un NIF-IVA. Por favor, añádelo primero en los datos maestros (campo «NIF-IVA»).",
+    "team.seatsUnlimited": "💎 Ilimitado",
+    "team.seatsLimited": "Hasta {n} accesos",
+    "team.seatsFull": "Límite de asientos alcanzado ({n}). Para más accesos (p. ej., administrador de TI), actualiza a Enterprise."
   },
   "nl": {
     "msg.deleteConv": "Gesprek verwijderen",
@@ -3930,6 +3942,9 @@ export default {
     "mi.rope.empty": "Nog geen touwwerk-configuraties aangevraagd.",
     "mi.rope.offerPrefix": "Vraag uit de marktanalyse",
     "profile.vatMissingBanner": "Btw-nummer ontbreekt — vul je btw-nummer aan in de stamgegevens (veld \"Btw-nummer\").",
-    "profile.vatRequiredForAbo": "Voor een abonnement is een btw-nummer vereist. Vul dit eerst aan in de stamgegevens (veld \"Btw-nummer\")."
+    "profile.vatRequiredForAbo": "Voor een abonnement is een btw-nummer vereist. Vul dit eerst aan in de stamgegevens (veld \"Btw-nummer\").",
+    "team.seatsUnlimited": "💎 Onbeperkt",
+    "team.seatsLimited": "Tot {n} toegangen",
+    "team.seatsFull": "Zitplaatslimiet bereikt ({n}). Upgrade naar Enterprise voor meer toegangen (bijv. IT-beheerder)."
   }
 }

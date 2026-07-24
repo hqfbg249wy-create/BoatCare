@@ -29,14 +29,17 @@ export const FEATURE_LIMITS = {
   standard: {
     maxProducts:    10,   // Shop-Produkte
     maxPromotions:  0,
+    maxTeamMembers: 2,    // zusätzliche Zugänge (z.B. IT-Admin) — für alle Provider
   },
   pro: {
     maxProducts:    Infinity,
     maxPromotions:  3,
+    maxTeamMembers: 2,
   },
   enterprise: {
     maxProducts:    Infinity,
     maxPromotions:  Infinity,
+    maxTeamMembers: Infinity,
   },
 }
 

@@ -53,18 +53,30 @@ Deno.serve(async (req) => {
       return json({ error: "Nur der Provider-Owner darf Mitarbeiter einladen" }, 403);
     }
 
-    // ── Tier-Check: Multi-User nur für Enterprise oder Admin-Grant
+    // ── Sitz-Limit: Delegation für ALLE Provider (z.B. IT-Admin), begrenzt.
+    //    Enterprise/Admin-Grant = unbegrenzt, sonst bis MAX_MEMBERS Zugänge.
     const tier = provider.subscription_tier;
     const plan = provider.subscription_plan;
     const isEnterprisePaid = tier === "professional"
       && (plan === "ent_monthly" || plan === "ent_yearly");
     const isAdminGrant = tier === "admin_grant";
+    const unlimited = isEnterprisePaid || isAdminGrant;
 
-    if (!isEnterprisePaid && !isAdminGrant) {
-      return json({
-        error: "Multi-User-Verwaltung ist im Enterprise-Tarif enthalten.",
-        upgrade_required: true,
-      }, 403);
+    if (!unlimited) {
+      const MAX_MEMBERS = 2;
+      // Bestehende Mitglieder zählen — die einzuladende E-Mail ausgenommen,
+      // damit ein Rollenwechsel/Re-Invite derselben Person keinen Sitz belegt.
+      const { count } = await admin
+        .from("provider_members")
+        .select("email", { count: "exact", head: true })
+        .eq("provider_id", provider_id)
+        .neq("email", normalizedEmail);
+      if ((count ?? 0) >= MAX_MEMBERS) {
+        return json({
+          error: `In deinem Tarif sind bis zu ${MAX_MEMBERS} zusätzliche Zugänge möglich. Für mehr auf Enterprise upgraden.`,
+          upgrade_required: true,
+        }, 403);
+      }
     }
 
     // ── Selbst-Einladung verhindern

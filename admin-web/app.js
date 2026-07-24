@@ -7925,6 +7925,26 @@ async function loadUsers() {
         if (error) throw error;
 
         allUsers = data || [];
+
+        // Rollen-Trennung: welche User sind Provider (Betriebs-Owner ODER
+        // eingeladenes Mitglied)? Eigner = hat Boote. Ein User kann beides sein.
+        const providerUserIds = new Set();
+        try {
+            const { data: sp } = await supabaseClient
+                .from('service_providers').select('user_id').not('user_id', 'is', null);
+            (sp || []).forEach(r => r.user_id && providerUserIds.add(r.user_id));
+        } catch (e) { console.warn('service_providers (Rollen) nicht lesbar:', e?.message); }
+        try {
+            const { data: pm } = await supabaseClient
+                .from('provider_members').select('user_id').not('user_id', 'is', null);
+            (pm || []).forEach(r => r.user_id && providerUserIds.add(r.user_id));
+        } catch (e) { /* provider_members evtl. nicht admin-lesbar — egal */ }
+
+        allUsers.forEach(u => {
+            u.is_provider = providerUserIds.has(u.id);
+            u.is_owner = Number(u.boats_count) > 0;
+        });
+
         updateUsersStats(allUsers);
         renderUsers(allUsers);
     } catch (err) {
@@ -7936,20 +7956,36 @@ async function loadUsers() {
 function updateUsersStats(users) {
     const total = users.length;
     const admins = users.filter(u => u.role === 'admin').length;
-    const readonly = users.filter(u => u.role === 'admin_readonly').length;
-    const withBoats = users.filter(u => Number(u.boats_count) > 0).length;
+    const owners = users.filter(u => u.is_owner).length;
+    const providers = users.filter(u => u.is_provider).length;
 
     document.getElementById('users-total').textContent = total;
     document.getElementById('users-admins').textContent = admins;
-    document.getElementById('users-readonly').textContent = readonly;
-    document.getElementById('users-with-boats').textContent = withBoats;
+    // users-readonly-Karte wird als "Eigner" umgewidmet, users-with-boats als "Provider"
+    const roEl = document.getElementById('users-readonly');
+    if (roEl) roEl.textContent = owners;
+    const wbEl = document.getElementById('users-with-boats');
+    if (wbEl) wbEl.textContent = providers;
+}
+
+function typeBadges(u) {
+    const badge = (txt, color, bg) =>
+        `<span style="display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; color:${color}; background:${bg}; margin-right:4px;">${txt}</span>`;
+    const parts = [];
+    if (u.is_owner)    parts.push(badge('🚤 Eigner',   '#075985', '#e0f2fe'));
+    if (u.is_provider) parts.push(badge('🔧 Provider', '#166534', '#dcfce7'));
+    return parts.join('') || '<span style="color:#94a3b8; font-size:12px;">—</span>';
 }
 
 function searchUsers() {
     const q = (document.getElementById('users-search')?.value || '').trim().toLowerCase();
     const roleFilter = document.getElementById('users-role-filter')?.value || '';
+    const typeFilter = document.getElementById('users-type-filter')?.value || '';
     const filtered = allUsers.filter(u => {
         if (roleFilter && u.role !== roleFilter) return false;
+        if (typeFilter === 'owner'    && !u.is_owner) return false;
+        if (typeFilter === 'provider' && !u.is_provider) return false;
+        if (typeFilter === 'both'     && !(u.is_owner && u.is_provider)) return false;
         if (!q) return true;
         return (u.email || '').toLowerCase().includes(q) ||
                (u.full_name || '').toLowerCase().includes(q);
@@ -7999,7 +8035,7 @@ function renderUsers(users) {
         return `
             <tr style="border-bottom:1px solid #f1f5f9;">
                 <td style="padding:10px 12px;"><code style="font-size:12px;">${escapeHtml(u.email || '—')}</code>${isSelf ? ' <span style="font-size:11px; color:#16a34a;">(Sie)</span>' : ''}</td>
-                <td style="padding:10px 12px;">${escapeHtml(u.full_name || '—')}</td>
+                <td style="padding:10px 12px;">${escapeHtml(u.full_name || '—')}<div style="margin-top:4px;">${typeBadges(u)}</div></td>
                 <td style="padding:10px 12px;">
                     ${isReadonly || isSelf
                         ? roleBadge(u.role)

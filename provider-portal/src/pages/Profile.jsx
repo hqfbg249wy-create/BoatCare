@@ -724,8 +724,8 @@ export default function Profile() {
 
   // Team beim Provider-Load nachziehen, wenn Enterprise-Tier aktiv ist
   useEffect(() => {
-    if (provider?.id && access.isEnterprise) loadTeamMembers()
-  }, [provider?.id, access.isEnterprise])
+    if (provider?.id) loadTeamMembers()
+  }, [provider?.id])
 
   async function openBillingPortal() {
     setSubscriptionLoading(true)
@@ -2232,18 +2232,17 @@ export default function Profile() {
             <span style={{ fontSize: 22 }}>👥</span>
             <h2 style={{ margin: 0 }}>{t('profile.secTeam')}</h2>
             <span style={{
-              background: access.isEnterprise ? '#f3e8ff' : '#f1f5f9',
-              color:      access.isEnterprise ? '#7e22ce' : '#475569',
+              background: '#f3e8ff', color: '#7e22ce',
               padding: '2px 10px', borderRadius: 12,
               fontSize: 11, fontWeight: 700,
-            }}>💎 Enterprise</span>
+            }}>
+              {access.isEnterprise
+                ? t('team.seatsUnlimited')
+                : t('team.seatsLimited', { n: access.limits.maxTeamMembers })}
+            </span>
           </div>
 
-          {!access.isEnterprise ? (
-            <FeatureLock requiredTier="Enterprise" feature={t('team.feature')} icon="👥">
-              {t('team.lockBody')} <strong>{t('pf.k21')}</strong>{t('team.lockTariff')}
-            </FeatureLock>
-          ) : (
+          {(
             <>
               <p className="hint" style={{ marginBottom: 16 }}>
                 {t('team.invite')}
@@ -2368,7 +2367,7 @@ export default function Profile() {
                   type="button"
                   className="btn-primary"
                   onClick={inviteTeamMember}
-                  disabled={teamLoading || !canAdmin}
+                  disabled={teamLoading || !canAdmin || (!access.isEnterprise && teamMembers.length >= access.limits.maxTeamMembers)}
                 >
                   {teamLoading
                     ? <><Loader size={14} className="spin" /> {t('pf.k49')}</>
@@ -2376,9 +2375,15 @@ export default function Profile() {
                 </button>
               </div>
 
-              <p className="hint" style={{ marginTop: 10, fontSize: 12 }}>
-                {t('team.magicLink')}
-              </p>
+              {!access.isEnterprise && teamMembers.length >= access.limits.maxTeamMembers ? (
+                <p className="hint" style={{ marginTop: 10, fontSize: 12, color: '#7e22ce' }}>
+                  {t('team.seatsFull', { n: access.limits.maxTeamMembers })}
+                </p>
+              ) : (
+                <p className="hint" style={{ marginTop: 10, fontSize: 12 }}>
+                  {t('team.magicLink')}
+                </p>
+              )}
             </>
           )}
         </div>

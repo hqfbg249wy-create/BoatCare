@@ -2032,19 +2032,25 @@
                         <div class="stat-label">Admins</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">👁️</div>
+                        <div class="stat-icon">🚤</div>
                         <div class="stat-value" id="users-readonly">0</div>
-                        <div class="stat-label">Read-only Admins</div>
+                        <div class="stat-label">Eigner</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">⛵</div>
+                        <div class="stat-icon">🔧</div>
                         <div class="stat-value" id="users-with-boats">0</div>
-                        <div class="stat-label">Mit Booten</div>
+                        <div class="stat-label">Provider</div>
                     </div>
                 </div>
 
                 <div class="filter-bar" id="users-filter-bar" style="display:flex; gap:8px; align-items:center; margin:16px 0; flex-wrap:wrap;">
                     <input type="text" id="users-search" placeholder="E-Mail oder Name suchen…" oninput="window.searchUsers()" style="flex:1; min-width:240px; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;">
+                    <select id="users-type-filter" onchange="window.searchUsers()" style="padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;">
+                        <option value="">Alle Typen</option>
+                        <option value="owner">🚤 Nur Eigner</option>
+                        <option value="provider">🔧 Nur Provider</option>
+                        <option value="both">Eigner &amp; Provider</option>
+                    </select>
                     <select id="users-role-filter" onchange="window.searchUsers()" style="padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;">
                         <option value="">Alle Rollen</option>
                         <option value="user">Nutzer</option>
@@ -2266,7 +2272,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260723-crtarget"></script>
+    <script src="app.js?v=20260724-userroles"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;
