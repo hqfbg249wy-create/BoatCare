@@ -8,7 +8,7 @@ import {
   BarChart3, Sailboat, Anchor, Wrench, Factory, TrendingUp, Lightbulb,
   RefreshCw, Clock, AlertTriangle, CheckCircle, Calendar, Settings,
   ChevronRight, ChevronLeft, ArrowRight, Tag, ShoppingCart, Package,
-  Filter, Eye, Zap
+  Filter, Eye, Zap, Link2
 } from 'lucide-react'
 import { useT } from '../i18n'
 
@@ -32,6 +32,7 @@ export default function MarketInsights() {
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('overview')
   const [providerProducts, setProviderProducts] = useState([])
+  const [ropeDemand, setRopeDemand] = useState([])
 
   // Drilldown state: array of breadcrumb levels
   // Each level: { type: 'overview'|'category'|'manufacturer'|'boatType'|'boatMfr'|'model'|'recommendation', label, filter }
@@ -48,15 +49,18 @@ export default function MarketInsights() {
     setLoading(true)
     setError(null)
     try {
-      const [insightsResult, equipResult] = await Promise.all([
+      const [insightsResult, equipResult, ropeResult] = await Promise.all([
         loadMarketData(),
-        supabase.from('equipment').select('category, manufacturer, model, name, installation_date, last_maintenance_date, next_maintenance_date, maintenance_cycle_years').limit(500)
+        supabase.from('equipment').select('category, manufacturer, model, name, installation_date, last_maintenance_date, next_maintenance_date, maintenance_cycle_years').limit(500),
+        // Anonyme Tauwerk-Nachfrage (SECURITY-DEFINER-RPC, Migration 114).
+        supabase.rpc('get_rope_demand'),
       ])
       setInsights(insightsResult)
       if (equipResult.data) {
         setRawEquipment(equipResult.data)
         setEquipmentData(aggregateEquipmentData(equipResult.data))
       }
+      setRopeDemand(Array.isArray(ropeResult?.data) ? ropeResult.data : [])
     } catch (err) {
       console.error('Marktanalyse-Fehler:', err)
       setError('Daten konnten nicht geladen werden.')
@@ -221,6 +225,7 @@ export default function MarketInsights() {
     { id: 'models', label: 'mi.tab.models', icon: <Settings size={16} /> },
     { id: 'age', label: 'mi.tab.age', icon: <Calendar size={16} /> },
     { id: 'maintenance', label: 'mi.tab.maintenance', icon: <Wrench size={16} /> },
+    { id: 'rope', label: 'mi.tab.rope', icon: <Link2 size={16} /> },
   ]
 
   return (
@@ -355,6 +360,7 @@ export default function MarketInsights() {
           {activeTab === 'models' && <ModelsTab data={equipmentData} onDrill={drillInto} />}
           {activeTab === 'age' && <AgeTab data={equipmentData} onDrill={drillInto} />}
           {activeTab === 'maintenance' && <MaintenanceTab data={equipmentData} onDrill={drillInto} />}
+          {activeTab === 'rope' && <RopeTab demand={ropeDemand} navigate={navigate} />}
         </>
       )}
     </div>
@@ -1180,6 +1186,79 @@ function StatCard({ icon, label, value, color }) {
       <div className="stat-info">
         <span className="stat-value">{value}</span>
         <span className="stat-label">{label}</span>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================
+// Tab: Tauwerk-Nachfrage (anonyme Aggregate aus get_rope_demand)
+// ============================================================
+const ropeEndLabels = {
+  glatt_abgeschnitten: 'Glatt abgeschnitten',
+  takling: 'Takling',
+  augspleiss_indiv_mit_schamfil: 'Augspleiß indiv. m. Schamfilschutz',
+  augspleiss_indiv_ohne_schamfil: 'Augspleiß indiv. o. Schamfilschutz',
+  augspleiss_3_5: 'Augspleiß (3–5 cm)',
+  augspleiss_6_8: 'Augspleiß (6–8 cm)',
+  augspleiss_9_12: 'Augspleiß (9–12 cm)',
+  augspleiss_low_friction: 'Augspleiß Low Friction Ring',
+  augspleiss_kausch_edelstahl: 'Augspleiß Kausch (Edelstahl)',
+  augspleiss_kausch_verzinkt: 'Augspleiß Kausch (Verzinkt)',
+  augspleiss_zubehoer: 'Augspleiß mit Zubehör',
+}
+function ropeEndText(v) {
+  if (!v) return '—'
+  return ropeEndLabels[v] || v
+}
+
+function RopeTab({ demand, navigate }) {
+  const { t } = useT()
+  if (!demand || demand.length === 0) {
+    return <div className="card"><p className="empty-text">{t('mi.rope.empty')}</p></div>
+  }
+  const totalReq = demand.reduce((s, d) => s + Number(d.req_count || 0), 0)
+
+  return (
+    <div className="insights-grid">
+      <div className="card card-full">
+        <h2><Link2 size={18} /> {t('mi.rope.title')}</h2>
+        <p className="card-subtitle">{t('mi.rope.subtitle')}</p>
+        <div className="model-table">
+          <table>
+            <thead>
+              <tr>
+                <th>{t('mi.rope.material')}</th>
+                <th className="text-right">{t('mi.rope.diameter')}</th>
+                <th>{t('mi.rope.end1')}</th>
+                <th>{t('mi.rope.end2')}</th>
+                <th className="text-right">{t('mi.rope.avgLength')}</th>
+                <th className="text-right">{t('mi.rope.requests')}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {demand.map((d, i) => (
+                <tr key={i} className="drill-row" onClick={() => navigate('/promotions', { state: { prefill: {
+                  name: `Tauwerk: ${d.material}${d.diameter_mm ? ` ${d.diameter_mm} mm` : ''}`,
+                  description: `${t('mi.rope.offerPrefix')}: ${d.req_count}× ${d.material}, `
+                    + `${d.diameter_mm || '?'} mm, ${t('mi.rope.end1')}: ${ropeEndText(d.end1)}, `
+                    + `${t('mi.rope.end2')}: ${ropeEndText(d.end2)}`
+                    + (d.avg_length_m ? `, ø ${d.avg_length_m} m` : ''),
+                }}})}>
+                  <td><strong>{d.material}</strong></td>
+                  <td className="text-right">{d.diameter_mm ? `${d.diameter_mm} mm` : '—'}</td>
+                  <td>{ropeEndText(d.end1)}</td>
+                  <td>{ropeEndText(d.end2)}</td>
+                  <td className="text-right">{d.avg_length_m ? `${d.avg_length_m} m` : '—'}</td>
+                  <td className="text-right"><strong>{d.req_count}</strong></td>
+                  <td className="text-right"><Tag size={14} style={{ color: 'var(--gray-400)' }} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="card-subtitle" style={{ marginTop: 10 }}>{t('mi.rope.total')}: <strong>{totalReq}</strong></p>
       </div>
     </div>
   )
