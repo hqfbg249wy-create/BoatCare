@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Filter, ShoppingCart, MapPin, Bot, Mail, Sparkles, Link2, FileText } from 'lucide-react'
-import RopeConfigForm from '../components/RopeConfigForm'
+import RopeConfigFields, { emptyRope } from '../components/RopeConfigFields'
+import { ROPE_EYE_ENDS } from '../lib/ropeOptions'
 import { useT } from '../i18n'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { buildShopQuery, buildServiceQuery, buildAIQuestion, buildInquirySubject, buildInquiryMessage } from '../lib/equipmentSearch'
@@ -35,8 +36,8 @@ export default function Equipment() {
   const [sugAdding, setSugAdding] = useState(() => new Set())
   const [sugAdded, setSugAdded] = useState(() => new Set())
 
-  // Tauwerk-Konfigurator
-  const [ropeFor, setRopeFor] = useState(null)
+  // Tauwerk-Konfiguration (im Equipment-Formular integriert, Kategorie Tauwerk)
+  const [ropeForm, setRopeForm] = useState(emptyRope)
   // Vorselektion via URL: /equipment?boat=<uuid>
   const [selectedBoat, setSelectedBoat] = useState(searchParams.get('boat') || '')
   const [filterCat, setFilterCat] = useState('')
@@ -219,6 +220,7 @@ export default function Equipment() {
       category: filterCat || emptyItem.category,
     })
     setSailForm(emptySailForm)
+    setRopeForm(emptyRope)
     setPhotoFiles([]); setExistingPhotos([])
     setEditing('new')
   }
@@ -238,6 +240,21 @@ export default function Equipment() {
       setSailForm(sail ? { ...emptySailForm, ...sail } : emptySailForm)
     } else {
       setSailForm(emptySailForm)
+    }
+    // Bei Tauwerk: existierende Konfiguration mitladen
+    if (item.category === 'rope') {
+      const { data: rope } = await supabase.from('rope_configurations')
+        .select('*').eq('equipment_id', item.id)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      setRopeForm(rope ? {
+        article_number: rope.article_number || '', length_m: rope.length_m ?? '',
+        material: rope.material || '', diameter_mm: rope.diameter_mm ?? '',
+        end1: rope.end1 || '', end1_eye_length_cm: rope.end1_eye_length_cm ?? '',
+        end2: rope.end2 || '', end2_eye_length_cm: rope.end2_eye_length_cm ?? '',
+        accessory_article_number: rope.accessory_article_number || '', notes: rope.notes || '',
+      } : emptyRope)
+    } else {
+      setRopeForm(emptyRope)
     }
     setEditing(item.id)
   }
@@ -319,6 +336,45 @@ export default function Equipment() {
         }
       }
 
+      // Bei Tauwerk zusätzlich die Konfiguration speichern + Art am Equipment verankern
+      if (form.category === 'rope' && savedEquipmentId) {
+        const n = v => { const x = parseFloat(String(v).replace(',', '.')); return Number.isFinite(x) ? x : null }
+        const art = ropeForm.article_number.trim()
+        let matchedId = null
+        if (art) {
+          const { data: prod } = await supabase.from('metashop_products')
+            .select('id').or(`part_number.eq.${art},sku.eq.${art}`).limit(1).maybeSingle()
+          matchedId = prod?.id || null
+        }
+        const ropePayload = {
+          equipment_id: savedEquipmentId,
+          article_number: art,
+          matched_product_id: matchedId,
+          length_m: n(ropeForm.length_m),
+          material: ropeForm.material || '',
+          diameter_mm: n(ropeForm.diameter_mm),
+          end1: ropeForm.end1 || null,
+          end1_eye_length_cm: ROPE_EYE_ENDS.has(ropeForm.end1) ? n(ropeForm.end1_eye_length_cm) : null,
+          end2: ropeForm.end2 || null,
+          end2_eye_length_cm: ROPE_EYE_ENDS.has(ropeForm.end2) ? n(ropeForm.end2_eye_length_cm) : null,
+          accessory_article_number: ropeForm.accessory_article_number.trim(),
+          notes: nullify(form.notes) || '',
+          status: matchedId ? 'in_cart' : 'offer_requested',
+        }
+        const { data: existingRope } = await supabase.from('rope_configurations')
+          .select('id').eq('equipment_id', savedEquipmentId)
+          .order('created_at', { ascending: false }).limit(1).maybeSingle()
+        if (existingRope) {
+          await supabase.from('rope_configurations').update(ropePayload).eq('id', existingRope.id)
+        } else {
+          await supabase.from('rope_configurations').insert(ropePayload)
+        }
+        // Tauwerk-Art als Kategorie am Equipment verankern
+        if (ropeForm.material) {
+          await supabase.from('equipment').update({ rope_type: ropeForm.material }).eq('id', savedEquipmentId)
+        }
+      }
+
       setEditing(null)
       await loadData()
     } catch (err) {
@@ -368,7 +424,7 @@ export default function Equipment() {
             <div className="modal-overlay" onClick={() => setEditing(null)}>
               <div className="modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
-                  <h2>{editing === 'new' ? 'Neues Geraet' : 'Geraet bearbeiten'}</h2>
+                  <h2>{form.category === 'rope' ? t('rope.title') : (editing === 'new' ? 'Neues Geraet' : 'Geraet bearbeiten')}</h2>
                   <button className="btn-icon" onClick={() => setEditing(null)}><X size={20} /></button>
                 </div>
                 <form onSubmit={saveItem} className="modal-body">
@@ -458,6 +514,11 @@ export default function Equipment() {
                   {/* ─── Segel-Maßblatt (nur wenn category=sails) ──────── */}
                   {form.category === 'sails' && (
                     <SailMeasurementForm sailForm={sailForm} setSailForm={setSailForm} />
+                  )}
+
+                  {/* ─── Tauwerk-Konfiguration (nur wenn category=rope) ─── */}
+                  {form.category === 'rope' && (
+                    <RopeConfigFields rope={ropeForm} setRope={setRopeForm} />
                   )}
 
                   <div className="modal-footer">
@@ -550,7 +611,7 @@ export default function Equipment() {
                       )}
                       {item.category === 'rope' && (
                         <button className="eq-action-btn eq-action-rope" title={t('rope.title')}
-                          onClick={() => setRopeFor(item)}>
+                          onClick={() => startEdit(item)}>
                           <Link2 size={13} /> {t('rope.btn')}
                         </button>
                       )}
@@ -562,14 +623,6 @@ export default function Equipment() {
           )}
         </>
       )}
-
-      {/* Tauwerk-Konfigurator */}
-      <RopeConfigForm
-        open={!!ropeFor}
-        equipmentId={ropeFor?.id}
-        boatName={ropeFor ? boatName(ropeFor.boat_id) : ''}
-        onClose={() => setRopeFor(null)}
-      />
 
       {/* KI-Vorschläge: Ersatzteile (spare) oder Ausrüstungsliste (boat) */}
       {sug && (

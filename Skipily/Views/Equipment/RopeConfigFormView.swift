@@ -96,10 +96,28 @@ struct RopeConfigFormView: View {
                         Label(m, systemImage: "checkmark.seal.fill")
                             .font(.caption).foregroundStyle(.green)
                     }
-                    Picker("rope.f.material".loc, selection: $material) {
-                        Text("rope.material.none".loc).tag("")
-                        ForEach(RopeMaterial.allCases) { Text($0.label).tag($0.rawValue) }
+                    // Material als Freitext + Vorschläge → Tauwerk-Arten
+                    // lassen sich manuell ergänzen (es gibt mehr als die 5).
+                    TextField("rope.f.material".loc, text: $material)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(RopeMaterial.allCases) { m in
+                                Button {
+                                    material = m.label
+                                } label: {
+                                    Text(m.label)
+                                        .font(.caption)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(material == m.label ? AppColors.primary.opacity(0.15) : Color(.systemGray6))
+                                        .foregroundStyle(material == m.label ? AppColors.primary : .secondary)
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
                     }
+                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 8))
                     measureField("rope.f.length".loc, value: $lengthM, unit: "m")
                     measureField("rope.f.diameter".loc, value: $diameterMm, unit: "mm")
                 }
