@@ -105,24 +105,29 @@ Deno.serve(async (req) => {
     // ── 3) Existiert schon ein Auth-User mit dieser Mail? ──
     //   Falls ja (z.B. Provider hatte sich mal regulaer registriert),
     //   verknuepfen wir nur statt neu anzulegen.
+    //   GEZIELTE E-Mail-Suche via SECURITY-DEFINER-RPC (Migration 113) —
+    //   skaliert unbegrenzt, kein listUsers/perPage-Limit mehr.
     let userId: string | null = null;
+    let existing = false;
 
-    const { data: existingList } = await admin.auth.admin.listUsers({
-      // listUsers hat keinen direkten Filter — wir holen die erste Seite
-      // und suchen. Bei kleinen Userzahlen okay; fuer Skalierung spaeter
-      // ueber eine eigene Lookup-Tabelle.
-      page: 1,
-      perPage: 200,
-    });
-    const existing = existingList?.users?.find(
-      (u) => (u.email ?? "").toLowerCase() === email,
+    const { data: foundId, error: lookupErr } = await admin.rpc(
+      "auth_user_id_by_email",
+      { p_email: email },
     );
+    if (lookupErr) {
+      // Fallback (z.B. Migration 113 noch nicht eingespielt): Neuanlage
+      // versuchen. Bestehende Konten werden dann ggf. nicht verknüpft —
+      // deshalb 113 einspielen.
+      console.warn("auth_user_id_by_email failed:", lookupErr.message);
+    } else if (foundId) {
+      userId = foundId as string;
+      existing = true;
+    }
 
     if (existing) {
       // Passwort des bestehenden Users NICHT ueberschreiben (Sicherheit) —
       // nur verknuepfen. Der Provider muss sich dann mit seinem bekannten
       // Passwort einloggen. Falls vergessen → ForgotPassword-Flow.
-      userId = existing.id;
     } else {
       // ── Neuen Auth-User anlegen ──
       const { data: created, error: cErr } = await admin.auth.admin.createUser({

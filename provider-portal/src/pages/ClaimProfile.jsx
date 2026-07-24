@@ -67,26 +67,20 @@ export default function ClaimProfile() {
 
     setSubmitting(true)
     try {
-      // 1) Edge Function: Account anlegen + Profil verknüpfen
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claim-provider`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            // WICHTIG: Ohne Authorization-Header lehnt das Edge-Gateway
-            // (verify_jwt) den Call mit 401 ab, BEVOR die Function läuft.
-            // Der anon-Key ist ein gültiges JWT und passiert damit das Gate.
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ token, password: pw1 }),
-        }
+      // 1) Edge Function: Account anlegen + Profil verknüpfen.
+      //    functions.invoke setzt apikey + Authorization automatisch (auch
+      //    pre-login über den anon-Key) → die 401-Falle kann hier nicht
+      //    wiederkehren, egal wie verify_jwt gesetzt ist.
+      const { data: result, error: fnErr } = await supabase.functions.invoke(
+        'claim-provider',
+        { body: { token, password: pw1 } },
       )
-      const result = await resp.json().catch(() => ({}))
-      if (!resp.ok) {
-        if (result.already_claimed) setAlreadyClaimed(true)
-        throw new Error(result.error || `${t('common.error')} ${resp.status}`)
+      if (fnErr) {
+        // Fehler-Body aus der Response ziehen (invoke legt ihn in context ab).
+        let payload = {}
+        try { payload = await fnErr.context.json() } catch { /* kein JSON-Body */ }
+        if (payload.already_claimed) setAlreadyClaimed(true)
+        throw new Error(payload.error || fnErr.message || t('common.error'))
       }
 
       // 2) Direkt einloggen (außer der Account existierte schon mit
