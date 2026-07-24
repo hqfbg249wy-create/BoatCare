@@ -10,6 +10,20 @@ import Combine
 import PhotosUI
 
 // MARK: - Equipment Model (Supabase-backed)
+/// Übergibt die Tauwerk-Konfiguration vom Formular an addItem/updateItem.
+/// NICHT persistiert als Equipment-Spalte — nur ein Transport-Container.
+struct RopeConfigDraft {
+    var articleNumber = ""
+    var lengthM = ""
+    var material = ""
+    var diameterMm = ""
+    var end1 = ""
+    var end1Eye = ""
+    var end2 = ""
+    var end2Eye = ""
+    var accessoryArticle = ""
+}
+
 struct EquipmentItem: Identifiable, Codable {
     var id: UUID
     var boatId: UUID
@@ -30,6 +44,9 @@ struct EquipmentItem: Identifiable, Codable {
     var dimensions: String
     var photoUrl: String?
     var itemDescription: String
+    /// Transient: Tauwerk-Konfig aus dem Formular (nicht in CodingKeys → wird
+    /// weder in die equipment-Tabelle kodiert noch von dort dekodiert).
+    var ropeDraft: RopeConfigDraft? = nil
 
     init(id: UUID = UUID(), boatId: UUID, name: String = "", category: String = "other",
          manufacturer: String = "", model: String = "", serialNumber: String = "",
@@ -154,6 +171,7 @@ struct EquipmentItem: Identifiable, Codable {
 
 // Insert/Update helpers
 private struct EquipmentInsert: Encodable {
+    let id: String
     let boat_id: String; let name: String; let category: String
     let manufacturer: String; let model: String; let serial_number: String
     let installation_date: String?; let warranty_expiry: String?
@@ -477,6 +495,7 @@ struct EquipmentScreen: View {
 
     private func addItem(_ item: EquipmentItem) async {
         let ins = EquipmentInsert(
+            id: item.id.uuidString,
             boat_id: boatId.uuidString, name: item.name, category: item.category,
             manufacturer: item.manufacturer, model: item.model, serial_number: item.serialNumber,
             installation_date: item.installationDate, warranty_expiry: item.warrantyExpiry,
@@ -490,6 +509,7 @@ struct EquipmentScreen: View {
         )
         do {
             try await authService.supabase.from("equipment").insert(ins).execute()
+            await saveRopeDraftIfNeeded(item)
             await loadItems()
         } catch { AppLog.error("Equipment hinzufügen: \(error)") }
     }
@@ -510,8 +530,88 @@ struct EquipmentScreen: View {
         do {
             try await authService.supabase.from("equipment")
                 .update(upd).eq("id", value: item.id.uuidString).execute()
+            await saveRopeDraftIfNeeded(item)
             await loadItems()
         } catch { AppLog.error("Equipment aktualisieren: \(error)") }
+    }
+
+    /// Persistiert die Tauwerk-Konfiguration (falls im Formular ausgefüllt)
+    /// nachdem die Ausrüstung gespeichert wurde. Matcht die Artikelnummer gegen
+    /// den Shop und verankert die Tauwerk-Art als equipment.rope_type.
+    private func saveRopeDraftIfNeeded(_ item: EquipmentItem) async {
+        let cat = item.category.lowercased()
+        guard cat.contains("rope") || cat.contains("tauwerk"), let d = item.ropeDraft else { return }
+
+        func num(_ s: String) -> Double? {
+            Double(s.replacingOccurrences(of: ",", with: ".").trimmingCharacters(in: .whitespaces))
+        }
+        let eqId = item.id.uuidString
+        let art = d.articleNumber.trimmingCharacters(in: .whitespaces)
+
+        // Shop-Match über Artikelnummer (part_number/sku)
+        var matchedId: String? = nil
+        if !art.isEmpty {
+            struct P: Decodable { let id: UUID }
+            let rows: [P] = (try? await authService.supabase
+                .from("metashop_products").select("id")
+                .or("part_number.eq.\(art),sku.eq.\(art)").limit(1)
+                .execute().value) ?? []
+            matchedId = rows.first?.id.uuidString
+        }
+
+        func needsEye(_ v: String) -> Bool {
+            v == "augspleiss_indiv_mit_schamfil" || v == "augspleiss_indiv_ohne_schamfil"
+        }
+
+        struct RopeUpsert: Encodable {
+            let equipment_id: String
+            let article_number: String
+            let matched_product_id: String?
+            let length_m: Double?
+            let material: String
+            let diameter_mm: Double?
+            let end1: String?
+            let end1_eye_length_cm: Double?
+            let end2: String?
+            let end2_eye_length_cm: Double?
+            let accessory_article_number: String
+            let notes: String
+            let status: String
+        }
+        let payload = RopeUpsert(
+            equipment_id: eqId, article_number: art, matched_product_id: matchedId,
+            length_m: num(d.lengthM), material: d.material, diameter_mm: num(d.diameterMm),
+            end1: d.end1.isEmpty ? nil : d.end1,
+            end1_eye_length_cm: needsEye(d.end1) ? num(d.end1Eye) : nil,
+            end2: d.end2.isEmpty ? nil : d.end2,
+            end2_eye_length_cm: needsEye(d.end2) ? num(d.end2Eye) : nil,
+            accessory_article_number: d.accessoryArticle.trimmingCharacters(in: .whitespaces),
+            notes: item.notes,
+            status: matchedId != nil ? "in_cart" : "offer_requested"
+        )
+
+        do {
+            struct R: Decodable { let id: UUID }
+            let existing: [R] = (try? await authService.supabase
+                .from("rope_configurations").select("id")
+                .eq("equipment_id", value: eqId).limit(1)
+                .execute().value) ?? []
+            if let ex = existing.first {
+                try await authService.supabase.from("rope_configurations")
+                    .update(payload).eq("id", value: ex.id.uuidString).execute()
+            } else {
+                try await authService.supabase.from("rope_configurations")
+                    .insert(payload).execute()
+            }
+            // Tauwerk-Art als Kategorie am Equipment verankern
+            if !d.material.isEmpty {
+                struct RT: Encodable { let rope_type: String }
+                try? await authService.supabase.from("equipment")
+                    .update(RT(rope_type: d.material)).eq("id", value: eqId).execute()
+            }
+        } catch {
+            AppLog.error("RopeConfig speichern: \(error)")
+        }
     }
 
     private func deleteItem(_ item: EquipmentItem) async {
@@ -575,7 +675,6 @@ struct EquipmentExpandableRow: View {
     @State private var showActions = false
     @State private var showingEdit = false
     @State private var showingSailForm = false
-    @State private var showingRopeConfig = false
     @State private var rowNavigation: EquipmentRowNav?
 
     var body: some View {
@@ -670,9 +769,10 @@ struct EquipmentExpandableRow: View {
                         .buttonStyle(.borderless)
                     }
 
-                    // Tauwerk-Konfiguration (nur für Tauwerk-Kategorie)
+                    // Tauwerk-Konfiguration (nur Tauwerk) → öffnet das EINE
+                    // Tauwerk-Formular (Bearbeiten mit integrierter Konfig).
                     if isRopeCategory {
-                        Button { showingRopeConfig = true } label: {
+                        Button { showingEdit = true } label: {
                             EquipmentActionButton(title: "rope.title".loc, icon: "link", color: .mint)
                         }
                         .buttonStyle(.borderless)
@@ -717,9 +817,6 @@ struct EquipmentExpandableRow: View {
         }
         .sheet(isPresented: $showingSailForm) {
             SailMeasurementGateway(equipmentId: item.id, boatName: boatName)
-        }
-        .sheet(isPresented: $showingRopeConfig) {
-            RopeConfigFormView(equipmentId: item.id, boatName: boatName)
         }
     }
 
@@ -787,7 +884,6 @@ struct EquipmentDetailView: View {
     @State private var showingDeleteConfirm = false
     @State private var showingBriefing = false
     @State private var showingSpareParts = false
-    @State private var showingRopeConfig = false
     @State private var selectedPhotoIndex = 0
 
     private var photoURLs: [URL] {
@@ -933,7 +1029,7 @@ struct EquipmentDetailView: View {
                 }
                 if item.category.lowercased().contains("rope") || item.category.lowercased().contains("tauwerk") {
                     Button {
-                        showingRopeConfig = true
+                        showingEdit = true
                     } label: {
                         Label("rope.title".loc, systemImage: "link")
                             .foregroundStyle(.teal)
@@ -984,9 +1080,6 @@ struct EquipmentDetailView: View {
                 focusItem: item,
                 onAdded: {}
             )
-        }
-        .sheet(isPresented: $showingRopeConfig) {
-            RopeConfigFormView(equipmentId: item.id, boatName: boatName)
         }
         .confirmationDialog("equipment.delete_confirm".loc, isPresented: $showingDeleteConfirm, titleVisibility: .visible) {
             Button("general.delete".loc, role: .destructive) { onDelete(); dismiss() }
@@ -1063,6 +1156,23 @@ struct AddEditEquipmentView: View {
     // Sail measurement
     @State private var showingSailForm = false
     @State private var headerPhotoIndex = 0
+
+    // Tauwerk-Konfiguration (integriert, Kategorie Tauwerk)
+    @State private var ropeArticle = ""
+    @State private var ropeLength = ""
+    @State private var ropeMaterial = ""
+    @State private var ropeDiameter = ""
+    @State private var ropeEnd1 = ""
+    @State private var ropeEnd1Eye = ""
+    @State private var ropeEnd2 = ""
+    @State private var ropeEnd2Eye = ""
+    @State private var ropeAccessory = ""
+    @State private var ropeLoaded = false
+
+    private var isRopeCategoryInForm: Bool {
+        let cat = category.lowercased()
+        return cat.contains("rope") || cat.contains("tauwerk")
+    }
 
     private var allDisplayPhotos: [(id: String, source: PhotoSource)] {
         var result: [(String, PhotoSource)] = []
@@ -1241,8 +1351,8 @@ struct AddEditEquipmentView: View {
                             .font(.caption)
                     }
                 }
-                // Maßblatt für Segel
-                if isSailCategoryInForm {
+                // Maßblatt für Segel (nicht für Tauwerk)
+                if isSailCategoryInForm && !isRopeCategoryInForm {
                     Section("equipment.sail_form_section".loc) {
                         if let existingItem = item {
                             Button {
@@ -1261,11 +1371,55 @@ struct AddEditEquipmentView: View {
                         }
                     }
                 }
+
+                // Tauwerk-Konfiguration (Kategorie Tauwerk) — integriert
+                if isRopeCategoryInForm {
+                    Section("rope.title".loc) {
+                        TextField("rope.f.article".loc, text: $ropeArticle)
+                            .autocorrectionDisabled()
+                        // Material als Freitext + Vorschläge → Arten ergänzbar
+                        TextField("rope.f.material".loc, text: $ropeMaterial)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 6) {
+                                ForEach(RopeMaterial.allCases) { m in
+                                    Button { ropeMaterial = m.label } label: {
+                                        Text(m.label)
+                                            .font(.caption)
+                                            .padding(.horizontal, 10).padding(.vertical, 5)
+                                            .background(ropeMaterial == m.label ? AppColors.primary.opacity(0.15) : Color(.systemGray6))
+                                            .foregroundStyle(ropeMaterial == m.label ? AppColors.primary : .secondary)
+                                            .clipShape(Capsule())
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                        ropeMeasureRow("rope.f.length".loc, value: $ropeLength, unit: "m")
+                        ropeMeasureRow("rope.f.diameter".loc, value: $ropeDiameter, unit: "mm")
+                        Picker("rope.section_end1".loc, selection: $ropeEnd1) {
+                            Text("rope.end.none".loc).tag("")
+                            ForEach(RopeEndOption.allCases) { Text($0.label).tag($0.rawValue) }
+                        }
+                        if RopeEndOption(rawValue: ropeEnd1)?.needsEyeLength == true {
+                            ropeMeasureRow("rope.f.eye_length".loc, value: $ropeEnd1Eye, unit: "cm")
+                        }
+                        Picker("rope.section_end2".loc, selection: $ropeEnd2) {
+                            Text("rope.end.none".loc).tag("")
+                            ForEach(RopeEndOption.allCases) { Text($0.label).tag($0.rawValue) }
+                        }
+                        if RopeEndOption(rawValue: ropeEnd2)?.needsEyeLength == true {
+                            ropeMeasureRow("rope.f.eye_length".loc, value: $ropeEnd2Eye, unit: "cm")
+                        }
+                        TextField("rope.f.accessory_article".loc, text: $ropeAccessory)
+                            .autocorrectionDisabled()
+                    }
+                }
+
                 Section("equipment.notes".loc) {
                     TextField("equipment.notes".loc, text: $notes, axis: .vertical).lineLimit(3...6)
                 }
             }
-            .navigationTitle(item == nil ? "equipment.add".loc : "general.edit".loc)
+            .navigationTitle(isRopeCategoryInForm ? "rope.title".loc : (item == nil ? "equipment.add".loc : "general.edit".loc))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("general.cancel".loc) { dismiss() } }
@@ -1277,6 +1431,7 @@ struct AddEditEquipmentView: View {
                 }
             }
         }
+        .task { await loadRopeConfig() }
         .onAppear {
             guard let e = item else { return }
             let df = EquipmentItem.dateFormatter
@@ -1344,7 +1499,7 @@ struct AddEditEquipmentView: View {
                 nextMD = df.string(from: next)
             }
         }
-        let saved = EquipmentItem(
+        var saved = EquipmentItem(
             id: equipId, boatId: boatId,
             name: name, category: category, manufacturer: manufacturer,
             model: model, serialNumber: serialNumber,
@@ -1357,9 +1512,61 @@ struct AddEditEquipmentView: View {
             photoUrl: finalPhotoUrl,
             itemDescription: itemDescription
         )
+        // Tauwerk-Konfiguration mitgeben → addItem/updateItem persistiert sie.
+        if isRopeCategoryInForm {
+            saved.ropeDraft = RopeConfigDraft(
+                articleNumber: ropeArticle, lengthM: ropeLength, material: ropeMaterial,
+                diameterMm: ropeDiameter, end1: ropeEnd1, end1Eye: ropeEnd1Eye,
+                end2: ropeEnd2, end2Eye: ropeEnd2Eye, accessoryArticle: ropeAccessory
+            )
+        }
         isUploadingPhotos = false
         onSave(saved)
         dismiss()
+    }
+
+    private func ropeMeasureRow(_ label: String, value: Binding<String>, unit: String) -> some View {
+        HStack {
+            Text(label).font(.subheadline).lineLimit(2)
+            Spacer()
+            TextField("0", text: value)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 80)
+            Text(unit).font(.caption).foregroundStyle(AppColors.gray400).frame(width: 30)
+        }
+    }
+
+    /// Lädt eine bestehende Tauwerk-Konfiguration beim Bearbeiten ins Formular.
+    private func loadRopeConfig() async {
+        guard !ropeLoaded, let it = item else { return }
+        let cat = it.category.lowercased()
+        guard cat.contains("rope") || cat.contains("tauwerk") else { return }
+        ropeLoaded = true
+        struct RopeRow: Decodable {
+            let article_number: String?; let length_m: Double?; let material: String?
+            let diameter_mm: Double?; let end1: String?; let end1_eye_length_cm: Double?
+            let end2: String?; let end2_eye_length_cm: Double?; let accessory_article_number: String?
+        }
+        let rows: [RopeRow] = (try? await SupabaseManager.shared.client
+            .from("rope_configurations").select()
+            .eq("equipment_id", value: it.id.uuidString)
+            .order("created_at", ascending: false).limit(1)
+            .execute().value) ?? []
+        guard let r = rows.first else { return }
+        func fmt(_ d: Double?) -> String {
+            guard let d else { return "" }
+            return d.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(d)) : String(format: "%.2f", d)
+        }
+        ropeArticle = r.article_number ?? ""
+        ropeLength = fmt(r.length_m)
+        ropeMaterial = r.material ?? ""
+        ropeDiameter = fmt(r.diameter_mm)
+        ropeEnd1 = r.end1 ?? ""
+        ropeEnd1Eye = fmt(r.end1_eye_length_cm)
+        ropeEnd2 = r.end2 ?? ""
+        ropeEnd2Eye = fmt(r.end2_eye_length_cm)
+        ropeAccessory = r.accessory_article_number ?? ""
     }
 }
 
