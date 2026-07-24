@@ -75,6 +75,10 @@ export default function ClaimProfile() {
           headers: {
             'Content-Type': 'application/json',
             apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            // WICHTIG: Ohne Authorization-Header lehnt das Edge-Gateway
+            // (verify_jwt) den Call mit 401 ab, BEVOR die Function läuft.
+            // Der anon-Key ist ein gültiges JWT und passiert damit das Gate.
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({ token, password: pw1 }),
         }
