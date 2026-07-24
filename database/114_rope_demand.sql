@@ -38,5 +38,8 @@ AS $$
 $$;
 
 -- Nur eingeloggte Provider (authenticated). Aggregat ist anonym.
+-- WICHTIG: anon EXPLIZIT widerrufen — Supabase gewährt anon oft ein direktes
+-- EXECUTE per Default-Privileg, das ein reines "FROM PUBLIC" nicht entfernt.
 REVOKE ALL ON FUNCTION public.get_rope_demand() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_rope_demand() FROM anon;
 GRANT EXECUTE ON FUNCTION public.get_rope_demand() TO authenticated;
