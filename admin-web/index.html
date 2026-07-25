@@ -484,6 +484,7 @@
                                 <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
                                     <button type="button" class="btn-secondary" onclick="geoParseEditModal()" style="flex:1; min-width:150px;">✂️ Adresse aufteilen</button>
                                     <button type="button" class="btn-secondary" onclick="geocodeEditModal()" style="flex:1; min-width:150px;">🔍 Neu geocodieren</button>
+                                    <button type="button" class="btn-secondary" onclick="geoGoogleEditModal()" style="flex:1; min-width:150px;">🌍 Google (Notfall)</button>
                                     <button type="button" class="btn-secondary" onclick="geoTogglePickerModal()" style="flex:1; min-width:150px;">📍 Pin verschieben</button>
                                 </div>
                                 <div id="edit-modal-map" style="display:none; height:300px; margin-top:8px; border:1px solid #e2e8f0; border-radius:8px; z-index:0;"></div>
@@ -612,6 +613,7 @@
                     </div>
                     <div class="form-row">
                         <button type="button" class="btn-secondary" onclick="geoParseIntoForm('add-provider-form')" style="flex:1; min-width:180px;">✂️ Adresse aufteilen</button>
+                        <button type="button" class="btn-secondary" onclick="geoGoogleAddForm()" style="flex:1; min-width:180px;">🌍 Google (Notfall)</button>
                         <button type="button" class="btn-secondary" onclick="geoTogglePicker('add-provider-map','add-provider-form')" style="flex:1; min-width:180px;">📍 Pin manuell setzen / verschieben</button>
                     </div>
                     <div id="add-provider-map" style="display:none; height:300px; margin-top:8px; border:1px solid #e2e8f0; border-radius:8px; z-index:0;"></div>
@@ -2291,7 +2293,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260724-geopin2"></script>
+    <script src="app.js?v=20260724-geogoogle"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;

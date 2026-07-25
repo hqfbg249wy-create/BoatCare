@@ -4496,6 +4496,43 @@ function geocodeGoogle(street, postalCode, city, country) {
     });
 }
 
+/**
+ * POST /api/geocode-google — Einzeladresse über Google Geocoding (Notfall,
+ * präziser als Nominatim). Body: { street, postal_code, city, country }.
+ * Antwort: { found, lat, lon, location_type, formatted_address }.
+ * location_type: ROOFTOP (exakt) | RANGE_INTERPOLATED | GEOMETRIC_CENTER | APPROXIMATE.
+ */
+app.post('/api/geocode-google', (req, res) => {
+    const { street = '', postal_code = '', city = '', country = '' } = req.body || {};
+    if (!String(city).trim() && !String(street).trim()) {
+        return res.status(400).json({ error: 'Adresse (mind. Stadt oder Straße) erforderlich' });
+    }
+    const key = CONFIG.GOOGLE_PLACES_API_KEY;
+    if (!key) return res.status(503).json({ error: 'Google Geocoding nicht konfiguriert (kein API-Key).' });
+    const addr = [street, [postal_code, city].filter(Boolean).join(' '), country].filter(Boolean).join(', ');
+    const path = `/maps/api/geocode/json?address=${encodeURIComponent(addr)}&key=${key}`;
+    https.get({ hostname: 'maps.googleapis.com', path }, (gr) => {
+        let d = '';
+        gr.on('data', c => d += c);
+        gr.on('end', () => {
+            try {
+                const j = JSON.parse(d);
+                if (j.status === 'REQUEST_DENIED') return res.status(502).json({ error: 'Google: REQUEST_DENIED (Key/Aktivierung prüfen)' });
+                const g = j.results?.[0];
+                const loc = g?.geometry?.location;
+                if (!loc) return res.json({ found: false, status: j.status });
+                res.json({
+                    found: true, lat: loc.lat, lon: loc.lng,
+                    location_type: g.geometry.location_type,
+                    formatted_address: g.formatted_address,
+                });
+            } catch (e) {
+                res.status(500).json({ error: 'Google-Antwort ungültig: ' + e.message });
+            }
+        });
+    }).on('error', (e) => res.status(500).json({ error: 'Google-Geocoding fehlgeschlagen: ' + e.message }));
+});
+
 // Alle Provider mit Adresse laden (paginiert), optional nur ohne Koordinaten.
 async function loadProvidersForGeo(mode, country) {
     let filter = 'city=not.is.null&city=neq.';

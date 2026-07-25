@@ -1606,6 +1606,9 @@ function showEditForm(provider) {
                     <button type="button" class="btn-secondary" onclick="geoParseIntoForm('edit-provider-form')" style="flex:1; min-width:180px;">
                         ✂️ Adresse aufteilen (Straße → PLZ/Stadt/Land)
                     </button>
+                    <button type="button" class="btn-secondary" onclick="geoGoogleEditForm()" style="flex:1; min-width:180px;">
+                        🌍 Google (Notfall)
+                    </button>
                     <button type="button" class="btn-secondary" onclick="geoTogglePicker('edit-provider-map','edit-provider-form')" style="flex:1; min-width:180px;">
                         📍 Pin manuell setzen / verschieben
                     </button>
@@ -2087,6 +2090,57 @@ async function geocodeEditModal() {
     }
 }
 window.geocodeEditModal = geocodeEditModal;
+
+// ─── Google Geocoding (Notfall, präziser) über das Fly-Backend ───
+async function geoGoogleCore(vals, setCoords, statusFn, mapDivId) {
+    statusFn('⏳ Google Geocoding (Notfall) …');
+    try {
+        const resp = await fetch(`${SCRAPER_URL}/api/geocode-google`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(vals),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) { statusFn('❌ Google: ' + (data.error || ('HTTP ' + resp.status))); return; }
+        if (!data.found) { statusFn('❌ Google: keine Koordinaten gefunden'); return; }
+        setCoords(data.lat, data.lon);
+        if (mapDivId) geoUpdatePicker(mapDivId, parseFloat(data.lat), parseFloat(data.lon));
+        const lt = data.location_type === 'ROOFTOP' ? '🎯 exakt (Google ROOFTOP)'
+            : data.location_type === 'RANGE_INTERPOLATED' ? '📏 interpoliert (Google)'
+            : '⚠️ ungefähr (Google ' + (data.location_type || '?') + ')';
+        statusFn(`${lt} · ${data.lat}, ${data.lon}\n${data.formatted_address || ''}`);
+    } catch (e) { statusFn('❌ Google-Fehler: ' + e.message); }
+}
+
+function geoGoogleAddForm() {
+    const form = document.getElementById('add-provider-form'); if (!form) return;
+    const g = (n) => (form.querySelector(`[name="${n}"]`)?.value || '').trim();
+    geoGoogleCore(
+        { street: g('street'), postal_code: g('postal_code'), city: g('city'), country: g('country') },
+        (lat, lon) => { form.querySelector('[name="latitude"]').value = lat; form.querySelector('[name="longitude"]').value = lon; },
+        (m) => alert(m), 'add-provider-map');
+}
+window.geoGoogleAddForm = geoGoogleAddForm;
+
+function geoGoogleEditForm() {
+    const form = document.getElementById('edit-provider-form'); if (!form) return;
+    const g = (n) => (form.querySelector(`[name="${n}"]`)?.value || '').trim();
+    const st = document.getElementById('geocode-edit-status');
+    geoGoogleCore(
+        { street: g('street'), postal_code: g('postal_code'), city: g('city'), country: g('country') },
+        (lat, lon) => { form.querySelector('[name="latitude"]').value = lat; form.querySelector('[name="longitude"]').value = lon; },
+        (m) => { if (st) st.textContent = m; }, 'edit-provider-map');
+}
+window.geoGoogleEditForm = geoGoogleEditForm;
+
+function geoGoogleEditModal() {
+    const g = (id) => (document.getElementById(id)?.value || '').trim();
+    const st = document.getElementById('edit-modal-geo-status');
+    geoGoogleCore(
+        { street: g('edit-street'), postal_code: g('edit-postal'), city: g('edit-city'), country: g('edit-country') },
+        (lat, lon) => { document.getElementById('edit-latitude').value = lat; document.getElementById('edit-longitude').value = lon; },
+        (m) => { if (st) st.textContent = m; }, 'edit-modal-map');
+}
+window.geoGoogleEditModal = geoGoogleEditModal;
 
 function openGoogleMapsForProvider() {
     const form = document.getElementById('edit-provider-form');
