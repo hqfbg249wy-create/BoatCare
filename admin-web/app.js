@@ -1691,6 +1691,8 @@ async function updateProvider(providerId) {
     // 2) Erfolg — Reloads sind „best effort" und dürfen das Speichern NICHT als Fehler melden.
     alert('✅ Provider erfolgreich aktualisiert!');
     document.getElementById('provider-modal').classList.remove('active');
+    // Änderung automatisch an CleverReach durchreichen (best-effort).
+    autoPushProviderToCleverReach(providerId);
     try {
         _invalidateProviderCache();
         loadProviders();
@@ -6141,6 +6143,7 @@ async function importSelectedScrapingResults() {
     if (!confirm(`${selected.length} Betriebe importieren?`)) return;
 
     let imported = 0, errors = 0;
+    const importedIds = [];
 
     for (const p of selected) {
         const data = {
@@ -6163,19 +6166,24 @@ async function importSelectedScrapingResults() {
         };
 
         try {
-            const { error } = await supabaseClient.from('service_providers').insert([data]);
+            const { data: ins, error } = await supabaseClient
+                .from('service_providers').insert([data]).select('id').single();
             if (error) {
                 console.error(`Import-Fehler für ${p.name}:`, error);
                 errors++;
             } else {
                 imported++;
                 p.id = 'imported'; // Markiere als importiert
+                if (ins?.id) importedIds.push(ins.id);
             }
         } catch (e) {
             console.error(`Import-Fehler für ${p.name}:`, e);
             errors++;
         }
     }
+
+    // Neu eingepflegte Provider gesammelt an CleverReach durchreichen (best-effort).
+    if (importedIds.length > 0) autoPushProviderToCleverReach(importedIds);
 
     alert(`✅ ${imported} importiert` + (errors > 0 ? `\n❌ ${errors} Fehler` : ''));
     renderScrapingTable(); // Tabelle aktualisieren (Status-Spalte)
@@ -10082,6 +10090,9 @@ async function saveProviderModal() {
         // Effektiven Satz (commission_rate) nach dem Speichern neu berechnen
         await supabaseClient.rpc('recompute_commission_rate', { p_id: _editingProvider.id });
 
+        // Änderung automatisch an CleverReach durchreichen (best-effort).
+        autoPushProviderToCleverReach(_editingProvider.id);
+
         await reloadProviderInCache(_editingProvider.id);
         refreshCustomers();
         closeProviderModal();
@@ -11044,6 +11055,27 @@ async function crVerifyProvider(id) {
         if (msg) msg.innerHTML = `<span style="color:#b91c1c;">Fehler: ${crEsc(err.message || err)}</span>`;
     }
 }
+
+/** Auto-Push: reicht Provider nach dem Speichern/Import automatisch an
+ *  CleverReach durch (gezielt, ohne Verified-Zwang). Best-effort — blockiert
+ *  das Speichern NIE und wirft nicht (nur Log). Akzeptiert eine ID oder Array. */
+async function autoPushProviderToCleverReach(idOrIds) {
+    const ids = (Array.isArray(idOrIds) ? idOrIds : [idOrIds]).filter(Boolean);
+    if (ids.length === 0 || typeof SCRAPER_URL === 'undefined' || !SCRAPER_URL) return;
+    try {
+        const resp = await fetch(`${SCRAPER_URL}/api/cleverreach-sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ groupMode: 'language', providerIds: ids, onlyVerified: false, dryRun: false }),
+        });
+        if (!resp.ok) { console.warn('CleverReach Auto-Push HTTP', resp.status); return; }
+        const data = await resp.json().catch(() => ({}));
+        console.log(`CleverReach Auto-Push (${ids.length} Provider):`, data.counts || data);
+    } catch (err) {
+        console.warn('CleverReach Auto-Push fehlgeschlagen (unkritisch):', err?.message || err);
+    }
+}
+window.autoPushProviderToCleverReach = autoPushProviderToCleverReach;
 
 /** Pusht genau einen Provider sofort in seine CleverReach-Sprachgruppe. */
 async function crPushProvider(id, btn) {
