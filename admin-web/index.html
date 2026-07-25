@@ -475,6 +475,20 @@
                                 Land
                                 <input id="edit-country" type="text" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
                             </label>
+                            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+                                <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">📍 Standort</div>
+                                <div style="display:flex; gap:8px;">
+                                    <input id="edit-latitude" type="number" step="any" placeholder="Latitude" style="flex:1; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                                    <input id="edit-longitude" type="number" step="any" placeholder="Longitude" style="flex:1; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                                </div>
+                                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+                                    <button type="button" class="btn-secondary" onclick="geoParseEditModal()" style="flex:1; min-width:150px;">✂️ Adresse aufteilen</button>
+                                    <button type="button" class="btn-secondary" onclick="geocodeEditModal()" style="flex:1; min-width:150px;">🔍 Neu geocodieren</button>
+                                    <button type="button" class="btn-secondary" onclick="geoTogglePickerModal()" style="flex:1; min-width:150px;">📍 Pin verschieben</button>
+                                </div>
+                                <div id="edit-modal-map" style="display:none; height:300px; margin-top:8px; border:1px solid #e2e8f0; border-radius:8px; z-index:0;"></div>
+                                <div id="edit-modal-geo-status" style="font-size:12px; color:#555; margin-top:6px; line-height:1.4;"></div>
+                            </div>
                             <label style="font-size:13px; color:#475569;">
                                 Telefon
                                 <input id="edit-phone" type="text" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
@@ -2277,7 +2291,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260724-geopin"></script>
+    <script src="app.js?v=20260724-geopin2"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;

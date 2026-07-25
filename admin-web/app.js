@@ -2002,9 +2002,12 @@ window.geoTogglePicker = geoTogglePicker;
 
 function geoInitPicker(mapDivId, formId) {
     const form = document.getElementById(formId);
-    if (!document.getElementById(mapDivId) || !form || typeof L === 'undefined') return;
-    const latEl = form.querySelector('[name="latitude"]');
-    const lonEl = form.querySelector('[name="longitude"]');
+    if (!form) return;
+    geoInitPickerEls(mapDivId, form.querySelector('[name="latitude"]'), form.querySelector('[name="longitude"]'));
+}
+
+function geoInitPickerEls(mapDivId, latEl, lonEl) {
+    if (!document.getElementById(mapDivId) || typeof L === 'undefined') return;
     const lat = parseFloat(latEl?.value), lon = parseFloat(lonEl?.value);
     const hasCoords = !isNaN(lat) && !isNaN(lon);
     const center = hasCoords ? [lat, lon] : [46.5, 6.5];
@@ -2026,6 +2029,64 @@ function geoUpdatePicker(mapDivId, lat, lon) {
     map._geoMarker.setLatLng([lat, lon]); map.setView([lat, lon], 16);
     setTimeout(() => map.invalidateSize(), 100);
 }
+
+// ─── Provider-Bearbeiten-Modal (saveProviderModal, edit-* IDs) ───
+function geoParseEditModal() {
+    const streetEl = document.getElementById('edit-street');
+    const raw = (streetEl?.value || '').trim();
+    if (!raw.includes(',')) { alert('In „Straße" steht keine kombinierte Adresse (keine Kommas) — nichts aufzuteilen.'); return; }
+    const r = geoSplitAddress(raw);
+    if (!r) { alert('Adresse konnte nicht aufgeteilt werden.'); return; }
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+    if (r.street) streetEl.value = r.street;
+    set('edit-postal', r.postal); set('edit-city', r.city); set('edit-country', r.country);
+    alert(`Aufgeteilt — bitte prüfen:\nStraße: ${r.street}\nPLZ: ${r.postal || '—'}\nStadt: ${r.city || '—'}\nLand: ${r.country || '—'}\n\nDann „Neu geocodieren" oder den Pin verschieben.`);
+}
+window.geoParseEditModal = geoParseEditModal;
+
+function geoTogglePickerModal() {
+    const el = document.getElementById('edit-modal-map');
+    if (!el) return;
+    const show = !el.style.display || el.style.display === 'none';
+    el.style.display = show ? 'block' : 'none';
+    if (show) geoInitPickerEls('edit-modal-map', document.getElementById('edit-latitude'), document.getElementById('edit-longitude'));
+}
+window.geoTogglePickerModal = geoTogglePickerModal;
+
+async function geocodeEditModal() {
+    const g = (id) => (document.getElementById(id)?.value || '').trim();
+    const street = g('edit-street'), postal = g('edit-postal'), city = g('edit-city'), country = g('edit-country');
+    const statusEl = document.getElementById('edit-modal-geo-status');
+    if (!city) { if (statusEl) statusEl.textContent = '❌ Bitte mindestens eine Stadt angeben.'; return; }
+    if (statusEl) statusEl.textContent = '⏳ Suche Koordinaten…';
+    const fetchN = async (params) => {
+        const res = await fetch('https://nominatim.openstreetmap.org/search?' + params + '&format=json&limit=1&addressdetails=1');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+    };
+    try {
+        const sp = new URLSearchParams();
+        if (street) sp.set('street', street);
+        if (postal) sp.set('postalcode', postal);
+        if (city) sp.set('city', city);
+        if (country) sp.set('country', country);
+        let data = await fetchN(sp.toString());
+        if (!data?.length) data = await fetchN('q=' + encodeURIComponent([street, postal, city, country].filter(Boolean).join(', ')));
+        if (data?.length) {
+            document.getElementById('edit-latitude').value = data[0].lat;
+            document.getElementById('edit-longitude').value = data[0].lon;
+            const prec = geoPrecision(data[0]);
+            geoUpdatePicker('edit-modal-map', parseFloat(data[0].lat), parseFloat(data[0].lon));
+            if (statusEl) statusEl.textContent = `${prec.label} · ${data[0].lat}, ${data[0].lon}`
+                + (prec.level !== 'exact' ? ' — bitte Pin prüfen' : '');
+        } else if (statusEl) {
+            statusEl.textContent = '❌ Keine Koordinaten gefunden — bitte Pin manuell setzen.';
+        }
+    } catch (e) {
+        if (statusEl) statusEl.textContent = '❌ Fehler: ' + e.message;
+    }
+}
+window.geocodeEditModal = geocodeEditModal;
 
 function openGoogleMapsForProvider() {
     const form = document.getElementById('edit-provider-form');
@@ -9575,7 +9636,7 @@ async function openProviderModal(providerId) {
     try {
         const { data, error } = await supabaseClient
             .from('service_providers')
-            .select('description, street, postal_code, phone, email, website, brands, services')
+            .select('description, street, postal_code, phone, email, website, brands, services, latitude, longitude')
             .eq('id', providerId)
             .single();
         if (error) throw error;
@@ -9588,6 +9649,15 @@ async function openProviderModal(providerId) {
         document.getElementById('edit-website').value     = data.website || '';
         document.getElementById('edit-brands').value      = (data.brands   || []).join(', ');
         document.getElementById('edit-services').value    = (data.services || []).join(', ');
+        // Standort laden + Karte zurücksetzen (frisch beim nächsten Öffnen)
+        const _latEl = document.getElementById('edit-latitude');
+        const _lonEl = document.getElementById('edit-longitude');
+        if (_latEl) _latEl.value = data.latitude ?? '';
+        if (_lonEl) _lonEl.value = data.longitude ?? '';
+        const _mapEl = document.getElementById('edit-modal-map');
+        if (_mapEl) _mapEl.style.display = 'none';
+        const _geoStat = document.getElementById('edit-modal-geo-status');
+        if (_geoStat) _geoStat.textContent = '';
     } catch (err) {
         console.warn('Detail-Felder laden fehlgeschlagen:', err);
     }
@@ -10190,6 +10260,11 @@ async function saveProviderModal() {
             services:       parseCsv(document.getElementById('edit-services').value),
             is_shop_active: document.getElementById('edit-shop-active').checked,
         };
+        // Standort (manuell/Pin/Geocode) mitspeichern
+        const _latV = parseFloat(document.getElementById('edit-latitude')?.value);
+        const _lonV = parseFloat(document.getElementById('edit-longitude')?.value);
+        payload.latitude  = isNaN(_latV) ? null : _latV;
+        payload.longitude = isNaN(_lonV) ? null : _lonV;
         // Provision: leeres Feld = kein Override (Modell greift). Sonst Override.
         const _ovRaw = document.getElementById('edit-commission').value.trim();
         payload.commission_override = _ovRaw === '' ? null : (parseFloat(_ovRaw) || 0);
