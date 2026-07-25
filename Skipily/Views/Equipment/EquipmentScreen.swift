@@ -1524,6 +1524,14 @@ struct AddEditEquipmentView: View {
                 diameterMm: ropeDiameter, color: ropeColor, end1: ropeEnd1, end1Eye: ropeEnd1Eye,
                 end2: ropeEnd2, end2Eye: ropeEnd2Eye, accessoryArticle: ropeAccessory
             )
+            // Maße für die Ersatzteilsuche-Kopfzeile übernehmen: Länge in m, Ø in mm.
+            func n(_ s: String) -> Double? { Double(s.replacingOccurrences(of: ",", with: ".").trimmingCharacters(in: .whitespaces)) }
+            func f(_ d: Double) -> String { d.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(d)) : String(format: "%.2f", d) }
+            var dimParts: [String] = []
+            if let l = n(ropeLength) { dimParts.append("\(f(l)) m") }
+            if let d = n(ropeDiameter) { dimParts.append("Ø \(f(d)) mm") }
+            let ropeDims = dimParts.joined(separator: " · ")
+            if !ropeDims.isEmpty { saved.dimensions = ropeDims }
         }
         isUploadingPhotos = false
         onSave(saved)

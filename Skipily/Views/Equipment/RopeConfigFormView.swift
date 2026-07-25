@@ -256,6 +256,15 @@ struct RopeConfigFormView: View {
         d.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(d)) : String(format: "%.2f", d)
     }
 
+    /// Kurz-Zusammenfassung der Maße fürs Equipment-Feld `dimensions` — landet in
+    /// der Kopfzeile der Ersatzteilsuche. Länge in m, Stärke in mm (Ø).
+    private func ropeDimsSummary() -> String {
+        var parts: [String] = []
+        if let l = num(lengthM) { parts.append("\(fmt(l)) m") }
+        if let d = num(diameterMm) { parts.append("Ø \(fmt(d)) mm") }
+        return parts.joined(separator: " · ")
+    }
+
     /// Sucht ein Shop-Produkt mit passender Artikelnummer (part_number/sku).
     private func matchProduct() async -> UUID? {
         let art = articleNumber.trimmingCharacters(in: .whitespaces)
@@ -315,11 +324,16 @@ struct RopeConfigFormView: View {
                     .insert(payload).execute()
             }
 
-            // Tauwerk-Art als feste Kategorie am Equipment verankern.
-            if !material.isEmpty {
+            // Tauwerk-Art als Kategorie + Maße (für die Ersatzteilsuche-Kopfzeile)
+            // ans Equipment übernehmen. Länge in m, Stärke in mm.
+            var eqUpdate: [String: String] = [:]
+            if !material.isEmpty { eqUpdate["rope_type"] = material }
+            let dims = ropeDimsSummary()
+            if !dims.isEmpty { eqUpdate["dimensions"] = dims }
+            if !eqUpdate.isEmpty {
                 try? await SupabaseManager.shared.client
                     .from("equipment")
-                    .update(["rope_type": material])
+                    .update(eqUpdate)
                     .eq("id", value: equipmentId.uuidString)
                     .execute()
             }

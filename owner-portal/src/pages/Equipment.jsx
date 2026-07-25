@@ -370,9 +370,17 @@ export default function Equipment() {
         } else {
           await supabase.from('rope_configurations').insert(ropePayload)
         }
-        // Tauwerk-Art als Kategorie am Equipment verankern
-        if (ropeForm.material) {
-          await supabase.from('equipment').update({ rope_type: ropeForm.material }).eq('id', savedEquipmentId)
+        // Tauwerk-Art als Kategorie + Maße (für die Ersatzteilsuche-Kopfzeile)
+        // ans Equipment übernehmen. Länge in m, Stärke in mm (Ø).
+        const dimParts = []
+        const L = n(ropeForm.length_m); if (L != null) dimParts.push(`${L} m`)
+        const D = n(ropeForm.diameter_mm); if (D != null) dimParts.push(`Ø ${D} mm`)
+        const ropeDims = dimParts.join(' · ')
+        const eqUpdate = {}
+        if (ropeForm.material) eqUpdate.rope_type = ropeForm.material
+        if (ropeDims) eqUpdate.dimensions = ropeDims
+        if (Object.keys(eqUpdate).length) {
+          await supabase.from('equipment').update(eqUpdate).eq('id', savedEquipmentId)
         }
       }
 
