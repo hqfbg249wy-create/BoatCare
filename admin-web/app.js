@@ -1602,6 +1602,15 @@ function showEditForm(provider) {
                         🗺️ In Google Maps suchen
                     </button>
                 </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+                    <button type="button" class="btn-secondary" onclick="geoParseIntoForm('edit-provider-form')" style="flex:1; min-width:180px;">
+                        ✂️ Adresse aufteilen (Straße → PLZ/Stadt/Land)
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="geoTogglePicker('edit-provider-map','edit-provider-form')" style="flex:1; min-width:180px;">
+                        📍 Pin manuell setzen / verschieben
+                    </button>
+                </div>
+                <div id="edit-provider-map" style="display:none; height:300px; margin-top:8px; border:1px solid #e2e8f0; border-radius:8px; z-index:0;"></div>
                 <div id="geocode-edit-status" style="font-size:12px; color:#555; margin-top:8px; line-height:1.4;"></div>
                 <div style="font-size:11px; color:#888; margin-top:6px; border-top:1px solid #e2e8f0; padding-top:6px;">
                     💡 Für "Zone Technique", Häfen etc.: Google Maps öffnen → rechte Maustaste auf den genauen Ort → Koordinaten kopieren → oben eintragen
@@ -1799,7 +1808,7 @@ async function geocodeAddress() {
     if (btn) { btn.disabled = true; btn.textContent = '⏳ Suche…'; }
 
     const nominatimFetch = async (params) => {
-        const url = 'https://nominatim.openstreetmap.org/search?' + params + '&format=json&limit=1';
+        const url = 'https://nominatim.openstreetmap.org/search?' + params + '&format=json&limit=1&addressdetails=1';
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return await response.json();
@@ -1830,7 +1839,10 @@ async function geocodeAddress() {
         if (data?.length) {
             form.querySelector('input[name="latitude"]').value  = data[0].lat;
             form.querySelector('input[name="longitude"]').value = data[0].lon;
-            alert(`✅ Koordinaten gefunden:\n${data[0].lat}, ${data[0].lon}\n${data[0].display_name}`);
+            const prec = geoPrecision(data[0]);
+            geoUpdatePicker('add-provider-map', parseFloat(data[0].lat), parseFloat(data[0].lon));
+            alert(`✅ Koordinaten: ${data[0].lat}, ${data[0].lon}\n${prec.label}\n${data[0].display_name}`
+                + (prec.level !== 'exact' ? '\n\n→ Bitte per „🗺️ Auf Karte" den Pin genau setzen.' : ''));
         } else {
             alert('❌ Keine Koordinaten gefunden für:\n' + fullAddress);
         }
@@ -1863,7 +1875,7 @@ async function geocodeForEditForm() {
 
     // Hinweis: User-Agent darf vom Browser nicht gesetzt werden (forbidden header)
     const nominatimFetch = async (params) => {
-        const url = 'https://nominatim.openstreetmap.org/search?' + params + '&format=json&limit=1';
+        const url = 'https://nominatim.openstreetmap.org/search?' + params + '&format=json&limit=1&addressdetails=1';
         console.log('Nominatim Anfrage:', url);
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -1900,8 +1912,10 @@ async function geocodeForEditForm() {
         if (data && data.length > 0) {
             form.querySelector('input[name="latitude"]').value = data[0].lat;
             form.querySelector('input[name="longitude"]').value = data[0].lon;
-            const preview = data[0].display_name.length > 70 ? data[0].display_name.substring(0, 70) + '…' : data[0].display_name;
-            if (statusEl) statusEl.textContent = `✅ ${data[0].lat}, ${data[0].lon} — ${preview}`;
+            const prec = geoPrecision(data[0]);
+            geoUpdatePicker('edit-provider-map', parseFloat(data[0].lat), parseFloat(data[0].lon));
+            const preview = data[0].display_name.length > 55 ? data[0].display_name.substring(0, 55) + '…' : data[0].display_name;
+            if (statusEl) statusEl.textContent = `${prec.label} · ${data[0].lat}, ${data[0].lon} — ${preview}`;
         } else {
             if (statusEl) statusEl.textContent = '❌ Keine Koordinaten gefunden – bitte Adresse prüfen';
             console.warn('Nominatim: Keine Ergebnisse für:', fullAddress);
@@ -1910,6 +1924,107 @@ async function geocodeForEditForm() {
         console.error('Geocoding Fehler:', error);
         if (statusEl) statusEl.textContent = '❌ Fehler beim Geocoding: ' + error.message;
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GEO-HILFEN: Adresse aufteilen + Land erkennen · Genauigkeit · Pin-Karte
+// ═══════════════════════════════════════════════════════════════════
+const GEO_COUNTRY_MAP = {
+    france:'Frankreich', frankreich:'Frankreich', fr:'Frankreich',
+    deutschland:'Deutschland', germany:'Deutschland', de:'Deutschland',
+    italia:'Italien', italy:'Italien', italien:'Italien', it:'Italien',
+    'españa':'Spanien', espana:'Spanien', spain:'Spanien', spanien:'Spanien', es:'Spanien',
+    nederland:'Niederlande', netherlands:'Niederlande', niederlande:'Niederlande', nl:'Niederlande',
+    'österreich':'Österreich', oesterreich:'Österreich', austria:'Österreich', at:'Österreich',
+    schweiz:'Schweiz', switzerland:'Schweiz', suisse:'Schweiz', ch:'Schweiz',
+    croatia:'Kroatien', hrvatska:'Kroatien', kroatien:'Kroatien', hr:'Kroatien',
+    greece:'Griechenland', griechenland:'Griechenland', gr:'Griechenland',
+    belgium:'Belgien', belgique:'Belgien', 'belgië':'Belgien', be:'Belgien',
+    portugal:'Portugal', pt:'Portugal',
+};
+
+/** Zerlegt "Rue de l'Artisanat, 83400 Hyères, France" → {street, postal, city, country}. */
+function geoSplitAddress(raw) {
+    const parts = (raw || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (parts.length < 2) return null;
+    let street = '', postal = '', city = '', country = '';
+    const last = parts[parts.length - 1].toLowerCase();
+    if (GEO_COUNTRY_MAP[last]) { country = GEO_COUNTRY_MAP[last]; parts.pop(); }
+    for (let i = parts.length - 1; i >= 0; i--) {
+        const m = parts[i].match(/^(\d{4,6})\s+(.+)$/) || parts[i].match(/^(.+?)\s+(\d{4,6})$/);
+        if (m) {
+            if (/^\d/.test(m[1])) { postal = m[1]; city = m[2].trim(); }
+            else { city = m[1].trim(); postal = m[2]; }
+            parts.splice(i, 1); break;
+        }
+    }
+    street = parts.join(', ');
+    return { street, postal, city, country };
+}
+
+/** Teilt die "Straße"-Volladresse eines Formulars in die Einzelfelder auf. */
+function geoParseIntoForm(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    const streetEl = form.querySelector('[name="street"]');
+    const raw = (streetEl?.value || '').trim();
+    if (!raw.includes(',')) { alert('In „Straße" steht keine kombinierte Adresse (keine Kommas) — nichts aufzuteilen.'); return; }
+    const r = geoSplitAddress(raw);
+    if (!r) { alert('Adresse konnte nicht aufgeteilt werden.'); return; }
+    const set = (name, val) => { const el = form.querySelector(`[name="${name}"]`); if (el && val) el.value = val; };
+    if (r.street) streetEl.value = r.street;
+    set('postal_code', r.postal); set('city', r.city); set('country', r.country);
+    alert(`Aufgeteilt — bitte prüfen:\nStraße: ${r.street}\nPLZ: ${r.postal || '—'}\nStadt: ${r.city || '—'}\nLand: ${r.country || '—'}\n\nDann „Geocode" oder den Pin verschieben.`);
+}
+window.geoParseIntoForm = geoParseIntoForm;
+
+/** Schätzt die Genauigkeit eines Nominatim-Treffers (addressdetails nötig). */
+function geoPrecision(res) {
+    if (!res) return { level: 'none', label: 'kein Treffer' };
+    const rank = Number(res.place_rank || 0);
+    const at = (res.addresstype || res.type || '').toLowerCase();
+    const hasHouse = !!(res.address && res.address.house_number);
+    if (hasHouse || rank >= 30 || at === 'house' || at === 'building') return { level: 'exact', label: '🎯 hausnummer-genau' };
+    if (rank >= 26 || at === 'road') return { level: 'street', label: '⚠️ nur Straßen-genau — Pin prüfen' };
+    return { level: 'coarse', label: '⚠️ nur Orts-/PLZ-genau — bitte Pin setzen' };
+}
+
+// ─── Draggable Pin (Leaflet) ───
+const _geoPickers = {};
+function geoTogglePicker(mapDivId, formId) {
+    const el = document.getElementById(mapDivId);
+    if (!el) return;
+    const show = !el.style.display || el.style.display === 'none';
+    el.style.display = show ? 'block' : 'none';
+    if (show) geoInitPicker(mapDivId, formId);
+}
+window.geoTogglePicker = geoTogglePicker;
+
+function geoInitPicker(mapDivId, formId) {
+    const form = document.getElementById(formId);
+    if (!document.getElementById(mapDivId) || !form || typeof L === 'undefined') return;
+    const latEl = form.querySelector('[name="latitude"]');
+    const lonEl = form.querySelector('[name="longitude"]');
+    const lat = parseFloat(latEl?.value), lon = parseFloat(lonEl?.value);
+    const hasCoords = !isNaN(lat) && !isNaN(lon);
+    const center = hasCoords ? [lat, lon] : [46.5, 6.5];
+    if (_geoPickers[mapDivId]) { try { _geoPickers[mapDivId].remove(); } catch (e) {} }
+    const map = L.map(mapDivId).setView(center, hasCoords ? 16 : 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+    const marker = L.marker(center, { draggable: true }).addTo(map);
+    const sync = (ll) => { if (latEl) latEl.value = ll.lat.toFixed(6); if (lonEl) lonEl.value = ll.lng.toFixed(6); };
+    marker.on('dragend', () => sync(marker.getLatLng()));
+    map.on('click', (e) => { marker.setLatLng(e.latlng); sync(e.latlng); });
+    _geoPickers[mapDivId] = map; map._geoMarker = marker;
+    setTimeout(() => map.invalidateSize(), 150);
+}
+
+/** Pin nach einem Geocode auf die neuen Koordinaten setzen (falls Karte offen). */
+function geoUpdatePicker(mapDivId, lat, lon) {
+    const map = _geoPickers[mapDivId];
+    if (!map || !map._geoMarker || isNaN(lat) || isNaN(lon)) return;
+    map._geoMarker.setLatLng([lat, lon]); map.setView([lat, lon], 16);
+    setTimeout(() => map.invalidateSize(), 100);
 }
 
 function openGoogleMapsForProvider() {
