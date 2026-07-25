@@ -58,6 +58,7 @@ struct RopeConfigFormView: View {
     @State private var lengthM = ""
     @State private var material = ""
     @State private var diameterMm = ""
+    @State private var color = ""
     @State private var end1 = ""
     @State private var end1Eye = ""
     @State private var end2 = ""
@@ -120,6 +121,7 @@ struct RopeConfigFormView: View {
                     .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 8))
                     measureField("rope.f.length".loc, value: $lengthM, unit: "m")
                     measureField("rope.f.diameter".loc, value: $diameterMm, unit: "mm")
+                    TextField("rope.f.color".loc, text: $color)
                 }
 
                 Section("rope.section_end1".loc) {
@@ -193,6 +195,7 @@ struct RopeConfigFormView: View {
         let length_m: Double?
         let material: String?
         let diameter_mm: Double?
+        let color: String?
         let end1: String?
         let end1_eye_length_cm: Double?
         let end2: String?
@@ -208,6 +211,7 @@ struct RopeConfigFormView: View {
         let length_m: Double?
         let material: String
         let diameter_mm: Double?
+        let color: String
         let end1: String?
         let end1_eye_length_cm: Double?
         let end2: String?
@@ -236,6 +240,7 @@ struct RopeConfigFormView: View {
             lengthM = r.length_m.map { fmt($0) } ?? ""
             material = r.material ?? ""
             diameterMm = r.diameter_mm.map { fmt($0) } ?? ""
+            color = r.color ?? ""
             end1 = r.end1 ?? ""
             end1Eye = r.end1_eye_length_cm.map { fmt($0) } ?? ""
             end2 = r.end2 ?? ""
@@ -289,6 +294,7 @@ struct RopeConfigFormView: View {
             length_m: num(lengthM),
             material: material,
             diameter_mm: num(diameterMm),
+            color: color.trimmingCharacters(in: .whitespaces),
             end1: end1.isEmpty ? nil : end1,
             end1_eye_length_cm: end1NeedsEye ? num(end1Eye) : nil,
             end2: end2.isEmpty ? nil : end2,

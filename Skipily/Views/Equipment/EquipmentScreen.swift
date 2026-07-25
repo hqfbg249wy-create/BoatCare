@@ -17,6 +17,7 @@ struct RopeConfigDraft {
     var lengthM = ""
     var material = ""
     var diameterMm = ""
+    var color = ""
     var end1 = ""
     var end1Eye = ""
     var end2 = ""
@@ -570,6 +571,7 @@ struct EquipmentScreen: View {
             let length_m: Double?
             let material: String
             let diameter_mm: Double?
+            let color: String
             let end1: String?
             let end1_eye_length_cm: Double?
             let end2: String?
@@ -581,6 +583,7 @@ struct EquipmentScreen: View {
         let payload = RopeUpsert(
             equipment_id: eqId, article_number: art, matched_product_id: matchedId,
             length_m: num(d.lengthM), material: d.material, diameter_mm: num(d.diameterMm),
+            color: d.color.trimmingCharacters(in: .whitespaces),
             end1: d.end1.isEmpty ? nil : d.end1,
             end1_eye_length_cm: needsEye(d.end1) ? num(d.end1Eye) : nil,
             end2: d.end2.isEmpty ? nil : d.end2,
@@ -1162,6 +1165,7 @@ struct AddEditEquipmentView: View {
     @State private var ropeLength = ""
     @State private var ropeMaterial = ""
     @State private var ropeDiameter = ""
+    @State private var ropeColor = ""
     @State private var ropeEnd1 = ""
     @State private var ropeEnd1Eye = ""
     @State private var ropeEnd2 = ""
@@ -1396,6 +1400,7 @@ struct AddEditEquipmentView: View {
                         }
                         ropeMeasureRow("rope.f.length".loc, value: $ropeLength, unit: "m")
                         ropeMeasureRow("rope.f.diameter".loc, value: $ropeDiameter, unit: "mm")
+                        TextField("rope.f.color".loc, text: $ropeColor)
                         Picker("rope.section_end1".loc, selection: $ropeEnd1) {
                             Text("rope.end.none".loc).tag("")
                             ForEach(RopeEndOption.allCases) { Text($0.label).tag($0.rawValue) }
@@ -1516,7 +1521,7 @@ struct AddEditEquipmentView: View {
         if isRopeCategoryInForm {
             saved.ropeDraft = RopeConfigDraft(
                 articleNumber: ropeArticle, lengthM: ropeLength, material: ropeMaterial,
-                diameterMm: ropeDiameter, end1: ropeEnd1, end1Eye: ropeEnd1Eye,
+                diameterMm: ropeDiameter, color: ropeColor, end1: ropeEnd1, end1Eye: ropeEnd1Eye,
                 end2: ropeEnd2, end2Eye: ropeEnd2Eye, accessoryArticle: ropeAccessory
             )
         }
@@ -1545,7 +1550,7 @@ struct AddEditEquipmentView: View {
         ropeLoaded = true
         struct RopeRow: Decodable {
             let article_number: String?; let length_m: Double?; let material: String?
-            let diameter_mm: Double?; let end1: String?; let end1_eye_length_cm: Double?
+            let diameter_mm: Double?; let color: String?; let end1: String?; let end1_eye_length_cm: Double?
             let end2: String?; let end2_eye_length_cm: Double?; let accessory_article_number: String?
         }
         let rows: [RopeRow] = (try? await SupabaseManager.shared.client
@@ -1562,6 +1567,7 @@ struct AddEditEquipmentView: View {
         ropeLength = fmt(r.length_m)
         ropeMaterial = r.material ?? ""
         ropeDiameter = fmt(r.diameter_mm)
+        ropeColor = r.color ?? ""
         ropeEnd1 = r.end1 ?? ""
         ropeEnd1Eye = fmt(r.end1_eye_length_cm)
         ropeEnd2 = r.end2 ?? ""

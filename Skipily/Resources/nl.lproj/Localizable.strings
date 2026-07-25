@@ -696,6 +696,7 @@
 "rope.material.none" = "Please select";
 "rope.f.length" = "Length";
 "rope.f.diameter" = "Diameter";
+"rope.f.color" = "Kleur";
 "rope.section_end1" = "End 1";
 "rope.section_end2" = "End 2";
 "rope.f.end" = "Type";

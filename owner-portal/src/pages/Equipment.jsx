@@ -248,7 +248,7 @@ export default function Equipment() {
         .order('created_at', { ascending: false }).limit(1).maybeSingle()
       setRopeForm(rope ? {
         article_number: rope.article_number || '', length_m: rope.length_m ?? '',
-        material: rope.material || '', diameter_mm: rope.diameter_mm ?? '',
+        material: rope.material || '', diameter_mm: rope.diameter_mm ?? '', color: rope.color || '',
         end1: rope.end1 || '', end1_eye_length_cm: rope.end1_eye_length_cm ?? '',
         end2: rope.end2 || '', end2_eye_length_cm: rope.end2_eye_length_cm ?? '',
         accessory_article_number: rope.accessory_article_number || '', notes: rope.notes || '',
@@ -353,6 +353,7 @@ export default function Equipment() {
           length_m: n(ropeForm.length_m),
           material: ropeForm.material || '',
           diameter_mm: n(ropeForm.diameter_mm),
+          color: ropeForm.color || '',
           end1: ropeForm.end1 || null,
           end1_eye_length_cm: ROPE_EYE_ENDS.has(ropeForm.end1) ? n(ropeForm.end1_eye_length_cm) : null,
           end2: ropeForm.end2 || null,

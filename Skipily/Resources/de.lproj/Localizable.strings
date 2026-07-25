@@ -699,6 +699,7 @@ Ausrüstung unter Boote ergänzen.";
 "rope.material.none" = "Bitte wählen";
 "rope.f.length" = "Länge";
 "rope.f.diameter" = "Stärke";
+"rope.f.color" = "Farbe";
 "rope.section_end1" = "Ende 1";
 "rope.section_end2" = "Ende 2";
 "rope.f.end" = "Ausführung";

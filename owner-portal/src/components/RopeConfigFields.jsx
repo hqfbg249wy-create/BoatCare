@@ -8,7 +8,7 @@ import { useT } from '../i18n'
 import { ROPE_END_OPTIONS, ROPE_MATERIALS, ROPE_EYE_ENDS } from '../lib/ropeOptions'
 
 export const emptyRope = {
-  article_number: '', length_m: '', material: '', diameter_mm: '',
+  article_number: '', length_m: '', material: '', diameter_mm: '', color: '',
   end1: '', end1_eye_length_cm: '', end2: '', end2_eye_length_cm: '',
   accessory_article_number: '', notes: '',
 }
@@ -50,6 +50,10 @@ export default function RopeConfigFields({ rope, setRope }) {
         <div className="form-group" style={{ flex: '1 1 90px' }}>
           <label>{t('rope.fDiameter')} (mm)</label>
           <input inputMode="decimal" value={rope.diameter_mm} onChange={e => set('diameter_mm', e.target.value)} placeholder="10" />
+        </div>
+        <div className="form-group" style={{ flex: '1 1 130px' }}>
+          <label>{t('rope.fColor')}</label>
+          <input value={rope.color} onChange={e => set('color', e.target.value)} placeholder={t('rope.colorPlaceholder')} />
         </div>
       </div>
 

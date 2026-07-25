@@ -192,6 +192,8 @@ export default {
   'rope.materialNone': "Bitte wählen",
   'rope.fLength': "Länge",
   'rope.fDiameter': "Stärke",
+  'rope.fColor': "Farbe",
+  'rope.colorPlaceholder': "z.B. schwarz, weiß/blau",
   'rope.sectionEnd1': "Ende 1",
   'rope.sectionEnd2': "Ende 2",
   'rope.endNone': "Bitte wählen",
