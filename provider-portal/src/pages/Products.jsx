@@ -716,6 +716,11 @@ export default function Products() {
               </button>
             </>
           )}
+          <a className="btn-secondary" href="/skipily-produkte-vorlage.xlsx" download
+             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+             title={t('products.xlsxTemplateTitle')}>
+            <FileSpreadsheet size={16} /> {t('products.xlsxTemplate')}
+          </a>
           <button className="btn-secondary" onClick={downloadCsvTemplate} title={t('products.csvTemplateTitle')}>
             <Download size={16} /> {t('products.csvTemplate')}
           </button>
