@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { Link } from 'react-router-dom'
 import { Plus, Pencil, Trash2, Search, Upload, X, Save, Loader, Image as ImageIcon, Package, CheckSquare, Square, FileSpreadsheet, Download, Lock, Sparkles } from 'lucide-react'
 import { useT } from '../i18n'
+import * as XLSX from 'xlsx'
 
 export default function Products() {
   const { provider } = useAuth()
@@ -406,7 +407,18 @@ export default function Products() {
     setMessage(null)
 
     try {
-      const text = await file.text()
+      // Excel (.xlsx/.xls) direkt annehmen: erstes Blatt (bzw. „Products") in
+      // CSV wandeln und durch dieselbe Pipeline schicken. Sonst CSV als Text.
+      let text
+      const isExcel = /\.(xlsx|xlsm|xls)$/i.test(file.name)
+      if (isExcel) {
+        const buf = await file.arrayBuffer()
+        const wb = XLSX.read(buf, { type: 'array' })
+        const sheetName = wb.SheetNames.find(n => n.toLowerCase() === 'products') || wb.SheetNames[0]
+        text = XLSX.utils.sheet_to_csv(wb.Sheets[sheetName], { FS: ',' })
+      } else {
+        text = await file.text()
+      }
       const { rows, headers } = parseCsv(text)
 
       if (rows.length === 0) {
@@ -715,12 +727,12 @@ export default function Products() {
           >
             {csvImporting
               ? <><Loader size={16} className="spin" /> {t('products.importing')}</>
-              : <><FileSpreadsheet size={16} /> CSV-Import</>}
+              : <><FileSpreadsheet size={16} /> Import CSV/Excel</>}
           </button>
           <input
             type="file"
             ref={csvInputRef}
-            accept=".csv,text/csv"
+            accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
             onChange={handleCsvUpload}
             style={{ display: 'none' }}
           />
