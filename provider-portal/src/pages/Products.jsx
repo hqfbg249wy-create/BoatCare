@@ -124,20 +124,31 @@ export default function Products() {
     setCategories(data || [])
   }
 
-  // Aktive (nicht-Legacy) Oberkategorien für die Import-Referenz/Vorlage.
-  const importCategoryOptions = categories.filter(c => !c.parent_id && !String(c.slug || '').startsWith('_legacy'))
+  // Aktive (nicht-Legacy) Kategorien für die Import-Referenz/Vorlage, geordnet:
+  // je Oberkategorie direkt ihre Unterkategorien. Englische Namen = kanonisch.
+  const importCategoryOptions = (() => {
+    const active = categories.filter(c => !String(c.slug || '').startsWith('_legacy'))
+    const parents = active.filter(c => !c.parent_id)
+    const out = []
+    for (const p of parents) {
+      out.push({ ...p, isParent: true })
+      for (const k of active.filter(c => c.parent_id === p.id)) out.push({ ...k, isParent: false })
+    }
+    return out
+  })()
 
-  // CSV-Kategorie (Slug / Name DE / Name EN, case-insensitive) → {category_id, slug}.
-  // Unbekannt → als Freitext behalten, damit der Import trotzdem durchläuft.
+  // CSV-Kategorie (Name EN / Name DE / Slug, case-insensitive) → {category_id, name}.
+  // Kanonisch gespeichert wird der englische Name; unbekannt → Freitext behalten,
+  // damit der Import trotzdem durchläuft.
   function resolveCategory(text) {
     const key = String(text || '').trim().toLowerCase()
-    if (!key) return { category_id: null, slug: null }
+    if (!key) return { category_id: null, name: null }
     const hit = categories.find(c =>
-      (c.slug || '').toLowerCase() === key ||
+      (c.name_en || '').toLowerCase() === key ||
       (c.name_de || '').toLowerCase() === key ||
-      (c.name_en || '').toLowerCase() === key
+      (c.slug || '').toLowerCase() === key
     )
-    return hit ? { category_id: hit.id, slug: hit.slug } : { category_id: null, slug: null }
+    return hit ? { category_id: hit.id, name: hit.name_en || hit.slug } : { category_id: null, name: null }
   }
 
   function handleChange(e) {
@@ -253,8 +264,9 @@ export default function Products() {
   function downloadCsvTemplate() {
     const sample = [
       CSV_HEADERS.join(','),
-      'Impeller Jabsco 1210-0001,Jabsco,1210-0001,JAB-IMP-01,4012345678901,29.90,EUR,50,Impeller Ersatzteil für Jabsco Kühlpumpen,motor-antrieb,5.90,3,0.05,1,true,true,',
-      'Raymarine Element 9 HV,Raymarine,E70643,RAY-EL9,4012345678902,1299.00,EUR,5,Kartenplotter mit HyperVision Sonar,navigation-elektronik,0,7,1.8,1,true,true,',
+      'Impeller Jabsco 1210-0001,Jabsco,1210-0001,JAB-IMP-01,4012345678901,29.90,EUR,50,Impeller spare part for Jabsco cooling pumps,Engine & Drive,5.90,3,0.05,1,true,true,',
+      'Raymarine Element 9 HV,Raymarine,E70643,RAY-EL9,4012345678902,1299.00,EUR,5,Chartplotter with HyperVision sonar,Navigation & Electronics,0,7,1.8,1,true,true,',
+      'Dyneema Rope 10mm blue,Robline,,ROB-DYN10,,3.90,EUR,200,Dyneema core rope sold per metre,Ropes,0,5,0.06,5,true,true,',
     ].join('\n')
     const blob = new Blob([sample], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -373,7 +385,7 @@ export default function Products() {
       currency:          row.currency || 'EUR',
       stock_quantity:    asInt(row.stock_quantity) ?? 0,
       description:       row.description || null,
-      category:          resolveCategory(row.category).slug || row.category || null,
+      category:          resolveCategory(row.category).name || row.category || null,
       category_id:       resolveCategory(row.category).category_id,
       shipping_cost:     asNum(row.shipping_cost),
       delivery_days:     asInt(row.delivery_days),
@@ -745,12 +757,13 @@ export default function Products() {
             {importCategoryOptions.map(c => (
               <span key={c.id} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6,
+                background: c.isParent ? '#eef2ff' : '#fff',
+                border: '1px solid #e2e8f0', borderRadius: 6,
                 padding: '4px 8px', whiteSpace: 'nowrap',
+                fontWeight: c.isParent ? 700 : 400,
               }}>
-                <code style={{ color: '#f97316', fontWeight: 600 }}>{c.slug}</code>
-                <span style={{ color: '#94a3b8' }}>·</span>
-                <span>{c.name_de}</span>
+                {!c.isParent && <span style={{ color: '#cbd5e1' }}>↳</span>}
+                <span>{c.name_en}</span>
               </span>
             ))}
           </div>
