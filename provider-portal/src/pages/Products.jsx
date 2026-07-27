@@ -124,6 +124,22 @@ export default function Products() {
     setCategories(data || [])
   }
 
+  // Aktive (nicht-Legacy) Oberkategorien für die Import-Referenz/Vorlage.
+  const importCategoryOptions = categories.filter(c => !c.parent_id && !String(c.slug || '').startsWith('_legacy'))
+
+  // CSV-Kategorie (Slug / Name DE / Name EN, case-insensitive) → {category_id, slug}.
+  // Unbekannt → als Freitext behalten, damit der Import trotzdem durchläuft.
+  function resolveCategory(text) {
+    const key = String(text || '').trim().toLowerCase()
+    if (!key) return { category_id: null, slug: null }
+    const hit = categories.find(c =>
+      (c.slug || '').toLowerCase() === key ||
+      (c.name_de || '').toLowerCase() === key ||
+      (c.name_en || '').toLowerCase() === key
+    )
+    return hit ? { category_id: hit.id, slug: hit.slug } : { category_id: null, slug: null }
+  }
+
   function handleChange(e) {
     const { name, value, type, checked } = e.target
     setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
@@ -237,8 +253,8 @@ export default function Products() {
   function downloadCsvTemplate() {
     const sample = [
       CSV_HEADERS.join(','),
-      'Impeller Jabsco 1210-0001,Jabsco,1210-0001,JAB-IMP-01,4012345678901,29.90,EUR,50,Impeller Ersatzteil für Jabsco Kühlpumpen,engine,5.90,3,0.05,1,true,true,',
-      'Raymarine Element 9 HV,Raymarine,E70643,RAY-EL9,4012345678902,1299.00,EUR,5,Kartenplotter mit HyperVision Sonar,navigation,0,7,1.8,1,true,true,',
+      'Impeller Jabsco 1210-0001,Jabsco,1210-0001,JAB-IMP-01,4012345678901,29.90,EUR,50,Impeller Ersatzteil für Jabsco Kühlpumpen,motor-antrieb,5.90,3,0.05,1,true,true,',
+      'Raymarine Element 9 HV,Raymarine,E70643,RAY-EL9,4012345678902,1299.00,EUR,5,Kartenplotter mit HyperVision Sonar,navigation-elektronik,0,7,1.8,1,true,true,',
     ].join('\n')
     const blob = new Blob([sample], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -357,7 +373,8 @@ export default function Products() {
       currency:          row.currency || 'EUR',
       stock_quantity:    asInt(row.stock_quantity) ?? 0,
       description:       row.description || null,
-      category:          row.category    || null,
+      category:          resolveCategory(row.category).slug || row.category || null,
+      category_id:       resolveCategory(row.category).category_id,
       shipping_cost:     asNum(row.shipping_cost),
       delivery_days:     asInt(row.delivery_days),
       weight_kg:         asNum(row.weight_kg),
@@ -711,6 +728,34 @@ export default function Products() {
           )}
         </div>
       </div>
+
+      {/* Kategorie-Referenz für den CSV-Import: gültige Werte für die Spalte „category" */}
+      {importCategoryOptions.length > 0 && (
+        <details style={{
+          background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8,
+          padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#334155',
+        }}>
+          <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
+            {t('products.csvCategoriesTitle')}
+          </summary>
+          <p style={{ margin: '8px 0 10px', color: '#64748b' }}>
+            {t('products.csvCategoriesHint')}
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {importCategoryOptions.map(c => (
+              <span key={c.id} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6,
+                padding: '4px 8px', whiteSpace: 'nowrap',
+              }}>
+                <code style={{ color: '#f97316', fontWeight: 600 }}>{c.slug}</code>
+                <span style={{ color: '#94a3b8' }}>·</span>
+                <span>{c.name_de}</span>
+              </span>
+            ))}
+          </div>
+        </details>
+      )}
 
       {/* Limit-Hinweis für Standard-Provider */}
       {access.isStandard && (

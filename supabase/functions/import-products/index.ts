@@ -20,7 +20,7 @@ const ANON_KEY         = Deno.env.get("SUPABASE_ANON_KEY")!;
 // Erlaubte Spalten in metashop_products (alles andere wird ignoriert)
 const ALLOWED = new Set([
   "name", "manufacturer", "part_number", "sku", "ean", "price", "currency",
-  "stock_quantity", "description", "category", "shipping_cost", "delivery_days",
+  "stock_quantity", "description", "category", "category_id", "shipping_cost", "delivery_days",
   "weight_kg", "min_order_quantity", "is_active", "in_stock", "image_url", "source",
 ]);
 

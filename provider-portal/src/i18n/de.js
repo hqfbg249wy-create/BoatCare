@@ -325,6 +325,8 @@ export default {
   'products.searchPh': 'Suchen nach Name, Hersteller, Artikelnr...',
   'products.csvTemplateTitle': 'CSV-Vorlage herunterladen',
   'products.csvTemplate': 'CSV-Vorlage',
+  'products.csvCategoriesTitle': '📂 Gültige Kategorien für den Import anzeigen',
+  'products.csvCategoriesHint': 'Trage in die Spalte „category" einen dieser Slugs ein (Groß-/Kleinschreibung egal; der deutsche Name funktioniert auch). Unbekannte Werte werden importiert, aber keiner Kategorie zugeordnet.',
   'products.editTitle': 'Bearbeiten',
   'products.deleteTitle': 'Löschen',
   'products.importing': 'Importiere…',
