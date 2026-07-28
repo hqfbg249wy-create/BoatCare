@@ -15,17 +15,17 @@ const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
 const LOGO = 'https://provider.skipily.app/icon-192.png';
 
 const STR = {
-  de: { plus: 'Plus', provider: 'Für Anbieter', faq: 'FAQ',
+  de: { plus: 'Plus', pricing: 'Preise', provider: 'Für Anbieter', faq: 'FAQ',
         imprint: 'Impressum', privacy: 'Datenschutz', terms: 'AGB', del: 'Konto löschen',
         foot: 'Die App für Bootseigner.' },
-  en: { plus: 'Plus', provider: 'For providers', faq: 'FAQ',
+  en: { plus: 'Plus', pricing: 'Pricing', provider: 'For providers', faq: 'FAQ',
         imprint: 'Imprint', privacy: 'Privacy', terms: 'Terms', del: 'Delete account',
         foot: 'The app for boat owners.' },
 };
 // Slugs je Sprache
 const URLS = {
-  de: { home: '/', faq: '/faq', imprint: '/impressum', privacy: '/datenschutz', terms: '/agb', del: '/account-deletion' },
-  en: { home: '/en/', faq: '/en/faq', imprint: '/en/imprint', privacy: '/en/privacy', terms: '/en/terms', del: '/account-deletion' },
+  de: { home: '/', pricing: '/preise', faq: '/faq', imprint: '/impressum', privacy: '/datenschutz', terms: '/agb', del: '/account-deletion' },
+  en: { home: '/en/', pricing: '/en/pricing', faq: '/en/faq', imprint: '/en/imprint', privacy: '/en/privacy', terms: '/en/terms', del: '/account-deletion' },
 };
 const FAQ_CAT_LABELS = {
   de: { general: 'Allgemein', getting_started: 'Erste Schritte', features: 'Funktionen', ai: 'KI-Assistent', plus: 'Skipily Plus', account: 'Konto', privacy: 'Datenschutz' },
@@ -72,6 +72,43 @@ body{font-family:'Roboto',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 .sk-faq-item summary::after{content:'+';float:right;color:#f97316;font-weight:700;}
 .sk-faq-item[open] summary::after{content:'–';}
 .sk-faq-item .a{padding:0 16px 14px;color:#334155;}
+
+/* Preisvergleich (Spaltendarstellung) */
+.sk-pricing{max-width:1120px;margin:0 auto;padding:40px 18px 8px;color:#0B1D3A;}
+.sk-pricing .lead{max-width:720px;margin:.2rem 0 0;color:#475569;line-height:1.6;}
+.sk-pricing h1{font-family:'Roboto',sans-serif;font-size:2rem;margin:0 0 .3rem;}
+.sk-price-block{margin:38px 0 6px;}
+.sk-price-block .blockhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin:0 0 4px;}
+.sk-price-block h2{font-family:'Roboto',sans-serif;font-size:1.45rem;color:#0B1D3A;margin:0;
+  border-bottom:3px solid #f97316;padding-bottom:.25rem;}
+.sk-price-block .blocksub{color:#64748b;font-size:.95rem;}
+.sk-price-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:16px;
+  border:1px solid #e2e8f0;border-radius:14px;}
+.sk-price-table{border-collapse:separate;border-spacing:0;width:100%;min-width:720px;font-size:.9rem;}
+.sk-price-table th,.sk-price-table td{padding:12px 14px;text-align:center;border-bottom:1px solid #eef2f7;}
+.sk-price-table thead th{vertical-align:top;background:#f8fafc;position:sticky;top:0;}
+.sk-price-table .feat{text-align:left;font-weight:500;color:#334155;position:sticky;left:0;background:#fff;
+  min-width:230px;box-shadow:1px 0 0 #eef2f7;}
+.sk-price-table thead .feat{background:#f8fafc;}
+.sk-price-table .tier{font-family:'Roboto',sans-serif;}
+.sk-price-table .tier .name{display:block;font-weight:800;color:#0B1D3A;font-size:1rem;}
+.sk-price-table .tier .aud{display:block;color:#64748b;font-size:.72rem;font-weight:500;margin:3px 0 8px;line-height:1.25;}
+.sk-price-table .tier .price{display:block;font-weight:800;color:#0B1D3A;font-size:1.15rem;}
+.sk-price-table .tier .per{display:block;color:#94a3b8;font-size:.72rem;font-weight:500;}
+.sk-price-table .tier .year{display:block;color:#f97316;font-size:.72rem;font-weight:600;margin-top:2px;}
+.sk-price-table tbody tr:hover td,.sk-price-table tbody tr:hover .feat{background:#fffaf5;}
+.sk-price-table .yes{color:#16a34a;font-weight:700;font-size:1.05rem;}
+.sk-price-table .no{color:#cbd5e1;}
+.sk-price-table .txt{color:#0B1D3A;font-weight:600;font-size:.82rem;}
+.sk-price-table col.hot,.sk-col-hot{background:#fff7ed;}
+.sk-price-table thead th.hot{background:#ffedd5;}
+.sk-price-table .hotbadge{display:inline-block;background:#f97316;color:#fff;font-size:.62rem;font-weight:800;
+  letter-spacing:.5px;padding:2px 8px;border-radius:999px;margin-bottom:6px;text-transform:uppercase;}
+.sk-price-hint{color:#94a3b8;font-size:.8rem;margin:10px 2px 0;}
+.sk-price-cta{text-align:center;margin:26px 0 4px;}
+.sk-price-cta a{display:inline-block;background:#f97316;color:#fff;text-decoration:none;font-weight:700;
+  padding:13px 28px;border-radius:10px;}
+@media(max-width:560px){.sk-pricing h1{font-size:1.6rem;}.sk-price-scroll .hint-swipe{display:block;}}
 `;
 
 const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -97,7 +134,7 @@ function header(lang) {
   return `<header class="sk-topbar">
   <a class="brand" href="${u.home}"><img src="${LOGO}" alt="Skipily">SKIPILY</a>
   <nav class="sk-topnav">
-    <a class="muted hide-sm" href="${u.home}#plus">${s.plus}</a>
+    <a class="muted hide-sm" href="${u.pricing}">${s.pricing}</a>
     <a class="muted hide-sm" href="${u.faq}">${s.faq}</a>
     <a class="muted hide-sm" href="https://provider.skipily.app">${s.provider}</a>
     <span class="sk-lang"><a href="/"${lang === 'de' ? ' class="active"' : ''}>DE</a><a href="/en/"${lang === 'en' ? ' class="active"' : ''}>EN</a></span>
@@ -111,6 +148,7 @@ function footer(lang) {
   <p class="tag">ALWAYS · SAFE · READY TO SAIL</p>
   <p>${s.foot}</p>
   <p>
+    <a href="${u.pricing}">${s.pricing}</a> ·
     <a href="${u.imprint}">${s.imprint}</a> ·
     <a href="${u.privacy}">${s.privacy}</a> ·
     <a href="${u.terms}">${s.terms}</a> ·
@@ -169,6 +207,125 @@ function dankeBody(lang) {
     <a href="${home}" class="sk-btn sk-btn-primary" style="display:inline-block;background:#f97316;color:#fff;text-decoration:none;font-weight:700;padding:13px 28px;border-radius:10px;">${t.btn}</a>
   </div>
 </section>`;
+}
+
+// Preisvergleich als Spaltendarstellung (Bootseigner + Service-Anbieter).
+// Quelle: "Skipily Go/BoactCare Standard und Premiumfunktion.xlsx".
+function pricingBody(lang) {
+  const de = lang === 'de';
+  const YES = true, NO = false;
+  const t = de ? {
+    h1: 'Preise & Leistungen', title2: 'Transparent vergleichen',
+    lead: 'Was steckt in jedem Tarif? Vergleiche alle Funktionen Spalte für Spalte — für Bootseigner und für Service-Anbieter.',
+    ownersH: 'Für Bootseigner', ownersSub: 'Vom kostenlosen Einstieg bis zur Charterflotte.',
+    provH: 'Für Service-Anbieter', provSub: 'Von der Basis-Listung bis zum vollen Marktplatz-Zugang.',
+    feature: 'Funktion', pop: 'Beliebt', free: 'kostenlos', mo: '/ Monat',
+    yr: (y) => `oder ${y} €/Jahr`, hintSwipe: '← Zum Vergleichen seitlich wischen →',
+    ctaO: 'Skipily App laden', ctaP: 'Anbieter werden',
+    note: 'Alle Preise inkl. gesetzl. USt. „Künftig" = in Entwicklung. Es gilt das jeweils in der App/im Portal angezeigte Angebot.',
+  } : {
+    h1: 'Pricing & features', title2: 'Compare transparently',
+    lead: 'What is included in each plan? Compare every feature column by column — for boat owners and for service providers.',
+    ownersH: 'For boat owners', ownersSub: 'From a free start to a charter fleet.',
+    provH: 'For service providers', provSub: 'From a basic listing to full marketplace access.',
+    feature: 'Feature', pop: 'Popular', free: 'free', mo: '/ month',
+    yr: (y) => `or €${y}/year`, hintSwipe: '← Swipe sideways to compare →',
+    ctaO: 'Get the Skipily app', ctaP: 'Become a provider',
+    note: 'All prices incl. statutory VAT. “Upcoming” = in development. The offer shown in the app/portal at the time applies.',
+  };
+
+  const owners = {
+    tiers: de ? [
+      { name: 'Free', aud: 'Einsteiger', price: '0 €' },
+      { name: 'Free +', aud: 'mit Registrierung', price: '0 €' },
+      { name: 'Skipily Plus', aud: 'Hobby-Skipper · 1–2 Boote', price: '4,99 €', per: t.mo, year: t.yr('49'), hot: true },
+      { name: 'Skipily Family', aud: 'Eignergemeinschaften bis 5', price: '9,99 €', per: t.mo, year: t.yr('99') },
+      { name: 'Plus Fleet', aud: 'Charterflotten > 5 Schiffe', price: '29,99 €', per: t.mo },
+    ] : [
+      { name: 'Free', aud: 'Starter', price: '€0' },
+      { name: 'Free +', aud: 'with registration', price: '€0' },
+      { name: 'Skipily Plus', aud: 'Hobby skippers · 1–2 boats', price: '€4.99', per: t.mo, year: t.yr('49'), hot: true },
+      { name: 'Skipily Family', aud: 'Owner groups up to 5', price: '€9.99', per: t.mo, year: t.yr('99') },
+      { name: 'Plus Fleet', aud: 'Charter fleets > 5 boats', price: '€29.99', per: t.mo },
+    ],
+    rows: [
+      [de ? 'Karte mit Providern' : 'Provider map', [YES, YES, YES, YES, YES]],
+      [de ? 'Bewertungen hinterlegen' : 'Leave reviews', [NO, YES, YES, YES, YES]],
+      [de ? 'Filter' : 'Filters', [NO, YES, YES, YES, YES]],
+      [de ? 'Direktsuche über hinterlegte Ausrüstung' : 'Direct search via saved equipment', [NO, YES, YES, YES, YES]],
+      [de ? 'Eigene Boote anlegen' : 'Add your own boats', [NO, YES, '1–2', '1–2', '> 5']],
+      [de ? 'Ausrüstung mit Wartungszyklus' : 'Equipment with maintenance cycle', [NO, YES, YES, YES, YES]],
+      [de ? 'Wartungs-Erinnerungen' : 'Maintenance reminders', [NO, YES, YES, YES, YES]],
+      [de ? 'Service-Favoriten speichern' : 'Save service favourites', [NO, YES, YES, YES, YES]],
+      [de ? 'Skipily-Rabatte nutzen' : 'Use Skipily discounts', [NO, NO, YES, YES, YES]],
+      [de ? 'KI-Boots-Assistent' : 'AI boat assistant', [NO, de ? '10 Fragen' : '10 questions', de ? 'Unbegrenzt' : 'Unlimited', de ? 'Unbegrenzt' : 'Unlimited', de ? 'Unbegrenzt' : 'Unlimited']],
+      [de ? 'Nutzer zeitlich freischalten (künftig)' : 'Time-limited user access (upcoming)', [NO, NO, NO, NO, YES]],
+      [de ? 'Nutzerrechte verwalten (künftig)' : 'Manage user permissions (upcoming)', [NO, NO, NO, NO, YES]],
+    ],
+    cta: { href: 'https://skipily.app/clip', label: t.ctaO },
+  };
+
+  const providers = {
+    tiers: de ? [
+      { name: 'Basic Listing', aud: 'Grundeintrag', price: '0 €' },
+      { name: 'Provider Starter', aud: 'Einstieg', price: '0 €' },
+      { name: 'Provider Pro', aud: 'Shop & Anfragen', price: '79 €', per: t.mo, year: t.yr('790'), hot: true },
+      { name: 'Provider Enterprise', aud: 'Voller Marktplatz-Zugang', price: '199 €', per: t.mo, year: t.yr('1.999') },
+    ] : [
+      { name: 'Basic Listing', aud: 'Base entry', price: '€0' },
+      { name: 'Provider Starter', aud: 'Entry', price: '€0' },
+      { name: 'Provider Pro', aud: 'Shop & requests', price: '€79', per: t.mo, year: t.yr('790'), hot: true },
+      { name: 'Provider Enterprise', aud: 'Full marketplace access', price: '€199', per: t.mo, year: t.yr('1,999') },
+    ],
+    rows: [
+      [de ? 'Profil- & Stammdatenpflege' : 'Profile & master data', [YES, YES, YES, YES]],
+      [de ? 'Bewertungen ansehen' : 'View reviews', [NO, YES, YES, YES]],
+      [de ? 'Eigenen Shop führen' : 'Run your own shop', [NO, NO, YES, YES]],
+      [de ? 'Anfragen empfangen & beantworten' : 'Receive & answer requests', [NO, NO, YES, YES]],
+      [de ? 'API-Zugang' : 'API access', [NO, NO, YES, YES]],
+      [de ? 'Webhook-URL' : 'Webhook URL', [NO, NO, YES, YES]],
+      [de ? 'Priorisierte Sichtbarkeit in der App' : 'Priority visibility in the app', [NO, NO, YES, YES]],
+      [de ? 'Multi-User (mehrere Logins)' : 'Multi-user (several logins)', [NO, NO, YES, YES]],
+      [de ? 'Markt-Analytics' : 'Market analytics', [NO, NO, NO, YES]],
+      [de ? 'Promotions / Werbeplätze' : 'Promotions / ad slots', [NO, NO, NO, YES]],
+    ],
+    cta: { href: 'https://provider.skipily.app', label: t.ctaP },
+  };
+
+  const cell = (v, hot) => {
+    const cls = hot ? ' sk-col-hot' : '';
+    if (v === true) return `<td class="yes${cls}">✓</td>`;
+    if (v === false || v == null || v === '') return `<td class="no${cls}">–</td>`;
+    return `<td class="txt${cls}">${esc(v)}</td>`;
+  };
+
+  function table(block) {
+    const cols = block.tiers.map(t2 => `<col${t2.hot ? ' class="hot"' : ''}>`).join('');
+    const head = block.tiers.map(t2 => `<th class="tier${t2.hot ? ' hot' : ''}">${t2.hot ? `<span class="hotbadge">${t.pop}</span>` : ''}<span class="name">${esc(t2.name)}</span><span class="aud">${esc(t2.aud)}</span><span class="price">${esc(t2.price)}</span>${t2.per ? `<span class="per">${esc(t2.per)}</span>` : `<span class="per">${t.free}</span>`}${t2.year ? `<span class="year">${esc(t2.year)}</span>` : ''}</th>`).join('');
+    const body = block.rows.map(([label, vals]) =>
+      `<tr><th class="feat">${esc(label)}</th>${vals.map((v, i) => cell(v, block.tiers[i].hot)).join('')}</tr>`
+    ).join('');
+    return `<div class="sk-price-scroll"><table class="sk-price-table"><colgroup><col class="feat">${cols}</colgroup>
+<thead><tr><th class="feat">${t.feature}</th>${head}</tr></thead>
+<tbody>${body}</tbody></table></div>`;
+  }
+
+  function block(b, h, sub) {
+    return `<section class="sk-price-block">
+  <div class="blockhead"><h2>${esc(h)}</h2><span class="blocksub">${esc(sub)}</span></div>
+  <p class="sk-price-hint">${t.hintSwipe}</p>
+  ${table(b)}
+  <div class="sk-price-cta"><a href="${b.cta.href}">${esc(b.cta.label)}</a></div>
+</section>`;
+  }
+
+  return `<div class="sk-pricing">
+  <h1>${t.h1}</h1>
+  <p class="lead">${t.lead}</p>
+  ${block(owners, t.ownersH, t.ownersSub)}
+  ${block(providers, t.provH, t.provSub)}
+  <p class="sk-price-hint">${t.note}</p>
+</div>`;
 }
 
 function write(rel, html) {
@@ -241,6 +398,16 @@ async function main() {
     desc: 'Skipily: boatyards, services & shops on the map, 1:1 spare-part search, maintenance planning and an AI assistant that knows your boat.',
     body: localizeImages(fs.readFileSync(path.join(SRC, 'en', 'skipily-home.html'), 'utf8')) }));
 
+  // Preise & Leistungen (Spaltenvergleich, DE + EN)
+  write('preise/index.html', doc({ lang: 'de',
+    title: 'Preise & Leistungen — Skipily',
+    desc: 'Alle Skipily-Tarife im Spaltenvergleich: Free, Plus, Family & Fleet für Bootseigner sowie Basic, Starter, Pro & Enterprise für Service-Anbieter.',
+    body: pricingBody('de') }));
+  write('en/pricing/index.html', doc({ lang: 'en',
+    title: 'Pricing & features — Skipily',
+    desc: 'All Skipily plans compared column by column: Free, Plus, Family & Fleet for boat owners plus Basic, Starter, Pro & Enterprise for service providers.',
+    body: pricingBody('en') }));
+
   // Newsletter-Danke (Ziel der CleverReach-Weiterleitung nach Anmeldung)
   write('newsletter-danke/index.html', doc({ lang: 'de',
     title: 'Fast geschafft — Skipily Newsletter', desc: 'Bitte bestätige deine Newsletter-Anmeldung.',
@@ -294,8 +461,8 @@ async function main() {
 
   // Sitemap + robots.txt
   const SITE = 'https://skipily.app';
-  const routes = ['/', '/faq', '/impressum', '/datenschutz', '/agb', '/account-deletion',
-    '/en/', '/en/faq', '/en/imprint', '/en/privacy', '/en/terms'];
+  const routes = ['/', '/preise', '/faq', '/impressum', '/datenschutz', '/agb', '/account-deletion',
+    '/en/', '/en/pricing', '/en/faq', '/en/imprint', '/en/privacy', '/en/terms'];
   const today = new Date().toISOString().slice(0, 10);
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
     routes.map(r => `  <url><loc>${SITE}${r}</loc><lastmod>${today}</lastmod></url>`).join('\n') +
