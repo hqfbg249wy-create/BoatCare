@@ -86,7 +86,7 @@ body{font-family:'Roboto',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
   border:1px solid #e2e8f0;border-radius:14px;}
 .sk-price-table{border-collapse:separate;border-spacing:0;width:100%;min-width:720px;font-size:.9rem;}
 .sk-price-table th,.sk-price-table td{padding:12px 14px;text-align:center;border-bottom:1px solid #eef2f7;}
-.sk-price-table thead th{vertical-align:top;background:#f8fafc;position:sticky;top:0;}
+.sk-price-table thead th{vertical-align:top;background:#f8fafc;position:sticky;top:0;padding-top:26px;}
 .sk-price-table .feat{text-align:left;font-weight:500;color:#334155;position:sticky;left:0;background:#fff;
   min-width:230px;box-shadow:1px 0 0 #eef2f7;}
 .sk-price-table thead .feat{background:#f8fafc;}
@@ -96,14 +96,17 @@ body{font-family:'Roboto',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 .sk-price-table .tier .price{display:block;font-weight:800;color:#0B1D3A;font-size:1.15rem;}
 .sk-price-table .tier .per{display:block;color:#94a3b8;font-size:.72rem;font-weight:500;}
 .sk-price-table .tier .year{display:block;color:#f97316;font-size:.72rem;font-weight:600;margin-top:2px;}
+.sk-price-table .tier .trial{display:block;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;
+  border-radius:999px;font-size:.66rem;font-weight:700;margin:8px auto 0;padding:2px 8px;width:fit-content;}
 .sk-price-table tbody tr:hover td,.sk-price-table tbody tr:hover .feat{background:#fffaf5;}
 .sk-price-table .yes{color:#16a34a;font-weight:700;font-size:1.05rem;}
 .sk-price-table .no{color:#cbd5e1;}
 .sk-price-table .txt{color:#0B1D3A;font-weight:600;font-size:.82rem;}
 .sk-price-table col.hot,.sk-col-hot{background:#fff7ed;}
 .sk-price-table thead th.hot{background:#ffedd5;}
-.sk-price-table .hotbadge{display:inline-block;background:#f97316;color:#fff;font-size:.62rem;font-weight:800;
-  letter-spacing:.5px;padding:2px 8px;border-radius:999px;margin-bottom:6px;text-transform:uppercase;}
+.sk-price-table .hotbadge{position:absolute;top:5px;left:50%;transform:translateX(-50%);z-index:1;
+  background:#f97316;color:#fff;font-size:.62rem;font-weight:800;letter-spacing:.5px;padding:2px 10px;
+  border-radius:999px;text-transform:uppercase;white-space:nowrap;box-shadow:0 2px 6px rgba(249,115,22,.35);}
 .sk-price-hint{color:#94a3b8;font-size:.8rem;margin:10px 2px 0;}
 .sk-price-cta{text-align:center;margin:26px 0 4px;}
 .sk-price-cta a{display:inline-block;background:#f97316;color:#fff;text-decoration:none;font-weight:700;
@@ -219,7 +222,7 @@ function pricingBody(lang) {
     lead: 'Was steckt in jedem Tarif? Vergleiche alle Funktionen Spalte für Spalte — für Bootseigner und für Service-Anbieter.',
     ownersH: 'Für Bootseigner', ownersSub: 'Vom kostenlosen Einstieg bis zur Charterflotte.',
     provH: 'Für Service-Anbieter', provSub: 'Von der Basis-Listung bis zum vollen Marktplatz-Zugang.',
-    feature: 'Funktion', pop: 'Beliebt', free: 'kostenlos', mo: '/ Monat',
+    feature: 'Funktion', pop: 'Beliebt', free: 'kostenlos', mo: '/ Monat', trial: '7 Tage gratis testen',
     yr: (y) => `oder ${y} €/Jahr`, hintSwipe: '← Zum Vergleichen seitlich wischen →',
     ctaO: 'Skipily App laden', ctaP: 'Anbieter werden',
     note: 'Alle Preise inkl. gesetzl. USt. „Künftig" = in Entwicklung. Es gilt das jeweils in der App/im Portal angezeigte Angebot.',
@@ -228,7 +231,7 @@ function pricingBody(lang) {
     lead: 'What is included in each plan? Compare every feature column by column — for boat owners and for service providers.',
     ownersH: 'For boat owners', ownersSub: 'From a free start to a charter fleet.',
     provH: 'For service providers', provSub: 'From a basic listing to full marketplace access.',
-    feature: 'Feature', pop: 'Popular', free: 'free', mo: '/ month',
+    feature: 'Feature', pop: 'Popular', free: 'free', mo: '/ month', trial: '7-day free trial',
     yr: (y) => `or €${y}/year`, hintSwipe: '← Swipe sideways to compare →',
     ctaO: 'Get the Skipily app', ctaP: 'Become a provider',
     note: 'All prices incl. statutory VAT. “Upcoming” = in development. The offer shown in the app/portal at the time applies.',
@@ -238,15 +241,15 @@ function pricingBody(lang) {
     tiers: de ? [
       { name: 'Free', aud: 'Einsteiger', price: '0 €' },
       { name: 'Free +', aud: 'mit Registrierung', price: '0 €' },
-      { name: 'Skipily Plus', aud: 'Hobby-Skipper · 1–2 Boote', price: '4,99 €', per: t.mo, year: t.yr('49'), hot: true },
-      { name: 'Skipily Family', aud: 'Eignergemeinschaften bis 5', price: '9,99 €', per: t.mo, year: t.yr('99') },
-      { name: 'Plus Fleet', aud: 'Charterflotten > 5 Schiffe', price: '29,99 €', per: t.mo },
+      { name: 'Skipily Plus', aud: 'Hobby-Skipper · 1–2 Boote', price: '4,99 €', per: t.mo, year: t.yr('49'), trial: t.trial, hot: true },
+      { name: 'Skipily Family', aud: 'Eignergemeinschaft · bis zu 5 Eigner', price: '9,99 €', per: t.mo, year: t.yr('99'), trial: t.trial },
+      { name: 'Plus Fleet', aud: 'Charterflotten > 5 Schiffe', price: '29,99 €', per: t.mo, trial: t.trial },
     ] : [
       { name: 'Free', aud: 'Starter', price: '€0' },
       { name: 'Free +', aud: 'with registration', price: '€0' },
-      { name: 'Skipily Plus', aud: 'Hobby skippers · 1–2 boats', price: '€4.99', per: t.mo, year: t.yr('49'), hot: true },
-      { name: 'Skipily Family', aud: 'Owner groups up to 5', price: '€9.99', per: t.mo, year: t.yr('99') },
-      { name: 'Plus Fleet', aud: 'Charter fleets > 5 boats', price: '€29.99', per: t.mo },
+      { name: 'Skipily Plus', aud: 'Hobby skippers · 1–2 boats', price: '€4.99', per: t.mo, year: t.yr('49'), trial: t.trial, hot: true },
+      { name: 'Skipily Family', aud: 'Owner group · up to 5 owners', price: '€9.99', per: t.mo, year: t.yr('99'), trial: t.trial },
+      { name: 'Plus Fleet', aud: 'Charter fleets > 5 boats', price: '€29.99', per: t.mo, trial: t.trial },
     ],
     rows: [
       [de ? 'Karte mit Providern' : 'Provider map', [YES, YES, YES, YES, YES]],
@@ -280,7 +283,8 @@ function pricingBody(lang) {
     rows: [
       [de ? 'Profil- & Stammdatenpflege' : 'Profile & master data', [YES, YES, YES, YES]],
       [de ? 'Bewertungen ansehen' : 'View reviews', [NO, YES, YES, YES]],
-      [de ? 'Eigenen Shop führen' : 'Run your own shop', [NO, NO, YES, YES]],
+      [de ? 'Eigenen Shop führen' : 'Run your own shop', [NO, YES, YES, YES]],
+      [de ? 'Produkte im Shop' : 'Products in the shop', [NO, de ? 'bis 10' : 'up to 10', de ? 'unbegrenzt' : 'unlimited', de ? 'unbegrenzt' : 'unlimited']],
       [de ? 'Anfragen empfangen & beantworten' : 'Receive & answer requests', [NO, NO, YES, YES]],
       [de ? 'API-Zugang' : 'API access', [NO, NO, YES, YES]],
       [de ? 'Webhook-URL' : 'Webhook URL', [NO, NO, YES, YES]],
@@ -301,7 +305,7 @@ function pricingBody(lang) {
 
   function table(block) {
     const cols = block.tiers.map(t2 => `<col${t2.hot ? ' class="hot"' : ''}>`).join('');
-    const head = block.tiers.map(t2 => `<th class="tier${t2.hot ? ' hot' : ''}">${t2.hot ? `<span class="hotbadge">${t.pop}</span>` : ''}<span class="name">${esc(t2.name)}</span><span class="aud">${esc(t2.aud)}</span><span class="price">${esc(t2.price)}</span>${t2.per ? `<span class="per">${esc(t2.per)}</span>` : `<span class="per">${t.free}</span>`}${t2.year ? `<span class="year">${esc(t2.year)}</span>` : ''}</th>`).join('');
+    const head = block.tiers.map(t2 => `<th class="tier${t2.hot ? ' hot' : ''}">${t2.hot ? `<span class="hotbadge">${t.pop}</span>` : ''}<span class="name">${esc(t2.name)}</span><span class="aud">${esc(t2.aud)}</span><span class="price">${esc(t2.price)}</span>${t2.per ? `<span class="per">${esc(t2.per)}</span>` : `<span class="per">${t.free}</span>`}${t2.year ? `<span class="year">${esc(t2.year)}</span>` : ''}${t2.trial ? `<span class="trial">🎁 ${esc(t2.trial)}</span>` : ''}</th>`).join('');
     const body = block.rows.map(([label, vals]) =>
       `<tr><th class="feat">${esc(label)}</th>${vals.map((v, i) => cell(v, block.tiers[i].hot)).join('')}</tr>`
     ).join('');
