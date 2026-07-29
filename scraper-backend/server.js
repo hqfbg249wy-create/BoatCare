@@ -216,6 +216,33 @@ const CATEGORY_TO_GERMAN = {
     'marina':          'Marina',
 };
 
+// Kategorie-Labels je Sprache. Der Scraper speichert die Kategorie als
+// DEUTSCHES Label (CATEGORY_TO_GERMAN). Für die fremdsprachigen Newsletter
+// wird der Platzhalter {CATEGORY} hier in die Empfängersprache übersetzt,
+// damit in der englischen/französischen … Mail nicht "Segelmacher" steht.
+const CATEGORY_LABELS = {
+    'Werkstatt':      { en: 'boat repair shop', fr: 'atelier nautique', it: 'officina nautica', es: 'taller náutico', nl: 'botenwerkplaats' },
+    'Motorservice':   { en: 'engine service', fr: 'service moteur', it: 'assistenza motori', es: 'servicio de motores', nl: 'motorservice' },
+    'Zubehör':        { en: 'marine supplies store', fr: 'accastilleur', it: 'negozio di accessori nautici', es: 'tienda de accesorios náuticos', nl: 'watersportwinkel' },
+    'Segelmacher':    { en: 'sailmaker', fr: 'voilerie', it: 'veleria', es: 'velería', nl: 'zeilmaker' },
+    'Rigg':           { en: 'rigging specialist', fr: 'gréeur', it: 'specialista di sartiame', es: 'especialista en jarcia', nl: 'tuigagespecialist' },
+    'Instrumente':    { en: 'marine electronics specialist', fr: "spécialiste de l'électronique marine", it: 'specialista di elettronica nautica', es: 'especialista en electrónica náutica', nl: 'navigatie-elektronicaspecialist' },
+    'Bootsbauer':     { en: 'boat builder', fr: 'chantier naval', it: 'cantiere navale', es: 'astillero', nl: 'botenbouwer' },
+    'Gutachter':      { en: 'marine surveyor', fr: 'expert maritime', it: 'perito navale', es: 'perito naval', nl: 'scheepsexpert' },
+    'Kran':           { en: 'crane / lift service', fr: 'service de grue', it: 'servizio di gru', es: 'servicio de grúa', nl: 'kraan- en liftservice' },
+    'Lackiererei':    { en: 'paint & antifouling shop', fr: 'atelier de peinture & carénage', it: 'officina di verniciatura', es: 'taller de pintura náutica', nl: 'lakspuiterij' },
+    'Heizung/Klima':  { en: 'heating & climate specialist', fr: 'spécialiste chauffage & climatisation', it: 'specialista riscaldamento e clima', es: 'especialista en calefacción y clima', nl: 'verwarmings- en klimaatspecialist' },
+    'Marina':         { en: 'marina', fr: 'marina', it: 'marina', es: 'marina', nl: 'jachthaven' },
+    'Sonstige':       { en: 'marine service', fr: 'service nautique', it: 'servizio nautico', es: 'servicio náutico', nl: 'watersportservice' },
+};
+
+function localizeCategory(germanLabel, lang) {
+    if (!germanLabel) return '';
+    if (lang === 'de') return germanLabel;
+    const row = CATEGORY_LABELS[germanLabel];
+    return (row && row[lang]) ? row[lang] : germanLabel;
+}
+
 // Kategorien-Mapping: Google Places types → App-Kategorien
 //
 // WICHTIG: Hier NUR sehr eindeutig marine-spezifische Types eintragen.
@@ -3447,7 +3474,9 @@ async function cleverreachUpsertReceiver(groupId, provider) {
             company: provider.name || '',
             city: provider.city || '',
             country: provider.country || '',
-            category: provider.category || '',
+            // {CATEGORY} in die Empfängersprache übersetzen (sonst steht z.B.
+            // "Segelmacher" auch in der englischen Mail).
+            category: localizeCategory(provider.category, countryToLanguage(provider.country)),
             website: provider.website || '',
             language: countryToLanguage(provider.country),
             claim_url: claimUrl,
