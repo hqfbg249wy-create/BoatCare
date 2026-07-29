@@ -32,7 +32,7 @@ function Recenter({ center }) {
 }
 
 export default function GuestMap() {
-  const t = useT()
+  const { t } = useT()
   const [providers, setProviders] = useState([])
   const [center, setCenter] = useState(null)
   const [deferredPrompt, setDeferredPrompt] = useState(null)
