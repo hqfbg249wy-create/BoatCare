@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { useEffect, useState, useMemo, useCallback } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import { Link } from 'react-router-dom'
 import { Download, LogIn, MapPin, Navigation } from 'lucide-react'
@@ -39,30 +39,53 @@ function Recenter({ center }) {
   return null
 }
 
+// Lädt Provider passend zum aktuell sichtbaren Karten-Ausschnitt (Bounding-Box).
+// Nötig, weil es >4900 Provider gibt und ein globaler Fetch bei ~1000 gekappt
+// wird — so erscheint jeder Betrieb, sobald man seine Region ansieht.
+function BoundsLoader({ onBounds }) {
+  const map = useMapEvents({
+    moveend: () => onBounds(map.getBounds()),
+    zoomend: () => onBounds(map.getBounds()),
+  })
+  useEffect(() => { onBounds(map.getBounds()) }, [])   // initialer Load
+  return null
+}
+
 export default function GuestMap() {
   const { t } = useT()
   const [providers, setProviders] = useState([])
   const [center, setCenter] = useState(null)
   const [deferredPrompt, setDeferredPrompt] = useState(null)
 
-  // Provider anonym laden (RLS erlaubt anon-Lesen).
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from('service_providers')
-        .select('id, name, category, city, street, latitude, longitude, rating')
-        .not('latitude', 'is', null)
-        .limit(2000)
-      setProviders((data || []).filter(p => p.latitude && p.longitude && p.latitude !== 0))
-    })()
+  // Provider passend zum sichtbaren Karten-Ausschnitt laden (Bounding-Box).
+  const loadInBounds = useCallback(async (bounds) => {
+    const { data } = await supabase
+      .from('service_providers')
+      .select('id, name, category, city, street, latitude, longitude, rating')
+      .gte('latitude', bounds.getSouth()).lte('latitude', bounds.getNorth())
+      .gte('longitude', bounds.getWest()).lte('longitude', bounds.getEast())
+      .limit(1000)
+    setProviders((data || []).filter(p => p.latitude && p.longitude && p.latitude !== 0))
   }, [])
 
-  // Standort für die Zentrierung (best effort).
+  // Standort: Auto-Versuch beim Laden (best effort). getCurrentLocation()
+  // liefert { lat, lon } — vorher wurde fälschlich loc.latitude gelesen → nie
+  // zentriert. Safari fragt oft erst bei Nutzer-Klick → dafür der Button unten.
   useEffect(() => {
     getCurrentLocation()
-      .then(loc => { if (loc?.latitude) setCenter([loc.latitude, loc.longitude]) })
+      .then(loc => { if (loc?.lat) setCenter([loc.lat, loc.lon]) })
       .catch(() => {})
   }, [])
+
+  const [locating, setLocating] = useState(false)
+  async function locate() {
+    setLocating(true)
+    try {
+      const loc = await getCurrentLocation()
+      if (loc?.lat) setCenter([loc.lat, loc.lon])
+    } catch (e) { /* abgelehnt/nicht verfügbar — Karte bleibt */ }
+    finally { setLocating(false) }
+  }
 
   // PWA-Installations-Angebot einfangen (Android/Chrome).
   useEffect(() => {
@@ -109,6 +132,10 @@ export default function GuestMap() {
             <div style={{ fontSize: 12, opacity: 0.8 }}>{t('guest.subtitle')}</div>
           </div>
         </div>
+        <button onClick={locate} disabled={locating} title="Meinen Standort verwenden" aria-label="Meinen Standort verwenden"
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f97316', color: '#fff', border: 'none', borderRadius: 999, width: 40, height: 40, cursor: 'pointer', flexShrink: 0, opacity: locating ? 0.6 : 1 }}>
+          <Navigation size={18} />
+        </button>
       </div>
 
       {/* Karte */}
@@ -116,6 +143,7 @@ export default function GuestMap() {
         <MapContainer center={initialCenter} zoom={center ? 11 : 6} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
           <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <Recenter center={center} />
+          <BoundsLoader onBounds={loadInBounds} />
           {markers}
         </MapContainer>
       </div>
