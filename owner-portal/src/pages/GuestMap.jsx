@@ -17,9 +17,17 @@ const CAT_EMOJI = {
 function emojiFor(cat) {
   return CAT_EMOJI[(cat || '').toLowerCase()] || '📍'
 }
-function pinIcon(cat) {
+// Rating → Pin-Farbe (identisch zu MapView + iOS: grün=gut, gelb=mittel,
+// rot=schlecht, blau=keine Bewertung).
+function getRatingColor(rating) {
+  if (!rating || rating === 0) return '#3b82f6'  // blau = keine Bewertung
+  if (rating >= 4.0) return '#10b981'            // grün
+  if (rating >= 2.0) return '#f59e0b'            // gelb
+  return '#ef4444'                                // rot
+}
+function pinIcon(cat, rating) {
   return L.divIcon({
-    html: `<div style="width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#0b1929;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center">
+    html: `<div style="width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${getRatingColor(rating)};border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center">
       <span style="transform:rotate(45deg);font-size:14px">${emojiFor(cat)}</span></div>`,
     className: 'guest-pin', iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -28],
   })
@@ -73,9 +81,14 @@ export default function GuestMap() {
   const initialCenter = center || [50.5, 7.0] // Fallback: Mitteleuropa
 
   const markers = useMemo(() => providers.map(p => (
-    <Marker key={p.id} position={[p.latitude, p.longitude]} icon={pinIcon(p.category)}>
+    <Marker key={p.id} position={[p.latitude, p.longitude]} icon={pinIcon(p.category, p.rating)}>
       <Popup>
         <strong>{p.name}</strong>
+        {p.rating > 0 && (
+          <div style={{ color: getRatingColor(p.rating), fontSize: 13, fontWeight: 600 }}>
+            ★ {Number(p.rating).toFixed(1)}
+          </div>
+        )}
         {p.city && <div style={{ color: '#64748b', fontSize: 13 }}>{[p.street, p.city].filter(Boolean).join(', ')}</div>}
         <a href={`https://maps.apple.com/?daddr=${p.latitude},${p.longitude}`} target="_blank" rel="noopener"
            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, color: '#2563eb', fontSize: 13 }}>
