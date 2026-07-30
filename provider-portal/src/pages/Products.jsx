@@ -468,7 +468,7 @@ export default function Products() {
         if (Array.isArray(result.failed)) failed.push(...result.failed)
       }
 
-      setCsvResult({ ok: imported, failed })
+      setCsvResult({ ok: imported, skipped: result.skipped || 0, failed })
       await loadProducts()
     } catch (err) {
       setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
@@ -528,6 +528,15 @@ export default function Products() {
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     (p.manufacturer || '').toLowerCase().includes(search.toLowerCase()) ||
     (p.part_number || '').toLowerCase().includes(search.toLowerCase())
+  )
+
+  // Bestandspflege: Produkte mit niedrigem Bestand (≤ 1) hervorheben und nach
+  // oben rücken, damit man sie sofort nachpflegen kann.
+  const LOW_STOCK_THRESHOLD = 1
+  const isLowStock = (p) => (Number(p.stock_quantity) || 0) <= LOW_STOCK_THRESHOLD
+  const lowStockCount = filteredProducts.filter(isLowStock).length
+  const sortedProducts = [...filteredProducts].sort(
+    (a, b) => (isLowStock(a) ? 0 : 1) - (isLowStock(b) ? 0 : 1)
   )
 
   // ---- Edit/Create Form ----
@@ -818,6 +827,7 @@ export default function Products() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <strong>
               {t('products.csvResultOk', { n: csvResult.ok })}
+              {csvResult.skipped > 0 && ` · ${t('products.csvResultSkipped', { n: csvResult.skipped })}`}
               {csvResult.failed.length > 0 && t('products.csvResultFailed', { n: csvResult.failed.length })}
             </strong>
             <button className="btn-icon" onClick={() => setCsvResult(null)} title={t('common.close')}>
@@ -880,11 +890,22 @@ export default function Products() {
           )}
         </div>
       ) : (
+        <>
+        {lowStockCount > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#b91c1c', fontSize: 14, marginBottom: 12, fontWeight: 600 }}>
+            ⚠ {t('products.lowStockBanner', { n: lowStockCount })}
+          </div>
+        )}
         <div className="product-grid">
-          {filteredProducts.map(product => {
+          {sortedProducts.map(product => {
             const isSel = selected.has(product.id)
+            const low = isLowStock(product)
             return (
-            <div key={product.id} className={`product-card ${!product.is_active ? 'inactive' : ''} ${isSel ? 'selected' : ''}`} style={isSel ? { outline: '2px solid #f97316', outlineOffset: 2 } : undefined}>
+            <div key={product.id} className={`product-card ${!product.is_active ? 'inactive' : ''} ${isSel ? 'selected' : ''} ${low ? 'low-stock' : ''}`}
+              style={{
+                ...(isSel ? { outline: '2px solid #f97316', outlineOffset: 2 } : {}),
+                ...(low ? { boxShadow: 'inset 5px 0 0 #ef4444', background: '#fff5f5' } : {}),
+              }}>
               <button
                 type="button"
                 className="btn-icon"
@@ -902,6 +923,11 @@ export default function Products() {
                 )}
               </div>
               <div className="product-info">
+                {low && (
+                  <span className="badge" style={{ background: '#ef4444', color: '#fff', marginBottom: 6, display: 'inline-block', fontWeight: 700 }}>
+                    ⚠ {t('products.lowStock')} ({Number(product.stock_quantity) || 0})
+                  </span>
+                )}
                 <h3>{product.name}</h3>
                 {product.manufacturer && <span className="product-manufacturer">{product.manufacturer}</span>}
                 <div className="product-meta">
@@ -923,6 +949,7 @@ export default function Products() {
             </div>
           )})}
         </div>
+        </>
       )}
     </div>
   )

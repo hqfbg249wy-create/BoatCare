@@ -343,6 +343,7 @@ export default {
   'products.limitBannerFree': 'Standard-Tarif: noch {r} von {b} Produkten frei. Mit Pro unbegrenzt.',
   'products.upgradeNow': '⭐ Jetzt upgraden',
   'products.csvResultOk': 'CSV-Import: {n} erfolgreich',
+  'products.csvResultSkipped': '{n} bereits vorhanden (übersprungen)',
   'products.csvResultFailed': ', {n} fehlgeschlagen',
   'products.errorDetails': 'Fehlerdetails anzeigen',
   'products.row': 'Zeile',
@@ -358,6 +359,8 @@ export default {
   'products.notDeliverable': 'Nicht lieferbar',
   'products.inactive': 'Inaktiv',
   'products.deleteN': '{n} löschen',
+  'products.lowStock': 'Bestand niedrig',
+  'products.lowStockBanner': '{n} Produkt(e) mit niedrigem Bestand – oben hervorgehoben, bitte Bestand nachpflegen.',
 
   // Profil / Stammdaten
   'profile.logo': 'Logo',

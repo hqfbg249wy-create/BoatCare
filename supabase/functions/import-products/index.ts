@@ -73,17 +73,44 @@ Deno.serve(async (req) => {
       return clean;
     });
 
+    // ── Additiv & doublettensicher ──
+    // Import ergänzt Produkte, er löscht/ersetzt NICHTS. Damit ein erneuter
+    // Upload derselben Datei keine Duplikate erzeugt, überspringen wir
+    // Artikelnummern, die es bei diesem Provider schon gibt (und Doubletten
+    // innerhalb der Datei). Bestände werden danach in der Oberfläche gepflegt.
+    const { data: existing } = await admin
+      .from("metashop_products")
+      .select("part_number")
+      .eq("provider_id", providerId)
+      .not("part_number", "is", null);
+    const seen = new Set(
+      (existing || [])
+        .map((r: Record<string, unknown>) => String(r.part_number ?? "").trim().toLowerCase())
+        .filter(Boolean),
+    );
+
+    let skipped = 0;
+    const toInsert: Array<Record<string, unknown>> = [];
+    for (const r of rows) {
+      const pn = r.part_number ? String(r.part_number).trim().toLowerCase() : "";
+      if (pn) {
+        if (seen.has(pn)) { skipped++; continue; }  // schon vorhanden → nicht doppeln
+        seen.add(pn);
+      }
+      toInsert.push(r);  // ohne Artikelnummer: immer anlegen (nicht dedupbar)
+    }
+
     // ── Batch-Insert (Service-Role) ──
     let ok = 0;
     const failed: Array<{ row: number; error: string }> = [];
-    for (let i = 0; i < rows.length; i += 50) {
-      const batch = rows.slice(i, i + 50);
+    for (let i = 0; i < toInsert.length; i += 50) {
+      const batch = toInsert.slice(i, i + 50);
       const { error } = await admin.from("metashop_products").insert(batch);
       if (error) batch.forEach((_, j) => failed.push({ row: i + j + 2, error: error.message }));
       else ok += batch.length;
     }
 
-    return json({ ok, failed });
+    return json({ ok, skipped, failed });
   } catch (err) {
     return json({ error: (err as Error).message }, 500);
   }
