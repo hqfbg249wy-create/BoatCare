@@ -301,10 +301,10 @@ struct CheckoutView: View {
                             .fixedSize(horizontal: false, vertical: true)
                         HStack(spacing: 14) {
                             Link("checkout.agb_link".loc,
-                                 destination: URL(string: "https://skipily.app/agb.html")!)
+                                 destination: URL(string: "https://skipily.app/agb")!)
                                 .font(.caption2).foregroundStyle(AppColors.info)
                             Link("checkout.revocation_link".loc,
-                                 destination: URL(string: "https://skipily.app/agb.html#widerruf")!)
+                                 destination: URL(string: "https://skipily.app/agb#widerruf")!)
                                 .font(.caption2).foregroundStyle(AppColors.info)
                         }
                     }

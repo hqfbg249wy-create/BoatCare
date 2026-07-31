@@ -91,12 +91,7 @@ struct PlusUpgradeSheet: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
-                    Text("Du kannst das Abo jederzeit in den iPhone-Einstellungen kündigen.")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                        .padding(.bottom)
+                    legalFooter
                 }
                 .padding(.vertical)
             }
@@ -125,6 +120,37 @@ struct PlusUpgradeSheet: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
         }
+    }
+
+    // MARK: - Rechtlicher Footer (App-Store-Pflichtangaben, Guideline 3.1.2)
+
+    private var legalFooter: some View {
+        VStack(spacing: 10) {
+            // Auto-Verlängerungs-Hinweis — von Apple wörtlich gefordert.
+            Text("""
+                Die Zahlung wird bei Kaufbestätigung deinem Apple-ID-Konto belastet. \
+                Das Abo verlängert sich automatisch um denselben Zeitraum, sofern es \
+                nicht mindestens 24 Stunden vor Ablauf des aktuellen Zeitraums gekündigt \
+                wird. Die Belastung für die Verlängerung erfolgt innerhalb von 24 Stunden \
+                vor Ablauf. Du kannst dein Abo jederzeit in den Einstellungen deines \
+                Apple-ID-Kontos verwalten oder kündigen.
+                """)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            // Pflicht-Links: Nutzungsbedingungen (EULA) + Datenschutz.
+            HStack(spacing: 6) {
+                Link("Nutzungsbedingungen",
+                     destination: URL(string: "https://skipily.app/agb")!)
+                Text("·").foregroundStyle(.tertiary)
+                Link("Datenschutzrichtlinie",
+                     destination: URL(string: "https://skipily.app/datenschutz")!)
+            }
+            .font(.caption2.bold())
+        }
+        .padding(.horizontal, 24)
+        .padding(.bottom)
     }
 
     // MARK: - Pläne
