@@ -7,9 +7,11 @@
 //  aus dem App Store (über StoreKit 2) und triggert den Kauf-Flow.
 //
 //  Layout: zwei Tier-Karten (Solo / Familie) mit Monat-/Jahr-Toggle.
-//  Jahres-Auswahl trägt ein "2 Monate gratis"-Badge.
-//  Freier Trial (Apple Introductory Offer) wird automatisch erkannt
-//  und prominent in der gewählten Karte angezeigt.
+//  Jahres-Ersparnis wird als berechnetes "Spare X %"-Badge angezeigt.
+//  Ein freier Trial (Apple Introductory Offer) wird NUR beworben, wenn der
+//  Account laut StoreKit dafür auch berechtigt ist (isEligibleForIntroOffer) —
+//  sonst würde die App einen Gratiszeitraum versprechen, den Apples
+//  Kauf-Bestätigung nicht gewährt (Guideline 2.1(b)).
 //
 
 import SwiftUI
@@ -32,9 +34,13 @@ private enum PlanTier: String, CaseIterable, Identifiable {
                     "Schadens-Foto-Analyse",
                     "Ausrüstungs-Empfehlungen"]
         case .family:
-            return ["Alle Plus-Features",
-                    "Bis 5 Skipper auf einem Boot",
-                    "Gemeinsame Wartungsplanung"]
+            // Ehrliche Vorteile: Pro = alle Plus-Funktionen, über Apple Family
+            // Sharing mit der Familie teilbar. KEINE Behauptung nicht gebauter
+            // Features (früher "5 Skipper auf einem Boot" / "gemeinsame
+            // Wartungsplanung" — existierten nicht) → App-Store-Guideline 2.1.
+            return ["Alle Plus-Features inklusive",
+                    "Über Apple Family Sharing teilbar",
+                    "Für Paare & Familien-Crews"]
         }
     }
 }
@@ -163,7 +169,10 @@ struct PlusUpgradeSheet: View {
             emptyState
         } else {
             VStack(spacing: 14) {
-                ForEach(PlanTier.allCases) { tier in
+                // Pro/Familie ist vorerst gestrichen — die Familien-/Mehr-
+                // benutzer-Funktionen (Eignergemeinschaften) kommen in einem
+                // späteren Release. Bis dahin zeigt die Paywall nur "Skipily Plus".
+                ForEach([PlanTier.solo]) { tier in
                     if hasAnyProduct(for: tier) {
                         tierCard(tier)
                     }
@@ -263,7 +272,7 @@ struct PlusUpgradeSheet: View {
             set: { selectedPeriod[tier] = $0 }
         )) {
             Text(BillingPeriod.monthly.label).tag(BillingPeriod.monthly)
-            Text("\(BillingPeriod.yearly.label)  •  2 Monate gratis").tag(BillingPeriod.yearly)
+            Text(BillingPeriod.yearly.label).tag(BillingPeriod.yearly)
         }
         .pickerStyle(.segmented)
     }
@@ -343,7 +352,8 @@ struct PlusUpgradeSheet: View {
 
     private func purchaseButton(product: StoreKit.Product) -> some View {
         let isPurchasing = purchasing == product.id
-        let hasTrial     = product.subscription?.introductoryOffer?.paymentMode == .freeTrial
+        let hasTrial     = manager.introEligibleProductIDs.contains(product.id)
+            && product.subscription?.introductoryOffer?.paymentMode == .freeTrial
         return Button {
             Task { await buy(product) }
         } label: {
@@ -387,8 +397,11 @@ struct PlusUpgradeSheet: View {
     }
 
     /// Liefert lokalisierten Text für ein Introductory Offer (z. B. "7 Tage gratis testen").
+    /// Nur wenn der Account für diese ID auch WIRKLICH berechtigt ist — sonst würde
+    /// die App einen Trial bewerben, den Apples Kauf-Sheet nicht gewährt (2.1(b)).
     private func introductoryOfferText(_ product: StoreKit.Product) -> String? {
-        guard let offer = product.subscription?.introductoryOffer,
+        guard manager.introEligibleProductIDs.contains(product.id),
+              let offer = product.subscription?.introductoryOffer,
               offer.paymentMode == .freeTrial else { return nil }
         let period = offer.period
         let unitText: String

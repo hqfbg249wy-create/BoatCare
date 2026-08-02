@@ -24,13 +24,20 @@ final class PlusSubscriptionManager: ObservableObject {
     // Product-IDs müssen mit Skipily.storekit / App Store Connect übereinstimmen
     static let productIDs: [String] = [
         "skipily.plus.monthly",
-        "skipily.plus.yearly",
-        "skipily.pro.monthly",        // = plus_family Mapping im Backend
-        "skipily.pro.yearly"
+        "skipily.plus.yearly"
+        // Pro/Familie (skipily.pro.*) vorerst gestrichen — kommt in einem
+        // späteren Release mit den Eignergemeinschaften wieder rein.
     ]
 
     @Published private(set) var products: [StoreKit.Product] = []
     @Published private(set) var purchasedProductIDs: Set<String> = []
+    /// Produkt-IDs, für die der aktuelle Account TATSÄCHLICH noch für das
+    /// Intro-Offer (Gratis-Trial) berechtigt ist. StoreKit liefert
+    /// `introductoryOffer` auch dann, wenn der Trial bereits verbraucht wurde —
+    /// deshalb dürfen wir einen Trial nur bewerben, wenn die ID hier enthalten
+    /// ist. Andernfalls verspricht die App einen Gratiszeitraum, den Apples
+    /// Kauf-Bestätigung nicht gewährt (App-Store-Guideline 2.1(b)).
+    @Published private(set) var introEligibleProductIDs: Set<String> = []
     @Published private(set) var isLoading = false
     @Published var lastError: String?
 
@@ -51,6 +58,7 @@ final class PlusSubscriptionManager: ObservableObject {
             let storeProducts = try await StoreKit.Product.products(for: Self.productIDs)
             self.products = storeProducts.sorted { $0.price < $1.price }
             await refreshPurchasedState()
+            await refreshIntroEligibility()
 
             // Hilfreiche Diagnose: wenn App Store Connect die Produkte nicht
             // freigeschaltet hat (TestFlight ignoriert Skipily.storekit!),
@@ -139,6 +147,23 @@ final class PlusSubscriptionManager: ObservableObject {
     }
 
     var hasActivePlus: Bool { !purchasedProductIDs.isEmpty }
+
+    // MARK: - Intro-Offer-Eligibility (Gratis-Trial) ermitteln
+    /// Prüft pro Produkt, ob der aktuelle Account noch für das Intro-Offer
+    /// berechtigt ist. Nur dann darf die UI einen Gratis-Trial bewerben —
+    /// sonst entsteht der 2.1(b)-Widerspruch (App verspricht Trial, Apples
+    /// Kauf-Sheet zeigt keinen).
+    private func refreshIntroEligibility() async {
+        var eligible: Set<String> = []
+        for product in products {
+            guard let sub = product.subscription,
+                  sub.introductoryOffer != nil else { continue }
+            if await sub.isEligibleForIntroOffer {
+                eligible.insert(product.id)
+            }
+        }
+        self.introEligibleProductIDs = eligible
+    }
 
     // MARK: - Listener für Background-Updates (Renewal, Refund, Family-Sharing)
     private func listenForTransactions() -> Task<Void, Never> {
