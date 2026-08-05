@@ -26,9 +26,11 @@ struct LocalChatMessage: Identifiable, Equatable {
     var attachmentUrls: [String]
     /// Markiert Karten die statt eines Fehlers einen Plus-Upgrade-CTA anzeigen.
     var isUpgradePrompt: Bool
-    /// Von Claude vorgeschlagene Shop-Suchbegriffe (aus dem Aktions-Block der
-    /// Antwort). Werden als tippbare "Im Shop suchen"-Chips gerendert.
+    /// Von Claude vorgeschlagene Shop-Suchbegriffe (deutsch, für die Suche).
     var shopSearchTerms: [String]
+    /// Lokalisierte Anzeige-Beschriftungen der Shop-Chips (gleiche Reihenfolge
+    /// wie `shopSearchTerms`). Angezeigt wird das Label, gesucht der Suchbegriff.
+    var shopSearchLabels: [String]
     /// true → Claude signalisiert, dass eine bootspezifische Ausrüstungsliste
     /// zum Übernehmen sinnvoll ist (Einsteiger-Frage).
     var showsEquipmentChecklist: Bool
@@ -43,6 +45,7 @@ struct LocalChatMessage: Identifiable, Equatable {
         attachmentUrls: [String] = [],
         isUpgradePrompt: Bool = false,
         shopSearchTerms: [String] = [],
+        shopSearchLabels: [String] = [],
         showsEquipmentChecklist: Bool = false
     ) {
         self.id = id
@@ -54,6 +57,7 @@ struct LocalChatMessage: Identifiable, Equatable {
         self.attachmentUrls = attachmentUrls
         self.isUpgradePrompt = isUpgradePrompt
         self.shopSearchTerms = shopSearchTerms
+        self.shopSearchLabels = shopSearchLabels
         self.showsEquipmentChecklist = showsEquipmentChecklist
     }
 }
@@ -549,6 +553,7 @@ struct ChatScreen: View {
                     feedback: p.feedback,
                     attachmentUrls: p.attachmentUrls,
                     shopSearchTerms: parsed.actions.shopSearchTerms,
+                    shopSearchLabels: parsed.actions.shopSearchLabels,
                     showsEquipmentChecklist: parsed.actions.showsEquipmentChecklist
                 )
             }
@@ -627,6 +632,7 @@ struct ChatScreen: View {
                     text: parsed.text.isEmpty ? reply : parsed.text,
                     isUser: false,
                     shopSearchTerms: parsed.actions.shopSearchTerms,
+                    shopSearchLabels: parsed.actions.shopSearchLabels,
                     showsEquipmentChecklist: parsed.actions.showsEquipmentChecklist
                 )
                 if let sid = sessionId {

@@ -144,7 +144,7 @@ Deine Expertise umfasst:
 - Gesetzliche Vorschriften: Führerscheine, Ausrüstungspflichten, Flaggenrecht
 
 Regeln:
-- Antworte IMMER auf Deutsch
+- Antworte in der weiter unten vorgegebenen Antwortsprache (siehe "IMPORTANT: Always respond in …"). Ignoriere die Sprache dieser System-Anweisung und der Beispiele — es zählt allein die vorgegebene Antwortsprache.
 - Sei praxisnah, konkret und verständlich — keine akademischen Abhandlungen
 - Gib wenn möglich konkrete Wartungsintervalle, Produktempfehlungen oder Schritt-für-Schritt-Anleitungen
 - Wenn du unsicher bist, sage es ehrlich und empfehle einen Fachbetrieb
@@ -154,9 +154,10 @@ Regeln:
 
 AKTIONS-BLOCK (maschinenlesbar, für die App):
 Hänge GANZ AM ENDE deiner Antwort — nur wenn zutreffend — genau EINEN Block in exakt diesem Format an (einzeilig, ohne Code-Fence, ohne Einleitung, ohne Erklärung):
-[[skipily-actions]]{"shop":["Suchbegriff1","Suchbegriff2"],"equipment_checklist":true}[[/skipily-actions]]
+[[skipily-actions]]{"shop":["Suchbegriff1","Suchbegriff2"],"shop_labels":["Label1","Label2"],"equipment_checklist":true}[[/skipily-actions]]
 Regeln für den Block:
-- "shop": Nimm dieses Feld auf, wenn du konkrete Ersatz-, Verschleiß- oder Zubehörteile empfiehlst, die der Nutzer kaufen könnte. Liste 1–5 kurze, GÄNGIGE deutsche Teilebezeichnungen als Suchbegriffe (z.B. "Impeller", "Zinkanode", "Ölfilter", "Kühlwasserfilter"). Bevorzuge generische Oberbegriffe statt exakter Hersteller-Artikelnummern, damit der Shop Treffer findet. Lass "shop" weg, wenn du keine kaufbaren Teile nennst.
+- "shop": Nimm dieses Feld auf, wenn du konkrete Ersatz-, Verschleiß- oder Zubehörteile empfiehlst, die der Nutzer kaufen könnte. Liste 1–5 kurze, GÄNGIGE **deutsche** Teilebezeichnungen als Suchbegriffe (z.B. "Impeller", "Zinkanode", "Ölfilter", "Kühlwasserfilter"). Diese Begriffe MÜSSEN immer deutsch sein — der Produktkatalog ist deutsch und nur so findet die Suche Treffer. Bevorzuge generische Oberbegriffe statt exakter Hersteller-Artikelnummern. Lass "shop" weg, wenn du keine kaufbaren Teile nennst.
+- "shop_labels": Übersetze JEDEN "shop"-Begriff in die aktuelle Antwortsprache — gleiche Reihenfolge, gleiche Anzahl (z.B. bei Englisch ["Impeller","zinc anode","oil filter"]). Dies ist NUR die dem Nutzer angezeigte Beschriftung; die Suche nutzt weiterhin "shop". Wenn die Antwortsprache Deutsch ist, sind "shop_labels" identisch zu "shop" — dann darfst du "shop_labels" weglassen.
 - "equipment_checklist": Setze true, wenn ein (oft unerfahrener) Nutzer fragt, welche Ausrüstung er braucht oder worauf er bei seinem Boot achten sollte — dann bietet die App ihm eine auf sein Boot zugeschnittene Ausrüstungsliste zum Übernehmen an. Sonst weglassen.
 - Verwende KEINE der beiden Schlüssel, wenn nichts zutrifft, und hänge dann auch keinen Block an.
 - Der Block wird dem Nutzer NIE als Text angezeigt — die App wandelt ihn in Buttons um. Schreibe den sichtbaren Antworttext daher vollständig, ohne dich auf den Block zu beziehen.`;
@@ -283,6 +284,11 @@ Deno.serve(async (req) => {
         systemPrompt += `\n\nLernkontext — frueher als hilfreich bewertete Antworten zu aehnlichen Themen. Nutze sie als Qualitaets-Referenz (Tonfall, Detailtiefe, Struktur), uebernimm aber niemals wortwoertlich und passe an den aktuellen Kontext an:\n\n${block}`;
       }
     }
+
+    // Antwortsprache FINAL erzwingen — muss die LETZTE Anweisung im System-Prompt
+    // sein, damit weder der deutsche Basis-Prompt (Expertise-Liste) noch die
+    // deutschen Few-Shot-Beispiele die Ausgabesprache überschreiben.
+    systemPrompt += `\n\n=== VERBINDLICHE AUSGABESPRACHE ===\nAntworte AUSSCHLIESSLICH auf ${LANG_NAMES[userLang]} (${userLang}). Das gilt unabhängig von der Sprache der obigen Anweisungen, der Lernbeispiele und der Nutzernachricht. Verwende die in ${LANG_NAMES[userLang]} übliche maritime Fachterminologie.`;
 
     // Claude API aufrufen
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");

@@ -15,7 +15,7 @@ const chipStyle = {
 }
 
 export default function AIChat() {
-  const { t } = useT()
+  const { t, lang } = useT()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -290,7 +290,7 @@ export default function AIChat() {
             'Authorization': `Bearer ${session.access_token}`,
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjandseXFrZmtzenVtZHJmdnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxMDQ4NTksImV4cCI6MjA4NDY4MDg1OX0.VOlhRdvShU325xG18SSSTWdFfGEdyeX-7CAovE2vesQ',
           },
-          body: JSON.stringify({ messages: apiMessages, boatContext }),
+          body: JSON.stringify({ messages: apiMessages, boatContext, lang }),
           signal: controller.signal,
         })
       } finally {
@@ -429,12 +429,17 @@ export default function AIChat() {
                   <div style={{ marginTop: 10 }}>
                     <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>{t('chat.shopHeader')}</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {msg.shopSearchTerms.map((term, k) => (
-                        <button key={k} onClick={() => navigate(`/shop?q=${encodeURIComponent(term)}`)}
-                          style={chipStyle}>
-                          <Search size={13} /> {term}
-                        </button>
-                      ))}
+                      {msg.shopSearchTerms.map((s, k) => {
+                        // Abwärtskompatibel: alt = String, neu = { term, label }.
+                        const term = typeof s === 'string' ? s : s.term
+                        const label = typeof s === 'string' ? s : (s.label || s.term)
+                        return (
+                          <button key={k} onClick={() => navigate(`/shop?q=${encodeURIComponent(term)}`)}
+                            style={chipStyle}>
+                            <Search size={13} /> {label}
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
                 )}

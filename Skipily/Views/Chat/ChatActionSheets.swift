@@ -358,7 +358,12 @@ struct ShopQuery: Identifiable {
 /// Maschinenlesbare Aktionen, die Claude am Ende einer Antwort in einem
 /// `[[skipily-actions]]{…}[[/skipily-actions]]`-Block liefert.
 struct ChatActions: Equatable {
+    /// Deutsche Suchbegriffe — werden für die Shop-Suche verwendet (der Katalog
+    /// ist deutsch). Nie dem Nutzer anzeigen, dafür `shopSearchLabels` nutzen.
     var shopSearchTerms: [String] = []
+    /// Lokalisierte Anzeige-Beschriftungen (gleiche Reihenfolge/Anzahl wie
+    /// `shopSearchTerms`). Fallback = Suchbegriff, falls kein Label geliefert.
+    var shopSearchLabels: [String] = []
     var showsEquipmentChecklist: Bool = false
 }
 
@@ -386,13 +391,20 @@ enum ChatActionParser {
         if let data = jsonString.data(using: .utf8),
            let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
             if let shop = obj["shop"] as? [Any] {
+                // shop = deutsche Suchbegriffe, shop_labels = lokalisierte Anzeige
+                // (gleiche Reihenfolge). Fallback: Label = Suchbegriff.
+                let labels = obj["shop_labels"] as? [Any] ?? []
                 var seen = Set<String>()
-                for case let s as String in shop {
+                for (i, item) in shop.enumerated() {
+                    guard let s = item as? String else { continue }
                     let term = s.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard term.count >= 2, term.count <= 40 else { continue }
-                    if seen.insert(term.lowercased()).inserted {
-                        actions.shopSearchTerms.append(term)
-                    }
+                    guard seen.insert(term.lowercased()).inserted else { continue }
+                    let rawLabel = (i < labels.count ? labels[i] as? String : nil)?
+                        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    let label = (rawLabel.count >= 1 && rawLabel.count <= 40) ? rawLabel : term
+                    actions.shopSearchTerms.append(term)
+                    actions.shopSearchLabels.append(label)
                     if actions.shopSearchTerms.count >= 5 { break }
                 }
             }
@@ -422,11 +434,14 @@ struct ChatMessageActions: View {
                     .foregroundStyle(.secondary)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(message.shopSearchTerms, id: \.self) { term in
+                        ForEach(message.shopSearchTerms.indices, id: \.self) { i in
+                            let term = message.shopSearchTerms[i]
+                            let label = i < message.shopSearchLabels.count
+                                ? message.shopSearchLabels[i] : term
                             Button {
                                 onShopSearch(term)
                             } label: {
-                                Label(term, systemImage: "magnifyingglass")
+                                Label(label, systemImage: "magnifyingglass")
                                     .font(.caption.weight(.medium))
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 7)

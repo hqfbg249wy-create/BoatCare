@@ -25,16 +25,22 @@ export function parseChatActions(raw) {
   try {
     const obj = JSON.parse(jsonStr)
     if (Array.isArray(obj?.shop)) {
+      // shop = deutsche Suchbegriffe (Matching), shop_labels = lokalisierte
+      // Anzeige (gleiche Reihenfolge). Fallback: Label = Suchbegriff.
+      const labels = Array.isArray(obj?.shop_labels) ? obj.shop_labels : []
       const seen = new Set()
-      for (const s of obj.shop) {
+      for (let i = 0; i < obj.shop.length; i++) {
+        if (shopSearchTerms.length >= 5) break
+        const s = obj.shop[i]
         if (typeof s !== 'string') continue
         const term = s.trim()
         if (term.length < 2 || term.length > 40) continue
         const key = term.toLowerCase()
         if (seen.has(key)) continue
         seen.add(key)
-        shopSearchTerms.push(term)
-        if (shopSearchTerms.length >= 5) break
+        const rawLabel = typeof labels[i] === 'string' ? labels[i].trim() : ''
+        const label = rawLabel.length >= 1 && rawLabel.length <= 40 ? rawLabel : term
+        shopSearchTerms.push({ term, label })
       }
     }
     if (obj?.equipment_checklist === true) equipmentChecklist = true
