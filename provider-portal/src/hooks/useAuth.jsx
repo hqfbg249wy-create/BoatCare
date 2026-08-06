@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext({})
@@ -10,6 +10,13 @@ export function AuthProvider({ children }) {
   const [provider, setProvider] = useState(null)
   const [providers, setProviders] = useState([]) // alle Konten: eigenes + Mitgliedschaften
   const [loading, setLoading] = useState(true)
+  // true, sobald loadProvider mindestens einmal endgültig durchgelaufen ist.
+  // Verhindert, dass "Kein Provider-Profil" aufblitzt, während der (asynchrone)
+  // Claim/Load noch läuft.
+  const [providerChecked, setProviderChecked] = useState(false)
+  // Laufnummer: bei parallelen loadProvider-Aufrufen (getSession + onAuthState-
+  // Change) gewinnt nur der jüngste — verhindert Flackern durch Race-Conditions.
+  const loadSeqRef = useRef(0)
   const [mfaEnrolled, setMfaEnrolled] = useState(false)
   const [mfaRequired, setMfaRequired] = useState(false)
   const [mfaFactors, setMfaFactors] = useState([])
@@ -64,6 +71,7 @@ export function AuthProvider({ children }) {
   }
 
   async function loadProvider(userId) {
+    const seq = ++loadSeqRef.current
     try {
       const byId = new Map()
 
@@ -92,6 +100,8 @@ export function AuthProvider({ children }) {
         else if (claimErr) console.warn('claim_provider_by_email Fehler:', claimErr.message)
       }
 
+      // Stale-Guard: ein neuerer loadProvider-Aufruf hat bereits übernommen.
+      if (seq !== loadSeqRef.current) return
       const list = [...byId.values()]
       setProviders(list)
 
@@ -107,9 +117,13 @@ export function AuthProvider({ children }) {
       try { localStorage.setItem(ACTIVE_KEY, active.id) } catch (_) {}
     } catch (err) {
       console.error('loadProvider Fehler:', err.message)
-      setProvider(null)
+      if (seq === loadSeqRef.current) setProvider(null)
     } finally {
-      setLoading(false)
+      // Nur der jüngste Aufruf schließt den Ladezustand ab.
+      if (seq === loadSeqRef.current) {
+        setProviderChecked(true)
+        setLoading(false)
+      }
     }
   }
 
@@ -197,7 +211,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user, provider, providers, switchProvider, loading,
+      user, provider, providers, switchProvider, loading, providerChecked,
       mfaEnrolled, mfaRequired, mfaFactors,
       signIn, signUp, signOut, loadProvider, refreshMfaStatus,
       verifyMFA, enrollMFA, confirmMFAEnrollment, unenrollMFA
