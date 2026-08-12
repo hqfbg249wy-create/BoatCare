@@ -241,29 +241,27 @@ function pricingBody(lang) {
     tiers: de ? [
       { name: 'Free', aud: 'Einsteiger', price: '0 €' },
       { name: 'Free +', aud: 'mit Registrierung', price: '0 €' },
-      { name: 'Skipily Plus', aud: 'Hobby-Skipper · 1–2 Boote', price: '4,99 €', per: t.mo, year: t.yr('49'), trial: t.trial, hot: true },
-      { name: 'Skipily Family', aud: 'Eignergemeinschaft · bis zu 5 Eigner', price: '9,99 €', per: t.mo, year: t.yr('99'), trial: t.trial },
+      { name: 'Skipily Plus', aud: 'Skipper & Eignergemeinschaften', price: '4,99 €', per: t.mo, year: t.yr('49'), trial: t.trial, hot: true },
       { name: 'Plus Fleet', aud: 'Charterflotten > 5 Schiffe', price: '29,99 €', per: t.mo, trial: t.trial },
     ] : [
       { name: 'Free', aud: 'Starter', price: '€0' },
       { name: 'Free +', aud: 'with registration', price: '€0' },
-      { name: 'Skipily Plus', aud: 'Hobby skippers · 1–2 boats', price: '€4.99', per: t.mo, year: t.yr('49'), trial: t.trial, hot: true },
-      { name: 'Skipily Family', aud: 'Owner group · up to 5 owners', price: '€9.99', per: t.mo, year: t.yr('99'), trial: t.trial },
+      { name: 'Skipily Plus', aud: 'Skippers & owner groups', price: '€4.99', per: t.mo, year: t.yr('49'), trial: t.trial, hot: true },
       { name: 'Plus Fleet', aud: 'Charter fleets > 5 boats', price: '€29.99', per: t.mo, trial: t.trial },
     ],
     rows: [
-      [de ? 'Karte mit Providern' : 'Provider map', [YES, YES, YES, YES, YES]],
-      [de ? 'Bewertungen hinterlegen' : 'Leave reviews', [NO, YES, YES, YES, YES]],
-      [de ? 'Filter' : 'Filters', [NO, YES, YES, YES, YES]],
-      [de ? 'Direktsuche über hinterlegte Ausrüstung' : 'Direct search via saved equipment', [NO, YES, YES, YES, YES]],
-      [de ? 'Eigene Boote anlegen' : 'Add your own boats', [NO, YES, '1–2', '1–2', '> 5']],
-      [de ? 'Ausrüstung mit Wartungszyklus' : 'Equipment with maintenance cycle', [NO, YES, YES, YES, YES]],
-      [de ? 'Wartungs-Erinnerungen' : 'Maintenance reminders', [NO, YES, YES, YES, YES]],
-      [de ? 'Service-Favoriten speichern' : 'Save service favourites', [NO, YES, YES, YES, YES]],
-      [de ? 'Skipily-Rabatte nutzen' : 'Use Skipily discounts', [NO, NO, YES, YES, YES]],
-      [de ? 'KI-Boots-Assistent' : 'AI boat assistant', [NO, de ? '10 Fragen' : '10 questions', de ? 'Unbegrenzt' : 'Unlimited', de ? 'Unbegrenzt' : 'Unlimited', de ? 'Unbegrenzt' : 'Unlimited']],
-      [de ? 'Nutzer zeitlich freischalten (künftig)' : 'Time-limited user access (upcoming)', [NO, NO, NO, NO, YES]],
-      [de ? 'Nutzerrechte verwalten (künftig)' : 'Manage user permissions (upcoming)', [NO, NO, NO, NO, YES]],
+      [de ? 'Karte mit Providern' : 'Provider map', [YES, YES, YES, YES]],
+      [de ? 'Bewertungen hinterlegen' : 'Leave reviews', [NO, YES, YES, YES]],
+      [de ? 'Filter' : 'Filters', [NO, YES, YES, YES]],
+      [de ? 'Direktsuche über hinterlegte Ausrüstung' : 'Direct search via saved equipment', [NO, YES, YES, YES]],
+      [de ? 'Eigene Boote anlegen' : 'Add your own boats', [NO, YES, '1–2', '> 5']],
+      [de ? 'Ausrüstung mit Wartungszyklus' : 'Equipment with maintenance cycle', [NO, YES, YES, YES]],
+      [de ? 'Wartungs-Erinnerungen' : 'Maintenance reminders', [NO, YES, YES, YES]],
+      [de ? 'Service-Favoriten speichern' : 'Save service favourites', [NO, YES, YES, YES]],
+      [de ? 'Skipily-Rabatte nutzen' : 'Use Skipily discounts', [NO, NO, YES, YES]],
+      [de ? 'KI-Boots-Assistent' : 'AI boat assistant', [NO, de ? '10 Fragen' : '10 questions', de ? 'Unbegrenzt' : 'Unlimited', de ? 'Unbegrenzt' : 'Unlimited']],
+      [de ? 'Nutzer zeitlich freischalten (künftig)' : 'Time-limited user access (upcoming)', [NO, NO, NO, YES]],
+      [de ? 'Nutzerrechte verwalten (künftig)' : 'Manage user permissions (upcoming)', [NO, NO, NO, YES]],
     ],
     cta: { href: 'https://skipily.app/clip', label: t.ctaO },
   };
@@ -405,11 +403,11 @@ async function main() {
   // Preise & Leistungen (Spaltenvergleich, DE + EN)
   write('preise/index.html', doc({ lang: 'de',
     title: 'Preise & Leistungen — Skipily',
-    desc: 'Alle Skipily-Tarife im Spaltenvergleich: Free, Plus, Family & Fleet für Bootseigner sowie Basic, Starter, Pro & Enterprise für Service-Anbieter.',
+    desc: 'Alle Skipily-Tarife im Spaltenvergleich: Free, Plus & Fleet für Bootseigner sowie Basic, Starter, Pro & Enterprise für Service-Anbieter.',
     body: pricingBody('de') }));
   write('en/pricing/index.html', doc({ lang: 'en',
     title: 'Pricing & features — Skipily',
-    desc: 'All Skipily plans compared column by column: Free, Plus, Family & Fleet for boat owners plus Basic, Starter, Pro & Enterprise for service providers.',
+    desc: 'All Skipily plans compared column by column: Free, Plus & Fleet for boat owners plus Basic, Starter, Pro & Enterprise for service providers.',
     body: pricingBody('en') }));
 
   // Newsletter-Danke (Ziel der CleverReach-Weiterleitung nach Anmeldung)
