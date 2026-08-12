@@ -73,7 +73,7 @@
 .sk-h2-on-dark { color: var(--sk-white); }
 
 .sk-h3 {
-  font-size: 1.4rem;
+  font-size: clamp(1.45rem, 1.3rem + 0.6vw, 1.75rem);
   font-weight: 700;
   color: var(--sk-orange);
   margin: 0 0 0.75rem;
@@ -322,9 +322,16 @@
 .sk-feature-row.sk-reverse > * { direction: ltr; }
 
 .sk-feature-text p {
-  color: rgba(255,255,255,0.8);
-  font-size: 1.05rem;
-  line-height: 1.7;
+  color: rgba(255,255,255,0.92);
+  font-size: clamp(1.12rem, 1.02rem + 0.4vw, 1.28rem);
+  line-height: 1.75;
+}
+
+/* Bullet-Listen in den Bild-Rubriken lesbarer (überschreibt Inline-14px). */
+.sk-feature-text ul {
+  color: #dbe4f0 !important;
+  font-size: clamp(1rem, 0.95rem + 0.25vw, 1.12rem) !important;
+  line-height: 1.65;
 }
 
 .sk-feature-img {
