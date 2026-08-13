@@ -9,6 +9,16 @@
 import Foundation
 import Supabase
 
+/// Eine provider-kuratierte Produkt-Verknüpfung (Migration 120): das Zielprodukt
+/// plus Typ (alternative / zubehoer_erforderlich / zubehoer_optional / bundle)
+/// und optionaler Provider-Hinweis.
+struct ProductRelation: Identifiable, Sendable {
+    let id: UUID
+    let relationType: String
+    let note: String?
+    let product: Product
+}
+
 @MainActor
 final class ProductService {
     static let shared = ProductService()
@@ -197,6 +207,40 @@ final class ProductService {
             .execute()
             .value
         return products
+    }
+
+    /// Provider-kuratierte Verknüpfungen für ein Produkt (Migration 120):
+    /// Zubehör (erforderlich/optional), Alternativen, Bundle — inkl. der
+    /// Zielprodukte und des Provider-Hinweistexts. Verifizierte Empfehlungen.
+    func fetchProductRelations(sourceProductId: UUID) async throws -> [ProductRelation] {
+        struct Row: Decodable {
+            let id: UUID
+            let relation_type: String
+            let note: String?
+            let target_product_id: UUID
+        }
+        let rows: [Row] = try await client
+            .from("product_relations")
+            .select("id,relation_type,note,target_product_id")
+            .eq("source_product_id", value: sourceProductId.uuidString)
+            .order("sort_order")
+            .execute()
+            .value
+        guard !rows.isEmpty else { return [] }
+
+        let ids = Array(Set(rows.map { $0.target_product_id.uuidString }))
+        let products: [Product] = try await client
+            .from("metashop_products")
+            .select(productSelect)
+            .in("id", values: ids)
+            .execute()
+            .value
+        let byId = Dictionary(products.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+
+        return rows.compactMap { r in
+            guard let p = byId[r.target_product_id] else { return nil }
+            return ProductRelation(id: r.id, relationType: r.relation_type, note: r.note, product: p)
+        }
     }
 
     func fetchProductsByBoatType(_ boatType: String) async throws -> [Product] {
