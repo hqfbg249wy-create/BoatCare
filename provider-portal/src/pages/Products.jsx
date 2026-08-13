@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import ProductRelations from '../components/ProductRelations'
 import { useAuth } from '../hooks/useAuth'
 import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import { supabase } from '../lib/supabase'
@@ -701,6 +702,11 @@ export default function Products() {
             </button>
           </div>
         </form>
+
+        {/* Verknüpfte Produkte – nur bei bestehenden Produkten (braucht eine ID). */}
+        {editing !== 'new' && editing?.id && (
+          <ProductRelations productId={editing.id} providerId={provider.id} lang={lang} />
+        )}
       </div>
     )
   }
