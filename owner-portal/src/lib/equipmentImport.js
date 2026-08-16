@@ -286,6 +286,64 @@ export function toRopeInsert(row, equipmentId) {
   return { ...rest, equipment_id: equipmentId, status: 'draft' }
 }
 
+// Speichert ein ExcelJS-Workbook als xlsx-Download.
+async function saveWorkbook(wb, filename) {
+  const buf = await wb.xlsx.writeBuffer()
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = filename
+  document.body.appendChild(a); a.click(); a.remove()
+  URL.revokeObjectURL(url)
+}
+
+/**
+ * Erzeugt ein Import-Protokoll (.xlsx) mit je einem Blatt pro Bereich und
+ * einem Status/Hinweis je Zeile — damit nachvollziehbar ist, was neu angelegt,
+ * was als Duplikat übersprungen und was (nicht) verknüpft wurde.
+ * `detail` = { equipment[], sails[], ropes[] } mit Feldern {status, hint, …}.
+ */
+export async function downloadImportProtocol(detail) {
+  const em = await import('exceljs')
+  const ExcelJS = em.Workbook ? em : em.default
+  const wb = new ExcelJS.Workbook()
+
+  const head = (ws) => {
+    ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }
+    ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B1D3A' } }
+  }
+  const paint = (cell, ok) => {
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ok ? 'FFDCFCE7' : 'FFFEF3C7' } }
+  }
+
+  const ws1 = wb.addWorksheet('Ausrüstung')
+  ws1.columns = [
+    { header: 'Bezeichnung', width: 30 }, { header: 'Seriennummer', width: 18 },
+    { header: 'Kategorie', width: 20 }, { header: 'Status', width: 24 }, { header: 'Hinweis', width: 46 },
+  ]
+  head(ws1)
+  for (const e of (detail.equipment || [])) {
+    const row = ws1.addRow([e.name, e.serial_number || '', e.category || '', e.status, e.hint || ''])
+    paint(row.getCell(4), e.ok)
+  }
+
+  if ((detail.sails || []).length) {
+    const ws2 = wb.addWorksheet('Segelmessblatt')
+    ws2.columns = [{ header: 'Ausrüstung', width: 30 }, { header: 'Segeltyp', width: 16 }, { header: 'Status', width: 24 }, { header: 'Hinweis', width: 46 }]
+    head(ws2)
+    for (const s of detail.sails) { const row = ws2.addRow([s.equipment, s.sail_type || '', s.status, s.hint || '']); paint(row.getCell(3), s.ok) }
+  }
+
+  if ((detail.ropes || []).length) {
+    const ws3 = wb.addWorksheet('Tauwerk')
+    ws3.columns = [{ header: 'Ausrüstung', width: 30 }, { header: 'Artikelnummer', width: 18 }, { header: 'Status', width: 24 }, { header: 'Hinweis', width: 46 }]
+    head(ws3)
+    for (const r of detail.ropes) { const row = ws3.addRow([r.equipment, r.article_number || '', r.status, r.hint || '']); paint(row.getCell(3), r.ok) }
+  }
+
+  await saveWorkbook(wb, `Skipily_Import-Protokoll_${new Date().toISOString().slice(0, 10)}.xlsx`)
+}
+
 /**
  * Lädt die Vorlage (xlsx) mit DREI Blättern herunter. Alle Dropdowns
  * (Kategorie, Segeltyp, Material, Enden) liegen auf einem versteckten Blatt
@@ -364,11 +422,5 @@ export async function downloadEquipmentTemplate() {
   addListValidation(ws3, end1Col, range('D', endLabels.length), 'Ungültiges Ende')
   addListValidation(ws3, end2Col, range('D', endLabels.length), 'Ungültiges Ende')
 
-  const buf = await wb.xlsx.writeBuffer()
-  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.download = 'Skipily_Ausruestung_Vorlage.xlsx'
-  document.body.appendChild(a); a.click(); a.remove()
-  URL.revokeObjectURL(url)
+  await saveWorkbook(wb, 'Skipily_Ausruestung_Vorlage.xlsx')
 }

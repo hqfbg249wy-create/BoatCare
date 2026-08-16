@@ -423,18 +423,7 @@ export default function Equipment() {
           boats={boats}
           defaultBoatId={selectedBoat}
           onClose={() => setShowImport(false)}
-          onImported={(r) => {
-            loadData()
-            if (r && typeof r === 'object') {
-              const parts = []
-              if (r.equipment) parts.push(`${r.equipment} Ausrüstung`)
-              if (r.skippedEquipment) parts.push(`${r.skippedEquipment} bereits vorhanden`)
-              if (r.sails) parts.push(`${r.sails} Segelmessblatt`)
-              if (r.ropes) parts.push(`${r.ropes} Tauwerk`)
-              if (r.unlinked) parts.push(`${r.unlinked} ohne Zuordnung übersprungen`)
-              if (parts.length) alert('Import abgeschlossen: ' + parts.join(', ') + '.')
-            }
-          }}
+          onImported={() => loadData()}
         />
       )}
 

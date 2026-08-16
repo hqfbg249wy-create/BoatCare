@@ -1,18 +1,20 @@
 // Import-Dialog: Ausrüstung + Segelmessblatt + Tauwerk aus EINER Excel-Datei
 // hochladen (Desktop). Werft füllt die Vorlage aus -> Eigner lädt sie hoch ->
-// Vorschau (mit Duplikat-Erkennung) -> Import.
+// Vorschau (mit Duplikat-Erkennung) -> Import -> Ergebnis + Protokoll (.xlsx).
 //
 // Duplikat-Schutz: bereits vorhandene Ausrüstung (gleiche Seriennummer, sonst
 // gleicher Name je Boot) wird NICHT neu angelegt — sonst würde die daran
 // hängende Wartungshistorie verwaisen. Vorhandene Geräte werden übersprungen,
 // ihre ID aber für die Verknüpfung von Segel-/Tauwerk-Daten weiterverwendet.
+// Welche Zeilen übersprungen/verknüpft wurden, ist im Excel-Protokoll und in
+// der Ergebnis-Ansicht nachvollziehbar.
 
 import { useEffect, useState } from 'react'
-import { X, Upload, Download, FileSpreadsheet, Check, AlertTriangle } from 'lucide-react'
+import { X, Upload, Download, FileSpreadsheet, Check, AlertTriangle, FileDown } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import {
   parseWorkbook, toEquipmentInsert, toSailInsert, toRopeInsert,
-  downloadEquipmentTemplate, normKey,
+  downloadEquipmentTemplate, downloadImportProtocol, normKey,
 } from '../lib/equipmentImport'
 
 const CAT_LABEL = {
@@ -20,6 +22,7 @@ const CAT_LABEL = {
   safety: 'Sicherheit', communication: 'Kommunikation', rigging: 'Rigg & Takelage',
   hull: 'Rumpf & Unterwasser', deck: 'Deck & Beschläge', anchor: 'Anker & Kette', other: 'Sonstiges',
 }
+const SAIL_LABEL = { grosssegel: 'Großsegel', vorsegel: 'Vorsegel', gennaker: 'Gennaker', code0: 'Code 0' }
 
 export default function EquipmentImportModal({ boats, defaultBoatId, onClose, onImported }) {
   const [boatId, setBoatId] = useState(defaultBoatId || (boats[0]?.id || ''))
@@ -30,6 +33,7 @@ export default function EquipmentImportModal({ boats, defaultBoatId, onClose, on
   const [fileName, setFileName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [result, setResult] = useState(null)  // Ergebnis-Ansicht nach Import
 
   // Vorhandene Ausrüstung des gewählten Boots laden (für Duplikat-Erkennung).
   useEffect(() => {
@@ -42,15 +46,24 @@ export default function EquipmentImportModal({ boats, defaultBoatId, onClose, on
 
   const existBySerial = new Map(existing.filter(e => e.serial_number).map(e => [normKey(e.serial_number), e]))
   const existByName = new Map(existing.map(e => [normKey(e.name), e]))
-  const isDup = (r) => (r.serial_number && existBySerial.has(normKey(r.serial_number))) || existByName.has(normKey(r.name))
+  // Liefert {dup, reason, matchedName} für eine geparste Zeile.
+  const dupInfo = (r) => {
+    if (r.serial_number) {
+      const m = existBySerial.get(normKey(r.serial_number))
+      if (m) return { dup: true, reason: 'Seriennummer', matchedName: m.name }
+    }
+    const m2 = existByName.get(normKey(r.name))
+    if (m2) return { dup: true, reason: 'Name', matchedName: m2.name }
+    return { dup: false }
+  }
 
-  const dupCount = rows.filter(isDup).length
+  const dupCount = rows.filter(r => dupInfo(r).dup).length
   const newCount = rows.length - dupCount
 
   async function handleFile(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    setError(''); setFileName(file.name)
+    setError(''); setFileName(file.name); setResult(null)
     try {
       const { equipment, sails: s, ropes: rp } = await parseWorkbook(file)
       if (equipment.length === 0 && s.length === 0 && rp.length === 0) {
@@ -67,12 +80,29 @@ export default function EquipmentImportModal({ boats, defaultBoatId, onClose, on
   async function doImport() {
     if (!boatId || (rows.length === 0 && sails.length === 0 && ropes.length === 0)) return
     setBusy(true); setError('')
+    // Protokoll-Detail je Bereich (für Excel-Protokoll + Ergebnis-Ansicht).
+    const detail = { equipment: [], sails: [], ropes: [] }
     try {
-      // 1) Nur NEUE Ausrüstung anlegen (Duplikate überspringen -> Historie schützen).
-      const toInsert = rows.filter(r => !isDup(r))
+      // 1) Ausrüstung: neue anlegen, Duplikate protokollieren (Historie schützen).
+      const toInsert = []
+      for (const r of rows) {
+        const info = dupInfo(r)
+        if (info.dup) {
+          detail.equipment.push({
+            name: r.name, serial_number: r.serial_number, category: CAT_LABEL[r.category] || r.category,
+            ok: false, status: 'Übersprungen – bereits vorhanden',
+            hint: `Treffer über ${info.reason}: „${info.matchedName}" (Wartungshistorie bleibt erhalten)`,
+          })
+        } else {
+          toInsert.push(r)
+          detail.equipment.push({
+            name: r.name, serial_number: r.serial_number, category: CAT_LABEL[r.category] || r.category,
+            ok: true, status: 'Neu importiert', hint: '',
+          })
+        }
+      }
       if (toInsert.length > 0) {
-        const payload = toInsert.map(r => toEquipmentInsert(r, boatId))
-        const { error: err } = await supabase.from('equipment').insert(payload)
+        const { error: err } = await supabase.from('equipment').insert(toInsert.map(r => toEquipmentInsert(r, boatId)))
         if (err) throw err
       }
 
@@ -86,12 +116,15 @@ export default function EquipmentImportModal({ boats, defaultBoatId, onClose, on
       }
 
       // 3) Segelmessblätter verknüpfen & einfügen.
-      let sailSkipped = 0
       const sailPayload = []
       for (const s of sails) {
         const id = nameToId.get(normKey(s._equipment))
-        if (!id) { sailSkipped++; continue }
-        sailPayload.push(toSailInsert(s, id))
+        if (id) { sailPayload.push(toSailInsert(s, id)) }
+        detail.sails.push({
+          equipment: s._equipment, sail_type: SAIL_LABEL[s.sail_type] || s.sail_type,
+          ok: !!id, status: id ? 'Verknüpft' : 'Nicht zugeordnet',
+          hint: id ? `→ „${s._equipment}"` : `Kein Ausrüstungs-Eintrag „${s._equipment}" gefunden`,
+        })
       }
       if (sailPayload.length > 0) {
         const { error: sErr } = await supabase.from('sail_measurements').insert(sailPayload)
@@ -99,24 +132,30 @@ export default function EquipmentImportModal({ boats, defaultBoatId, onClose, on
       }
 
       // 4) Tauwerk verknüpfen & einfügen.
-      let ropeSkipped = 0
       const ropePayload = []
       for (const r of ropes) {
         const id = nameToId.get(normKey(r._equipment))
-        if (!id) { ropeSkipped++; continue }
-        ropePayload.push(toRopeInsert(r, id))
+        if (id) { ropePayload.push(toRopeInsert(r, id)) }
+        detail.ropes.push({
+          equipment: r._equipment, article_number: r.article_number,
+          ok: !!id, status: id ? 'Verknüpft' : 'Nicht zugeordnet',
+          hint: id ? `→ „${r._equipment}"` : `Kein Ausrüstungs-Eintrag „${r._equipment}" gefunden`,
+        })
       }
       if (ropePayload.length > 0) {
         const { error: rErr } = await supabase.from('rope_configurations').insert(ropePayload)
         if (rErr) throw rErr
       }
 
-      onImported?.({
-        equipment: toInsert.length, skippedEquipment: rows.length - toInsert.length,
-        sails: sailPayload.length, ropes: ropePayload.length,
-        unlinked: sailSkipped + ropeSkipped,
-      })
-      onClose()
+      const summary = {
+        equipmentNew: toInsert.length,
+        equipmentSkipped: rows.length - toInsert.length,
+        sailsLinked: sailPayload.length, sailsUnlinked: sails.length - sailPayload.length,
+        ropesLinked: ropePayload.length, ropesUnlinked: ropes.length - ropePayload.length,
+        duplicates: detail.equipment.filter(e => !e.ok),
+      }
+      setResult({ detail, summary })
+      onImported?.(summary)  // Liste im Hintergrund aktualisieren (Dialog bleibt für Protokoll offen)
     } catch (err) {
       console.error('Import:', err)
       setError('Import fehlgeschlagen: ' + (err.message || 'unbekannter Fehler'))
@@ -126,6 +165,61 @@ export default function EquipmentImportModal({ boats, defaultBoatId, onClose, on
   }
 
   const total = rows.length + sails.length + ropes.length
+
+  // ── Ergebnis-Ansicht (nach Import) ──
+  if (result) {
+    const s = result.summary
+    return (
+      <div style={S.overlay} onClick={onClose}>
+        <div style={S.modal} onClick={e => e.stopPropagation()}>
+          <div style={S.head}>
+            <h2 style={{ margin: 0, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Check size={20} color="#10b981" /> Import abgeschlossen
+            </h2>
+            <button style={S.x} onClick={onClose}><X size={20} /></button>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '8px 0 14px' }}>
+            <span style={S.pill}>{s.equipmentNew} Ausrüstung neu</span>
+            {s.equipmentSkipped > 0 && <span style={S.pillWarn}><AlertTriangle size={12} /> {s.equipmentSkipped} übersprungen</span>}
+            {s.sailsLinked > 0 && <span style={S.pill}>{s.sailsLinked} Segelmessblatt</span>}
+            {s.ropesLinked > 0 && <span style={S.pill}>{s.ropesLinked} Tauwerk</span>}
+            {(s.sailsUnlinked + s.ropesUnlinked) > 0 && <span style={S.pillWarn}><AlertTriangle size={12} /> {s.sailsUnlinked + s.ropesUnlinked} ohne Zuordnung</span>}
+          </div>
+
+          {s.duplicates.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontWeight: 600, marginBottom: 6, color: '#b45309', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <AlertTriangle size={16} /> Als Duplikat übersprungen (Wartungshistorie bleibt erhalten):
+              </div>
+              <div style={{ maxHeight: 220, overflow: 'auto', border: '1px solid #fde68a', borderRadius: 8, background: '#fffbeb' }}>
+                <table style={S.table}>
+                  <thead><tr>{['Bezeichnung', 'Seriennr.', 'Grund'].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {s.duplicates.map((d, i) => (
+                      <tr key={i}><td style={S.td}>{d.name}</td><td style={S.td}>{d.serial_number || '—'}</td><td style={S.td}>{d.hint}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <p style={S.hint}>
+            Das vollständige Protokoll (alle Zeilen mit Status je Blatt) kannst du als Excel herunterladen —
+            so ist der Abgleich für die Werft/den Verkäufer nachvollziehbar.
+          </p>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
+            <button style={S.secondary} onClick={() => downloadImportProtocol(result.detail)}>
+              <FileDown size={16} /> Protokoll (.xlsx)
+            </button>
+            <button style={S.primary} onClick={onClose}><Check size={16} /> Fertig</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={S.overlay} onClick={onClose}>
@@ -165,9 +259,7 @@ export default function EquipmentImportModal({ boats, defaultBoatId, onClose, on
           <div style={S.previewWrap}>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
               <span style={S.pill}>{newCount} Ausrüstung neu</span>
-              {dupCount > 0 && <span style={{ ...S.pill, background: '#fffbeb', color: '#b45309', borderColor: '#fde68a' }}>
-                <AlertTriangle size={12} /> {dupCount} bereits vorhanden (übersprungen)
-              </span>}
+              {dupCount > 0 && <span style={S.pillWarn}><AlertTriangle size={12} /> {dupCount} bereits vorhanden (übersprungen)</span>}
               {sails.length > 0 && <span style={S.pill}>{sails.length} Segelmessblatt</span>}
               {ropes.length > 0 && <span style={S.pill}>{ropes.length} Tauwerk</span>}
             </div>
@@ -183,7 +275,7 @@ export default function EquipmentImportModal({ boats, defaultBoatId, onClose, on
                   </thead>
                   <tbody>
                     {rows.map((r, i) => {
-                      const dup = isDup(r)
+                      const dup = dupInfo(r).dup
                       return (
                         <tr key={i} style={dup ? { background: '#fffbeb', color: '#92400e' } : undefined}>
                           <td style={S.td}>{dup ? <AlertTriangle size={13} color="#f59e0b" /> : <Check size={13} color="#10b981" />}</td>
@@ -235,6 +327,7 @@ const S = {
   select: { width: '100%', padding: '9px 12px', borderRadius: 9, border: '1px solid #cbd5e1', fontSize: 14 },
   previewWrap: { marginBottom: 8 },
   pill: { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', fontSize: 12, fontWeight: 600 },
+  pillWarn: { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', fontSize: 12, fontWeight: 600 },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
   th: { textAlign: 'left', padding: '7px 10px', background: '#f1f5f9', position: 'sticky', top: 0, fontSize: 12 },
   td: { padding: '6px 10px', borderTop: '1px solid #eef2f7' },
