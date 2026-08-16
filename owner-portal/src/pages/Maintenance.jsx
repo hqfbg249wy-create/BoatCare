@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Wrench, CheckCircle, AlertTriangle, Clock, Filter, Check, ShoppingCart, MapPin, Bot } from 'lucide-react'
+import { Wrench, CheckCircle, AlertTriangle, Clock, Filter, Check, ShoppingCart, MapPin, Bot, Download } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { buildShopQuery, buildServiceQuery, buildMaintenanceAIQuestion } from '../lib/equipmentSearch'
 import { buildSparePartsParams } from '../lib/sparePartsSearch'
+import { generateMaintenanceReport } from '../lib/maintenanceReport'
 import { useT } from '../i18n'
 
 export default function Maintenance() {
@@ -16,6 +17,14 @@ export default function Maintenance() {
   const [selectedBoat, setSelectedBoat] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [loading, setLoading] = useState(true)
+  const [genPdf, setGenPdf] = useState(false)
+
+  async function downloadReport() {
+    setGenPdf(true)
+    try { await generateMaintenanceReport(user.id) }
+    catch (e) { console.error('Wartungsreport:', e); alert('Report konnte nicht erstellt werden.') }
+    finally { setGenPdf(false) }
+  }
 
   useEffect(() => { if (user) loadData() }, [user])
 
@@ -63,10 +72,21 @@ export default function Maintenance() {
     const today = new Date().toISOString().slice(0, 10)
     const nextDate = new Date()
     nextDate.setFullYear(nextDate.getFullYear() + (item.maintenance_cycle_years || 1))
+    const nextStr = nextDate.toISOString().slice(0, 10)
     await supabase.from('equipment').update({
       last_maintenance_date: today,
-      next_maintenance_date: nextDate.toISOString().slice(0, 10)
+      next_maintenance_date: nextStr
     }).eq('id', item.id)
+    // Historien-Eintrag protokollieren (Migration 121). Robust: falls die
+    // Tabelle noch nicht existiert, bricht "Als erledigt" nicht.
+    try {
+      await supabase.from('maintenance_history').insert({
+        equipment_id: item.id,
+        performed_on: today,
+        cycle_years: item.maintenance_cycle_years || null,
+        next_due: nextStr
+      })
+    } catch (e) { console.warn('maintenance_history insert:', e?.message) }
     await loadData()
   }
 
@@ -78,6 +98,11 @@ export default function Maintenance() {
     <div className="page">
       <h1>{t('maint.title')}</h1>
       <p className="subtitle">{t('maint.subtitle')}</p>
+
+      <button className="btn-secondary" onClick={downloadReport} disabled={genPdf}
+              style={{ marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        <Download size={16} /> {genPdf ? 'Report wird erstellt…' : 'Wartungsreport (PDF)'}
+      </button>
 
       <div className="stats-grid stats-grid-3">
         <div className={`stat-card clickable ${filterStatus === 'overdue' ? 'active-filter' : ''}`} onClick={() => setFilterStatus(filterStatus === 'overdue' ? 'all' : 'overdue')}>

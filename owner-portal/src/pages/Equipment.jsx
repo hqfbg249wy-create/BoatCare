@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Filter, ShoppingCart, MapPin, Bot, Mail, Sparkles, Link2, FileText } from 'lucide-react'
+import { Package, Plus, Pencil, Trash2, X, Save, AlertTriangle, CheckCircle, Filter, ShoppingCart, MapPin, Bot, Mail, Sparkles, Link2, FileText, FileSpreadsheet } from 'lucide-react'
+import EquipmentImportModal from '../components/EquipmentImportModal'
 import RopeConfigFields, { emptyRope } from '../components/RopeConfigFields'
 import { ROPE_EYE_ENDS } from '../lib/ropeOptions'
 import { useT } from '../i18n'
@@ -42,6 +43,7 @@ export default function Equipment() {
   const [selectedBoat, setSelectedBoat] = useState(searchParams.get('boat') || '')
   const [filterCat, setFilterCat] = useState('')
   const [loading, setLoading] = useState(true)
+  const [showImport, setShowImport] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyItem)
   const [saving, setSaving] = useState(false)
@@ -406,8 +408,24 @@ export default function Equipment() {
     <div className="page">
       <div className="page-header">
         <div><h1>{t('eq.k0')}</h1><p className="subtitle">{items.length} Geraete erfasst</p></div>
-        {boats.length > 0 && <button className="btn-primary" onClick={startNew}><Plus size={16} /> {t('eq.k1')}</button>}
+        {boats.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn-secondary" onClick={() => setShowImport(true)}>
+              <FileSpreadsheet size={16} /> Import (Excel/CSV)
+            </button>
+            <button className="btn-primary" onClick={startNew}><Plus size={16} /> {t('eq.k1')}</button>
+          </div>
+        )}
       </div>
+
+      {showImport && (
+        <EquipmentImportModal
+          boats={boats}
+          defaultBoatId={selectedBoat}
+          onClose={() => setShowImport(false)}
+          onImported={() => loadData()}
+        />
+      )}
 
       {boats.length === 0 ? (
         <div className="empty-state">
