@@ -180,6 +180,30 @@ function headerToField(header) {
 // Normalisiert einen Namen für den Duplikat-/Verknüpfungs-Vergleich.
 export function normKey(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' ') }
 
+// ── Beispiel-/Demozeilen der mitgelieferten Vorlage NIE importieren ──
+// Neue Vorlagen tragen einen sichtbaren Marker; ältere (bereits heruntergeladene)
+// werden über ihre exakte Beispiel-Signatur (Name+Seriennr. bzw. Nummer) erkannt.
+export const EXAMPLE_MARKER = '[Beispiel – bitte löschen]'
+const hasExampleMarker = (v) => normKey(v).includes('beispiel')
+const EXAMPLE_EQUIP = [{ name: 'impeller seewasserpumpe', serial: 'ym-12345' }]
+const EXAMPLE_SAIL  = [{ eq: 'großsegel', num: 'ger 1234' }]
+const EXAMPLE_ROPE  = [{ eq: 'großschot', art: 'gs-14' }]
+function isExampleEquipRow(r) {
+  if (hasExampleMarker(r.name)) return true
+  const n = normKey(r.name), s = normKey(r.serial_number)
+  return EXAMPLE_EQUIP.some(e => e.name === n && e.serial === s)
+}
+function isExampleSailRow(s) {
+  if (hasExampleMarker(s._equipment)) return true
+  const eq = normKey(s._equipment), num = normKey(s.sail_number)
+  return EXAMPLE_SAIL.some(e => e.eq === eq && e.num === num)
+}
+function isExampleRopeRow(r) {
+  if (hasExampleMarker(r._equipment)) return true
+  const eq = normKey(r._equipment), art = normKey(r.article_number)
+  return EXAMPLE_ROPE.some(e => e.eq === eq && e.art === art)
+}
+
 // Mappt eine Rohzeile (Header->Wert) über eine Spaltendefinition auf Felder.
 function mapByColumns(raw, columns) {
   const norm = h => String(h || '').trim().toLowerCase()
@@ -204,7 +228,7 @@ function mapEquipmentRows(rows) {
     }
     const name = String(item.name || '').trim()
     if (!name) continue
-    out.push({
+    const obj = {
       name,
       category: CAT_MAP[String(item.category || '').trim().toLowerCase()]
                 || (CATEGORIES.includes(String(item.category).toLowerCase()) ? String(item.category).toLowerCase() : 'other'),
@@ -220,7 +244,9 @@ function mapEquipmentRows(rows) {
       last_maintenance_date: toISODate(item.last_maintenance_date),
       item_description: String(item.item_description || '').trim() || null,
       notes: String(item.notes || '').trim() || null,
-    })
+    }
+    if (isExampleEquipRow(obj)) continue // Vorlagen-Beispielzeile nicht importieren
+    out.push(obj)
   }
   return out
 }
@@ -254,11 +280,11 @@ export async function parseWorkbook(file) {
 
   const sails = json(['segelmessblatt', 'segel', 'sail'])
     .map(r => mapByColumns(r, SAIL_COLUMNS))
-    .filter(s => s._equipment && s.sail_type)
+    .filter(s => s._equipment && s.sail_type && !isExampleSailRow(s))
 
   const ropes = json(['tauwerk', 'rope', 'leine'])
     .map(r => mapByColumns(r, ROPE_COLUMNS))
-    .filter(r => r._equipment && (r.length_m != null || r.material || r.diameter_mm != null || r.article_number))
+    .filter(r => r._equipment && (r.length_m != null || r.material || r.diameter_mm != null || r.article_number) && !isExampleRopeRow(r))
 
   return { equipment, sails, ropes }
 }
@@ -391,30 +417,33 @@ export async function downloadEquipmentTemplate() {
   const ws1 = wb.addWorksheet('Ausrüstung')
   ws1.columns = TEMPLATE_HEADERS.map(h => ({ header: h, key: h, width: Math.max(16, h.length + 2) }))
   headStyle(ws1)
-  ws1.addRow({
-    'Bezeichnung': 'Impeller Seewasserpumpe', 'Kategorie': 'Motor & Antrieb', 'Hersteller': 'Yanmar',
+  const ex1 = ws1.addRow({
+    'Bezeichnung': `Impeller Seewasserpumpe ${EXAMPLE_MARKER}`, 'Kategorie': 'Motor & Antrieb', 'Hersteller': 'Yanmar',
     'Modell': '3JH5E', 'Seriennummer': 'YM-12345', 'Teilenummer': '129470-42500', 'Maße': '—',
     'Einbauort': 'Motorraum', 'Einbaudatum': '15.04.2022', 'Garantie bis': '15.04.2024',
     'Wartungsintervall (Jahre)': 1, 'Letzte Wartung': '15.04.2025',
     'Beschreibung': 'Seewasser-Impeller, jährlicher Service', 'Notizen': 'Ersatz im Bordwerkzeug',
   })
+  ex1.font = { italic: true, color: { argb: 'FF94A3B8' } }
   addListValidation(ws1, TEMPLATE_HEADERS.indexOf('Kategorie') + 1, range('A', catLabels.length), 'Ungültige Kategorie')
 
   // ── Blatt 2: Segelmessblatt ──
   const ws2 = wb.addWorksheet('Segelmessblatt')
   ws2.columns = SAIL_COLUMNS.map(([h]) => ({ header: h, key: h, width: Math.max(12, h.length + 2) }))
   headStyle(ws2)
-  ws2.addRow({ 'Ausrüstung': 'Großsegel', 'Segeltyp': 'Großsegel', 'Segelnummer': 'GER 1234', 'Datum': '01.05.2025',
+  const ex2 = ws2.addRow({ 'Ausrüstung': `Großsegel ${EXAMPLE_MARKER}`, 'Segeltyp': 'Großsegel', 'Segelnummer': 'GER 1234', 'Datum': '01.05.2025',
     'GS P (Vorliek)': 12.5, 'GS E (Unterliek)': 4.2, 'GS A (Achterliek)': 12.9, 'GS Farbe': 'weiß' })
+  ex2.font = { italic: true, color: { argb: 'FF94A3B8' } }
   addListValidation(ws2, 2, range('B', sailLabels.length), 'Ungültiger Segeltyp') // Spalte „Segeltyp"
 
   // ── Blatt 3: Tauwerk ──
   const ws3 = wb.addWorksheet('Tauwerk')
   ws3.columns = ROPE_COLUMNS.map(([h]) => ({ header: h, key: h, width: Math.max(14, h.length + 2) }))
   headStyle(ws3)
-  ws3.addRow({ 'Ausrüstung': 'Großschot', 'Artikelnummer': 'GS-14', 'Länge (m)': 30, 'Material': 'Kern-Mantel',
+  const ex3 = ws3.addRow({ 'Ausrüstung': `Großschot ${EXAMPLE_MARKER}`, 'Artikelnummer': 'GS-14', 'Länge (m)': 30, 'Material': 'Kern-Mantel',
     'Durchmesser (mm)': 12, 'Ende 1': 'Augspleiß individuell (mit Schamfilschutz)', 'Ende 1 Auglänge (cm)': 15,
     'Ende 2': 'Takling', 'Notizen': 'Farbe blau/weiß' })
+  ex3.font = { italic: true, color: { argb: 'FF94A3B8' } }
   const matCol = ROPE_COLUMNS.findIndex(([, f]) => f === 'material') + 1
   const end1Col = ROPE_COLUMNS.findIndex(([, f]) => f === 'end1') + 1
   const end2Col = ROPE_COLUMNS.findIndex(([, f]) => f === 'end2') + 1
