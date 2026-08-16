@@ -5,7 +5,9 @@ import { Wrench, CheckCircle, AlertTriangle, Clock, Filter, Check, ShoppingCart,
 import { useNavigate } from 'react-router-dom'
 import { buildShopQuery, buildServiceQuery, buildMaintenanceAIQuestion } from '../lib/equipmentSearch'
 import { buildSparePartsParams } from '../lib/sparePartsSearch'
-import { generateMaintenanceReport } from '../lib/maintenanceReport'
+import { generateMaintenanceReport, CAT_ORDER } from '../lib/maintenanceReport'
+
+const catRank = (c) => { const i = CAT_ORDER.indexOf(c); return i < 0 ? 99 : i }
 import { useT } from '../i18n'
 
 export default function Maintenance() {
@@ -63,7 +65,7 @@ export default function Maintenance() {
     if (selectedBoat && i.boat_id !== selectedBoat) return false
     if (filterStatus !== 'all' && i._status.cls !== filterStatus) return false
     return true
-  }).sort((a, b) => a._status.days - b._status.days)
+  }).sort((a, b) => catRank(a.category) - catRank(b.category) || a._status.days - b._status.days)
 
   const counts = { overdue: 0, due_soon: 0, ok: 0 }
   enriched.forEach(i => { if (counts[i._status.cls] !== undefined) counts[i._status.cls]++ })

@@ -11,6 +11,9 @@ const CAT = {
   safety: 'Sicherheit', communication: 'Kommunikation', rigging: 'Rigg & Takelage',
   hull: 'Rumpf & Unterwasser', deck: 'Deck & Beschläge', anchor: 'Anker & Kette', other: 'Sonstiges',
 }
+// Reihenfolge der Kategorien (für die Sortierung im Report).
+export const CAT_ORDER = ['engine','electrical','navigation','safety','communication','rigging','hull','deck','anchor','other']
+const catRank = (c) => { const i = CAT_ORDER.indexOf(c); return i < 0 ? 999 : i }
 
 const fmt = (d) => (d ? new Date(d).toLocaleDateString('de-DE') : '—')
 
@@ -60,7 +63,10 @@ export async function generateMaintenanceReport(userId) {
 
   let y = 36
   for (const boat of (boats || [])) {
-    const items = (equip || []).filter(e => e.boat_id === boat.id)
+    const items = (equip || [])
+      .filter(e => e.boat_id === boat.id)
+      .sort((a, b) => catRank(a.category) - catRank(b.category)
+                   || (a.name || '').localeCompare(b.name || '', 'de'))
     const sub = [boat.manufacturer, boat.model].filter(Boolean).join(' ')
 
     doc.setFontSize(13); doc.setTextColor(11, 29, 58)
@@ -85,7 +91,7 @@ export async function generateMaintenanceReport(userId) {
         fmt(e.next_maintenance_date),
         e.maintenance_cycle_years ? `${e.maintenance_cycle_years} J` : '—',
         statusText(e.next_maintenance_date),
-        (histByEq[e.id] || []).join(', ') || '—',
+        (histByEq[e.id] || []).join('\n') || '—',
       ]),
       styles: { fontSize: 7.5, cellPadding: 2, overflow: 'linebreak' },
       headStyles: { fillColor: [11, 29, 58], textColor: 255, fontSize: 7.5 },

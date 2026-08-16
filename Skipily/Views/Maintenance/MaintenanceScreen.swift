@@ -109,6 +109,16 @@ enum MaintenanceEntry: Identifiable {
         case .equipment(let e): return e.status.label
         }
     }
+    /// Rang zur Sortierung nach Kategorie (Equipment). Manuelle Tasks ans Ende.
+    var categoryRank: Int {
+        switch self {
+        case .manual: return 999
+        case .equipment(let e):
+            let order = ["engine", "electrical", "navigation", "safety", "communication",
+                         "rigging", "hull", "deck", "anchor", "other"]
+            return order.firstIndex(of: e.category) ?? 900
+        }
+    }
 }
 
 // MARK: - Maintenance Screen
@@ -131,6 +141,7 @@ struct MaintenanceScreen: View {
         all += equipmentItems.map { .equipment($0) }
         return all.sorted { a, b in
             if a.isCompleted != b.isCompleted { return !a.isCompleted }
+            if a.categoryRank != b.categoryRank { return a.categoryRank < b.categoryRank }
             return a.dueDate < b.dueDate
         }
     }
