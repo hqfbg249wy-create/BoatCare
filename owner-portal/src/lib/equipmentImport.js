@@ -26,16 +26,22 @@ const FIELD_HEADERS = {
   manufacturer:            ['hersteller', 'manufacturer', 'marke', 'brand'],
   model:                   ['modell', 'model', 'typ'],
   serial_number:           ['seriennummer', 'serial', 'serial number', 'sn'],
+  part_number:             ['teilenummer', 'artikelnummer', 'part number', 'part_number', 'part no', 'art.-nr.'],
+  dimensions:              ['maße', 'masse', 'abmessungen', 'dimensions', 'größe'],
+  location_on_boat:        ['einbauort', 'ort', 'position', 'location', 'einbauort am boot'],
   installation_date:       ['einbaudatum', 'eingebaut', 'installation', 'installationsdatum', 'installation date'],
+  warranty_expiry:         ['garantie bis', 'garantie', 'garantieablauf', 'gewährleistung', 'warranty', 'warranty expiry'],
   maintenance_cycle_years: ['wartungsintervall', 'wartungsintervall (jahre)', 'intervall', 'maintenance cycle', 'cycle years'],
   last_maintenance_date:   ['letzte wartung', 'last maintenance', 'letzte-wartung'],
+  item_description:        ['beschreibung', 'description', 'item description'],
   notes:                   ['notizen', 'notiz', 'notes', 'bemerkung'],
 }
 
-// Spaltenreihenfolge der Vorlage
+// Spaltenreihenfolge der Vorlage (alle importierbaren Felder)
 export const TEMPLATE_HEADERS = [
-  'Bezeichnung', 'Kategorie', 'Hersteller', 'Modell', 'Seriennummer',
-  'Einbaudatum', 'Wartungsintervall (Jahre)', 'Letzte Wartung', 'Notizen',
+  'Bezeichnung', 'Kategorie', 'Hersteller', 'Modell', 'Seriennummer', 'Teilenummer',
+  'Maße', 'Einbauort', 'Einbaudatum', 'Garantie bis', 'Wartungsintervall (Jahre)',
+  'Letzte Wartung', 'Beschreibung', 'Notizen',
 ]
 
 // Kategorie-Labels EXAKT wie in der App — für das Dropdown in der Vorlage.
@@ -91,9 +97,14 @@ export async function parseEquipmentFile(file) {
       manufacturer: String(item.manufacturer || '').trim() || null,
       model: String(item.model || '').trim() || null,
       serial_number: String(item.serial_number || '').trim() || null,
+      part_number: String(item.part_number || '').trim() || null,
+      dimensions: String(item.dimensions || '').trim() || null,
+      location_on_boat: String(item.location_on_boat || '').trim() || null,
       installation_date: toISODate(item.installation_date),
+      warranty_expiry: toISODate(item.warranty_expiry),
       maintenance_cycle_years: (() => { const n = parseInt(item.maintenance_cycle_years, 10); return Number.isFinite(n) && n > 0 ? n : null })(),
       last_maintenance_date: toISODate(item.last_maintenance_date),
+      item_description: String(item.item_description || '').trim() || null,
       notes: String(item.notes || '').trim() || null,
     })
   }
@@ -130,10 +141,15 @@ export async function downloadEquipmentTemplate() {
     'Hersteller': 'Yanmar',
     'Modell': '3JH5E',
     'Seriennummer': 'YM-12345',
+    'Teilenummer': '129470-42500',
+    'Maße': '—',
+    'Einbauort': 'Motorraum',
     'Einbaudatum': '15.04.2022',
+    'Garantie bis': '15.04.2024',
     'Wartungsintervall (Jahre)': 1,
     'Letzte Wartung': '15.04.2025',
-    'Notizen': 'jährlicher Service',
+    'Beschreibung': 'Seewasser-Impeller, jährlicher Service',
+    'Notizen': 'Ersatz im Bordwerkzeug',
   })
 
   // Kategorie-Dropdown für Zeilen 2..500 (App-Kategorien).

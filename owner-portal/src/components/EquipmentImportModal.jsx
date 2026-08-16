@@ -91,7 +91,7 @@ export default function EquipmentImportModal({ boats, defaultBoatId, onClose, on
               <table style={S.table}>
                 <thead>
                   <tr>
-                    {['Bezeichnung', 'Kategorie', 'Hersteller', 'Modell', 'Letzte Wartung', 'Interv.'].map(h =>
+                    {['Bezeichnung', 'Kategorie', 'Hersteller', 'Modell', 'Teilenr.', 'Garantie bis', 'Letzte Wartung', 'Interv.'].map(h =>
                       <th key={h} style={S.th}>{h}</th>)}
                   </tr>
                 </thead>
@@ -102,6 +102,8 @@ export default function EquipmentImportModal({ boats, defaultBoatId, onClose, on
                       <td style={S.td}>{CAT_LABEL[r.category] || r.category}</td>
                       <td style={S.td}>{r.manufacturer || '—'}</td>
                       <td style={S.td}>{r.model || '—'}</td>
+                      <td style={S.td}>{r.part_number || '—'}</td>
+                      <td style={S.td}>{r.warranty_expiry || '—'}</td>
                       <td style={S.td}>{r.last_maintenance_date || '—'}</td>
                       <td style={S.td}>{r.maintenance_cycle_years ? `${r.maintenance_cycle_years} J` : '—'}</td>
                     </tr>
