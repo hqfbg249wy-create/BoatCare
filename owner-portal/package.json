@@ -27,6 +27,7 @@
     "@capacitor/status-bar": "^8.0.2",
     "@revenuecat/purchases-capacitor": "^13.3.0",
     "@supabase/supabase-js": "^2.99.3",
+    "exceljs": "^4.4.0",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "leaflet": "^1.9.4",

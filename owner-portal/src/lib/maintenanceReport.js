@@ -23,10 +23,10 @@ function statusText(nextDue) {
 }
 
 export async function generateMaintenanceReport(userId) {
-  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
-    import('jspdf'),
-    import('jspdf-autotable'),
-  ])
+  // Robuste Interop-Auflösung (ESM/CJS unterscheidet sich je nach Bundler):
+  const [jspdfMod, atMod] = await Promise.all([import('jspdf'), import('jspdf-autotable')])
+  const jsPDF = [jspdfMod.jsPDF, jspdfMod.default?.jsPDF, jspdfMod.default].find(x => typeof x === 'function')
+  const autoTable = [atMod.default, atMod.default?.default, atMod.autoTable].find(x => typeof x === 'function')
 
   const { data: boats } = await supabase
     .from('boats').select('id, name, manufacturer, model')

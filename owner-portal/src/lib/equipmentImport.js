@@ -38,6 +38,14 @@ export const TEMPLATE_HEADERS = [
   'Einbaudatum', 'Wartungsintervall (Jahre)', 'Letzte Wartung', 'Notizen',
 ]
 
+// Kategorie-Labels EXAKT wie in der App — für das Dropdown in der Vorlage.
+// (lower-case matchen sie in CAT_MAP zurück auf die Enum-Keys.)
+export const CATEGORY_LABELS = [
+  'Motor & Antrieb', 'Elektrik & Batterie', 'Navigation & Elektronik',
+  'Sicherheit', 'Kommunikation', 'Rigg & Takelage', 'Rumpf & Unterwasser',
+  'Deck & Beschläge', 'Anker & Kette', 'Sonstiges',
+]
+
 function toISODate(v) {
   if (!v) return null
   if (v instanceof Date && !isNaN(v)) return v.toISOString().slice(0, 10)
@@ -59,7 +67,8 @@ function headerToField(header) {
 
 /** Liest xlsx/csv und liefert normalisierte Zeilen (nur mit Name). */
 export async function parseEquipmentFile(file) {
-  const XLSX = await import('xlsx')
+  const xm = await import('xlsx')
+  const XLSX = xm.read ? xm : xm.default   // robuste Interop-Auflösung
   const buf = await file.arrayBuffer()
   const wb = XLSX.read(buf, { cellDates: true })
   const ws = wb.Sheets[wb.SheetNames[0]]
@@ -103,10 +112,19 @@ export function toEquipmentInsert(row, boatId) {
   return p
 }
 
-/** Lädt eine leere Vorlage (xlsx) mit korrekten Spalten + Beispielzeile herunter. */
+/** Lädt eine Vorlage (xlsx) herunter — mit Kategorie-DROPDOWN (Datenvalidierung),
+ *  damit keine freien/falschen Kategorien entstehen. Beispielzeile inklusive. */
 export async function downloadEquipmentTemplate() {
-  const XLSX = await import('xlsx')
-  const example = {
+  const em = await import('exceljs')
+  const ExcelJS = em.Workbook ? em : em.default   // robuste Interop-Auflösung
+
+  const wb = new ExcelJS.Workbook()
+  const ws = wb.addWorksheet('Ausrüstung')
+  ws.columns = TEMPLATE_HEADERS.map(h => ({ header: h, key: h, width: Math.max(16, h.length + 2) }))
+  ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }
+  ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B1D3A' } }
+
+  ws.addRow({
     'Bezeichnung': 'Impeller Seewasserpumpe',
     'Kategorie': 'Motor & Antrieb',
     'Hersteller': 'Yanmar',
@@ -116,9 +134,26 @@ export async function downloadEquipmentTemplate() {
     'Wartungsintervall (Jahre)': 1,
     'Letzte Wartung': '15.04.2025',
     'Notizen': 'jährlicher Service',
+  })
+
+  // Kategorie-Dropdown für Zeilen 2..500 (App-Kategorien).
+  const catCol = TEMPLATE_HEADERS.indexOf('Kategorie') + 1
+  const letter = ws.getColumn(catCol).letter
+  for (let r = 2; r <= 500; r++) {
+    ws.getCell(`${letter}${r}`).dataValidation = {
+      type: 'list', allowBlank: true,
+      formulae: [`"${CATEGORY_LABELS.join(',')}"`],
+      showErrorMessage: true, errorStyle: 'error',
+      errorTitle: 'Ungültige Kategorie',
+      error: 'Bitte eine Kategorie aus der Dropdown-Liste wählen.',
+    }
   }
-  const ws = XLSX.utils.json_to_sheet([example], { header: TEMPLATE_HEADERS })
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Ausrüstung')
-  XLSX.writeFile(wb, 'Skipily_Ausruestung_Vorlage.xlsx')
+
+  const buf = await wb.xlsx.writeBuffer()
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = 'Skipily_Ausruestung_Vorlage.xlsx'
+  document.body.appendChild(a); a.click(); a.remove()
+  URL.revokeObjectURL(url)
 }
