@@ -305,6 +305,12 @@ struct EquipmentScreen: View {
     @AppStorage("equipment_hint_dismissed") private var equipmentHintDismissed = false
     @State private var showEquipmentHint = false
 
+    /// Excel-/CSV-Import (Plus): öffnet das Import-Sheet oder — ohne Plus —
+    /// die Paywall (Soft-Gate, analog zur Web-App).
+    @State private var showingImport = false
+    @State private var showingImportPaywall = false
+    @ObservedObject private var plusManager = PlusSubscriptionManager.shared
+
     init(boatId: UUID, boatName: String, onNavigate: ((EquipmentNavTarget) -> Void)? = nil) {
         self.boatId = boatId
         self.boatName = boatName
@@ -379,6 +385,13 @@ struct EquipmentScreen: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: 16) {
+                    Button {
+                        if plusManager.hasActivePlus { showingImport = true }
+                        else { showingImportPaywall = true }
+                    } label: {
+                        Image(systemName: "tray.and.arrow.down")
+                    }
+                    .accessibilityLabel("Ausrüstung importieren (Excel/CSV)")
                     Button { showingSuggestions = true } label: {
                         Image(systemName: "sparkles")
                     }
@@ -442,6 +455,14 @@ struct EquipmentScreen: View {
             EquipmentSuggestionsSheet(boatId: boatId, boatName: boatName) {
                 Task { await loadItems() }
             }
+        }
+        .sheet(isPresented: $showingImport) {
+            EquipmentImportSheet(boatId: boatId, boatName: boatName) {
+                Task { await loadItems() }
+            }
+        }
+        .sheet(isPresented: $showingImportPaywall) {
+            PlusUpgradeSheet(reason: "Der Excel-/CSV-Import (Ausrüstung, Segelmessblatt & Tauwerk) ist Teil von Skipily Plus.")
         }
         .alert("general.error".loc, isPresented: Binding(
             get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } }
