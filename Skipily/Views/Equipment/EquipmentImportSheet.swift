@@ -149,7 +149,7 @@ struct EquipmentImportSheet: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(equipment).font(.subheadline)
                 Text(linked ? detail : "\(detail) · kein passendes Gerät gefunden")
-                    .font(.caption).foregroundStyle(linked ? .secondary : .orange)
+                    .font(.caption).foregroundStyle(linked ? Color.secondary : Color.orange)
             }
         }
     }
