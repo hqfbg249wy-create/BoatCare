@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { buildShopQuery, buildServiceQuery, buildMaintenanceAIQuestion } from '../lib/equipmentSearch'
 import { buildSparePartsParams } from '../lib/sparePartsSearch'
 import { generateMaintenanceReport, CAT_ORDER } from '../lib/maintenanceReport'
+import { useHasPlus } from '../hooks/useHasPlus'
 
 const catRank = (c) => { const i = CAT_ORDER.indexOf(c); return i < 0 ? 99 : i }
 import { useT } from '../i18n'
@@ -20,10 +21,14 @@ export default function Maintenance() {
   const [filterStatus, setFilterStatus] = useState('all')
   const [loading, setLoading] = useState(true)
   const [genPdf, setGenPdf] = useState(false)
+  const { hasPlus } = useHasPlus()
 
   async function downloadReport() {
+    if (!hasPlus) { navigate('/plus'); return }   // Soft-Gate: Upsell statt Ausführung
     setGenPdf(true)
-    try { await generateMaintenanceReport(user.id) }
+    // Ist ein Boot gefiltert, enthält das PDF nur dieses Boot (getrennte
+    // Historie, z. B. Hauptboot ohne Beiboot beim Verkauf).
+    try { await generateMaintenanceReport(user.id, selectedBoat || null) }
     catch (e) { console.error('Wartungsreport:', e); alert('Report konnte nicht erstellt werden.') }
     finally { setGenPdf(false) }
   }
@@ -103,8 +108,17 @@ export default function Maintenance() {
 
       <button className="btn-secondary" onClick={downloadReport} disabled={genPdf}
               style={{ marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-        <Download size={16} /> {genPdf ? 'Report wird erstellt…' : 'Wartungsreport (PDF)'}
+        <Download size={16} />
+        {genPdf ? 'Report wird erstellt…'
+          : selectedBoat ? `Wartungsreport (PDF): ${boatName(selectedBoat)}`
+          : 'Wartungsreport (PDF): alle Boote'}
+        {!hasPlus && <span style={{ fontSize: 11, fontWeight: 700, background: '#f97316', color: '#fff', padding: '2px 7px', borderRadius: 999 }}>Plus</span>}
       </button>
+      {selectedBoat && (
+        <p style={{ margin: '-8px 0 14px', fontSize: 12, color: '#64748b' }}>
+          Nur „{boatName(selectedBoat)}" — für getrennte Historien (z. B. ohne Beiboot). Für alle Boote den Bootfilter auf „Alle Boote" stellen.
+        </p>
+      )}
 
       <div className="stats-grid stats-grid-3">
         <div className={`stat-card clickable ${filterStatus === 'overdue' ? 'active-filter' : ''}`} onClick={() => setFilterStatus(filterStatus === 'overdue' ? 'all' : 'overdue')}>

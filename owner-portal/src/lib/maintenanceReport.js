@@ -25,15 +25,20 @@ function statusText(nextDue) {
   return 'OK'
 }
 
-export async function generateMaintenanceReport(userId) {
+// Erzeugt den Report. `boatId` optional: ist er gesetzt, enthält das PDF nur
+// dieses eine Boot (wichtig, weil z. B. Beiboote beim Verkauf nicht immer
+// mitgehen und getrennte Historien gebraucht werden). Ohne boatId: alle Boote.
+export async function generateMaintenanceReport(userId, boatId = null) {
   // Robuste Interop-Auflösung (ESM/CJS unterscheidet sich je nach Bundler):
   const [jspdfMod, atMod] = await Promise.all([import('jspdf'), import('jspdf-autotable')])
   const jsPDF = [jspdfMod.jsPDF, jspdfMod.default?.jsPDF, jspdfMod.default].find(x => typeof x === 'function')
   const autoTable = [atMod.default, atMod.default?.default, atMod.autoTable].find(x => typeof x === 'function')
 
-  const { data: boats } = await supabase
+  let boatQuery = supabase
     .from('boats').select('id, name, manufacturer, model')
     .eq('owner_id', userId).order('name')
+  if (boatId) boatQuery = boatQuery.eq('id', boatId)
+  const { data: boats } = await boatQuery
 
   const boatIds = (boats || []).map(b => b.id)
   const { data: equip } = boatIds.length
@@ -55,9 +60,10 @@ export async function generateMaintenanceReport(userId) {
 
   const doc = new jsPDF()
   const now = new Date().toLocaleDateString('de-DE')
+  const singleBoat = boatId && (boats || []).length === 1 ? boats[0] : null
 
   doc.setFontSize(18); doc.setTextColor(11, 29, 58)
-  doc.text('Wartungsreport', 14, 20)
+  doc.text(singleBoat ? `Wartungsreport — ${singleBoat.name}` : 'Wartungsreport', 14, 20)
   doc.setFontSize(10); doc.setTextColor(100)
   doc.text(`Erstellt am ${now} · Skipily`, 14, 27)
 
@@ -108,5 +114,6 @@ export async function generateMaintenanceReport(userId) {
     doc.text('Keine Boote erfasst.', 14, y)
   }
 
-  doc.save(`Skipily_Wartungsreport_${new Date().toISOString().slice(0, 10)}.pdf`)
+  const slug = singleBoat ? '_' + singleBoat.name.replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '') : ''
+  doc.save(`Skipily_Wartungsreport${slug}_${new Date().toISOString().slice(0, 10)}.pdf`)
 }

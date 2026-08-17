@@ -16,6 +16,8 @@ const BENEFITS = [
   'Unbegrenzte KI-Chats',
   'Schadens-Foto-Analyse',
   'Ausrüstungs-Empfehlungen',
+  'Ausrüstung per Excel importieren (inkl. Segelmessblatt & Tauwerk)',
+  'Wartungsreport als PDF – je Boot getrennt',
 ]
 
 export default function Paywall() {

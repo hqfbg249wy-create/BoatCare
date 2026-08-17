@@ -10,6 +10,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { buildShopQuery, buildServiceQuery, buildAIQuestion, buildInquirySubject, buildInquiryMessage } from '../lib/equipmentSearch'
 import { buildSparePartsParams } from '../lib/sparePartsSearch'
 import SailMeasurementForm, { emptySailForm, sailFormToPayload } from '../components/SailMeasurementForm'
+import { useHasPlus } from '../hooks/useHasPlus'
 
 const categories = ['engine', 'electrical', 'navigation', 'safety', 'communication', 'rigging', 'sails', 'rope', 'hull', 'deck', 'anchor', 'other']
 const categoryLabels = {
@@ -25,6 +26,7 @@ export default function Equipment() {
   const { t, lang } = useT()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { hasPlus } = useHasPlus()
   const [searchParams] = useSearchParams()
   const [items, setItems] = useState([])
   const [boats, setBoats] = useState([])
@@ -410,8 +412,10 @@ export default function Equipment() {
         <div><h1>{t('eq.k0')}</h1><p className="subtitle">{items.length} Geraete erfasst</p></div>
         {boats.length > 0 && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button className="btn-secondary" onClick={() => setShowImport(true)}>
+            <button className="btn-secondary" onClick={() => hasPlus ? setShowImport(true) : navigate('/plus')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               <FileSpreadsheet size={16} /> Import (Excel/CSV)
+              {!hasPlus && <span style={{ fontSize: 11, fontWeight: 700, background: '#f97316', color: '#fff', padding: '2px 7px', borderRadius: 999 }}>Plus</span>}
             </button>
             <button className="btn-primary" onClick={startNew}><Plus size={16} /> {t('eq.k1')}</button>
           </div>
