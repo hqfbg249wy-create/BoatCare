@@ -21,14 +21,16 @@ export default function Maintenance() {
   const [filterStatus, setFilterStatus] = useState('all')
   const [loading, setLoading] = useState(true)
   const [genPdf, setGenPdf] = useState(false)
+  // Eigene Bootsauswahl NUR für den Report (unabhängig vom Listenfilter).
+  const [reportBoat, setReportBoat] = useState('')
   const { hasPlus } = useHasPlus()
 
   async function downloadReport() {
     if (!hasPlus) { navigate('/plus'); return }   // Soft-Gate: Upsell statt Ausführung
     setGenPdf(true)
-    // Ist ein Boot gefiltert, enthält das PDF nur dieses Boot (getrennte
+    // Ist ein Boot gewählt, enthält das PDF nur dieses Boot (getrennte
     // Historie, z. B. Hauptboot ohne Beiboot beim Verkauf).
-    try { await generateMaintenanceReport(user.id, selectedBoat || null) }
+    try { await generateMaintenanceReport(user.id, reportBoat || null) }
     catch (e) { console.error('Wartungsreport:', e); alert('Report konnte nicht erstellt werden.') }
     finally { setGenPdf(false) }
   }
@@ -106,19 +108,24 @@ export default function Maintenance() {
       <h1>{t('maint.title')}</h1>
       <p className="subtitle">{t('maint.subtitle')}</p>
 
-      <button className="btn-secondary" onClick={downloadReport} disabled={genPdf}
-              style={{ marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-        <Download size={16} />
-        {genPdf ? 'Report wird erstellt…'
-          : selectedBoat ? `Wartungsreport (PDF): ${boatName(selectedBoat)}`
-          : 'Wartungsreport (PDF): alle Boote'}
-        {!hasPlus && <span style={{ fontSize: 11, fontWeight: 700, background: '#f97316', color: '#fff', padding: '2px 7px', borderRadius: 999 }}>Plus</span>}
-      </button>
-      {selectedBoat && (
-        <p style={{ margin: '-8px 0 14px', fontSize: 12, color: '#64748b' }}>
-          Nur „{boatName(selectedBoat)}" — für getrennte Historien (z. B. ohne Beiboot). Für alle Boote den Bootfilter auf „Alle Boote" stellen.
-        </p>
-      )}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>Wartungsreport für:</label>
+        <select value={reportBoat} onChange={e => setReportBoat(e.target.value)}
+                style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }}>
+          <option value="">Alle Boote</option>
+          {boats.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
+        <button className="btn-secondary" onClick={downloadReport} disabled={genPdf}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <Download size={16} /> {genPdf ? 'Report wird erstellt…' : 'PDF erstellen'}
+          {!hasPlus && <span style={{ fontSize: 11, fontWeight: 700, background: '#f97316', color: '#fff', padding: '2px 7px', borderRadius: 999 }}>Plus</span>}
+        </button>
+      </div>
+      <p style={{ margin: '0 0 14px', fontSize: 12, color: '#64748b' }}>
+        {reportBoat
+          ? `Nur „${boatName(reportBoat)}" — getrennte Historie (z. B. Hauptboot ohne Beiboot).`
+          : 'Alle Boote in einem PDF. Für ein einzelnes Schiff oben ein Boot wählen.'}
+      </p>
 
       <div className="stats-grid stats-grid-3">
         <div className={`stat-card clickable ${filterStatus === 'overdue' ? 'active-filter' : ''}`} onClick={() => setFilterStatus(filterStatus === 'overdue' ? 'all' : 'overdue')}>
