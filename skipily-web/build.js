@@ -257,6 +257,8 @@ function pricingBody(lang) {
       [de ? 'Eigene Boote anlegen' : 'Add your own boats', [NO, YES, '1–2', '> 5']],
       [de ? 'Ausrüstung mit Wartungszyklus' : 'Equipment with maintenance cycle', [NO, YES, YES, YES]],
       [de ? 'Wartungs-Erinnerungen' : 'Maintenance reminders', [NO, YES, YES, YES]],
+      [de ? 'Ausrüstung per Excel importieren (inkl. Segelmessblatt & Tauwerk)' : 'Import equipment via Excel (incl. sail sheet & rigging)', [NO, NO, YES, YES]],
+      [de ? 'Wartungsreport als PDF – je Boot getrennt' : 'Maintenance report as PDF – separately per boat', [NO, NO, YES, YES]],
       [de ? 'Service-Favoriten speichern' : 'Save service favourites', [NO, YES, YES, YES]],
       [de ? 'Skipily-Rabatte nutzen' : 'Use Skipily discounts', [NO, NO, YES, YES]],
       [de ? 'KI-Boots-Assistent' : 'AI boat assistant', [NO, de ? '10 Fragen' : '10 questions', de ? 'Unbegrenzt' : 'Unlimited', de ? 'Unbegrenzt' : 'Unlimited']],
