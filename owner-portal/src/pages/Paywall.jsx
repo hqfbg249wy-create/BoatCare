@@ -13,11 +13,10 @@ import {
 } from '../lib/purchases'
 
 const BENEFITS = [
-  'Unbegrenzte KI-Chats',
-  'Schadens-Foto-Analyse',
-  'Ausrüstungs-Empfehlungen',
+  'Unbegrenzter KI-Assistent: Chat, Schadens-Foto-Analyse & Ausrüstungs-Empfehlungen (sonst 10/Monat)',
   'Ausrüstung per Excel importieren (inkl. Segelmessblatt & Tauwerk)',
   'Wartungsreport als PDF – je Boot getrennt',
+  'Skipily-Rabatte im Shop nutzen',
 ]
 
 export default function Paywall() {

@@ -249,7 +249,11 @@ function pricingBody(lang) {
       { name: 'Skipily Plus', aud: 'Skippers & owner groups', price: '€4.99', per: t.mo, year: t.yr('49'), trial: t.trial, hot: true },
       { name: 'Plus Fleet', aud: 'Charter fleets > 5 boats', price: '€29.99', per: t.mo, trial: t.trial },
     ],
+    // Reihenfolge bewusst gruppiert: ERST alle in „Free +" enthaltenen Funktionen
+    // (grüner Haken) untereinander, DANN die Plus-Mehrwerte — so ist auf einen
+    // Blick sichtbar, was Plus zusätzlich bringt.
     rows: [
+      // ── in Free + enthalten ──
       [de ? 'Karte mit Providern' : 'Provider map', [YES, YES, YES, YES]],
       [de ? 'Bewertungen hinterlegen' : 'Leave reviews', [NO, YES, YES, YES]],
       [de ? 'Filter' : 'Filters', [NO, YES, YES, YES]],
@@ -257,11 +261,12 @@ function pricingBody(lang) {
       [de ? 'Eigene Boote anlegen' : 'Add your own boats', [NO, YES, '1–2', '> 5']],
       [de ? 'Ausrüstung mit Wartungszyklus' : 'Equipment with maintenance cycle', [NO, YES, YES, YES]],
       [de ? 'Wartungs-Erinnerungen' : 'Maintenance reminders', [NO, YES, YES, YES]],
+      [de ? 'Service-Favoriten speichern' : 'Save service favourites', [NO, YES, YES, YES]],
+      // ── Plus-Mehrwerte ──
+      [de ? 'KI-Assistent: Chat, Foto-Analyse & Empfehlungen' : 'AI assistant: chat, photo analysis & suggestions', [NO, de ? '10 / Monat' : '10 / month', de ? 'Unbegrenzt' : 'Unlimited', de ? 'Unbegrenzt' : 'Unlimited']],
       [de ? 'Ausrüstung per Excel importieren (inkl. Segelmessblatt & Tauwerk)' : 'Import equipment via Excel (incl. sail sheet & rigging)', [NO, NO, YES, YES]],
       [de ? 'Wartungsreport als PDF – je Boot getrennt' : 'Maintenance report as PDF – separately per boat', [NO, NO, YES, YES]],
-      [de ? 'Service-Favoriten speichern' : 'Save service favourites', [NO, YES, YES, YES]],
       [de ? 'Skipily-Rabatte nutzen' : 'Use Skipily discounts', [NO, NO, YES, YES]],
-      [de ? 'KI-Boots-Assistent' : 'AI boat assistant', [NO, de ? '10 Fragen' : '10 questions', de ? 'Unbegrenzt' : 'Unlimited', de ? 'Unbegrenzt' : 'Unlimited']],
       [de ? 'Nutzer zeitlich freischalten (künftig)' : 'Time-limited user access (upcoming)', [NO, NO, NO, YES]],
       [de ? 'Nutzerrechte verwalten (künftig)' : 'Manage user permissions (upcoming)', [NO, NO, NO, YES]],
     ],

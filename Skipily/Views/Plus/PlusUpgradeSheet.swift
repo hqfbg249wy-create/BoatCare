@@ -82,6 +82,8 @@ struct PlusUpgradeSheet: View {
                             .padding(.horizontal)
                     }
 
+                    featuresSection
+
                     plansSection
 
                     if let err = purchaseError {
@@ -110,6 +112,33 @@ struct PlusUpgradeSheet: View {
             }
         }
         .task { await manager.loadProducts() }
+    }
+
+    // MARK: - Features (konsistent mit Preisliste skipily.app/preise)
+
+    /// Verifizierte Plus-Mehrwerte. KI (Chat, Foto-Analyse, Empfehlungen) teilt
+    /// sich frei 10 Calls/Monat; Plus hebt das Limit auf. Excel-Import & PDF-
+    /// Report sind Plus-exklusiv.
+    private let planFeatures = [
+        "Unbegrenzter KI-Assistent: Chat, Schadens-Foto-Analyse & Ausrüstungs-Empfehlungen (sonst 10/Monat)",
+        "Ausrüstung per Excel importieren (inkl. Segelmessblatt & Tauwerk)",
+        "Wartungsreport als PDF – je Boot getrennt",
+        "Skipily-Rabatte im Shop nutzen",
+    ]
+
+    private var featuresSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(planFeatures, id: \.self) { f in
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text(f).font(.subheadline)
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
     }
 
     // MARK: - Header

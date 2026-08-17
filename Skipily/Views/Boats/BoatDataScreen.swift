@@ -179,6 +179,12 @@ struct BoatDataScreen: View {
     @State private var showingLogin = false
     @State private var errorMessage: String?
 
+    /// Referral-Hinweis: Weiterempfehlen schaltet 1 Monat Plus frei (bis 12×/Jahr,
+    /// Migration 077). Einmal ausblendbar.
+    @AppStorage("referral_hint_dismissed") private var referralHintDismissed = false
+    @State private var referralCode: String?
+    @State private var showingReferralShare = false
+
     /// 2 Spalten auf iPad / regular size class, 1 Spalte auf iPhone
     private var gridColumns: [GridItem] {
         if hSize == .regular {
@@ -189,6 +195,8 @@ struct BoatDataScreen: View {
 
     var body: some View {
         NavigationStack {
+            VStack(spacing: 0) {
+            referralBanner
             Group {
                 if isLoading {
                     ProgressView("general.loading".loc)
@@ -222,6 +230,7 @@ struct BoatDataScreen: View {
                     }
                 }
             }
+            }
             .navigationTitle("boats.title".loc)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -244,6 +253,9 @@ struct BoatDataScreen: View {
             }
             .sheet(isPresented: $showingLogin) {
                 LoginView()
+            }
+            .sheet(isPresented: $showingReferralShare) {
+                if let code = referralCode { ReferralShareSheet(code: code) }
             }
             .alert("map.login_required".loc, isPresented: $showingLoginRequired) {
                 Button("general.cancel".loc, role: .cancel) { }
@@ -277,6 +289,51 @@ struct BoatDataScreen: View {
                 boats = []
                 equipmentCounts = [:]
                 loadFromUserDefaults()
+            }
+        }
+    }
+
+    // MARK: - Referral-Hinweis (Weiterempfehlen = 1 Monat Plus, bis 12×/Jahr)
+
+    @ViewBuilder
+    private var referralBanner: some View {
+        if authService.isAuthenticated && !referralHintDismissed {
+            Button {
+                if referralCode != nil { showingReferralShare = true }
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "gift.fill").foregroundStyle(.white)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Weiterempfehlen = 1 Monat Skipily Plus gratis")
+                            .font(.subheadline.bold()).foregroundStyle(.white)
+                        Text("Für jede erfolgreiche Empfehlung – bis zu 12× pro Jahr.")
+                            .font(.caption).foregroundStyle(.white.opacity(0.9))
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.caption).foregroundStyle(.white.opacity(0.8))
+                }
+                .padding(12)
+                .background(
+                    LinearGradient(colors: [.purple, .indigo],
+                                   startPoint: .leading, endPoint: .trailing)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
+            .overlay(alignment: .topTrailing) {
+                Button { referralHintDismissed = true } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.white.opacity(0.75))
+                }
+                .padding(6)
+            }
+            .padding(.horizontal)
+            .padding(.top, 8)
+            .task {
+                if referralCode == nil {
+                    referralCode = (try? await authService.loadReferralStats())?.my_code
+                }
             }
         }
     }

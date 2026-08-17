@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Ship, Wrench, ShoppingBag, AlertTriangle, CheckCircle, MapPin, PlusCircle, Bot, ChevronRight } from 'lucide-react'
+import { Ship, Wrench, ShoppingBag, AlertTriangle, CheckCircle, MapPin, PlusCircle, Bot, ChevronRight, Gift, X } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useT } from '../i18n'
 
@@ -13,6 +13,8 @@ export default function Dashboard() {
   const [recentOrders, setRecentOrders] = useState([])
   const [upcomingMaint, setUpcomingMaint] = useState([])
   const [loading, setLoading] = useState(true)
+  // Referral-Hinweis: Weiterempfehlen = 1 Monat Plus, bis 12×/Jahr (Migration 077).
+  const [refHintHidden, setRefHintHidden] = useState(() => localStorage.getItem('referral_hint_dismissed') === '1')
 
   useEffect(() => {
     if (user) loadDashboard()
@@ -88,6 +90,25 @@ export default function Dashboard() {
     <div className="page">
       <h1>{t('dash.title')}</h1>
       <p className="subtitle">{greeting()}, {profile?.full_name || t('dash.captain')}!</p>
+
+      {!refHintHidden && (
+        <div style={{
+          position: 'relative', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+          background: 'linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%)', color: '#fff',
+          borderRadius: 12, padding: '12px 40px 12px 14px', margin: '4px 0 16px',
+        }} onClick={() => navigate('/profile')}>
+          <Gift size={22} />
+          <div style={{ lineHeight: 1.3 }}>
+            <div style={{ fontWeight: 700 }}>Weiterempfehlen = 1 Monat Skipily Plus gratis</div>
+            <div style={{ fontSize: 13, opacity: 0.9 }}>Für jede erfolgreiche Empfehlung – bis zu 12× pro Jahr.</div>
+          </div>
+          <button aria-label="Ausblenden"
+            onClick={(e) => { e.stopPropagation(); localStorage.setItem('referral_hint_dismissed', '1'); setRefHintHidden(true) }}
+            style={{ position: 'absolute', top: 8, right: 8, background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer' }}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Quick-Action Buttons */}
       <div className="dash-quick-actions">
