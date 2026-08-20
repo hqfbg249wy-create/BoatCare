@@ -575,12 +575,12 @@ struct ProfileView: View {
                 Image(systemName: "gift.fill")
                     .font(.title3)
                     .foregroundStyle(.pink)
-                Text("Freunde einladen")
+                Text("referral.invite.title".loc)
                     .font(.headline)
                 Spacer()
             }
 
-            Text("Lade Bootseigner zu Skipily ein. Sobald sie 7 Tage dabei sind, bekommt ihr beide einen Monat Skipily Plus geschenkt.")
+            Text("referral.invite.desc".loc)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -589,7 +589,7 @@ struct ProfileView: View {
             if let code = referralStats?.my_code, !code.isEmpty {
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Dein Empfehlungs-Code")
+                        Text("referral.invite.code".loc)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                         Text(code)
@@ -606,7 +606,7 @@ struct ProfileView: View {
                     Button {
                         showShareSheet = true
                     } label: {
-                        Label("Teilen", systemImage: "square.and.arrow.up")
+                        Label("referral.invite.share".loc, systemImage: "square.and.arrow.up")
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -618,7 +618,7 @@ struct ProfileView: View {
             } else {
                 HStack {
                     ProgressView().controlSize(.small)
-                    Text("Code wird geladen …")
+                    Text("referral.invite.codeLoading".loc)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -627,12 +627,12 @@ struct ProfileView: View {
             // Stats
             if let s = referralStats {
                 HStack(spacing: 12) {
-                    referralStat(value: s.granted_count, label: "Gutschrift", color: .green)
-                    referralStat(value: s.pending_count, label: "Offen", color: .orange)
-                    referralStat(value: s.granted_this_year, label: "Dieses Jahr", color: .blue)
+                    referralStat(value: s.granted_count, label: "referral.stat.granted".loc, color: .green)
+                    referralStat(value: s.pending_count, label: "referral.stat.pending".loc, color: .orange)
+                    referralStat(value: s.granted_this_year, label: "referral.stat.thisYear".loc, color: .blue)
                 }
                 if s.granted_this_year >= 12 {
-                    Text("Jahres-Cap erreicht (12 Empfehlungen). Neue Empfehlungen werden ab Januar wieder gutgeschrieben.")
+                    Text("referral.cap".loc)
                         .font(.caption2)
                         .foregroundStyle(.orange)
                 }
@@ -715,14 +715,14 @@ struct ProfileView: View {
                     .font(.subheadline.bold())
                     .foregroundStyle(.green)
                 Spacer()
-                Text("AKTIV")
+                Text("profile.plus.active".loc)
                     .font(.caption2.bold())
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Color.green.opacity(0.15))
                     .foregroundStyle(.green)
                     .clipShape(Capsule())
             }
-            Text("Unbegrenzte KI, Foto-Analyse, Ausrüstungs-Empfehlungen.")
+            Text("profile.plus.activeSubtitle".loc)
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -731,7 +731,7 @@ struct ProfileView: View {
             } label: {
                 HStack {
                     Image(systemName: "gear")
-                    Text("Abo verwalten / kündigen")
+                    Text("profile.plus.manage".loc)
                 }
                 .font(.subheadline)
                 .frame(maxWidth: .infinity)

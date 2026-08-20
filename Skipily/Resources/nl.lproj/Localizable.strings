@@ -950,3 +950,18 @@
 "plus.card.report" = "Service-logboek als PDF – per boot";
 "plus.card.import" = "Uitrustingslijst importeren via Excel";
 "plus.card.discover" = "Ontdek Skipily Plus";
+
+/* ── Referral-Sektion (Profil) ── */
+"referral.invite.title" = "Vrienden uitnodigen";
+"referral.invite.desc" = "Nodig booteigenaren uit voor Skipily. Zodra ze 7 dagen actief zijn, krijgen jullie allebei een maand Skipily Plus cadeau.";
+"referral.invite.code" = "Jouw aanbevelingscode";
+"referral.invite.share" = "Delen";
+"referral.invite.codeLoading" = "Code laden …";
+"referral.stat.granted" = "Bijgeschreven";
+"referral.stat.pending" = "In behandeling";
+"referral.stat.thisYear" = "Dit jaar";
+"referral.cap" = "Jaarlimiet bereikt (12 aanbevelingen). Nieuwe aanbevelingen worden vanaf januari weer bijgeschreven.";
+"profile.plus.active" = "ACTIEF";
+"profile.plus.activeSubtitle" = "Onbeperkte AI, foto-analyse, uitrustingssuggesties.";
+"profile.plus.manage" = "Abonnement beheren / opzeggen";
+"referral.share.message" = "Ik gebruik Skipily voor mijn boot — onderhoud, uitrustingsinventaris, shop en een AI-assistent in één app. Als je je aanmeldt en mijn aanbevelingscode invoert, krijgen we allebei een maand Skipily Plus cadeau.\n\nMijn code: %@\n\nApp downloaden: https://apps.apple.com/app/skipily";

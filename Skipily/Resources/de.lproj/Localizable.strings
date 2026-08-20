@@ -953,3 +953,18 @@ Ausrüstung unter Boote ergänzen.";
 "plus.card.report" = "Service-Logbuch als PDF – je Boot";
 "plus.card.import" = "Ausrüstungsliste per Excel importieren";
 "plus.card.discover" = "Skipily Plus entdecken";
+
+/* ── Referral-Sektion (Profil) ── */
+"referral.invite.title" = "Freunde einladen";
+"referral.invite.desc" = "Lade Bootseigner zu Skipily ein. Sobald sie 7 Tage dabei sind, bekommt ihr beide einen Monat Skipily Plus geschenkt.";
+"referral.invite.code" = "Dein Empfehlungs-Code";
+"referral.invite.share" = "Teilen";
+"referral.invite.codeLoading" = "Code wird geladen …";
+"referral.stat.granted" = "Gutschrift";
+"referral.stat.pending" = "Offen";
+"referral.stat.thisYear" = "Dieses Jahr";
+"referral.cap" = "Jahres-Cap erreicht (12 Empfehlungen). Neue Empfehlungen werden ab Januar wieder gutgeschrieben.";
+"profile.plus.active" = "AKTIV";
+"profile.plus.activeSubtitle" = "Unbegrenzte KI, Foto-Analyse, Ausrüstungs-Empfehlungen.";
+"profile.plus.manage" = "Abo verwalten / kündigen";
+"referral.share.message" = "Ich nutze Skipily für mein Boot — Wartung, Equipment-Inventar, Shop und KI-Assistent in einer App. Wenn du dich anmeldest und meinen Empfehlungs-Code eingibst, bekommen wir beide einen Monat Skipily Plus geschenkt.\n\nMein Code: %@\n\nApp laden: https://apps.apple.com/app/skipily";

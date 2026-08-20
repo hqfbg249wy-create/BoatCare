@@ -950,3 +950,18 @@
 "plus.card.report" = "Service logbook as PDF – per boat";
 "plus.card.import" = "Import equipment list via Excel";
 "plus.card.discover" = "Discover Skipily Plus";
+
+/* ── Referral-Sektion (Profil) ── */
+"referral.invite.title" = "Invite friends";
+"referral.invite.desc" = "Invite boat owners to Skipily. Once they have been active for 7 days, you both get one month of Skipily Plus free.";
+"referral.invite.code" = "Your referral code";
+"referral.invite.share" = "Share";
+"referral.invite.codeLoading" = "Loading code …";
+"referral.stat.granted" = "Credited";
+"referral.stat.pending" = "Pending";
+"referral.stat.thisYear" = "This year";
+"referral.cap" = "Yearly cap reached (12 referrals). New referrals will be credited again from January.";
+"profile.plus.active" = "ACTIVE";
+"profile.plus.activeSubtitle" = "Unlimited AI, photo analysis, equipment suggestions.";
+"profile.plus.manage" = "Manage / cancel subscription";
+"referral.share.message" = "I use Skipily for my boat — maintenance, equipment inventory, shop and an AI assistant in one app. If you sign up and enter my referral code, we both get one month of Skipily Plus free.\n\nMy code: %@\n\nGet the app: https://apps.apple.com/app/skipily";

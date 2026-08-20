@@ -950,3 +950,18 @@
 "plus.card.report" = "Libretto di servizio in PDF – per barca";
 "plus.card.import" = "Importa lista attrezzatura via Excel";
 "plus.card.discover" = "Scopri Skipily Plus";
+
+/* ── Referral-Sektion (Profil) ── */
+"referral.invite.title" = "Invita amici";
+"referral.invite.desc" = "Invita armatori su Skipily. Non appena sono attivi da 7 giorni, ricevete entrambi un mese di Skipily Plus gratis.";
+"referral.invite.code" = "Il tuo codice di invito";
+"referral.invite.share" = "Condividi";
+"referral.invite.codeLoading" = "Caricamento codice …";
+"referral.stat.granted" = "Accreditati";
+"referral.stat.pending" = "In sospeso";
+"referral.stat.thisYear" = "Quest'anno";
+"referral.cap" = "Limite annuale raggiunto (12 segnalazioni). Le nuove segnalazioni verranno accreditate di nuovo da gennaio.";
+"profile.plus.active" = "ATTIVO";
+"profile.plus.activeSubtitle" = "IA illimitata, analisi foto, suggerimenti attrezzatura.";
+"profile.plus.manage" = "Gestisci / annulla abbonamento";
+"referral.share.message" = "Uso Skipily per la mia barca — manutenzione, inventario attrezzatura, negozio e assistente IA in un'unica app. Se ti registri e inserisci il mio codice di invito, riceviamo entrambi un mese di Skipily Plus gratis.\n\nIl mio codice: %@\n\nScarica l'app: https://apps.apple.com/app/skipily";

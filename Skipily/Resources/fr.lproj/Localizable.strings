@@ -950,3 +950,18 @@
 "plus.card.report" = "Carnet d'entretien en PDF – par bateau";
 "plus.card.import" = "Importer la liste d'équipement via Excel";
 "plus.card.discover" = "Découvrir Skipily Plus";
+
+/* ── Referral-Sektion (Profil) ── */
+"referral.invite.title" = "Inviter des amis";
+"referral.invite.desc" = "Invitez des propriétaires de bateau sur Skipily. Dès qu'ils sont actifs depuis 7 jours, vous recevez tous les deux un mois de Skipily Plus offert.";
+"referral.invite.code" = "Ton code de parrainage";
+"referral.invite.share" = "Partager";
+"referral.invite.codeLoading" = "Chargement du code …";
+"referral.stat.granted" = "Crédité";
+"referral.stat.pending" = "En attente";
+"referral.stat.thisYear" = "Cette année";
+"referral.cap" = "Plafond annuel atteint (12 parrainages). Les nouveaux parrainages seront de nouveau crédités à partir de janvier.";
+"profile.plus.active" = "ACTIF";
+"profile.plus.activeSubtitle" = "IA illimitée, analyse photo, suggestions d'équipement.";
+"profile.plus.manage" = "Gérer / résilier l'abonnement";
+"referral.share.message" = "J'utilise Skipily pour mon bateau — entretien, inventaire d'équipement, boutique et assistant IA dans une seule app. Si tu t'inscris et saisis mon code de parrainage, nous recevons tous les deux un mois de Skipily Plus offert.\n\nMon code : %@\n\nTélécharger l'app : https://apps.apple.com/app/skipily";
