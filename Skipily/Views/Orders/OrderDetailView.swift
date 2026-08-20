@@ -429,7 +429,7 @@ struct OrderDetailView: View {
             Button("order.cancelConfirm".loc, role: .destructive) {
                 Task { await cancelOrder() }
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("common.cancel".loc, role: .cancel) {}
         } message: {
             Text("order.cancelDesc".loc)
         }

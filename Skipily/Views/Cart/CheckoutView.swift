@@ -106,11 +106,11 @@ struct CheckoutView: View {
                     .fontWeight(.bold)
 
                 VStack(spacing: 14) {
-                    TextField("Vollständiger Name", text: $shippingAddress.name)
+                    TextField("common.fullName".loc, text: $shippingAddress.name)
                         .textContentType(.name)
                         .textFieldStyle(.roundedBorder)
 
-                    TextField("Straße + Hausnummer", text: $shippingAddress.street)
+                    TextField("common.street".loc, text: $shippingAddress.street)
                         .textContentType(.streetAddressLine1)
                         .textFieldStyle(.roundedBorder)
 

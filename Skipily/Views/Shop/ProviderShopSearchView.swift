@@ -126,7 +126,7 @@ struct ProviderShopSearchView: View {
 
             if !isGlobalSearch {
                 VStack(spacing: 10) {
-                    Text("Wie möchtest du weitersuchen?")
+                    Text("shop.searchAgain".loc)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 

@@ -341,7 +341,7 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeader("profile.section_personal".loc, icon: "person.fill")
 
-            TextField("Vollständiger Name", text: $fullName)
+            TextField("common.fullName".loc, text: $fullName)
                 .textContentType(.name)
                 .textFieldStyle(.roundedBorder)
 
@@ -360,7 +360,7 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeader("Lieferadresse", icon: "shippingbox.fill")
 
-            TextField("Straße + Hausnummer", text: $shippingStreet)
+            TextField("common.street".loc, text: $shippingStreet)
                 .textContentType(.streetAddressLine1)
                 .textFieldStyle(.roundedBorder)
 

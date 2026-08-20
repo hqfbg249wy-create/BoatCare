@@ -166,7 +166,7 @@ struct RegistrationView: View {
 
             // Empfehlungs-Code (optional)
             VStack(alignment: .leading, spacing: 6) {
-                fieldLabel("Empfehlungs-Code (optional)")
+                fieldLabel("reg.referralLabel".loc)
                 TextField("BOAT-XXXX", text: $referralCode)
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
@@ -177,7 +177,7 @@ struct RegistrationView: View {
                             .filter { $0.isLetter || $0.isNumber || $0 == "-" }
                         if cleaned != newValue { referralCode = cleaned }
                     }
-                Text("Wurdest du eingeladen? Trage den Code ein — du UND der Werber bekommen je 1 Monat Skipily Plus geschenkt, sobald du 7 Tage dabei bist.")
+                Text("reg.referralHint".loc)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 if let info = referralInfo {

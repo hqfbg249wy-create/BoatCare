@@ -1058,3 +1058,24 @@
 "order.cancelConfirm" = "Annuler";
 "order.cancelDesc" = "La commande passera à « Annulée ». Les articles restent dans ton panier au cas où tu voudrais les recommander plus tard.";
 "order.paymentUpdateFailed" = "Le paiement a abouti, mais la mise à jour du statut a échoué. Redémarre l’app.";
+
+/* ── Auth / Shop-Suche / Montageplan ── */
+"reg.referralLabel" = "Code de parrainage (facultatif)";
+"reg.referralHint" = "As-tu été invité ? Saisis le code — toi ET ton parrain recevez chacun un mois de Skipily Plus offert dès que tu es actif depuis 7 jours.";
+"login.password" = "Mot de passe";
+"login.resetHint" = "Nous t'envoyons un code à 6 chiffres par e-mail. Saisis-le ici dans l'app et définis ton nouveau mot de passe.";
+"otp.spamHint" = "Si aucun e-mail n'arrive, vérifie ton dossier spam.";
+"otp.codeSection" = "Code de l'e-mail";
+"otp.codePlaceholder" = "Code de l'e-mail";
+"otp.newPwSection" = "Nouveau mot de passe";
+"otp.pwRepeat" = "Répéter le mot de passe";
+"otp.success" = "Mot de passe mis à jour — tu peux maintenant te connecter avec.";
+"otp.title" = "Définir un nouveau mot de passe";
+"otp.cancel" = "Annuler";
+"shop.searchAgain" = "Comment veux-tu poursuivre la recherche ?";
+"install.disclaimer" = "Ce plan de montage est une suggestion de l'IA pour une variante possible. L'exécution doit être confiée à un professionnel qualifié — il est responsable de l'installation et de la réception correctes.";
+
+/* ── Gemeinsam ── */
+"common.cancel" = "Annuler";
+"common.fullName" = "Nom complet";
+"common.street" = "Rue + numéro";

@@ -1061,3 +1061,24 @@ Ausrüstung unter Boote ergänzen.";
 "order.cancelConfirm" = "Stornieren";
 "order.cancelDesc" = "Die Bestellung wird auf „Storniert“ gesetzt. Die Artikel bleiben in deinem Warenkorb erhalten, falls du sie später neu bestellen möchtest.";
 "order.paymentUpdateFailed" = "Zahlung lief durch, aber Status-Update fehlgeschlagen. Bitte App neu starten.";
+
+/* ── Auth / Shop-Suche / Montageplan ── */
+"reg.referralLabel" = "Empfehlungs-Code (optional)";
+"reg.referralHint" = "Wurdest du eingeladen? Trage den Code ein — du UND der Werber bekommen je 1 Monat Skipily Plus geschenkt, sobald du 7 Tage dabei bist.";
+"login.password" = "Passwort";
+"login.resetHint" = "Wir schicken dir einen 6-stelligen Code per E-Mail. Den gibst du gleich hier in der App ein und setzt dein neues Passwort.";
+"otp.spamHint" = "Falls keine Mail kommt, prüfe deinen Spam-Ordner.";
+"otp.codeSection" = "Code aus der E-Mail";
+"otp.codePlaceholder" = "Code aus der Mail";
+"otp.newPwSection" = "Neues Passwort";
+"otp.pwRepeat" = "Passwort wiederholen";
+"otp.success" = "Passwort aktualisiert — du kannst dich jetzt damit anmelden.";
+"otp.title" = "Neues Passwort setzen";
+"otp.cancel" = "Abbrechen";
+"shop.searchAgain" = "Wie möchtest du weitersuchen?";
+"install.disclaimer" = "Dieser Montageplan ist ein KI-Vorschlag für eine mögliche Variante. Die Ausführung sollte einem qualifizierten Fachbetrieb übertragen werden — er trägt die Verantwortung für die korrekte Installation und Abnahme.";
+
+/* ── Gemeinsam ── */
+"common.cancel" = "Abbrechen";
+"common.fullName" = "Vollständiger Name";
+"common.street" = "Straße + Hausnummer";

@@ -1058,3 +1058,24 @@
 "order.cancelConfirm" = "Annuleren";
 "order.cancelDesc" = "De bestelling wordt op ‘Geannuleerd’ gezet. De artikelen blijven in je winkelwagen voor het geval je ze later opnieuw wilt bestellen.";
 "order.paymentUpdateFailed" = "De betaling is gelukt, maar de statusupdate is mislukt. Start de app opnieuw.";
+
+/* ── Auth / Shop-Suche / Montageplan ── */
+"reg.referralLabel" = "Aanbevelingscode (optioneel)";
+"reg.referralHint" = "Ben je uitgenodigd? Voer de code in — jij ÉN degene die je aanbeval krijgen elk een maand Skipily Plus cadeau zodra je 7 dagen actief bent.";
+"login.password" = "Wachtwoord";
+"login.resetHint" = "We sturen je een 6-cijferige code per e-mail. Voer die hier in de app in en stel je nieuwe wachtwoord in.";
+"otp.spamHint" = "Als er geen e-mail komt, controleer je spammap.";
+"otp.codeSection" = "Code uit de e-mail";
+"otp.codePlaceholder" = "Code uit de e-mail";
+"otp.newPwSection" = "Nieuw wachtwoord";
+"otp.pwRepeat" = "Wachtwoord herhalen";
+"otp.success" = "Wachtwoord bijgewerkt — je kunt er nu mee inloggen.";
+"otp.title" = "Nieuw wachtwoord instellen";
+"otp.cancel" = "Annuleren";
+"shop.searchAgain" = "Hoe wil je verder zoeken?";
+"install.disclaimer" = "Dit montageplan is een AI-suggestie voor een mogelijke variant. De uitvoering moet aan een gekwalificeerd vakbedrijf worden overgelaten — dat is verantwoordelijk voor de juiste installatie en oplevering.";
+
+/* ── Gemeinsam ── */
+"common.cancel" = "Annuleren";
+"common.fullName" = "Volledige naam";
+"common.street" = "Straat + huisnummer";

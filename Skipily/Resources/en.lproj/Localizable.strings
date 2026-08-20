@@ -1058,3 +1058,24 @@
 "order.cancelConfirm" = "Cancel order";
 "order.cancelDesc" = "The order will be set to “Cancelled”. The items stay in your cart in case you want to reorder them later.";
 "order.paymentUpdateFailed" = "Payment went through, but the status update failed. Please restart the app.";
+
+/* ── Auth / Shop-Suche / Montageplan ── */
+"reg.referralLabel" = "Referral code (optional)";
+"reg.referralHint" = "Were you invited? Enter the code — both you AND your referrer get one month of Skipily Plus free once you have been active for 7 days.";
+"login.password" = "Password";
+"login.resetHint" = "We will send you a 6-digit code by email. Enter it right here in the app and set your new password.";
+"otp.spamHint" = "If no email arrives, check your spam folder.";
+"otp.codeSection" = "Code from the email";
+"otp.codePlaceholder" = "Code from the email";
+"otp.newPwSection" = "New password";
+"otp.pwRepeat" = "Repeat password";
+"otp.success" = "Password updated — you can now sign in with it.";
+"otp.title" = "Set new password";
+"otp.cancel" = "Cancel";
+"shop.searchAgain" = "How would you like to continue searching?";
+"install.disclaimer" = "This installation plan is an AI suggestion for one possible variant. The work should be carried out by a qualified professional — they are responsible for correct installation and acceptance.";
+
+/* ── Gemeinsam ── */
+"common.cancel" = "Cancel";
+"common.fullName" = "Full name";
+"common.street" = "Street + house number";
