@@ -912,7 +912,7 @@ Ausrüstung unter Boote ergänzen.";
 
 /* ── Referral, Plus-Features & Ausrüstungs-Import (lokalisiert) ── */
 "referral.banner.title" = "Weiterempfehlen = 1 Monat Skipily Plus gratis";
-"referral.banner.subtitle" = "Für jede erfolgreiche Empfehlung – bis zu 12× pro Jahr.";
+"referral.banner.subtitle" = "12 Empfehlungen = 1 Jahr Skipily Plus kostenlos";
 "plus.feat.ai" = "Unbegrenzter KI-Assistent: Chat, Schadens-Foto-Analyse & Ausrüstungs-Empfehlungen (sonst 10/Monat)";
 "plus.feat.import" = "Ausrüstung per Excel importieren (inkl. Segelmessblatt & Tauwerk)";
 "plus.feat.report" = "Wartungsreport als PDF – je Boot getrennt";
@@ -945,3 +945,11 @@ Ausrüstung unter Boote ergänzen.";
 "equip.import.byName" = "Name";
 "equip.import.errFile" = "Datei konnte nicht gelesen werden.";
 "equip.import.errPlus" = "Skipily Plus erforderlich.";
+
+/* ── Plus-Karte (Profil) ── */
+"plus.card.ai" = "Unbegrenzte KI-Chats";
+"plus.card.photo" = "Schadens-Foto-Analyse";
+"plus.card.suggest" = "Ausrüstungs-Empfehlungen";
+"plus.card.report" = "Service-Logbuch als PDF – je Boot";
+"plus.card.import" = "Ausrüstungsliste per Excel importieren";
+"plus.card.discover" = "Skipily Plus entdecken";

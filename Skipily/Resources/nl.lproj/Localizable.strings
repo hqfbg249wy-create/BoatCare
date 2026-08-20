@@ -909,7 +909,7 @@
 
 /* ── Referral, Plus-Features & Ausrüstungs-Import (lokalisiert) ── */
 "referral.banner.title" = "Aanbevelen = 1 maand Skipily Plus gratis";
-"referral.banner.subtitle" = "Voor elke geslaagde aanbeveling – tot 12× per jaar.";
+"referral.banner.subtitle" = "12 aanbevelingen = 1 jaar Skipily Plus gratis";
 "plus.feat.ai" = "Onbeperkte AI-assistent: chat, schade-foto-analyse & uitrustingssuggesties (anders 10/maand)";
 "plus.feat.import" = "Uitrusting importeren via Excel (incl. zeilmeetblad & touwwerk)";
 "plus.feat.report" = "Onderhoudsrapport als PDF – apart per boot";
@@ -942,3 +942,11 @@
 "equip.import.byName" = "naam";
 "equip.import.errFile" = "Het bestand kon niet worden gelezen.";
 "equip.import.errPlus" = "Skipily Plus vereist.";
+
+/* ── Plus-Karte (Profil) ── */
+"plus.card.ai" = "Onbeperkte AI-chats";
+"plus.card.photo" = "Schade-foto-analyse";
+"plus.card.suggest" = "Uitrustingssuggesties";
+"plus.card.report" = "Service-logboek als PDF – per boot";
+"plus.card.import" = "Uitrustingslijst importeren via Excel";
+"plus.card.discover" = "Ontdek Skipily Plus";

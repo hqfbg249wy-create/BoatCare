@@ -909,7 +909,7 @@
 
 /* ── Referral, Plus-Features & Ausrüstungs-Import (lokalisiert) ── */
 "referral.banner.title" = "Parrainer = 1 mois de Skipily Plus offert";
-"referral.banner.subtitle" = "Pour chaque parrainage réussi – jusqu'à 12× par an.";
+"referral.banner.subtitle" = "12 parrainages = 1 an de Skipily Plus offert";
 "plus.feat.ai" = "Assistant IA illimité : chat, analyse photo des dommages et suggestions d'équipement (sinon 10/mois)";
 "plus.feat.import" = "Importer l'équipement via Excel (feuille de mesures de voile et gréement inclus)";
 "plus.feat.report" = "Rapport d'entretien en PDF – séparément par bateau";
@@ -942,3 +942,11 @@
 "equip.import.byName" = "nom";
 "equip.import.errFile" = "Le fichier n'a pas pu être lu.";
 "equip.import.errPlus" = "Skipily Plus requis.";
+
+/* ── Plus-Karte (Profil) ── */
+"plus.card.ai" = "Chats IA illimités";
+"plus.card.photo" = "Analyse photo des dommages";
+"plus.card.suggest" = "Suggestions d'équipement";
+"plus.card.report" = "Carnet d'entretien en PDF – par bateau";
+"plus.card.import" = "Importer la liste d'équipement via Excel";
+"plus.card.discover" = "Découvrir Skipily Plus";

@@ -29,9 +29,6 @@ struct ShopView: View {
     @State private var equipmentKeywords: [String] = []
     @State private var equipmentDealProducts: [Product] = []
     @State private var cartToast: String?
-    /// Button-basierte Navigation zur Produktdetailseite (zuverlässiger als ein
-    /// Ganz-Kachel-NavigationLink, der auf iPad im Vollbild nicht auslöste).
-    @State private var selectedProduct: Product?
 
     private let productService = ProductService.shared
     private let recommendationService = RecommendationService.shared
@@ -137,9 +134,6 @@ struct ShopView: View {
         }
         .navigationTitle("shop.title".loc)
         .navigationDestination(for: Product.self) { product in
-            ProductDetailView(product: product)
-        }
-        .navigationDestination(item: $selectedProduct) { product in
             ProductDetailView(product: product)
         }
         .task {
@@ -794,11 +788,10 @@ struct ShopView: View {
                             promotionBadge: promotionService.promotionBadgeText(for: product),
                             discountedPrice: promotionService.displayDiscountedPrice(for: product)
                         )
-                        // Zuverlässiger Details-Button (Button-Action navigiert
-                        // auch auf iPad im Vollbild, anders als der Ganz-Kachel-Tap).
-                        Button {
-                            selectedProduct = product
-                        } label: {
+                        // Details-Navigation typbasiert (wie Empfehlungen/Deals) —
+                        // EIN einheitliches navigationDestination(for:) statt zusätzlich
+                        // item-basiert; das behebt den Blank-Screen beim Zurückspringen.
+                        NavigationLink(value: product) {
                             HStack(spacing: 6) {
                                 Image(systemName: "info.circle.fill")
                                 Text("shop.details".loc)

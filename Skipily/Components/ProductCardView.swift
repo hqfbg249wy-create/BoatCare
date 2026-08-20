@@ -79,7 +79,7 @@ struct ProductCardView: View {
             Text(displayName)
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .lineLimit(2)
+                .lineLimit(2, reservesSpace: true)   // gleiche Kartenhöhe -> Grid richtet sich sauber aus
                 .foregroundStyle(AppColors.gray900)
 
             // Manufacturer

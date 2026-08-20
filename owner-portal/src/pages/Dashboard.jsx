@@ -100,7 +100,7 @@ export default function Dashboard() {
           <Gift size={22} />
           <div style={{ lineHeight: 1.3 }}>
             <div style={{ fontWeight: 700 }}>Weiterempfehlen = 1 Monat Skipily Plus gratis</div>
-            <div style={{ fontSize: 13, opacity: 0.9 }}>Für jede erfolgreiche Empfehlung – bis zu 12× pro Jahr.</div>
+            <div style={{ fontSize: 13, opacity: 0.9 }}>12 Empfehlungen = 1 Jahr Skipily Plus kostenlos.</div>
           </div>
           <button aria-label="Ausblenden"
             onClick={(e) => { e.stopPropagation(); localStorage.setItem('referral_hint_dismissed', '1'); setRefHintHidden(true) }}

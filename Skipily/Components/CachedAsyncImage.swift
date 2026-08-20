@@ -25,25 +25,40 @@ import UIKit
 actor ImageDownsampler {
     static let shared = ImageDownsampler()
 
-    private let cache = NSCache<NSString, UIImage>()
+    // NSCache ist thread-safe -> als statischer Speicher, damit auch ein
+    // SYNCHRONER Peek (ohne Actor-Hop) möglich ist. Das verhindert das
+    // Flackern/Verschwinden bereits geladener Bilder, wenn LazyVGrid-Zellen
+    // beim Scrollen recycelt werden (v. a. auf dem iPad mit vielen Kacheln).
+    private static let cache: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        c.countLimit = 250
+        c.totalCostLimit = 80 * 1024 * 1024   // ~80 MB decoded pixels
+        return c
+    }()
 
-    private init() {
-        cache.countLimit = 250
-        // ~80 MB of decoded pixels — plenty for many small downsampled images.
-        cache.totalCostLimit = 80 * 1024 * 1024
+    private init() {}
+
+    private static func cacheKey(_ url: URL, _ maxPixel: CGFloat) -> NSString {
+        "\(url.absoluteString)|\(Int(maxPixel))" as NSString
+    }
+
+    /// Synchroner Cache-Zugriff (nonisolated, NSCache ist thread-safe).
+    /// Liefert ein bereits dekodiertes Bild sofort — sonst nil.
+    nonisolated static func cachedImage(for url: URL, maxPixel: CGFloat) -> UIImage? {
+        cache.object(forKey: cacheKey(url, maxPixel))
     }
 
     /// Returns a decoded, downsampled image for `url`, no larger than
     /// `maxPixel` on its longest edge. Cached results are returned immediately.
     func image(for url: URL, maxPixel: CGFloat) async -> UIImage? {
-        let key = "\(url.absoluteString)|\(Int(maxPixel))" as NSString
-        if let cached = cache.object(forKey: key) { return cached }
+        let key = Self.cacheKey(url, maxPixel)
+        if let cached = Self.cache.object(forKey: key) { return cached }
 
         guard let data = await fetchData(url) else { return nil }
         guard let image = Self.downsample(data: data, maxPixel: maxPixel) else { return nil }
 
         let bytes = Int(image.size.width * image.scale * image.size.height * image.scale * 4)
-        cache.setObject(image, forKey: key, cost: bytes)
+        Self.cache.setObject(image, forKey: key, cost: bytes)
         return image
     }
 
@@ -87,7 +102,7 @@ struct CachedAsyncImage<Content: View>: View {
     private let targetSize: CGSize
     private let content: (AsyncImagePhase) -> Content
 
-    @State private var phase: AsyncImagePhase = .empty
+    @State private var phase: AsyncImagePhase
 
     init(url: URL?,
          targetSize: CGSize,
@@ -95,6 +110,16 @@ struct CachedAsyncImage<Content: View>: View {
         self.url = url
         self.targetSize = targetSize
         self.content = content
+        // Bereits gecachtes Bild sofort als Startzustand -> kein Flackern beim
+        // Recycling/Zurückscrollen. Erst-Laden bleibt async (unten in load()).
+        if let url {
+            let maxPixel = max(targetSize.width, targetSize.height) * UIScreen.main.scale
+            if let img = ImageDownsampler.cachedImage(for: url, maxPixel: maxPixel) {
+                _phase = State(initialValue: .success(Image(uiImage: img)))
+                return
+            }
+        }
+        _phase = State(initialValue: .empty)
     }
 
     var body: some View {
@@ -109,6 +134,11 @@ struct CachedAsyncImage<Content: View>: View {
             return
         }
         let maxPixel = max(targetSize.width, targetSize.height) * UIScreen.main.scale
+        // Synchroner Cache-Treffer -> sofort setzen, kein Actor-Hop nötig.
+        if let cached = ImageDownsampler.cachedImage(for: url, maxPixel: maxPixel) {
+            phase = .success(Image(uiImage: cached))
+            return
+        }
         if let image = await ImageDownsampler.shared.image(for: url, maxPixel: maxPixel) {
             phase = .success(Image(uiImage: image))
         } else {

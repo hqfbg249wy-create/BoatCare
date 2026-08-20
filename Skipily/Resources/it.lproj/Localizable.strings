@@ -909,7 +909,7 @@
 
 /* ── Referral, Plus-Features & Ausrüstungs-Import (lokalisiert) ── */
 "referral.banner.title" = "Consiglia = 1 mese di Skipily Plus gratis";
-"referral.banner.subtitle" = "Per ogni segnalazione riuscita – fino a 12× all'anno.";
+"referral.banner.subtitle" = "12 segnalazioni = 1 anno di Skipily Plus gratis";
 "plus.feat.ai" = "Assistente IA illimitato: chat, analisi foto danni e suggerimenti attrezzatura (altrimenti 10/mese)";
 "plus.feat.import" = "Importa attrezzatura via Excel (incl. scheda misure vele e cime)";
 "plus.feat.report" = "Report di manutenzione in PDF – separato per barca";
@@ -942,3 +942,11 @@
 "equip.import.byName" = "nome";
 "equip.import.errFile" = "Impossibile leggere il file.";
 "equip.import.errPlus" = "Richiesto Skipily Plus.";
+
+/* ── Plus-Karte (Profil) ── */
+"plus.card.ai" = "Chat IA illimitate";
+"plus.card.photo" = "Analisi foto danni";
+"plus.card.suggest" = "Suggerimenti attrezzatura";
+"plus.card.report" = "Libretto di servizio in PDF – per barca";
+"plus.card.import" = "Importa lista attrezzatura via Excel";
+"plus.card.discover" = "Scopri Skipily Plus";

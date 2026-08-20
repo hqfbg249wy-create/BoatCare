@@ -746,16 +746,18 @@ struct ProfileView: View {
     @ViewBuilder
     private var inactivePlusCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            featureRow("Unbegrenzte KI-Chats")
-            featureRow("Schadens-Foto-Analyse")
-            featureRow("Ausrüstungs-Empfehlungen")
+            featureRow("plus.card.ai".loc)
+            featureRow("plus.card.photo".loc)
+            featureRow("plus.card.suggest".loc)
+            featureRow("plus.card.report".loc)
+            featureRow("plus.card.import".loc)
 
             Button {
                 showPlusSheet = true
             } label: {
                 HStack {
                     Image(systemName: "sparkles")
-                    Text("Skipily Plus entdecken")
+                    Text("plus.card.discover".loc)
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
