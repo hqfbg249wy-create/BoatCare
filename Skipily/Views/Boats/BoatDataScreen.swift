@@ -304,9 +304,9 @@ struct BoatDataScreen: View {
                 HStack(spacing: 12) {
                     Image(systemName: "gift.fill").foregroundStyle(.white)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Weiterempfehlen = 1 Monat Skipily Plus gratis")
+                        Text("referral.banner.title".loc)
                             .font(.subheadline.bold()).foregroundStyle(.white)
-                        Text("Für jede erfolgreiche Empfehlung – bis zu 12× pro Jahr.")
+                        Text("referral.banner.subtitle".loc)
                             .font(.caption).foregroundStyle(.white.opacity(0.9))
                     }
                     Spacer(minLength: 0)

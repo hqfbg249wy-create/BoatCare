@@ -88,8 +88,8 @@ final class EquipmentImportService {
         case server(String)
         var errorDescription: String? {
             switch self {
-            case .fileUnreadable: return "Datei konnte nicht gelesen werden."
-            case .requiresPlus:   return "Skipily Plus erforderlich."
+            case .fileUnreadable: return "equip.import.errFile".loc
+            case .requiresPlus:   return "equip.import.errPlus".loc
             case .server(let m):  return m
             }
         }

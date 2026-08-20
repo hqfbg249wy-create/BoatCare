@@ -41,11 +41,11 @@ struct EquipmentImportSheet: View {
                     formView
                 }
             }
-            .navigationTitle("Ausrüstung importieren")
+            .navigationTitle("equip.import.title".loc)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Schließen") { dismiss() }
+                    Button("equip.import.close".loc) { dismiss() }
                 }
             }
             .fileImporter(isPresented: $showingPicker, allowedContentTypes: allowedTypes) { res in
@@ -59,31 +59,31 @@ struct EquipmentImportSheet: View {
     private var formView: some View {
         List {
             Section {
-                Text("Für **\(boatName)** eine Excel-Datei mit den Blättern Ausrüstung, Segelmessblatt und Tauwerk hochladen. Bereits vorhandene Ausrüstung wird erkannt und nicht doppelt angelegt.")
+                Text(String(format: "equip.import.intro".loc, boatName))
                     .font(.subheadline).foregroundStyle(.secondary)
                 Button {
                     showingPicker = true
                 } label: {
-                    Label(fileName.isEmpty ? "Datei wählen (.xlsx / .csv)" : fileName,
+                    Label(fileName.isEmpty ? "equip.import.pick".loc : fileName,
                           systemImage: "tray.and.arrow.down")
                 }
             }
 
             if busy && preview == nil {
-                Section { HStack { ProgressView(); Text("Datei wird gelesen…").foregroundStyle(.secondary) } }
+                Section { HStack { ProgressView(); Text("equip.import.reading".loc).foregroundStyle(.secondary) } }
             }
 
             if let p = preview {
-                Section("Zusammenfassung") {
-                    summaryRow("Neu", "\(p.summary.equipmentNew)", .green)
-                    if p.summary.equipmentSkipped > 0 { summaryRow("Bereits vorhanden (übersprungen)", "\(p.summary.equipmentSkipped)", .orange) }
-                    if p.summary.sails > 0 { summaryRow("Segelmessblatt", "\(p.summary.sails)", .green) }
-                    if p.summary.ropes > 0 { summaryRow("Tauwerk", "\(p.summary.ropes)", .green) }
-                    if p.summary.unlinked > 0 { summaryRow("Ohne Zuordnung", "\(p.summary.unlinked)", .orange) }
+                Section("equip.import.summary".loc) {
+                    summaryRow("equip.import.new".loc, "\(p.summary.equipmentNew)", .green)
+                    if p.summary.equipmentSkipped > 0 { summaryRow("equip.import.skipped".loc, "\(p.summary.equipmentSkipped)", .orange) }
+                    if p.summary.sails > 0 { summaryRow("equip.import.sails".loc, "\(p.summary.sails)", .green) }
+                    if p.summary.ropes > 0 { summaryRow("equip.import.ropes".loc, "\(p.summary.ropes)", .green) }
+                    if p.summary.unlinked > 0 { summaryRow("equip.import.unlinked".loc, "\(p.summary.unlinked)", .orange) }
                 }
 
                 if !p.equipment.isEmpty {
-                    Section("Ausrüstung") {
+                    Section("equip.import.equipment".loc) {
                         ForEach(p.equipment) { e in
                             HStack(alignment: .top, spacing: 10) {
                                 Image(systemName: e.dup ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
@@ -94,7 +94,7 @@ struct EquipmentImportSheet: View {
                                         Text(dupText(reason: r, matched: e.matchedName))
                                             .font(.caption).foregroundStyle(.orange)
                                     } else if let s = e.serialNumber, !s.isEmpty {
-                                        Text("Serien-Nr. \(s)").font(.caption).foregroundStyle(.secondary)
+                                        Text(String(format: "equip.import.serial".loc, s)).font(.caption).foregroundStyle(.secondary)
                                     }
                                 }
                             }
@@ -103,9 +103,9 @@ struct EquipmentImportSheet: View {
                 }
 
                 if !p.ropes.isEmpty || !p.sails.isEmpty {
-                    Section("Verknüpfung Segel/Tauwerk") {
-                        ForEach(p.sails) { s in linkRow(s.equipment, "Segel: \(s.sailType)", s.linked) }
-                        ForEach(p.ropes) { r in linkRow(r.equipment, "Tauwerk\(r.articleNumber.map { " · \($0)" } ?? "")", r.linked) }
+                    Section("equip.import.linkSection".loc) {
+                        ForEach(p.sails) { s in linkRow(s.equipment, String(format: "equip.import.sailPrefix".loc, s.sailType), s.linked) }
+                        ForEach(p.ropes) { r in linkRow(r.equipment, "equip.import.ropes".loc + (r.articleNumber.map { " · \($0)" } ?? ""), r.linked) }
                     }
                 }
             }
@@ -121,7 +121,7 @@ struct EquipmentImportSheet: View {
                     } label: {
                         HStack {
                             if busy { ProgressView().padding(.trailing, 4) }
-                            Text(busy ? "Importiere…" : "Importieren")
+                            Text(busy ? "equip.import.importing".loc : "equip.import.import".loc)
                         }
                     }
                     .disabled(busy)
@@ -130,11 +130,13 @@ struct EquipmentImportSheet: View {
         }
     }
 
-    // Duplikat-Hinweis mit typografischen Anführungszeichen (keine ASCII-" im Literal).
+    // Duplikat-Hinweis. Der Grund kommt serverseitig als "Seriennummer"/"Name"
+    // (DE) und wird hier lokalisiert; typografische Anführungszeichen (kein ASCII-").
     private func dupText(reason: String, matched: String?) -> String {
-        var s = "Bereits vorhanden (Treffer über \(reason)"
+        let reasonLoc = reason == "Seriennummer" ? "equip.import.bySerial".loc
+                      : reason == "Name" ? "equip.import.byName".loc : reason
+        var s = String(format: "equip.import.dupReason".loc, reasonLoc)
         if let m = matched, !m.isEmpty { s += ": \u{201E}\(m)\u{201C}" }
-        s += ")"
         return s
     }
 
@@ -148,7 +150,7 @@ struct EquipmentImportSheet: View {
                 .foregroundStyle(linked ? .green : .orange)
             VStack(alignment: .leading, spacing: 2) {
                 Text(equipment).font(.subheadline)
-                Text(linked ? detail : "\(detail) · kein passendes Gerät gefunden")
+                Text(linked ? detail : "\(detail) · " + "equip.import.noMatch".loc)
                     .font(.caption).foregroundStyle(linked ? Color.secondary : Color.orange)
             }
         }
@@ -159,16 +161,16 @@ struct EquipmentImportSheet: View {
     private func resultView(_ s: EquipmentImportService.Summary) -> some View {
         List {
             Section {
-                Label("Import abgeschlossen", systemImage: "checkmark.seal.fill")
+                Label("equip.import.doneTitle".loc, systemImage: "checkmark.seal.fill")
                     .foregroundStyle(.green).font(.headline)
-                summaryRow("Ausrüstung neu", "\(s.equipmentNew)", .green)
-                if s.equipmentSkipped > 0 { summaryRow("Bereits vorhanden (übersprungen)", "\(s.equipmentSkipped)", .orange) }
-                if s.sails > 0 { summaryRow("Segelmessblatt", "\(s.sails)", .green) }
-                if s.ropes > 0 { summaryRow("Tauwerk", "\(s.ropes)", .green) }
-                if s.unlinked > 0 { summaryRow("Ohne Zuordnung übersprungen", "\(s.unlinked)", .orange) }
+                summaryRow("equip.import.equipmentNew".loc, "\(s.equipmentNew)", .green)
+                if s.equipmentSkipped > 0 { summaryRow("equip.import.skipped".loc, "\(s.equipmentSkipped)", .orange) }
+                if s.sails > 0 { summaryRow("equip.import.sails".loc, "\(s.sails)", .green) }
+                if s.ropes > 0 { summaryRow("equip.import.ropes".loc, "\(s.ropes)", .green) }
+                if s.unlinked > 0 { summaryRow("equip.import.unlinked".loc, "\(s.unlinked)", .orange) }
             }
             Section {
-                Button("Fertig") { onImported(); dismiss() }
+                Button("equip.import.done".loc) { onImported(); dismiss() }
             }
         }
     }

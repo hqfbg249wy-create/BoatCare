@@ -391,7 +391,7 @@ struct EquipmentScreen: View {
                     } label: {
                         Image(systemName: "tray.and.arrow.down")
                     }
-                    .accessibilityLabel("Ausrüstung importieren (Excel/CSV)")
+                    .accessibilityLabel("equip.import.a11y".loc)
                     Button { showingSuggestions = true } label: {
                         Image(systemName: "sparkles")
                     }
@@ -462,7 +462,7 @@ struct EquipmentScreen: View {
             }
         }
         .sheet(isPresented: $showingImportPaywall) {
-            PlusUpgradeSheet(reason: "Der Excel-/CSV-Import (Ausrüstung, Segelmessblatt & Tauwerk) ist Teil von Skipily Plus.")
+            PlusUpgradeSheet(reason: "equip.import.paywallReason".loc)
         }
         .alert("general.error".loc, isPresented: Binding(
             get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } }

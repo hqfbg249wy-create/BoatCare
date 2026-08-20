@@ -119,12 +119,9 @@ struct PlusUpgradeSheet: View {
     /// Verifizierte Plus-Mehrwerte. KI (Chat, Foto-Analyse, Empfehlungen) teilt
     /// sich frei 10 Calls/Monat; Plus hebt das Limit auf. Excel-Import & PDF-
     /// Report sind Plus-exklusiv.
-    private let planFeatures = [
-        "Unbegrenzter KI-Assistent: Chat, Schadens-Foto-Analyse & Ausrüstungs-Empfehlungen (sonst 10/Monat)",
-        "Ausrüstung per Excel importieren (inkl. Segelmessblatt & Tauwerk)",
-        "Wartungsreport als PDF – je Boot getrennt",
-        "Skipily-Rabatte im Shop nutzen",
-    ]
+    private var planFeatures: [String] {
+        ["plus.feat.ai".loc, "plus.feat.import".loc, "plus.feat.report".loc, "plus.feat.discounts".loc]
+    }
 
     private var featuresSection: some View {
         VStack(alignment: .leading, spacing: 12) {
