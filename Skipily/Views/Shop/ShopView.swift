@@ -47,7 +47,13 @@ struct ShopView: View {
             searchBar
 
             ScrollView {
-                LazyVStack(spacing: 16) {
+                // Bewusst KEIN LazyVStack: die Kopf-Sektionen sind wenige und
+                // günstig. Ein lazy Außen-Container entlädt auf dem iPad beim
+                // Weg-Navigieren das komplette Produkt-Grid → Bilder verschwinden
+                // und die Scroll-Position geht beim Rücksprung verloren (landet
+                // oben). Das Produkt-Grid selbst bleibt ein eigenes LazyVGrid
+                // (weiter unten) und ist damit weiterhin virtualisiert.
+                VStack(spacing: 16) {
                     // Search history chips (when search is empty and focused)
                     if searchText.isEmpty && !searchHistory.isEmpty {
                         searchHistoryChips

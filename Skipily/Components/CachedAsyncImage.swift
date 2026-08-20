@@ -31,8 +31,8 @@ actor ImageDownsampler {
     // beim Scrollen recycelt werden (v. a. auf dem iPad mit vielen Kacheln).
     private static let cache: NSCache<NSString, UIImage> = {
         let c = NSCache<NSString, UIImage>()
-        c.countLimit = 250
-        c.totalCostLimit = 80 * 1024 * 1024   // ~80 MB decoded pixels
+        c.countLimit = 600                     // reicht für viele Shop-Produkte (iPad)
+        c.totalCostLimit = 160 * 1024 * 1024   // ~160 MB decoded pixels
         return c
     }()
 
