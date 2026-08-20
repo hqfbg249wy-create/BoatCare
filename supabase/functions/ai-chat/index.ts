@@ -8,7 +8,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkAiQuota, recordAiUsage } from "../_shared/aiQuota.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-6";
+// Sonnet 5: stärkere Basisqualität als 4.6, aktuell günstiger (Einführungspreis).
+// Thinking wird bewusst deaktiviert (unten im Body) — hält Latenz/Kosten wie
+// bei 4.6 und bewahrt die Antwort-Struktur (ein Text-Block).
+const MODEL = "claude-sonnet-5";
 const MAX_TOKENS = 2048;
 const MAX_FEWSHOTS = 3;
 
@@ -225,10 +228,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // System-Prompt mit Boot- und Equipment-Kontext erweitern
-    let systemPrompt = SYSTEM_PROMPT;
+    // Dynamischer System-Teil (Sprache, Boots-/Equipment-Kontext, Few-Shots).
+    // Der stabile Basis-Prompt (SYSTEM_PROMPT) bleibt separat und wird als
+    // gecachter Block gesendet (Prompt-Caching) — spart bei jedem Call das
+    // erneute Verarbeiten und senkt Latenz, ohne die Antwortqualität zu ändern.
+    let dynamicSystem = "";
     // Antwortsprache zwingend setzen (überschreibt jede Eingabe-Sprache des Users)
-    systemPrompt += `\n\nIMPORTANT: Always respond in ${LANG_NAMES[userLang]} regardless of the language of the user's message. Use proper marine/sailing terminology native to that language.`;
+    dynamicSystem += `\n\nIMPORTANT: Always respond in ${LANG_NAMES[userLang]} regardless of the language of the user's message. Use proper marine/sailing terminology native to that language.`;
     if (boatContext?.boats && Array.isArray(boatContext.boats) && boatContext.boats.length > 0) {
       const boatDescriptions = boatContext.boats.map((boat: Record<string, unknown>, i: number) => {
         const parts: string[] = [];
@@ -260,8 +266,8 @@ Deno.serve(async (req) => {
 
         return `Boot ${i + 1}:\n${parts.join("\n")}`;
       });
-      systemPrompt += `\n\nBoote des Nutzers mit kompletter Ausrüstung:\n${boatDescriptions.join("\n\n")}`;
-      systemPrompt += `\n\nWichtig:
+      dynamicSystem += `\n\nBoote des Nutzers mit kompletter Ausrüstung:\n${boatDescriptions.join("\n\n")}`;
+      dynamicSystem += `\n\nWichtig:
 - Beziehe dich bei Fragen immer auf das passende Boot und dessen konkrete Ausrüstung.
 - Bei allgemeinen Fragen zu Wartung, Antifouling etc. gehe vom Hauptboot (dem größten) aus, nicht vom Beiboot/Dingi.
 - Nutze die konkreten Gerätedaten (Hersteller, Modell, Installationsdatum, Wartungstermine) für spezifische Empfehlungen.
@@ -281,14 +287,14 @@ Deno.serve(async (req) => {
             `Beispiel ${i + 1}:\nFrage: ${ex.question}\nHochbewertete Antwort: ${ex.answer}`
           )
           .join("\n\n");
-        systemPrompt += `\n\nLernkontext — frueher als hilfreich bewertete Antworten zu aehnlichen Themen. Nutze sie als Qualitaets-Referenz (Tonfall, Detailtiefe, Struktur), uebernimm aber niemals wortwoertlich und passe an den aktuellen Kontext an:\n\n${block}`;
+        dynamicSystem += `\n\nLernkontext — frueher als hilfreich bewertete Antworten zu aehnlichen Themen. Nutze sie als Qualitaets-Referenz (Tonfall, Detailtiefe, Struktur), uebernimm aber niemals wortwoertlich und passe an den aktuellen Kontext an:\n\n${block}`;
       }
     }
 
     // Antwortsprache FINAL erzwingen — muss die LETZTE Anweisung im System-Prompt
     // sein, damit weder der deutsche Basis-Prompt (Expertise-Liste) noch die
     // deutschen Few-Shot-Beispiele die Ausgabesprache überschreiben.
-    systemPrompt += `\n\n=== VERBINDLICHE AUSGABESPRACHE ===\nAntworte AUSSCHLIESSLICH auf ${LANG_NAMES[userLang]} (${userLang}). Das gilt unabhängig von der Sprache der obigen Anweisungen, der Lernbeispiele und der Nutzernachricht. Verwende die in ${LANG_NAMES[userLang]} übliche maritime Fachterminologie.`;
+    dynamicSystem += `\n\n=== VERBINDLICHE AUSGABESPRACHE ===\nAntworte AUSSCHLIESSLICH auf ${LANG_NAMES[userLang]} (${userLang}). Das gilt unabhängig von der Sprache der obigen Anweisungen, der Lernbeispiele und der Nutzernachricht. Verwende die in ${LANG_NAMES[userLang]} übliche maritime Fachterminologie.`;
 
     // Claude API aufrufen
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
@@ -339,7 +345,13 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: MAX_TOKENS,
-        system: systemPrompt,
+        // Thinking aus → gleiche Latenz/Kosten wie zuvor, ein Text-Block als Antwort.
+        thinking: { type: "disabled" },
+        // System als Blöcke: stabiler Basis-Prompt gecacht, dynamischer Teil danach.
+        system: [
+          { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+          { type: "text", text: dynamicSystem },
+        ],
         messages: trimmedMessages,
       }),
     });
@@ -354,7 +366,14 @@ Deno.serve(async (req) => {
     }
 
     const result = await anthropicResponse.json();
-    const reply = result.content?.[0]?.text ?? "Entschuldigung, ich konnte keine Antwort generieren.";
+    // Robust: den Text-Block finden (nicht content[0] annehmen) und evtl.
+    // durchgesickerte <thinking>-Tags entfernen (Sicherheitsnetz).
+    const textBlock = Array.isArray(result.content)
+      ? result.content.find((b: { type?: string }) => b?.type === "text")
+      : null;
+    let reply = String(textBlock?.text ?? "").trim();
+    reply = reply.replace(/<thinking>[\s\S]*?<\/thinking>/gi, "").replace(/<\/?thinking>/gi, "").trim();
+    if (!reply) reply = "Entschuldigung, ich konnte keine Antwort generieren.";
 
     // ── Quota verbuchen (nicht-blockierend)
     const usedTokens =
