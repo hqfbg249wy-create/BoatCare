@@ -1030,3 +1030,31 @@
 "srf.errSms" = "Le SMS n'est pas disponible sur cet appareil.";
 "srf.errWhatsApp" = "WhatsApp n'est pas installé sur cet appareil.";
 "srf.errBriefing" = "Le briefing n'a pas pu être généré : %@";
+
+/* ── Inquiries + Orders ── */
+"inq.deleteTitle" = "Supprimer la demande ?";
+"inq.delete" = "Supprimer";
+"inq.cancel" = "Annuler";
+"inq.deleteDesc" = "Cette demande sera définitivement supprimée.";
+"inq.error" = "Erreur";
+"inq.filterAll" = "Toutes";
+"inq.providerFallback" = "Prestataire";
+"inq.yourMessage" = "Ton message";
+"inq.replyFrom" = "Réponse de %@";
+"inq.noneAll" = "Aucune demande pour l’instant";
+"inq.noneFiltered" = "Aucune demande %@";
+"inq.emptyHint" = "Appuie sur « Demande » dans le profil d’un prestataire pour envoyer une demande.";
+"inq.status.draft" = "Brouillon";
+"inq.status.sent" = "Envoyée";
+"inq.status.read" = "Lue";
+"inq.status.replied" = "Répondu";
+"inq.status.closed" = "Fermée";
+"order.fallbackTitle" = "Commande";
+"order.paymentPending" = "Paiement en attente";
+"order.paymentPendingDesc" = "Ta commande est créée mais pas encore payée. Termine le paiement maintenant, sinon le vendeur ne la traitera pas.";
+"order.paymentPreparing" = "Préparation du paiement …";
+"order.cancel" = "Annuler la commande";
+"order.cancelTitle" = "Annuler la commande ?";
+"order.cancelConfirm" = "Annuler";
+"order.cancelDesc" = "La commande passera à « Annulée ». Les articles restent dans ton panier au cas où tu voudrais les recommander plus tard.";
+"order.paymentUpdateFailed" = "Le paiement a abouti, mais la mise à jour du statut a échoué. Redémarre l’app.";

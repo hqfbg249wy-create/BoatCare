@@ -40,7 +40,7 @@ struct OrderDetailView: View {
                     .foregroundStyle(AppColors.error)
             }
         }
-        .navigationTitle(order?.orderNumber ?? "Bestellung")
+        .navigationTitle(order?.orderNumber ?? "order.fallbackTitle".loc)
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await loadOrder()
@@ -358,10 +358,10 @@ struct OrderDetailView: View {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.circle.fill")
                     .foregroundStyle(AppColors.warning)
-                Text("Zahlung ausstehend")
+                Text("order.paymentPending".loc)
                     .font(.headline)
             }
-            Text("Deine Bestellung ist angelegt, aber noch nicht bezahlt. Schließe die Zahlung jetzt ab — sonst wird sie vom Verkäufer nicht bearbeitet.")
+            Text("order.paymentPendingDesc".loc)
                 .font(.subheadline)
                 .foregroundStyle(AppColors.gray700)
                 .fixedSize(horizontal: false, vertical: true)
@@ -379,7 +379,7 @@ struct OrderDetailView: View {
                 HStack(spacing: 8) {
                     if isPreparingPayment {
                         ProgressView().tint(.white)
-                        Text("Zahlung wird vorbereitet …")
+                        Text("order.paymentPreparing".loc)
                     } else {
                         Image(systemName: "lock.fill")
                             .font(.caption)
@@ -404,7 +404,7 @@ struct OrderDetailView: View {
                     } else {
                         Image(systemName: "xmark.circle")
                     }
-                    Text("Bestellung stornieren")
+                    Text("order.cancel".loc)
                         .fontWeight(.medium)
                 }
                 .font(.subheadline)
@@ -422,16 +422,16 @@ struct OrderDetailView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .confirmationDialog(
-            "Bestellung stornieren?",
+            "order.cancelTitle".loc,
             isPresented: $showCancelConfirm,
             titleVisibility: .visible
         ) {
-            Button("Stornieren", role: .destructive) {
+            Button("order.cancelConfirm".loc, role: .destructive) {
                 Task { await cancelOrder() }
             }
             Button("Abbrechen", role: .cancel) {}
         } message: {
-            Text("Die Bestellung wird auf \"Storniert\" gesetzt. Die Artikel bleiben in deinem Warenkorb erhalten, falls du sie später neu bestellen möchtest.")
+            Text("order.cancelDesc".loc)
         }
     }
 
@@ -495,7 +495,7 @@ struct OrderDetailView: View {
                 paymentMessage = nil
                 await loadOrder()    // Status neu aus DB ziehen
             } catch {
-                paymentMessage = "Zahlung lief durch, aber Status-Update fehlgeschlagen. Bitte App neu starten."
+                paymentMessage = "order.paymentUpdateFailed".loc
             }
         case .canceled:
             paymentMessage = "Zahlung abgebrochen. Du kannst es jederzeit erneut versuchen."

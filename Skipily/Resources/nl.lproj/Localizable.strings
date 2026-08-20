@@ -1030,3 +1030,31 @@
 "srf.errSms" = "Sms is niet beschikbaar op dit apparaat.";
 "srf.errWhatsApp" = "WhatsApp is niet geïnstalleerd op dit apparaat.";
 "srf.errBriefing" = "Briefing kon niet worden gegenereerd: %@";
+
+/* ── Inquiries + Orders ── */
+"inq.deleteTitle" = "Aanvraag verwijderen?";
+"inq.delete" = "Verwijderen";
+"inq.cancel" = "Annuleren";
+"inq.deleteDesc" = "Deze aanvraag wordt definitief verwijderd.";
+"inq.error" = "Fout";
+"inq.filterAll" = "Alle";
+"inq.providerFallback" = "Aanbieder";
+"inq.yourMessage" = "Jouw bericht";
+"inq.replyFrom" = "Antwoord van %@";
+"inq.noneAll" = "Nog geen aanvragen";
+"inq.noneFiltered" = "Geen %@-aanvragen";
+"inq.emptyHint" = "Tik op ‘Aanvraag’ in het profiel van een aanbieder om een aanvraag te versturen.";
+"inq.status.draft" = "Concept";
+"inq.status.sent" = "Verzonden";
+"inq.status.read" = "Gelezen";
+"inq.status.replied" = "Beantwoord";
+"inq.status.closed" = "Gesloten";
+"order.fallbackTitle" = "Bestelling";
+"order.paymentPending" = "Betaling in behandeling";
+"order.paymentPendingDesc" = "Je bestelling is aangemaakt maar nog niet betaald. Rond de betaling nu af — anders verwerkt de verkoper deze niet.";
+"order.paymentPreparing" = "Betaling voorbereiden …";
+"order.cancel" = "Bestelling annuleren";
+"order.cancelTitle" = "Bestelling annuleren?";
+"order.cancelConfirm" = "Annuleren";
+"order.cancelDesc" = "De bestelling wordt op ‘Geannuleerd’ gezet. De artikelen blijven in je winkelwagen voor het geval je ze later opnieuw wilt bestellen.";
+"order.paymentUpdateFailed" = "De betaling is gelukt, maar de statusupdate is mislukt. Start de app opnieuw.";

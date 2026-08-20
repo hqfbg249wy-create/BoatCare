@@ -1030,3 +1030,31 @@
 "srf.errSms" = "SMS no está disponible en este dispositivo.";
 "srf.errWhatsApp" = "WhatsApp no está instalado en este dispositivo.";
 "srf.errBriefing" = "No se pudo generar el resumen: %@";
+
+/* ── Inquiries + Orders ── */
+"inq.deleteTitle" = "¿Eliminar la solicitud?";
+"inq.delete" = "Eliminar";
+"inq.cancel" = "Cancelar";
+"inq.deleteDesc" = "Esta solicitud se eliminará de forma permanente.";
+"inq.error" = "Error";
+"inq.filterAll" = "Todas";
+"inq.providerFallback" = "Proveedor";
+"inq.yourMessage" = "Tu mensaje";
+"inq.replyFrom" = "Respuesta de %@";
+"inq.noneAll" = "Aún no hay solicitudes";
+"inq.noneFiltered" = "Sin solicitudes %@";
+"inq.emptyHint" = "Toca «Solicitud» en el perfil de un proveedor para enviar una solicitud.";
+"inq.status.draft" = "Borrador";
+"inq.status.sent" = "Enviada";
+"inq.status.read" = "Leída";
+"inq.status.replied" = "Respondida";
+"inq.status.closed" = "Cerrada";
+"order.fallbackTitle" = "Pedido";
+"order.paymentPending" = "Pago pendiente";
+"order.paymentPendingDesc" = "Tu pedido está creado pero aún no pagado. Completa el pago ahora; de lo contrario, el vendedor no lo procesará.";
+"order.paymentPreparing" = "Preparando el pago …";
+"order.cancel" = "Cancelar pedido";
+"order.cancelTitle" = "¿Cancelar el pedido?";
+"order.cancelConfirm" = "Cancelar";
+"order.cancelDesc" = "El pedido se marcará como «Cancelado». Los artículos permanecen en tu carrito por si quieres volver a pedirlos más tarde.";
+"order.paymentUpdateFailed" = "El pago se realizó, pero falló la actualización del estado. Reinicia la app.";

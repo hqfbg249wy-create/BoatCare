@@ -62,20 +62,20 @@ struct InquiriesContent: View {
             .environmentObject(authService)
         }
         .confirmationDialog(
-            "Anfrage löschen?",
+            "inq.deleteTitle".loc,
             isPresented: $showDeleteConfirm,
             titleVisibility: .visible
         ) {
-            Button("Löschen", role: .destructive) {
+            Button("inq.delete".loc, role: .destructive) {
                 if let id = deletingId {
                     Task { await deleteInquiry(id: id) }
                 }
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("inq.cancel".loc, role: .cancel) {}
         } message: {
-            Text("Diese Anfrage wird unwiderruflich gelöscht.")
+            Text("inq.deleteDesc".loc)
         }
-        .alert("Fehler", isPresented: Binding(
+        .alert("inq.error".loc, isPresented: Binding(
             get: { errorAlert != nil },
             set: { if !$0 { errorAlert = nil } }
         )) {
@@ -90,7 +90,7 @@ struct InquiriesContent: View {
     private var filterBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                filterChip(label: "Alle", status: nil)
+                filterChip(label: "inq.filterAll".loc, status: nil)
                 ForEach([InquiryStatus.draft, .sent, .read, .replied, .closed], id: \.self) { s in
                     filterChip(label: s.label, status: s)
                 }
@@ -155,7 +155,7 @@ struct InquiriesContent: View {
                     }
 
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(inq.provider?.name ?? "Anbieter")
+                        Text(inq.provider?.name ?? "inq.providerFallback".loc)
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundStyle(.primary)
@@ -214,7 +214,7 @@ struct InquiriesContent: View {
                         .padding(.horizontal, 14)
 
                     // Message
-                    infoBox(label: "Deine Nachricht", text: inq.message, color: .blue)
+                    infoBox(label: "inq.yourMessage".loc, text: inq.message, color: .blue)
 
                     // Private notes
                     if let notes = inq.ownerNotes, !notes.isEmpty {
@@ -223,7 +223,7 @@ struct InquiriesContent: View {
 
                     // Provider reply
                     if let reply = inq.providerReply, !reply.isEmpty {
-                        infoBox(label: "Antwort von \(inq.provider?.name ?? "Anbieter")", text: reply, color: .green)
+                        infoBox(label: String(format: "inq.replyFrom".loc, inq.provider?.name ?? "inq.providerFallback".loc), text: reply, color: .green)
                     }
 
                     // Actions — kompakt und einzeilig
@@ -307,11 +307,11 @@ struct InquiriesContent: View {
             Image(systemName: "tray")
                 .font(.system(size: 48))
                 .foregroundStyle(AppColors.gray300)
-            Text(filter == nil ? "Noch keine Anfragen" : "Keine \(filter!.label)-Anfragen")
+            Text(filter == nil ? "inq.noneAll".loc : String(format: "inq.noneFiltered".loc, filter!.label))
                 .font(.title3)
                 .fontWeight(.semibold)
             if filter == nil {
-                Text("Tippe auf \"Anfrage\" beim Anbieter-Profil,\num eine Anfrage zu stellen.")
+                Text("inq.emptyHint".loc)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

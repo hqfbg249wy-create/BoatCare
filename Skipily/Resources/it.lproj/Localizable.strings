@@ -1030,3 +1030,31 @@
 "srf.errSms" = "Gli SMS non sono disponibili su questo dispositivo.";
 "srf.errWhatsApp" = "WhatsApp non è installato su questo dispositivo.";
 "srf.errBriefing" = "Impossibile generare il briefing: %@";
+
+/* ── Inquiries + Orders ── */
+"inq.deleteTitle" = "Eliminare la richiesta?";
+"inq.delete" = "Elimina";
+"inq.cancel" = "Annulla";
+"inq.deleteDesc" = "Questa richiesta verrà eliminata definitivamente.";
+"inq.error" = "Errore";
+"inq.filterAll" = "Tutte";
+"inq.providerFallback" = "Fornitore";
+"inq.yourMessage" = "Il tuo messaggio";
+"inq.replyFrom" = "Risposta da %@";
+"inq.noneAll" = "Ancora nessuna richiesta";
+"inq.noneFiltered" = "Nessuna richiesta %@";
+"inq.emptyHint" = "Tocca «Richiesta» nel profilo di un fornitore per inviare una richiesta.";
+"inq.status.draft" = "Bozza";
+"inq.status.sent" = "Inviata";
+"inq.status.read" = "Letta";
+"inq.status.replied" = "Risposta";
+"inq.status.closed" = "Chiusa";
+"order.fallbackTitle" = "Ordine";
+"order.paymentPending" = "Pagamento in sospeso";
+"order.paymentPendingDesc" = "Il tuo ordine è stato creato ma non ancora pagato. Completa ora il pagamento, altrimenti il venditore non lo elaborerà.";
+"order.paymentPreparing" = "Preparazione del pagamento …";
+"order.cancel" = "Annulla ordine";
+"order.cancelTitle" = "Annullare l’ordine?";
+"order.cancelConfirm" = "Annulla";
+"order.cancelDesc" = "L’ordine verrà impostato su «Annullato». Gli articoli restano nel carrello nel caso volessi riordinarli in seguito.";
+"order.paymentUpdateFailed" = "Il pagamento è andato a buon fine, ma l’aggiornamento dello stato non è riuscito. Riavvia l’app.";

@@ -1030,3 +1030,31 @@
 "srf.errSms" = "SMS is not available on this device.";
 "srf.errWhatsApp" = "WhatsApp is not installed on this device.";
 "srf.errBriefing" = "Briefing could not be generated: %@";
+
+/* ── Inquiries + Orders ── */
+"inq.deleteTitle" = "Delete request?";
+"inq.delete" = "Delete";
+"inq.cancel" = "Cancel";
+"inq.deleteDesc" = "This request will be permanently deleted.";
+"inq.error" = "Error";
+"inq.filterAll" = "All";
+"inq.providerFallback" = "Provider";
+"inq.yourMessage" = "Your message";
+"inq.replyFrom" = "Reply from %@";
+"inq.noneAll" = "No requests yet";
+"inq.noneFiltered" = "No %@ requests";
+"inq.emptyHint" = "Tap “Request” on a provider’s profile to send a request.";
+"inq.status.draft" = "Draft";
+"inq.status.sent" = "Sent";
+"inq.status.read" = "Read";
+"inq.status.replied" = "Answered";
+"inq.status.closed" = "Closed";
+"order.fallbackTitle" = "Order";
+"order.paymentPending" = "Payment pending";
+"order.paymentPendingDesc" = "Your order has been created but not yet paid. Complete the payment now — otherwise the seller won’t process it.";
+"order.paymentPreparing" = "Preparing payment …";
+"order.cancel" = "Cancel order";
+"order.cancelTitle" = "Cancel order?";
+"order.cancelConfirm" = "Cancel order";
+"order.cancelDesc" = "The order will be set to “Cancelled”. The items stay in your cart in case you want to reorder them later.";
+"order.paymentUpdateFailed" = "Payment went through, but the status update failed. Please restart the app.";
