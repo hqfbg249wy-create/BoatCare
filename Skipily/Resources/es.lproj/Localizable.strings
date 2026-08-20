@@ -965,3 +965,16 @@
 "profile.plus.activeSubtitle" = "IA ilimitada, análisis de fotos, sugerencias de equipo.";
 "profile.plus.manage" = "Gestionar / cancelar suscripción";
 "referral.share.message" = "Uso Skipily para mi barco — mantenimiento, inventario de equipo, tienda y asistente de IA en una app. Si te registras e introduces mi código de recomendación, ambos recibimos un mes de Skipily Plus gratis.\n\nMi código: %@\n\nDescargar la app: https://apps.apple.com/app/skipily";
+
+/* ── Plus-Kauf-Sheet ── */
+"plus.sheet.restore" = "Restaurar compras";
+"plus.sheet.close" = "Cerrar";
+"plus.sheet.headerTitle" = "Saca más partido a tu barco";
+"plus.sheet.headerSubtitle" = "Todas las funciones básicas siguen siendo gratis. Plus amplía la app.";
+"plus.sheet.legal" = "El pago se cargará a tu cuenta de Apple ID al confirmar la compra. La suscripción se renueva automáticamente por el mismo período salvo que se cancele al menos 24 horas antes del final del período actual. El cargo de la renovación se realiza dentro de las 24 horas previas al final del período. Puedes gestionar o cancelar tu suscripción en cualquier momento en los ajustes de tu cuenta de Apple ID.";
+"plus.sheet.terms" = "Términos de uso";
+"plus.sheet.privacy" = "Política de privacidad";
+"plus.sheet.loadError" = "Los planes no se pueden cargar ahora.";
+"plus.sheet.loadErrorCauses" = "Posibles causas:\n• Productos aún no aprobados en App Store Connect\n• No hay una cuenta sandbox válida en este dispositivo\n• Problema de red";
+"plus.sheet.active" = "Activo";
+"plus.sheet.save" = "Ahorra %d %%";

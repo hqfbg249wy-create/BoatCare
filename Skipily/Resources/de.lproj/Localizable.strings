@@ -968,3 +968,16 @@ Ausrüstung unter Boote ergänzen.";
 "profile.plus.activeSubtitle" = "Unbegrenzte KI, Foto-Analyse, Ausrüstungs-Empfehlungen.";
 "profile.plus.manage" = "Abo verwalten / kündigen";
 "referral.share.message" = "Ich nutze Skipily für mein Boot — Wartung, Equipment-Inventar, Shop und KI-Assistent in einer App. Wenn du dich anmeldest und meinen Empfehlungs-Code eingibst, bekommen wir beide einen Monat Skipily Plus geschenkt.\n\nMein Code: %@\n\nApp laden: https://apps.apple.com/app/skipily";
+
+/* ── Plus-Kauf-Sheet ── */
+"plus.sheet.restore" = "Käufe wiederherstellen";
+"plus.sheet.close" = "Schließen";
+"plus.sheet.headerTitle" = "Mehr aus deinem Boot herausholen";
+"plus.sheet.headerSubtitle" = "Alle Kernfunktionen bleiben gratis. Plus erweitert die App.";
+"plus.sheet.legal" = "Die Zahlung wird bei Kaufbestätigung deinem Apple-ID-Konto belastet. Das Abo verlängert sich automatisch um denselben Zeitraum, sofern es nicht mindestens 24 Stunden vor Ablauf des aktuellen Zeitraums gekündigt wird. Die Belastung für die Verlängerung erfolgt innerhalb von 24 Stunden vor Ablauf. Du kannst dein Abo jederzeit in den Einstellungen deines Apple-ID-Kontos verwalten oder kündigen.";
+"plus.sheet.terms" = "Nutzungsbedingungen";
+"plus.sheet.privacy" = "Datenschutzrichtlinie";
+"plus.sheet.loadError" = "Pläne können gerade nicht geladen werden.";
+"plus.sheet.loadErrorCauses" = "Mögliche Ursachen:\n• Produkte in App Store Connect noch nicht freigeschaltet\n• Kein gültiger Sandbox-Account auf diesem Gerät\n• Netzwerk-Problem";
+"plus.sheet.active" = "Aktiv";
+"plus.sheet.save" = "Spare %d %%";

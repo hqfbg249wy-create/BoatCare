@@ -965,3 +965,16 @@
 "profile.plus.activeSubtitle" = "IA illimitée, analyse photo, suggestions d'équipement.";
 "profile.plus.manage" = "Gérer / résilier l'abonnement";
 "referral.share.message" = "J'utilise Skipily pour mon bateau — entretien, inventaire d'équipement, boutique et assistant IA dans une seule app. Si tu t'inscris et saisis mon code de parrainage, nous recevons tous les deux un mois de Skipily Plus offert.\n\nMon code : %@\n\nTélécharger l'app : https://apps.apple.com/app/skipily";
+
+/* ── Plus-Kauf-Sheet ── */
+"plus.sheet.restore" = "Restaurer les achats";
+"plus.sheet.close" = "Fermer";
+"plus.sheet.headerTitle" = "Tirez le meilleur de votre bateau";
+"plus.sheet.headerSubtitle" = "Toutes les fonctions de base restent gratuites. Plus enrichit l’app.";
+"plus.sheet.legal" = "Le paiement sera débité de votre compte Apple ID à la confirmation de l’achat. L’abonnement se renouvelle automatiquement pour la même durée s’il n’est pas résilié au moins 24 heures avant la fin de la période en cours. Le débit du renouvellement intervient dans les 24 heures précédant la fin de la période. Vous pouvez gérer ou résilier votre abonnement à tout moment dans les réglages de votre compte Apple ID.";
+"plus.sheet.terms" = "Conditions d’utilisation";
+"plus.sheet.privacy" = "Politique de confidentialité";
+"plus.sheet.loadError" = "Les forfaits ne peuvent pas être chargés pour le moment.";
+"plus.sheet.loadErrorCauses" = "Causes possibles :\n• Produits pas encore validés dans App Store Connect\n• Aucun compte sandbox valide sur cet appareil\n• Problème de réseau";
+"plus.sheet.active" = "Actif";
+"plus.sheet.save" = "Économisez %d %%";

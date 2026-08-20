@@ -965,3 +965,16 @@
 "profile.plus.activeSubtitle" = "Onbeperkte AI, foto-analyse, uitrustingssuggesties.";
 "profile.plus.manage" = "Abonnement beheren / opzeggen";
 "referral.share.message" = "Ik gebruik Skipily voor mijn boot — onderhoud, uitrustingsinventaris, shop en een AI-assistent in één app. Als je je aanmeldt en mijn aanbevelingscode invoert, krijgen we allebei een maand Skipily Plus cadeau.\n\nMijn code: %@\n\nApp downloaden: https://apps.apple.com/app/skipily";
+
+/* ── Plus-Kauf-Sheet ── */
+"plus.sheet.restore" = "Aankopen herstellen";
+"plus.sheet.close" = "Sluiten";
+"plus.sheet.headerTitle" = "Haal meer uit je boot";
+"plus.sheet.headerSubtitle" = "Alle kernfuncties blijven gratis. Plus breidt de app uit.";
+"plus.sheet.legal" = "De betaling wordt bij bevestiging van de aankoop van je Apple ID-account afgeschreven. Het abonnement wordt automatisch met dezelfde periode verlengd, tenzij het minstens 24 uur vóór het einde van de huidige periode wordt opgezegd. De afschrijving voor de verlenging vindt plaats binnen 24 uur vóór het einde van de periode. Je kunt je abonnement op elk moment beheren of opzeggen in de instellingen van je Apple ID-account.";
+"plus.sheet.terms" = "Gebruiksvoorwaarden";
+"plus.sheet.privacy" = "Privacybeleid";
+"plus.sheet.loadError" = "Abonnementen kunnen nu niet worden geladen.";
+"plus.sheet.loadErrorCauses" = "Mogelijke oorzaken:\n• Producten nog niet goedgekeurd in App Store Connect\n• Geen geldig sandbox-account op dit apparaat\n• Netwerkprobleem";
+"plus.sheet.active" = "Actief";
+"plus.sheet.save" = "Bespaar %d%%";

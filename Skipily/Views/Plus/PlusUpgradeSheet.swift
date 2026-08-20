@@ -93,7 +93,7 @@ struct PlusUpgradeSheet: View {
                             .padding(.horizontal)
                     }
 
-                    Button("Käufe wiederherstellen") {
+                    Button("plus.sheet.restore".loc) {
                         Task { await manager.restore() }
                     }
                     .font(.footnote)
@@ -107,7 +107,7 @@ struct PlusUpgradeSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Schließen") { dismiss() }
+                    Button("plus.sheet.close".loc) { dismiss() }
                 }
             }
         }
@@ -143,10 +143,10 @@ struct PlusUpgradeSheet: View {
     private var header: some View {
         VStack(spacing: 10) {
             Text("✨").font(.system(size: 60))
-            Text("Mehr aus deinem Boot herausholen")
+            Text("plus.sheet.headerTitle".loc)
                 .font(.title2.bold())
                 .multilineTextAlignment(.center)
-            Text("Alle Kernfunktionen bleiben gratis. Plus erweitert die App.")
+            Text("plus.sheet.headerSubtitle".loc)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -158,25 +158,18 @@ struct PlusUpgradeSheet: View {
 
     private var legalFooter: some View {
         VStack(spacing: 10) {
-            // Auto-Verlängerungs-Hinweis — von Apple wörtlich gefordert.
-            Text("""
-                Die Zahlung wird bei Kaufbestätigung deinem Apple-ID-Konto belastet. \
-                Das Abo verlängert sich automatisch um denselben Zeitraum, sofern es \
-                nicht mindestens 24 Stunden vor Ablauf des aktuellen Zeitraums gekündigt \
-                wird. Die Belastung für die Verlängerung erfolgt innerhalb von 24 Stunden \
-                vor Ablauf. Du kannst dein Abo jederzeit in den Einstellungen deines \
-                Apple-ID-Kontos verwalten oder kündigen.
-                """)
+            // Auto-Verlängerungs-Hinweis — von Apple wörtlich gefordert (lokalisiert).
+            Text("plus.sheet.legal".loc)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
             // Pflicht-Links: Nutzungsbedingungen (EULA) + Datenschutz.
             HStack(spacing: 6) {
-                Link("Nutzungsbedingungen",
+                Link("plus.sheet.terms".loc,
                      destination: URL(string: "https://skipily.app/agb")!)
                 Text("·").foregroundStyle(.tertiary)
-                Link("Datenschutzrichtlinie",
+                Link("plus.sheet.privacy".loc,
                      destination: URL(string: "https://skipily.app/datenschutz")!)
             }
             .font(.caption2.bold())
@@ -212,7 +205,7 @@ struct PlusUpgradeSheet: View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.title2).foregroundStyle(.orange)
-            Text("Pläne können gerade nicht geladen werden.")
+            Text("plus.sheet.loadError".loc)
                 .font(.subheadline.bold())
                 .multilineTextAlignment(.center)
             if let err = manager.lastError {
@@ -220,7 +213,7 @@ struct PlusUpgradeSheet: View {
                     .font(.caption).foregroundStyle(.red)
                     .multilineTextAlignment(.center).padding(.horizontal)
             }
-            Text("Mögliche Ursachen:\n• Produkte in App Store Connect noch nicht freigeschaltet\n• Kein gültiger Sandbox-Account auf diesem Gerät\n• Netzwerk-Problem")
+            Text("plus.sheet.loadErrorCauses".loc)
                 .font(.caption2).foregroundStyle(.secondary)
                 .multilineTextAlignment(.leading).padding(.horizontal, 20)
             Button {
@@ -252,7 +245,7 @@ struct PlusUpgradeSheet: View {
                 Text(tier.displayName).font(.headline)
                 Spacer()
                 if isActive {
-                    Text("Aktiv")
+                    Text("plus.sheet.active".loc)
                         .font(.caption2.bold())
                         .padding(.horizontal, 8).padding(.vertical, 2)
                         .background(Color.green).foregroundStyle(.white)
@@ -368,7 +361,7 @@ struct PlusUpgradeSheet: View {
         let annual   = monthlyD * 12.0
         let saved    = annual - yearlyD
         let pct      = saved > 0 ? Int((saved / annual * 100.0).rounded()) : 0
-        return Text("Spare \(pct) %")
+        return Text(String(format: "plus.sheet.save".loc, pct))
             .font(.caption2.bold())
             .padding(.horizontal, 8).padding(.vertical, 3)
             .background(Color.orange.opacity(0.15))
