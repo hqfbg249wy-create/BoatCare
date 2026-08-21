@@ -311,6 +311,11 @@
 "pay.err.server" = "Payment error: %@";
 "pay.err.noIntent" = "Payment could not be initialized";
 "pay.err.cancelled" = "Payment cancelled";
+"equip.ai.lblManufacturer" = "Manufacturer";
+"equip.ai.lblModel" = "Model";
+"equip.ai.lblDimensions" = "Dimensions";
+"equip.ai.lblLocation" = "Location";
+"equip.ai.question" = "I need help with a piece of equipment on my %1$@: %2$@. Category: %3$@. What do you recommend?";
 "chat.new_chat" = "New chat";
 "chat.history.title" = "History";
 "chat.history.empty_title" = "No conversations yet";

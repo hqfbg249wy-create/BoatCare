@@ -203,6 +203,11 @@
 "pay.err.server" = "Error de pago: %@";
 "pay.err.noIntent" = "No se pudo inicializar el pago";
 "pay.err.cancelled" = "Pago cancelado";
+"equip.ai.lblManufacturer" = "Fabricante";
+"equip.ai.lblModel" = "Modelo";
+"equip.ai.lblDimensions" = "Dimensiones";
+"equip.ai.lblLocation" = "Ubicación";
+"equip.ai.question" = "Necesito ayuda con un elemento del equipo en mi %1$@: %2$@. Categoría: %3$@. ¿Qué recomiendas?";
 "chat.welcome" = "¡Bienvenido a Skipily! Esta sección pronto estará impulsada por IA.";
 "chat.input_hint" = "Escribe un mensaje...";
 "chat.coming_soon" = "¡Chat con IA próximamente! 🚢";

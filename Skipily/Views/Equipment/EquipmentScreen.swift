@@ -859,15 +859,17 @@ struct EquipmentExpandableRow: View {
     }
 
     private var aiQuestion: String {
+        // In der aktiven App-Sprache erzeugen — sonst schickt die App auf
+        // FR/EN/… einen deutschen Prompt in die KI (und zeigt ihn dem Nutzer).
         let details = [
             item.name,
-            item.manufacturer.isEmpty ? "" : "Hersteller: \(item.manufacturer)",
-            item.model.isEmpty ? "" : "Modell: \(item.model)",
-            item.dimensions.isEmpty ? "" : "Abmessungen: \(item.dimensions)",
-            item.locationOnBoat.isEmpty ? "" : "Ort: \(item.locationOnBoat)",
+            item.manufacturer.isEmpty ? "" : "\("equip.ai.lblManufacturer".loc): \(item.manufacturer)",
+            item.model.isEmpty ? "" : "\("equip.ai.lblModel".loc): \(item.model)",
+            item.dimensions.isEmpty ? "" : "\("equip.ai.lblDimensions".loc): \(item.dimensions)",
+            item.locationOnBoat.isEmpty ? "" : "\("equip.ai.lblLocation".loc): \(item.locationOnBoat)",
             item.itemDescription.isEmpty ? "" : item.itemDescription
         ].filter { !$0.isEmpty }.joined(separator: ", ")
-        return "Ich brauche Hilfe mit meinem Ausruestungsgegenstand auf der \(boatName): \(details). Kategorie: \(item.category). Was empfiehlst du?"
+        return String(format: "equip.ai.question".loc, boatName, details, item.category)
     }
 }
 

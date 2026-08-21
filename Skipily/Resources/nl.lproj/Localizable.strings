@@ -203,6 +203,11 @@
 "pay.err.server" = "Betalingsfout: %@";
 "pay.err.noIntent" = "Betaling kon niet worden geïnitialiseerd";
 "pay.err.cancelled" = "Betaling geannuleerd";
+"equip.ai.lblManufacturer" = "Fabrikant";
+"equip.ai.lblModel" = "Model";
+"equip.ai.lblDimensions" = "Afmetingen";
+"equip.ai.lblLocation" = "Locatie";
+"equip.ai.question" = "Ik heb hulp nodig met een uitrustingsstuk op mijn %1$@: %2$@. Categorie: %3$@. Wat raad je aan?";
 "chat.welcome" = "Welkom bij Skipily! Deze sectie wordt binnenkort aangedreven door AI.";
 "chat.input_hint" = "Bericht typen...";
 "chat.coming_soon" = "AI-chat komt binnenkort! 🚢";
