@@ -28,7 +28,14 @@ struct ProductCardView: View {
                         .fill(AppColors.gray100)
 
                     if let url = product.firstImageURL {
-                        CachedAsyncImage(url: url, targetSize: CGSize(width: 400, height: 300)) { phase in
+                        // Zielgröße == echte Renderfläche der Kachel (~210 pt breit,
+                        // 150 pt hoch). Vorher 400×300 → maxPixel 800 px, d. h. jedes
+                        // dekodierte Bild ~1,9 MB → NSCache (160 MB) kippte schon nach
+                        // ~80 Bildern. Auf dem iPad (viele Kacheln gleichzeitig) flogen
+                        // dadurch bereits geladene Bilder beim Scrollen wieder raus und
+                        // "verschwanden". 210×150 (maxPixel ~420 px) = 1:1 auf Retina,
+                        // ~4× weniger Speicher → ~330 Bilder passen in den Cache.
+                        CachedAsyncImage(url: url, targetSize: CGSize(width: 210, height: 150)) { phase in
                             switch phase {
                             case .success(let image):
                                 image

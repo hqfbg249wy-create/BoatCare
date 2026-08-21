@@ -20,8 +20,21 @@
 import SwiftUI
 import ImageIO
 import UIKit
+import CryptoKit
 
 /// Loads, downsamples and caches images off the main thread.
+///
+/// Cache-Strategie (skaliert auf sehr große Kataloge, 10 000+ Produkte):
+///   1. Memory-Cache (NSCache): kleines, LRU-verwaltetes Arbeitsfenster für
+///      die aktuell sichtbaren/nahen Kacheln. Man sieht immer nur ~30 Bilder,
+///      also muss der Speicher NICHT den ganzen Katalog halten.
+///   2. Thumbnail-Disk-Cache: das einmal heruntergerechnete Thumbnail (~420 px,
+///      ~30 KB) wird als JPEG in Caches/ImageThumbs/ persistiert. Beim
+///      Zurückscrollen wird ein aus dem Speicher verdrängtes Bild in
+///      Millisekunden von der Platte dekodiert — KEIN Netz, KEIN erneutes
+///      Downsampling. Nur nie zuvor gesehene Bilder gehen ans Netz.
+/// Dadurch „verschwinden" beim Scrollen keine Bilder mehr, egal wie groß der
+/// Katalog ist — der Speicherbedarf bleibt konstant.
 actor ImageDownsampler {
     static let shared = ImageDownsampler()
 
@@ -31,15 +44,33 @@ actor ImageDownsampler {
     // beim Scrollen recycelt werden (v. a. auf dem iPad mit vielen Kacheln).
     private static let cache: NSCache<NSString, UIImage> = {
         let c = NSCache<NSString, UIImage>()
-        c.countLimit = 600                     // reicht für viele Shop-Produkte (iPad)
+        c.countLimit = 600                     // Arbeitsfenster, nicht der ganze Katalog
         c.totalCostLimit = 160 * 1024 * 1024   // ~160 MB decoded pixels
         return c
     }()
 
-    private init() {}
+    /// Verzeichnis für persistierte Thumbnails (OS darf es unter Druck leeren).
+    private static let thumbDir: URL = {
+        let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        let dir = base.appendingPathComponent("ImageThumbs", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }()
+
+    private init() {
+        // Einmal pro Session im Hintergrund die Thumbnail-Ablage begrenzen.
+        Task.detached(priority: .utility) { Self.trimDiskCache(maxBytes: 256 * 1024 * 1024) }
+    }
 
     private static func cacheKey(_ url: URL, _ maxPixel: CGFloat) -> NSString {
         "\(url.absoluteString)|\(Int(maxPixel))" as NSString
+    }
+
+    private static func thumbFileURL(_ url: URL, _ maxPixel: CGFloat) -> URL {
+        let raw = "\(url.absoluteString)|\(Int(maxPixel))"
+        let digest = SHA256.hash(data: Data(raw.utf8))
+        let name = digest.map { String(format: "%02x", $0) }.joined()
+        return thumbDir.appendingPathComponent(name).appendingPathExtension("jpg")
     }
 
     /// Synchroner Cache-Zugriff (nonisolated, NSCache ist thread-safe).
@@ -54,12 +85,62 @@ actor ImageDownsampler {
         let key = Self.cacheKey(url, maxPixel)
         if let cached = Self.cache.object(forKey: key) { return cached }
 
+        // 2. Disk-Thumbnail: verdrängtes Bild ohne Netz/Downsampling zurückholen.
+        let thumbURL = Self.thumbFileURL(url, maxPixel)
+        if let data = try? Data(contentsOf: thumbURL),
+           let image = UIImage(data: data)?.preparingForDisplay() ?? UIImage(data: data) {
+            Self.store(image, key: key)
+            return image
+        }
+
+        // 3. Netz: einmalig laden, downsamplen, in Speicher + auf Platte ablegen.
         guard let data = await fetchData(url) else { return nil }
         guard let image = Self.downsample(data: data, maxPixel: maxPixel) else { return nil }
-
-        let bytes = Int(image.size.width * image.scale * image.size.height * image.scale * 4)
-        Self.cache.setObject(image, forKey: key, cost: bytes)
+        Self.store(image, key: key)
+        Self.writeThumb(image, to: thumbURL)
         return image
+    }
+
+    private static func store(_ image: UIImage, key: NSString) {
+        let bytes = Int(image.size.width * image.scale * image.size.height * image.scale * 4)
+        cache.setObject(image, forKey: key, cost: bytes)
+    }
+
+    private static func writeThumb(_ image: UIImage, to fileURL: URL) {
+        // Alpha-Kanal erhalten (z. B. Provider-Logos): PNG, wenn Transparenz
+        // vorhanden ist, sonst das kompaktere JPEG für Produktfotos.
+        let hasAlpha: Bool = {
+            switch image.cgImage?.alphaInfo {
+            case .first, .last, .premultipliedFirst, .premultipliedLast: return true
+            default: return false
+            }
+        }()
+        let data = hasAlpha ? image.pngData() : image.jpegData(compressionQuality: 0.8)
+        guard let data else { return }
+        try? data.write(to: fileURL, options: .atomic)
+    }
+
+    /// Ältere Thumbnails löschen, bis die Ablage wieder unter `maxBytes` liegt.
+    private static func trimDiskCache(maxBytes: Int) {
+        let fm = FileManager.default
+        let keys: [URLResourceKey] = [.contentAccessDateKey, .fileSizeKey]
+        guard let files = try? fm.contentsOfDirectory(
+            at: thumbDir, includingPropertiesForKeys: keys) else { return }
+        var entries: [(url: URL, size: Int, accessed: Date)] = []
+        var total = 0
+        for f in files {
+            let vals = try? f.resourceValues(forKeys: Set(keys))
+            let size = vals?.fileSize ?? 0
+            let accessed = vals?.contentAccessDate ?? .distantPast
+            entries.append((f, size, accessed))
+            total += size
+        }
+        guard total > maxBytes else { return }
+        for e in entries.sorted(by: { $0.accessed < $1.accessed }) {  // ältester Zugriff zuerst
+            try? fm.removeItem(at: e.url)
+            total -= e.size
+            if total <= maxBytes { break }
+        }
     }
 
     private func fetchData(_ url: URL) async -> Data? {
