@@ -605,13 +605,13 @@ enum AIChatError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Ungültige Server-URL"
+            return "chat.err.invalidURL".loc
         case .notAuthenticated:
-            return "Bitte melde dich erneut an"
+            return "chat.err.notAuthenticated".loc
         case .networkError:
-            return "Keine Internetverbindung"
+            return "chat.err.network".loc
         case .emptyResponse:
-            return "Keine Antwort erhalten"
+            return "chat.err.emptyResponse".loc
         case .aiServiceError(let msg):
             return msg
         case .serverError(_, let msg):

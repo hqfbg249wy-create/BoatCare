@@ -304,6 +304,13 @@
 "chat.boat_context" = "I see you have the \"%@\". I'll gladly refer to it!";
 "chat.input_hint" = "Ask a question...";
 "chat.error_prefix" = "Sorry, something went wrong: ";
+"chat.err.invalidURL" = "Invalid server URL";
+"chat.err.notAuthenticated" = "Please sign in again";
+"chat.err.network" = "No internet connection";
+"chat.err.emptyResponse" = "No response received";
+"pay.err.server" = "Payment error: %@";
+"pay.err.noIntent" = "Payment could not be initialized";
+"pay.err.cancelled" = "Payment cancelled";
 "chat.new_chat" = "New chat";
 "chat.history.title" = "History";
 "chat.history.empty_title" = "No conversations yet";

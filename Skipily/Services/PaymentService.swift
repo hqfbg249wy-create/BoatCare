@@ -241,11 +241,11 @@ enum PaymentError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .serverError(let msg):
-            return "Zahlungsfehler: \(msg)"
+            return String(format: "pay.err.server".loc, msg)
         case .noPaymentIntent:
-            return "Zahlung konnte nicht initialisiert werden"
+            return "pay.err.noIntent".loc
         case .cancelled:
-            return "Zahlung abgebrochen"
+            return "pay.err.cancelled".loc
         }
     }
 }

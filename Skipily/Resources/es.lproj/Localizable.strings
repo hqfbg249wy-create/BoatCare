@@ -195,6 +195,14 @@
 
 // MARK: - Chat
 "chat.title" = "Chat";
+"chat.error_prefix" = "Lo sentimos, algo salió mal: ";
+"chat.err.invalidURL" = "URL de servidor no válida";
+"chat.err.notAuthenticated" = "Vuelve a iniciar sesión";
+"chat.err.network" = "Sin conexión a Internet";
+"chat.err.emptyResponse" = "No se recibió respuesta";
+"pay.err.server" = "Error de pago: %@";
+"pay.err.noIntent" = "No se pudo inicializar el pago";
+"pay.err.cancelled" = "Pago cancelado";
 "chat.welcome" = "¡Bienvenido a Skipily! Esta sección pronto estará impulsada por IA.";
 "chat.input_hint" = "Escribe un mensaje...";
 "chat.coming_soon" = "¡Chat con IA próximamente! 🚢";
