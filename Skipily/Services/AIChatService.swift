@@ -127,7 +127,25 @@ class AIChatService {
         guard let url = URL(string: endpoint) else {
             throw AIChatError.invalidURL
         }
+        // Erster Versuch; bei einem Auth-Fehler (fehlender/abgelaufener Token
+        // oder 401 vom Server) EINMAL die Supabase-Session auffrischen und
+        // erneut senden. Ein abgelaufenes Token heilt sich damit selbst, statt
+        // sofort "Bitte melde dich erneut an" zu zeigen. Schlägt auch der
+        // Refresh fehl (Refresh-Token ungültig), greift die lokalisierte
+        // Meldung — dann ist echtes Neu-Anmelden nötig.
+        do {
+            return try await performSend(to: url, messages: messages, boatContext: boatContext)
+        } catch AIChatError.notAuthenticated {
+            _ = try? await SupabaseManager.shared.client.auth.refreshSession()
+            return try await performSend(to: url, messages: messages, boatContext: boatContext)
+        }
+    }
 
+    private func performSend(
+        to url: URL,
+        messages: [AIChatMessage],
+        boatContext: AIChatContext?
+    ) async throws -> String {
         // Auth Token holen
         guard let accessToken = try? await SupabaseManager.shared.client.auth.session.accessToken else {
             throw AIChatError.notAuthenticated
