@@ -962,7 +962,7 @@
 "plus.card.suggest" = "Sugerencias de equipo";
 "plus.card.report" = "Cuaderno de servicio en PDF – por barco";
 "plus.card.import" = "Importar lista de equipo vía Excel";
-"plus.card.discover" = "Descubre Skipily Plus";
+"plus.card.discover" = "Descubrir planes";
 
 /* ── Referral-Sektion (Profil) ── */
 "referral.invite.title" = "Invitar amigos";
@@ -1106,3 +1106,4 @@
 "profile.plan.monthly" = "Mensual";
 "profile.plan.yearly" = "Anual";
 "plus.sheet.loading" = "Cargando planes …";
+"profile.plus.headerSub" = "Desde 1,99 €/mes – Basic o Plus";

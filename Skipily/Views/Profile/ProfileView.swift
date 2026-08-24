@@ -686,7 +686,7 @@ struct ProfileView: View {
                         LinearGradient(colors: [.purple, .orange],
                                        startPoint: .topLeading, endPoint: .bottomTrailing)
                     )
-                Text("Skipily Plus")
+                Text("Skipily Basic & Plus")
                     .font(.headline)
                 Spacer()
             }
@@ -746,6 +746,10 @@ struct ProfileView: View {
     @ViewBuilder
     private var inactivePlusCard: some View {
         VStack(alignment: .leading, spacing: 10) {
+            Text("profile.plus.headerSub".loc)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
             featureRow("plus.card.ai".loc)
             featureRow("plus.card.photo".loc)
             featureRow("plus.card.suggest".loc)

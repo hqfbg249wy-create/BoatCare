@@ -964,7 +964,7 @@ Ausrüstung unter Boote ergänzen.";
 "plus.card.suggest" = "Ausrüstungs-Empfehlungen";
 "plus.card.report" = "Service-Logbuch als PDF – je Boot";
 "plus.card.import" = "Ausrüstungsliste per Excel importieren";
-"plus.card.discover" = "Skipily Plus entdecken";
+"plus.card.discover" = "Tarife entdecken";
 
 /* ── Referral-Sektion (Profil) ── */
 "referral.invite.title" = "Freunde einladen";
@@ -1108,3 +1108,4 @@ Ausrüstung unter Boote ergänzen.";
 "profile.plan.monthly" = "Monatlich";
 "profile.plan.yearly" = "Jährlich";
 "plus.sheet.loading" = "Pläne werden geladen …";
+"profile.plus.headerSub" = "Schon ab 1,99 €/Monat – Basic oder Plus";

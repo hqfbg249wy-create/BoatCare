@@ -961,7 +961,7 @@
 "plus.card.suggest" = "Equipment suggestions";
 "plus.card.report" = "Service logbook as PDF – per boat";
 "plus.card.import" = "Import equipment list via Excel";
-"plus.card.discover" = "Discover Skipily Plus";
+"plus.card.discover" = "Discover plans";
 
 /* ── Referral-Sektion (Profil) ── */
 "referral.invite.title" = "Invite friends";
@@ -1105,3 +1105,4 @@
 "profile.plan.monthly" = "Monthly";
 "profile.plan.yearly" = "Yearly";
 "plus.sheet.loading" = "Loading plans …";
+"profile.plus.headerSub" = "From €1.99/month – Basic or Plus";

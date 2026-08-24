@@ -962,7 +962,7 @@
 "plus.card.suggest" = "Uitrustingssuggesties";
 "plus.card.report" = "Service-logboek als PDF – per boot";
 "plus.card.import" = "Uitrustingslijst importeren via Excel";
-"plus.card.discover" = "Ontdek Skipily Plus";
+"plus.card.discover" = "Abonnementen bekijken";
 
 /* ── Referral-Sektion (Profil) ── */
 "referral.invite.title" = "Vrienden uitnodigen";
@@ -1106,3 +1106,4 @@
 "profile.plan.monthly" = "Maandelijks";
 "profile.plan.yearly" = "Jaarlijks";
 "plus.sheet.loading" = "Abonnementen laden …";
+"profile.plus.headerSub" = "Vanaf € 1,99/maand – Basic of Plus";

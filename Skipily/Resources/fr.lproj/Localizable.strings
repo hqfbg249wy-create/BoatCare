@@ -962,7 +962,7 @@
 "plus.card.suggest" = "Suggestions d'équipement";
 "plus.card.report" = "Carnet d'entretien en PDF – par bateau";
 "plus.card.import" = "Importer la liste d'équipement via Excel";
-"plus.card.discover" = "Découvrir Skipily Plus";
+"plus.card.discover" = "Découvrir les offres";
 
 /* ── Referral-Sektion (Profil) ── */
 "referral.invite.title" = "Inviter des amis";
@@ -1106,3 +1106,4 @@
 "profile.plan.monthly" = "Mensuel";
 "profile.plan.yearly" = "Annuel";
 "plus.sheet.loading" = "Chargement des offres …";
+"profile.plus.headerSub" = "Dès 1,99 €/mois – Basic ou Plus";
