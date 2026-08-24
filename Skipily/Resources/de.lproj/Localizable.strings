@@ -1094,3 +1094,16 @@ Ausrüstung unter Boote ergänzen.";
 "common.cancel" = "Abbrechen";
 "common.fullName" = "Vollständiger Name";
 "common.street" = "Straße + Hausnummer";
+
+/* Paywall Tarif-Bullets (Basic/Plus) */
+"plus.tier.basic.ai" = "5 KI-Fragen pro Tag";
+"plus.tier.basic.photo" = "Schadens-Foto-Analyse";
+"plus.tier.basic.discounts" = "SKIPILY-Rabatte nutzen";
+"plus.tier.plus.ai" = "15 KI-Fragen pro Tag";
+"plus.tier.plus.strongerAI" = "Stärkere KI für tiefergehende Analysen";
+"plus.tier.plus.photo" = "Schadens-Foto-Analyse";
+"plus.tier.plus.family" = "Family-Modus (bis zu 5 Eigner)";
+"plus.tier.plus.import" = "Ausrüstung per Excel importieren";
+"plus.tier.plus.report" = "Wartungsreport als PDF";
+"profile.plan.monthly" = "Monatlich";
+"profile.plan.yearly" = "Jährlich";

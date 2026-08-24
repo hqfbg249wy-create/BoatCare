@@ -34,7 +34,10 @@ const APPLE_PRIVATE_KEY   = Deno.env.get("APPLE_PRIVATE_KEY") ?? "";
 
 // Apple → unser DB-Plan-Mapping (Product-IDs aus Skipily.storekit)
 const PRODUCT_PLAN_MAP: Record<string, string> = {
-  // Plus = Endkunden-Abo für unbegrenzte KI-Nutzung
+  // Basic = Einstiegs-Abo (1,99 €): 5 KI-Fragen/Tag (Sonnet) + Foto-Analyse + Rabatte
+  "skipily.basic.monthly":       "basic",
+  "skipily.basic.yearly":        "basic",
+  // Plus (4,99 €) = 15 KI-Fragen/Tag, stärkere KI (Opus), Family/Excel/Report
   "skipily.plus.monthly":        "plus_individual",
   "skipily.plus.yearly":         "plus_individual",
   "skipily.plus.family.monthly": "plus_family",

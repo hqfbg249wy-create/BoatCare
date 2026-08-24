@@ -691,8 +691,8 @@ struct ProfileView: View {
                 Spacer()
             }
 
-            if plusManager.hasActivePlus {
-                // Aktiver Plus-User: Status + Verwalten
+            if plusManager.hasPaidTier {
+                // Aktiver Abonnent (Basic oder Plus): Status + Verwalten
                 activePlusCard
             } else {
                 // Free-User: CTA + Feature-Liste
@@ -785,11 +785,11 @@ struct ProfileView: View {
 
     private func displayPlanName(for productId: String?) -> String {
         switch productId {
-        case "skipily.plus.monthly": return "Skipily Plus · Monatlich"
-        case "skipily.plus.yearly":  return "Skipily Plus · Jährlich"
-        case "skipily.pro.monthly":  return "Skipily Plus Familie · Monatlich"
-        case "skipily.pro.yearly":   return "Skipily Plus Familie · Jährlich"
-        default:                     return "Skipily Plus aktiv"
+        case "skipily.basic.monthly": return "Skipily Basic · \("profile.plan.monthly".loc)"
+        case "skipily.basic.yearly":  return "Skipily Basic · \("profile.plan.yearly".loc)"
+        case "skipily.plus.monthly":  return "Skipily Plus · \("profile.plan.monthly".loc)"
+        case "skipily.plus.yearly":   return "Skipily Plus · \("profile.plan.yearly".loc)"
+        default:                      return "Skipily \(plusManager.tier == .plus ? "Plus" : "Basic")"
         }
     }
 

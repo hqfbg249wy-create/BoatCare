@@ -1092,3 +1092,16 @@
 "common.cancel" = "Annuleren";
 "common.fullName" = "Volledige naam";
 "common.street" = "Straat + huisnummer";
+
+/* Paywall Tarif-Bullets (Basic/Plus) */
+"plus.tier.basic.ai" = "5 AI-vragen per dag";
+"plus.tier.basic.photo" = "Schade-fotoanalyse";
+"plus.tier.basic.discounts" = "SKIPILY-kortingen gebruiken";
+"plus.tier.plus.ai" = "15 AI-vragen per dag";
+"plus.tier.plus.strongerAI" = "Sterkere AI voor diepgaande analyses";
+"plus.tier.plus.photo" = "Schade-fotoanalyse";
+"plus.tier.plus.family" = "Family-modus (tot 5 eigenaren)";
+"plus.tier.plus.import" = "Uitrusting importeren via Excel";
+"plus.tier.plus.report" = "Onderhoudsrapport als PDF";
+"profile.plan.monthly" = "Maandelijks";
+"profile.plan.yearly" = "Jaarlijks";

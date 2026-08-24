@@ -1092,3 +1092,16 @@
 "common.cancel" = "Annuler";
 "common.fullName" = "Nom complet";
 "common.street" = "Rue + numéro";
+
+/* Paywall Tarif-Bullets (Basic/Plus) */
+"plus.tier.basic.ai" = "5 questions IA par jour";
+"plus.tier.basic.photo" = "Analyse photo des dommages";
+"plus.tier.basic.discounts" = "Profiter des remises SKIPILY";
+"plus.tier.plus.ai" = "15 questions IA par jour";
+"plus.tier.plus.strongerAI" = "IA plus puissante pour analyses approfondies";
+"plus.tier.plus.photo" = "Analyse photo des dommages";
+"plus.tier.plus.family" = "Mode Famille (jusqu'à 5 propriétaires)";
+"plus.tier.plus.import" = "Importer l'équipement via Excel";
+"plus.tier.plus.report" = "Rapport d'entretien en PDF";
+"profile.plan.monthly" = "Mensuel";
+"profile.plan.yearly" = "Annuel";

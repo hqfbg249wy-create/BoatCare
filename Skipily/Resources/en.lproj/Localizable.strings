@@ -1091,3 +1091,16 @@
 "common.cancel" = "Cancel";
 "common.fullName" = "Full name";
 "common.street" = "Street + house number";
+
+/* Paywall Tarif-Bullets (Basic/Plus) */
+"plus.tier.basic.ai" = "5 AI questions per day";
+"plus.tier.basic.photo" = "Damage photo analysis";
+"plus.tier.basic.discounts" = "Use SKIPILY discounts";
+"plus.tier.plus.ai" = "15 AI questions per day";
+"plus.tier.plus.strongerAI" = "Stronger AI for in-depth analysis";
+"plus.tier.plus.photo" = "Damage photo analysis";
+"plus.tier.plus.family" = "Family mode (up to 5 owners)";
+"plus.tier.plus.import" = "Import equipment via Excel";
+"plus.tier.plus.report" = "Maintenance report as PDF";
+"profile.plan.monthly" = "Monthly";
+"profile.plan.yearly" = "Yearly";

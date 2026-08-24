@@ -17,17 +17,27 @@ import Foundation
 import Combine       // für @Published / ObservableObject
 import StoreKit
 
+/// Abo-Stufe des Bootseigners (Phase 1). Reihenfolge = Wertigkeit.
+enum SubscriptionTier: Int, Comparable {
+    case free  = 0
+    case basic = 1
+    case plus  = 2
+
+    static func < (lhs: SubscriptionTier, rhs: SubscriptionTier) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+}
+
 @MainActor
 final class PlusSubscriptionManager: ObservableObject {
     static let shared = PlusSubscriptionManager()
 
-    // Product-IDs müssen mit Skipily.storekit / App Store Connect übereinstimmen
-    static let productIDs: [String] = [
-        "skipily.plus.monthly",
-        "skipily.plus.yearly"
-        // Pro/Familie (skipily.pro.*) vorerst gestrichen — kommt in einem
-        // späteren Release mit den Eignergemeinschaften wieder rein.
-    ]
+    // Product-IDs müssen mit Skipily.storekit / App Store Connect übereinstimmen.
+    // Zwei Stufen (Phase 1): Basic (1,99/19,99) und Plus (4,99/49,00).
+    // Fleet/Family kommen später (eigene Produkt-IDs).
+    static let basicIDs: Set<String> = ["skipily.basic.monthly", "skipily.basic.yearly"]
+    static let plusIDs:  Set<String> = ["skipily.plus.monthly",  "skipily.plus.yearly"]
+    static let productIDs: [String] = Array(basicIDs) + Array(plusIDs)
 
     @Published private(set) var products: [StoreKit.Product] = []
     @Published private(set) var purchasedProductIDs: Set<String> = []
@@ -146,7 +156,19 @@ final class PlusSubscriptionManager: ObservableObject {
         self.purchasedProductIDs = active
     }
 
-    var hasActivePlus: Bool { !purchasedProductIDs.isEmpty }
+    /// KI-/Feature-Stufe des aktuellen Accounts (aus den aktiven Käufen).
+    /// Plus hat Vorrang vor Basic.
+    var tier: SubscriptionTier {
+        if !purchasedProductIDs.isDisjoint(with: Self.plusIDs)  { return .plus }
+        if !purchasedProductIDs.isDisjoint(with: Self.basicIDs) { return .basic }
+        return .free
+    }
+
+    /// Plus-Stufe aktiv (4,99): stärkere KI, Family, Excel-Import, Wartungsreport.
+    var hasActivePlus: Bool { tier == .plus }
+
+    /// Irgendein bezahltes Abo aktiv (Basic ODER Plus): Foto-Analyse, SKIPILY-Rabatte.
+    var hasPaidTier: Bool { tier != .free }
 
     // MARK: - Intro-Offer-Eligibility (Gratis-Trial) ermitteln
     /// Prüft pro Produkt, ob der aktuelle Account noch für das Intro-Offer

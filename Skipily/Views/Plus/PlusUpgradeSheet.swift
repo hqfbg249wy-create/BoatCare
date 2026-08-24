@@ -20,27 +20,26 @@ import StoreKit
 // MARK: - Tier-Modell
 
 private enum PlanTier: String, CaseIterable, Identifiable {
-    case solo    // skipily.plus.*
-    case family  // skipily.pro.*
+    case basic   // skipily.basic.*  (1,99 / 19,99)
+    case plus    // skipily.plus.*   (4,99 / 49,00)
 
     var id: String { rawValue }
-    var displayName: String { self == .solo ? "Skipily Plus" : "Skipily Plus Familie" }
-    var icon: String        { self == .solo ? "person.fill" : "person.3.fill" }
-    var idPrefix: String    { self == .solo ? "skipily.plus." : "skipily.pro." }
+    var displayName: String { self == .basic ? "Skipily Basic" : "Skipily Plus" }
+    var icon: String        { self == .basic ? "sailboat.fill" : "sparkles" }
+    var idPrefix: String    { self == .basic ? "skipily.basic." : "skipily.plus." }
     var bullets: [String] {
         switch self {
-        case .solo:
-            return ["Unbegrenzte KI-Chats",
-                    "Schadens-Foto-Analyse",
-                    "Ausrüstungs-Empfehlungen"]
-        case .family:
-            // Ehrliche Vorteile: Pro = alle Plus-Funktionen, über Apple Family
-            // Sharing mit der Familie teilbar. KEINE Behauptung nicht gebauter
-            // Features (früher "5 Skipper auf einem Boot" / "gemeinsame
-            // Wartungsplanung" — existierten nicht) → App-Store-Guideline 2.1.
-            return ["Alle Plus-Features inklusive",
-                    "Über Apple Family Sharing teilbar",
-                    "Für Paare & Familien-Crews"]
+        case .basic:
+            return ["plus.tier.basic.ai".loc,
+                    "plus.tier.basic.photo".loc,
+                    "plus.tier.basic.discounts".loc]
+        case .plus:
+            return ["plus.tier.plus.ai".loc,
+                    "plus.tier.plus.strongerAI".loc,
+                    "plus.tier.plus.photo".loc,
+                    "plus.tier.plus.family".loc,
+                    "plus.tier.plus.import".loc,
+                    "plus.tier.plus.report".loc]
         }
     }
 }
@@ -63,7 +62,7 @@ struct PlusUpgradeSheet: View {
     /// Pro Tier gewählter Abrechnungs-Rhythmus. Default jährlich
     /// (Jahres-Discount ist das stärkere Angebot).
     @State private var selectedPeriod: [PlanTier: BillingPeriod] = [
-        .solo: .yearly, .family: .yearly
+        .basic: .yearly, .plus: .yearly
     ]
     @State private var purchasing: String?
     @State private var purchaseError: String?
@@ -81,8 +80,6 @@ struct PlusUpgradeSheet: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                     }
-
-                    featuresSection
 
                     plansSection
 
@@ -112,30 +109,6 @@ struct PlusUpgradeSheet: View {
             }
         }
         .task { await manager.loadProducts() }
-    }
-
-    // MARK: - Features (konsistent mit Preisliste skipily.app/preise)
-
-    /// Verifizierte Plus-Mehrwerte. KI (Chat, Foto-Analyse, Empfehlungen) teilt
-    /// sich frei 10 Calls/Monat; Plus hebt das Limit auf. Excel-Import & PDF-
-    /// Report sind Plus-exklusiv.
-    private var planFeatures: [String] {
-        ["plus.feat.ai".loc, "plus.feat.import".loc, "plus.feat.report".loc, "plus.feat.discounts".loc]
-    }
-
-    private var featuresSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ForEach(planFeatures, id: \.self) { f in
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                    Text(f).font(.subheadline)
-                    Spacer(minLength: 0)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 24)
     }
 
     // MARK: - Header
@@ -188,10 +161,8 @@ struct PlusUpgradeSheet: View {
             emptyState
         } else {
             VStack(spacing: 14) {
-                // Pro/Familie ist vorerst gestrichen — die Familien-/Mehr-
-                // benutzer-Funktionen (Eignergemeinschaften) kommen in einem
-                // späteren Release. Bis dahin zeigt die Paywall nur "Skipily Plus".
-                ForEach([PlanTier.solo]) { tier in
+                // Zwei Stufen: Basic (Einstieg) zuerst, dann Plus (Premium).
+                ForEach([PlanTier.basic, PlanTier.plus]) { tier in
                     if hasAnyProduct(for: tier) {
                         tierCard(tier)
                     }

@@ -11,7 +11,10 @@ const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 // Sonnet 5: stärkere Basisqualität als 4.6, aktuell günstiger (Einführungspreis).
 // Thinking wird bewusst deaktiviert (unten im Body) — hält Latenz/Kosten wie
 // bei 4.6 und bewahrt die Antwort-Struktur (ein Text-Block).
-const MODEL = "claude-sonnet-5";
+// Modell nach KI-Tier: Free/Basic → Sonnet 5 (schnell, günstig),
+// Plus → Opus 5 (stärkere KI für tiefergehende Analysen).
+const SONNET_MODEL = "claude-sonnet-5";
+const OPUS_MODEL   = "claude-opus-5";
 const MAX_TOKENS = 2048;
 const MAX_FEWSHOTS = 3;
 
@@ -335,6 +338,27 @@ Deno.serve(async (req) => {
       )
     );
 
+    // Modellwahl nach Tier: Plus → Opus 5 (adaptive Thinking + effort medium),
+    // sonst Sonnet 5 (Thinking aus). Opus NICHT hart abschalten (Fehlermodi) —
+    // die Kosten werden über effort "medium" dosiert.
+    const usePlusModel = quota.tier === "plus";
+    const chosenModel  = usePlusModel ? OPUS_MODEL : SONNET_MODEL;
+    const reqBody: Record<string, unknown> = {
+      model:      chosenModel,
+      max_tokens: usePlusModel ? 4096 : MAX_TOKENS,
+      system: [
+        { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+        { type: "text", text: dynamicSystem },
+      ],
+      messages: trimmedMessages,
+    };
+    if (usePlusModel) {
+      reqBody.thinking      = { type: "adaptive" };
+      reqBody.output_config = { effort: "medium" };
+    } else {
+      reqBody.thinking = { type: "disabled" };
+    }
+
     const anthropicResponse = await fetch(ANTHROPIC_API_URL, {
       method: "POST",
       headers: {
@@ -342,18 +366,7 @@ Deno.serve(async (req) => {
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        // Thinking aus → gleiche Latenz/Kosten wie zuvor, ein Text-Block als Antwort.
-        thinking: { type: "disabled" },
-        // System als Blöcke: stabiler Basis-Prompt gecacht, dynamischer Teil danach.
-        system: [
-          { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
-          { type: "text", text: dynamicSystem },
-        ],
-        messages: trimmedMessages,
-      }),
+      body: JSON.stringify(reqBody),
     });
 
     if (!anthropicResponse.ok) {
@@ -384,7 +397,7 @@ Deno.serve(async (req) => {
       feature:    "chat",
       source:     quota.source!,
       costTokens: usedTokens,
-      metadata:   { model: MODEL, lang: userLang },
+      metadata:   { model: chosenModel, lang: userLang },
     }).catch(() => null);
 
     return new Response(
