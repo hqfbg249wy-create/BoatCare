@@ -22,6 +22,10 @@ const FREE_LIFETIME_LIMIT = 10;
 const BASIC_DAILY_LIMIT   = 5;
 const PLUS_DAILY_LIMIT    = 15;
 
+// Nur diese Features verbrauchen das Nutzer-Kontingent. System-getriggerte
+// Übersetzungen (translate_*) laufen immer durch und zählen NICHT mit.
+const CONSUMING_FEATURES = new Set(["chat", "photo_analysis", "suggest_equipment"]);
+
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);   // UTC-Tag, passt zu CURRENT_DATE
 }
@@ -127,14 +131,15 @@ export async function checkAiQuota(p: QuotaCheckParams): Promise<QuotaCheckResul
     }
   }
 
-  // ── Free-Tier: 10 KI-Fragen EINMALIG (lifetime, Summe über alle Monate)
-  const { data: rows } = await sb
-    .from("ai_monthly_usage")
-    .select("call_count")
+  // ── Free-Tier: 10 KI-Fragen EINMALIG (lifetime) — nur verbrauchende Features
+  // (Chat/Foto/Vorschlag) zählen; Übersetzungen bleiben außen vor. Daher aus
+  // dem Audit-Log ai_usage gezählt (hat pro Zeile das Feature).
+  const { count: consumingCount } = await sb
+    .from("ai_usage")
+    .select("*", { count: "exact", head: true })
     .eq("user_id", p.userId)
-    .is("provider_id", null);
-  const lifetimeUsed = (rows ?? []).reduce(
-    (s: number, r: { call_count: number | null }) => s + (r.call_count ?? 0), 0);
+    .in("feature", ["chat", "photo_analysis", "suggest_equipment"]);
+  const lifetimeUsed = consumingCount ?? 0;
 
   if (lifetimeUsed < FREE_LIFETIME_LIMIT) {
     return {
@@ -177,9 +182,9 @@ export async function recordAiUsage(args: {
   } catch (err) {
     console.error("recordAiUsage failed:", err);
   }
-  // Tageszähler für die Fair-Use-Deckel (Basic/Plus). Provider-Pool-Calls
-  // zählen nicht gegen ein User-Tageslimit.
-  if (args.source !== "provider_quota") {
+  // Tageszähler für die Fair-Use-Deckel (Basic/Plus). Nur echte Verbrauchs-
+  // Features zählen; Provider-Pool- und Übersetzungs-Calls nicht.
+  if (args.source !== "provider_quota" && CONSUMING_FEATURES.has(args.feature)) {
     try {
       await sb.rpc("increment_ai_daily_usage", { p_user_id: args.userId });
     } catch (err) {
