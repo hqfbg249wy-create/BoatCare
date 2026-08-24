@@ -1105,3 +1105,4 @@
 "plus.tier.plus.report" = "Informe de mantenimiento en PDF";
 "profile.plan.monthly" = "Mensual";
 "profile.plan.yearly" = "Anual";
+"plus.sheet.loading" = "Cargando planes …";

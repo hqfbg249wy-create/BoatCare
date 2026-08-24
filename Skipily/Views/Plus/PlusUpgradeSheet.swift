@@ -156,7 +156,7 @@ struct PlusUpgradeSheet: View {
     @ViewBuilder
     private var plansSection: some View {
         if manager.isLoading {
-            ProgressView("Pläne werden geladen…").padding()
+            ProgressView("plus.sheet.loading".loc).padding()
         } else if manager.products.isEmpty {
             emptyState
         } else {
@@ -190,7 +190,7 @@ struct PlusUpgradeSheet: View {
             Button {
                 Task { await manager.loadProducts() }
             } label: {
-                Label("Erneut versuchen", systemImage: "arrow.clockwise")
+                Label("general.retry".loc, systemImage: "arrow.clockwise")
             }
             .buttonStyle(.bordered)
         }
