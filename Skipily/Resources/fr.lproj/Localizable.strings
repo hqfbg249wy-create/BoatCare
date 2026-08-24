@@ -923,7 +923,7 @@
 /* ── Referral, Plus-Features & Ausrüstungs-Import (lokalisiert) ── */
 "referral.banner.title" = "Parrainer = 1 mois de Skipily Plus offert";
 "referral.banner.subtitle" = "12 parrainages = 1 an de Skipily Plus offert";
-"plus.feat.ai" = "Assistant IA illimité : chat, analyse photo des dommages et suggestions d'équipement (sinon 10/mois)";
+"plus.feat.ai" = "Assistant IA : chat, analyse photo des dommages et suggestions d'équipement";
 "plus.feat.import" = "Importer l'équipement via Excel (feuille de mesures de voile et gréement inclus)";
 "plus.feat.report" = "Rapport d'entretien en PDF – séparément par bateau";
 "plus.feat.discounts" = "Profiter des réductions Skipily dans la boutique";
@@ -957,7 +957,7 @@
 "equip.import.errPlus" = "Skipily Plus requis.";
 
 /* ── Plus-Karte (Profil) ── */
-"plus.card.ai" = "Chats IA illimités";
+"plus.card.ai" = "Plus de questions IA par jour";
 "plus.card.photo" = "Analyse photo des dommages";
 "plus.card.suggest" = "Suggestions d'équipement";
 "plus.card.report" = "Carnet d'entretien en PDF – par bateau";
@@ -975,7 +975,7 @@
 "referral.stat.thisYear" = "Cette année";
 "referral.cap" = "Plafond annuel atteint (12 parrainages). Les nouveaux parrainages seront de nouveau crédités à partir de janvier.";
 "profile.plus.active" = "ACTIF";
-"profile.plus.activeSubtitle" = "IA illimitée, analyse photo, suggestions d'équipement.";
+"profile.plus.activeSubtitle" = "Ton abonnement est actif – assistant IA, analyse photo et plus.";
 "profile.plus.manage" = "Gérer / résilier l'abonnement";
 "referral.share.message" = "J'utilise Skipily pour mon bateau — entretien, inventaire d'équipement, boutique et assistant IA dans une seule app. Si tu t'inscris et saisis mon code de parrainage, nous recevons tous les deux un mois de Skipily Plus offert.\n\nMon code : %@\n\nTélécharger l'app : https://apps.apple.com/app/skipily";
 

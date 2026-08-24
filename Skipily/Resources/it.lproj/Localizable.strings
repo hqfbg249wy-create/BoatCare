@@ -923,7 +923,7 @@
 /* ── Referral, Plus-Features & Ausrüstungs-Import (lokalisiert) ── */
 "referral.banner.title" = "Consiglia = 1 mese di Skipily Plus gratis";
 "referral.banner.subtitle" = "12 segnalazioni = 1 anno di Skipily Plus gratis";
-"plus.feat.ai" = "Assistente IA illimitato: chat, analisi foto danni e suggerimenti attrezzatura (altrimenti 10/mese)";
+"plus.feat.ai" = "Assistente IA: chat, analisi foto danni e suggerimenti attrezzatura";
 "plus.feat.import" = "Importa attrezzatura via Excel (incl. scheda misure vele e cime)";
 "plus.feat.report" = "Report di manutenzione in PDF – separato per barca";
 "plus.feat.discounts" = "Usa gli sconti Skipily nel negozio";
@@ -957,7 +957,7 @@
 "equip.import.errPlus" = "Richiesto Skipily Plus.";
 
 /* ── Plus-Karte (Profil) ── */
-"plus.card.ai" = "Chat IA illimitate";
+"plus.card.ai" = "Più domande IA al giorno";
 "plus.card.photo" = "Analisi foto danni";
 "plus.card.suggest" = "Suggerimenti attrezzatura";
 "plus.card.report" = "Libretto di servizio in PDF – per barca";
@@ -975,7 +975,7 @@
 "referral.stat.thisYear" = "Quest'anno";
 "referral.cap" = "Limite annuale raggiunto (12 segnalazioni). Le nuove segnalazioni verranno accreditate di nuovo da gennaio.";
 "profile.plus.active" = "ATTIVO";
-"profile.plus.activeSubtitle" = "IA illimitata, analisi foto, suggerimenti attrezzatura.";
+"profile.plus.activeSubtitle" = "Il tuo abbonamento è attivo: assistente IA, analisi foto e altro.";
 "profile.plus.manage" = "Gestisci / annulla abbonamento";
 "referral.share.message" = "Uso Skipily per la mia barca — manutenzione, inventario attrezzatura, negozio e assistente IA in un'unica app. Se ti registri e inserisci il mio codice di invito, riceviamo entrambi un mese di Skipily Plus gratis.\n\nIl mio codice: %@\n\nScarica l'app: https://apps.apple.com/app/skipily";
 

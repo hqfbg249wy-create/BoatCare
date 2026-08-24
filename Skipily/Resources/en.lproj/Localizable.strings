@@ -922,7 +922,7 @@
 /* ── Referral, Plus-Features & Ausrüstungs-Import (lokalisiert) ── */
 "referral.banner.title" = "Refer a friend = 1 month Skipily Plus free";
 "referral.banner.subtitle" = "12 referrals = 1 year of Skipily Plus free";
-"plus.feat.ai" = "Unlimited AI assistant: chat, damage photo analysis & equipment suggestions (otherwise 10/month)";
+"plus.feat.ai" = "AI assistant: chat, damage photo analysis & equipment suggestions";
 "plus.feat.import" = "Import equipment via Excel (incl. sail measurement sheet & rigging)";
 "plus.feat.report" = "Maintenance report as PDF – separately per boat";
 "plus.feat.discounts" = "Use Skipily discounts in the shop";
@@ -956,7 +956,7 @@
 "equip.import.errPlus" = "Skipily Plus required.";
 
 /* ── Plus-Karte (Profil) ── */
-"plus.card.ai" = "Unlimited AI chats";
+"plus.card.ai" = "More AI questions per day";
 "plus.card.photo" = "Damage photo analysis";
 "plus.card.suggest" = "Equipment suggestions";
 "plus.card.report" = "Service logbook as PDF – per boat";
@@ -974,7 +974,7 @@
 "referral.stat.thisYear" = "This year";
 "referral.cap" = "Yearly cap reached (12 referrals). New referrals will be credited again from January.";
 "profile.plus.active" = "ACTIVE";
-"profile.plus.activeSubtitle" = "Unlimited AI, photo analysis, equipment suggestions.";
+"profile.plus.activeSubtitle" = "Your subscription is active – AI assistant, photo analysis & more.";
 "profile.plus.manage" = "Manage / cancel subscription";
 "referral.share.message" = "I use Skipily for my boat — maintenance, equipment inventory, shop and an AI assistant in one app. If you sign up and enter my referral code, we both get one month of Skipily Plus free.\n\nMy code: %@\n\nGet the app: https://apps.apple.com/app/skipily";
 

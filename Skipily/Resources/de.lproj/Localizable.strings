@@ -925,7 +925,7 @@ Ausrüstung unter Boote ergänzen.";
 /* ── Referral, Plus-Features & Ausrüstungs-Import (lokalisiert) ── */
 "referral.banner.title" = "Weiterempfehlen = 1 Monat Skipily Plus gratis";
 "referral.banner.subtitle" = "12 Empfehlungen = 1 Jahr Skipily Plus kostenlos";
-"plus.feat.ai" = "Unbegrenzter KI-Assistent: Chat, Schadens-Foto-Analyse & Ausrüstungs-Empfehlungen (sonst 10/Monat)";
+"plus.feat.ai" = "KI-Assistent: Chat, Schadens-Foto-Analyse & Ausrüstungs-Empfehlungen";
 "plus.feat.import" = "Ausrüstung per Excel importieren (inkl. Segelmessblatt & Tauwerk)";
 "plus.feat.report" = "Wartungsreport als PDF – je Boot getrennt";
 "plus.feat.discounts" = "Skipily-Rabatte im Shop nutzen";
@@ -959,7 +959,7 @@ Ausrüstung unter Boote ergänzen.";
 "equip.import.errPlus" = "Skipily Plus erforderlich.";
 
 /* ── Plus-Karte (Profil) ── */
-"plus.card.ai" = "Unbegrenzte KI-Chats";
+"plus.card.ai" = "Mehr KI-Fragen pro Tag";
 "plus.card.photo" = "Schadens-Foto-Analyse";
 "plus.card.suggest" = "Ausrüstungs-Empfehlungen";
 "plus.card.report" = "Service-Logbuch als PDF – je Boot";
@@ -977,7 +977,7 @@ Ausrüstung unter Boote ergänzen.";
 "referral.stat.thisYear" = "Dieses Jahr";
 "referral.cap" = "Jahres-Cap erreicht (12 Empfehlungen). Neue Empfehlungen werden ab Januar wieder gutgeschrieben.";
 "profile.plus.active" = "AKTIV";
-"profile.plus.activeSubtitle" = "Unbegrenzte KI, Foto-Analyse, Ausrüstungs-Empfehlungen.";
+"profile.plus.activeSubtitle" = "Dein Abo ist aktiv – KI-Assistent, Foto-Analyse & mehr.";
 "profile.plus.manage" = "Abo verwalten / kündigen";
 "referral.share.message" = "Ich nutze Skipily für mein Boot — Wartung, Equipment-Inventar, Shop und KI-Assistent in einer App. Wenn du dich anmeldest und meinen Empfehlungs-Code eingibst, bekommen wir beide einen Monat Skipily Plus geschenkt.\n\nMein Code: %@\n\nApp laden: https://apps.apple.com/app/skipily";
 
