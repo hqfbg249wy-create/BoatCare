@@ -1104,7 +1104,7 @@ Ausrüstung unter Boote ergänzen.";
 "plus.tier.plus.ai" = "15 KI-Fragen pro Tag";
 "plus.tier.plus.strongerAI" = "Stärkere KI für tiefergehende Analysen";
 "plus.tier.plus.photo" = "Schadens-Foto-Analyse";
-"plus.tier.plus.family" = "Family-Modus (bis zu 5 Eigner)";
+"plus.tier.plus.family" = "Mit der Familie teilen (Apple Family-Sharing)";
 "plus.tier.plus.import" = "Ausrüstung per Excel importieren";
 "plus.tier.plus.report" = "Wartungsreport als PDF";
 "profile.plan.monthly" = "Monatlich";
