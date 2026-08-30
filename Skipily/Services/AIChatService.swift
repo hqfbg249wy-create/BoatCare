@@ -163,12 +163,16 @@ class AIChatService {
             let messages: [AIChatMessage]
             let boatContext: AIChatContext?
             let lang: String
+            /// Echte Gerätesprache als BCP-47-Tag (z.B. "pt-BR", "pl") — die
+            /// KI antwortet darin, auch außerhalb der 6 UI-Sprachen.
+            let userLocale: String
         }
 
         let body = RequestBody(
             messages: messages,
             boatContext: boatContext,
-            lang: LanguageManager.shared.currentLanguage.code
+            lang: LanguageManager.shared.currentLanguage.code,
+            userLocale: LanguageManager.shared.aiResponseLocale
         )
         request.httpBody = try JSONEncoder().encode(body)
 

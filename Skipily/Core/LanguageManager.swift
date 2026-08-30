@@ -61,6 +61,19 @@ final class LanguageManager: ObservableObject {
     @Published private(set) var currentLanguage: AppLanguage
     private var bundle: Bundle = .main
 
+    /// Sprache, in der die KI antworten soll — BCP-47-Tag (z.B. "de", "pt-BR",
+    /// "pl", "sv"). Anders als `AppLanguage.code` NICHT auf die 6 UI-Sprachen
+    /// beschränkt: Die KI (Claude) beherrscht praktisch alle Sprachen, deshalb
+    /// folgt sie bei „System" der ECHTEN Gerätesprache — so passt sie sich
+    /// automatisch an das Land des Nutzers an. Bei expliziter UI-Sprachwahl
+    /// gilt diese.
+    var aiResponseLocale: String {
+        if currentLanguage == .system {
+            return Locale.preferredLanguages.first ?? Locale.current.identifier
+        }
+        return currentLanguage.rawValue
+    }
+
     private init() {
         let saved = UserDefaults.standard.string(forKey: "appLanguage") ?? "system"
         let lang = AppLanguage(rawValue: saved) ?? .system

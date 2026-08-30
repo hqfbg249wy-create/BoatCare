@@ -976,6 +976,8 @@
 "referral.cap" = "Jaarlimiet bereikt (12 aanbevelingen). Nieuwe aanbevelingen worden vanaf januari weer bijgeschreven.";
 "profile.plus.active" = "ACTIEF";
 "profile.plus.activeSubtitle" = "Je abonnement is actief – AI-assistent, foto-analyse en meer.";
+"profile.plus.grantedBySkipily" = "Geactiveerd via Skipily – geen beheer bij Apple nodig.";
+
 "profile.plus.manage" = "Abonnement beheren / opzeggen";
 "referral.share.message" = "Ik gebruik Skipily voor mijn boot — onderhoud, uitrustingsinventaris, shop en een AI-assistent in één app. Als je je aanmeldt en mijn aanbevelingscode invoert, krijgen we allebei een maand Skipily Plus cadeau.\n\nMijn code: %@\n\nApp downloaden: https://apps.apple.com/app/skipily";
 
@@ -1106,4 +1108,9 @@
 "profile.plan.monthly" = "Maandelijks";
 "profile.plan.yearly" = "Jaarlijks";
 "plus.sheet.loading" = "Abonnementen laden …";
-"profile.plus.headerSub" = "Vanaf € 1,99/maand – Basic of Plus";
+"profile.plus.headerSub" = "Basic of Plus – maandelijks of jaarlijks opzegbaar";
+
+"plus.sheet.perMonth" = "/ maand";
+"plus.sheet.perYear" = "/ jaar";
+
+"plus.sheet.freeTrial" = "%@ gratis proberen";

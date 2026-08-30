@@ -9,6 +9,7 @@ import SwiftUI
 import StripePaymentSheet
 import Supabase
 import PhotosUI
+import StoreKit   // manageSubscriptionsSheet (native Abo-Verwaltung)
 
 // MARK: - Simple Boat model for picker
 struct BoatInfo: Codable, Identifiable, Sendable {
@@ -74,6 +75,7 @@ struct ProfileView: View {
     // Skipily Plus
     @StateObject private var plusManager = PlusSubscriptionManager.shared
     @State private var showPlusSheet = false
+    @State private var showManageSubscriptions = false
 
     // Empfehlungs-Programm
     @State private var referralStats: AuthService.ReferralStats?
@@ -726,21 +728,38 @@ struct ProfileView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Button {
-                openAppleSubscriptionSettings()
-            } label: {
-                HStack {
-                    Image(systemName: "gear")
-                    Text("profile.plus.manage".loc)
+            if plusManager.isBackendOnlyGrant {
+                // Kostenlose Admin-Freischaltung / Custom-Vertrag: es gibt
+                // KEIN Apple-Abo zum Verwalten oder Kündigen.
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundStyle(.green)
+                    Text("profile.plus.grantedBySkipily".loc)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                .font(.subheadline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(Color(.tertiarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.top, 4)
+            } else {
+                Button {
+                    showManageSubscriptions = true
+                } label: {
+                    HStack {
+                        Image(systemName: "gear")
+                        Text("profile.plus.manage".loc)
+                    }
+                    .font(.subheadline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color(.tertiarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .padding(.top, 4)
             }
-            .padding(.top, 4)
         }
+        // Natives StoreKit-Sheet: zeigt/kündigt das Abo für das AKTUELLE
+        // Environment (inkl. Sandbox/TestFlight). Die alte Web-URL
+        // (apps.apple.com/account/subscriptions) zeigte Sandbox-Abos nicht.
+        .manageSubscriptionsSheet(isPresented: $showManageSubscriptions)
     }
 
     @ViewBuilder

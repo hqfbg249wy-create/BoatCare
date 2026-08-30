@@ -976,6 +976,8 @@
 "referral.cap" = "Limite annuale raggiunto (12 segnalazioni). Le nuove segnalazioni verranno accreditate di nuovo da gennaio.";
 "profile.plus.active" = "ATTIVO";
 "profile.plus.activeSubtitle" = "Il tuo abbonamento è attivo: assistente IA, analisi foto e altro.";
+"profile.plus.grantedBySkipily" = "Attivato tramite Skipily: nessuna gestione Apple necessaria.";
+
 "profile.plus.manage" = "Gestisci / annulla abbonamento";
 "referral.share.message" = "Uso Skipily per la mia barca — manutenzione, inventario attrezzatura, negozio e assistente IA in un'unica app. Se ti registri e inserisci il mio codice di invito, riceviamo entrambi un mese di Skipily Plus gratis.\n\nIl mio codice: %@\n\nScarica l'app: https://apps.apple.com/app/skipily";
 
@@ -1106,4 +1108,9 @@
 "profile.plan.monthly" = "Mensile";
 "profile.plan.yearly" = "Annuale";
 "plus.sheet.loading" = "Caricamento piani …";
-"profile.plus.headerSub" = "Da 1,99 €/mese – Basic o Plus";
+"profile.plus.headerSub" = "Basic o Plus – disdici al mese o all'anno";
+
+"plus.sheet.perMonth" = "/ mese";
+"plus.sheet.perYear" = "/ anno";
+
+"plus.sheet.freeTrial" = "%@ di prova gratis";

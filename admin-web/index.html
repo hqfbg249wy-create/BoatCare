@@ -40,6 +40,10 @@
                     Neue Betriebe
                     <span class="badge" id="new-providers-badge">0</span>
                 </button>
+                <button class="nav-item" data-page="registrations" onclick="window.navigateToPage('registrations')">
+                    <span class="icon">📬</span>
+                    Registrierungen
+                </button>
                 <button class="nav-item" data-page="suggestions" onclick="window.navigateToPage('suggestions')">
                     <span class="icon">✏️</span>
                     Änderungsanfragen
@@ -208,10 +212,47 @@
                     </div>
                 </div>
 
-                <h2>Letzte Aktivitäten</h2>
+                <!-- Feature 3: Nutzerentwicklung & Aktivität (Segmente) -->
+                <div id="user-growth-section" style="margin-top:28px;">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <h2 style="margin:0;">👥 Nutzerentwicklung &amp; Aktivität</h2>
+                        <button class="btn-secondary" onclick="window.loadUserGrowth()" style="padding:6px 10px; font-size:13px;">🔄 Aktualisieren</button>
+                        <span id="user-growth-hint" style="font-size:12px; color:#94a3b8;"></span>
+                    </div>
+                    <p style="font-size:13px; color:#64748b; margin:6px 0 14px;">
+                        Getrennt nach <strong>einfachen Nutzern</strong> (kein Boot), <strong>Eignern</strong> (mind. 1 Boot) und <strong>Providern</strong> (Betrieb/Team). Ein User zählt in genau einem Segment (Priorität Provider&nbsp;&gt;&nbsp;Eigner&nbsp;&gt;&nbsp;einfach).
+                    </p>
+                    <div id="user-growth-kpis" class="stats-grid" style="margin-bottom:18px;"></div>
+                    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:18px;">
+                        <div style="font-size:13px; color:#475569; margin-bottom:10px;">Kumulierte Registrierungen (letzte 12 Monate)</div>
+                        <div style="position:relative; height:280px;"><canvas id="user-growth-chart"></canvas></div>
+                    </div>
+                    <div id="user-activity-table"></div>
+                </div>
+
+                <h2 style="margin-top:28px;">Letzte Aktivitäten</h2>
                 <div id="recent-activity-list" class="activity-list">
                     <p>Keine Aktivitäten</p>
                 </div>
+            </div>
+
+            <!-- Registrierungen (Outreach-Erfolg) Page -->
+            <div id="registrations-page" class="page">
+                <h1>📬 Registrierungen</h1>
+                <p class="subtitle">Wer von den angeschriebenen Betrieben hat sich registriert — und wer kam organisch dazu?</p>
+                <div style="display:flex; gap:8px; align-items:center; margin:8px 0 16px;">
+                    <button class="btn-secondary" onclick="window.loadRegistrations(true)" style="padding:8px 12px;">🔄 Neu laden</button>
+                    <span id="registrations-hint" style="font-size:12px; color:#94a3b8;"></span>
+                </div>
+                <div id="registrations-kpis" class="stats-grid" style="margin-bottom:20px;"></div>
+
+                <h2 style="margin-top:8px;">✅ Angeschrieben &amp; registriert</h2>
+                <p style="font-size:13px; color:#64748b; margin:2px 0 10px;">Betriebe mit Outreach-Mail (CleverReach) <strong>und</strong> abgeschlossener Registrierung/Claim.</p>
+                <div id="reg-contacted-list" style="overflow-x:auto;"></div>
+
+                <h2 style="margin-top:24px;">🌱 Organisch registriert (nicht angeschrieben)</h2>
+                <p style="font-size:13px; color:#64748b; margin:2px 0 10px;">Betriebe, die sich registriert/geclaimt haben, <strong>ohne</strong> vorher per CleverReach angeschrieben worden zu sein.</p>
+                <div id="reg-organic-list" style="overflow-x:auto;"></div>
             </div>
 
             <!-- Neue Betriebe Page -->
@@ -2186,7 +2227,7 @@
                         <option value="180">Letzte 6 Monate</option>
                         <option value="365">Letzte 12 Monate</option>
                     </select>
-                    <button class="btn-secondary" onclick="window.loadMarketAnalysis()" style="padding:8px 12px;">🔄 Neu laden</button>
+                    <button class="btn-secondary" onclick="window.openMarketAnalysis({force:true})" style="padding:8px 12px;">🔄 Neu laden</button>
                     <button class="btn-primary" onclick="window.runMarketSnapshot()" id="snapshot-now-btn" style="padding:8px 14px;">📸 Snapshot jetzt</button>
                     <span id="market-last-update" style="font-size:12px; color:#94a3b8; margin-left:auto;"></span>
                 </div>
@@ -2293,7 +2334,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260724-geogoogle"></script>
+    <script src="app.js?v=20260829-registrations-segments-4"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;

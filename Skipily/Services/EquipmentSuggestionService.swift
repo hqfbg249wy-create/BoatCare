@@ -47,6 +47,7 @@ final class EquipmentSuggestionService {
         let boat: BoatPart
         let existing_equipment: [EquipmentPart]
         let lang: String
+        let userLocale: String   // echte Gerätesprache (BCP-47) für die KI-Antwort
         let focus: FocusPart?
     }
 
@@ -79,6 +80,7 @@ final class EquipmentSuggestionService {
                 .init(name: $0.name, category: $0.category)
             },
             lang: LanguageManager.shared.currentLanguage.code,
+            userLocale: LanguageManager.shared.aiResponseLocale,
             focus: focus.map {
                 .init(
                     name: $0.name,

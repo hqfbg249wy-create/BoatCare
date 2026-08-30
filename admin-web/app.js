@@ -494,11 +494,284 @@ async function loadDashboard() {
 
         // Lade letzte Aktivitäten
         await loadRecentActivity();
+        // Feature 3: Nutzerentwicklung & Aktivität (best-effort, blockiert das
+        // Dashboard nicht bei fehlenden Rechten).
+        loadUserGrowth();
     } catch (error) {
         console.error('❌ Dashboard Fehler:', error);
         alert('Fehler beim Laden des Dashboards: ' + error.message);
     }
 }
+
+// ============================================================
+// Feature 3: Nutzerentwicklung & Aktivität — Dashboard-Segmente
+//   Datenquelle: RPC admin_list_users (created_at, last_sign_in_at,
+//   boats_count, orders_count) + service_providers/provider_members für die
+//   Provider-Rolle. Segmente sind exklusiv: Provider > Eigner > Einfach.
+// ============================================================
+let _userGrowthChart = null;
+
+async function _fetchUsersWithSegments() {
+    // PostgREST kappt auch RPC-Ergebnisse bei 1000 Zeilen → paginieren.
+    const users = [];
+    for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabaseClient
+            .rpc('admin_list_users').range(from, from + 999);
+        if (error) throw error;
+        users.push(...(data || []));
+        if (!data || data.length < 1000) break;
+    }
+    const providerIds = new Set();
+    try {
+        const { data: sp } = await supabaseClient
+            .from('service_providers').select('user_id').not('user_id', 'is', null);
+        (sp || []).forEach(r => r.user_id && providerIds.add(r.user_id));
+    } catch (e) { console.warn('service_providers (Rollen) nicht lesbar:', e?.message); }
+    try {
+        const { data: pm } = await supabaseClient
+            .from('provider_members').select('user_id').not('user_id', 'is', null);
+        (pm || []).forEach(r => r.user_id && providerIds.add(r.user_id));
+    } catch (e) { /* provider_members evtl. nicht admin-lesbar — egal */ }
+
+    users.forEach(u => {
+        const isProvider = providerIds.has(u.id);
+        const isOwner    = Number(u.boats_count) > 0;
+        u.segment = isProvider ? 'provider' : (isOwner ? 'owner' : 'simple');
+    });
+    return users;
+}
+
+async function loadUserGrowth() {
+    const hint = document.getElementById('user-growth-hint');
+    const kpis = document.getElementById('user-growth-kpis');
+    if (!kpis) return;
+    try {
+        const users = await _fetchUsersWithSegments();
+        const now = Date.now();
+        const DAY = 86400000;
+        const within = (ts, days) => ts && (now - new Date(ts).getTime()) <= days * DAY;
+
+        const SEG = [
+            { key: 'simple',   label: 'Einfache Nutzer', icon: '🙋', color: '#2563eb' },
+            { key: 'owner',    label: 'Eigner',          icon: '⛵', color: '#16a34a' },
+            { key: 'provider', label: 'Provider',        icon: '🏢', color: '#9333ea' },
+        ];
+
+        // KPI-Kacheln je Segment: Gesamt · neu 30T · aktiv 30T
+        kpis.innerHTML = SEG.map(s => {
+            const list   = users.filter(u => u.segment === s.key);
+            const total  = list.length;
+            const new30  = list.filter(u => within(u.created_at, 30)).length;
+            const act30  = list.filter(u => within(u.last_sign_in_at, 30)).length;
+            const rate   = total ? Math.round(act30 / total * 100) : 0;
+            return `
+                <div class="stat-card" style="border-top:3px solid ${s.color};">
+                    <div class="stat-icon">${s.icon}</div>
+                    <div class="stat-value">${total}</div>
+                    <div class="stat-label">${s.label}</div>
+                    <div style="font-size:12px; color:#64748b; margin-top:6px; line-height:1.5;">
+                        <span title="Neu in den letzten 30 Tagen">🆕 +${new30} (30T)</span><br>
+                        <span title="Aktiv in den letzten 30 Tagen (letzter Login)">⚡ ${act30} aktiv · ${rate}%</span>
+                    </div>
+                </div>`;
+        }).join('');
+
+        // Kumulierte Registrierungen je Monat (letzte 12 Monate)
+        const months = [];
+        const d0 = new Date();
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(d0.getFullYear(), d0.getMonth() - i, 1);
+            months.push(d.toISOString().slice(0, 7)); // YYYY-MM
+        }
+        const datasets = SEG.map(s => {
+            const list = users.filter(u => u.segment === s.key);
+            const data = months.map(m =>
+                list.filter(u => u.created_at && u.created_at.slice(0, 7) <= m).length
+            );
+            return {
+                label: s.label, data,
+                borderColor: s.color, backgroundColor: s.color + '22',
+                tension: 0.25, fill: false, pointRadius: 2,
+            };
+        });
+
+        const canvas = document.getElementById('user-growth-chart');
+        if (canvas && window.Chart) {
+            if (_userGrowthChart) _userGrowthChart.destroy();
+            _userGrowthChart = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: { labels: months, datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+                },
+            });
+        }
+
+        // Aktivitäts-Tabelle: neu 7/30/90T · aktiv 7/30T · Boote/Bestellungen
+        const tableHost = document.getElementById('user-activity-table');
+        if (tableHost) {
+            const cell = (v) => `<td style="padding:10px; text-align:right;">${v}</td>`;
+            const rows = SEG.map(s => {
+                const list = users.filter(u => u.segment === s.key);
+                const n7  = list.filter(u => within(u.created_at, 7)).length;
+                const n30 = list.filter(u => within(u.created_at, 30)).length;
+                const n90 = list.filter(u => within(u.created_at, 90)).length;
+                const a7  = list.filter(u => within(u.last_sign_in_at, 7)).length;
+                const a30 = list.filter(u => within(u.last_sign_in_at, 30)).length;
+                const boats  = list.reduce((sum, u) => sum + Number(u.boats_count || 0), 0);
+                const orders = list.reduce((sum, u) => sum + Number(u.orders_count || 0), 0);
+                return `<tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:10px;"><strong>${s.icon} ${s.label}</strong></td>
+                    ${cell(n7)}${cell(n30)}${cell(n90)}${cell(a7)}${cell(a30)}${cell(boats)}${cell(orders)}
+                </tr>`;
+            }).join('');
+            tableHost.innerHTML = `
+                <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow-x:auto;">
+                    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                        <thead><tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0; text-align:right;">
+                            <th style="padding:10px; text-align:left;">Segment</th>
+                            <th style="padding:10px;">Neu 7T</th><th style="padding:10px;">Neu 30T</th><th style="padding:10px;">Neu 90T</th>
+                            <th style="padding:10px;">Aktiv 7T</th><th style="padding:10px;">Aktiv 30T</th>
+                            <th style="padding:10px;">Boote</th><th style="padding:10px;">Bestellungen</th>
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+        }
+
+        if (hint) hint.textContent = `${users.length} Nutzer · Stand ${new Date().toLocaleString('de-DE')}`;
+    } catch (e) {
+        console.warn('loadUserGrowth:', e?.message);
+        if (hint) hint.textContent = 'Nutzerdaten nicht verfügbar (Voll-Admin-Rolle nötig).';
+    }
+}
+window.loadUserGrowth = loadUserGrowth;
+
+// ============================================================
+// Feature 1 & 2: Registrierungs-Erfolg (Outreach)
+//   Angeschrieben (service_providers.cleverreach_synced_at) × registriert
+//   (profiles via admin_list_users), gematcht per E-Mail. NICHT über claim,
+//   weil sich Provider als Nutzer registrieren, ohne ihr Listing zu claimen.
+// ============================================================
+async function loadRegistrations(forceReload = false) {
+    const hint = document.getElementById('registrations-hint');
+    const kpis = document.getElementById('registrations-kpis');
+    const contactedHost = document.getElementById('reg-contacted-list');
+    const organicHost   = document.getElementById('reg-organic-list');
+    if (!kpis) return;
+    if (hint) hint.textContent = '⏳ Lade Betriebe…';
+
+    try {
+        // Datenmodell: Ein Provider „registriert" sich, indem er ein Konto
+        // anlegt (profiles) — NICHT indem er den service_providers-Eintrag
+        // „claimt" (das passiert fast nie: nur ~3). Deshalb matchen wir per
+        // E-MAIL: angeschriebene service_providers (cleverreach_synced_at)
+        // gegen registrierte Nutzer (profiles via admin_list_users).
+        const norm = e => (e || '').trim().toLowerCase();
+
+        // 1) Angeschriebene Betriebe (cleverreach_synced_at gesetzt) — paginiert.
+        const contacted = [];
+        for (let from = 0; ; from += 1000) {
+            const { data, error } = await supabaseClient
+                .from('service_providers')
+                .select('id,name,city,country,email,cleverreach_synced_at')
+                .not('cleverreach_synced_at', 'is', null)
+                .order('cleverreach_synced_at', { ascending: false })
+                .range(from, from + 999);
+            if (error) throw error;
+            contacted.push(...(data || []));
+            if (!data || data.length < 1000) break;
+        }
+
+        // 2) Registrierte Nutzer (profiles) — paginiert via RPC.
+        const users = [];
+        for (let from = 0; ; from += 1000) {
+            const { data, error } = await supabaseClient
+                .rpc('admin_list_users').range(from, from + 999);
+            if (error) throw error;
+            users.push(...(data || []));
+            if (!data || data.length < 1000) break;
+        }
+        const userByEmail = new Map();
+        users.forEach(u => { const k = norm(u.email); if (k) userByEmail.set(k, u); });
+        const contactedEmails = new Set(contacted.map(p => norm(p.email)).filter(Boolean));
+
+        // 3) Matching
+        //   angeschrieben & registriert = angeschriebener Betrieb, dessen
+        //     E-Mail einem registrierten Nutzer entspricht.
+        const contactedRegistered = contacted
+            .filter(p => p.email && userByEmail.has(norm(p.email)))
+            .map(p => ({ ...p, reg: userByEmail.get(norm(p.email)) }));
+        //   organisch = Provider-Konto, dessen E-Mail NICHT angeschrieben wurde.
+        const organic = users
+            .filter(u => u.role === 'provider' && !contactedEmails.has(norm(u.email)));
+
+        const contactedTotal = contacted.length;
+        const conversion = contactedTotal ? Math.round(contactedRegistered.length / contactedTotal * 100) : 0;
+
+        kpis.innerHTML = `
+            <div class="stat-card"><div class="stat-icon">📨</div>
+                <div class="stat-value">${contactedTotal}</div><div class="stat-label">Angeschrieben (CleverReach)</div></div>
+            <div class="stat-card" style="border-top:3px solid #16a34a;"><div class="stat-icon">✅</div>
+                <div class="stat-value">${contactedRegistered.length}</div><div class="stat-label">Angeschrieben &amp; registriert</div></div>
+            <div class="stat-card"><div class="stat-icon">📈</div>
+                <div class="stat-value">${conversion}%</div><div class="stat-label">Conversion-Rate</div></div>
+            <div class="stat-card" style="border-top:3px solid #9333ea;"><div class="stat-icon">🌱</div>
+                <div class="stat-value">${organic.length}</div><div class="stat-label">Organisch registriert</div></div>
+        `;
+
+        const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('de-DE') : '—';
+
+        // Tabelle „Angeschrieben & registriert"
+        if (contactedHost) {
+            const rows = contactedRegistered
+                .slice()
+                .sort((a, b) => new Date(b.reg?.created_at || 0) - new Date(a.reg?.created_at || 0));
+            contactedHost.innerHTML = rows.length ? `<table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <thead><tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0; text-align:left;">
+                    <th style="padding:10px;">Betrieb</th><th style="padding:10px;">Ort</th>
+                    <th style="padding:10px;">E-Mail</th><th style="padding:10px;">Angeschrieben</th>
+                    <th style="padding:10px;">Registriert</th>
+                </tr></thead><tbody>${rows.map(p => `
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:10px;"><strong>${escapeHtml(p.name || '—')}</strong></td>
+                        <td style="padding:10px;">${escapeHtml([p.city, p.country].filter(Boolean).join(', ') || '—')}</td>
+                        <td style="padding:10px; color:#64748b;">${escapeHtml(p.email || '—')}</td>
+                        <td style="padding:10px; color:#64748b;">${fmt(p.cleverreach_synced_at)}</td>
+                        <td style="padding:10px;">${fmt(p.reg?.created_at)}</td>
+                    </tr>`).join('')}</tbody></table>`
+                : '<p style="color:#94a3b8; padding:8px;">Keine Einträge.</p>';
+        }
+
+        // Tabelle „Organisch registriert" (Provider-Konten ohne Outreach)
+        if (organicHost) {
+            const rows = organic
+                .slice()
+                .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+            organicHost.innerHTML = rows.length ? `<table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <thead><tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0; text-align:left;">
+                    <th style="padding:10px;">Name</th><th style="padding:10px;">E-Mail</th>
+                    <th style="padding:10px;">Registriert</th>
+                </tr></thead><tbody>${rows.map(u => `
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:10px;"><strong>${escapeHtml(u.full_name || '—')}</strong></td>
+                        <td style="padding:10px; color:#64748b;">${escapeHtml(u.email || '—')}</td>
+                        <td style="padding:10px;">${fmt(u.created_at)}</td>
+                    </tr>`).join('')}</tbody></table>`
+                : '<p style="color:#94a3b8; padding:8px;">Keine Einträge.</p>';
+        }
+
+        if (hint) hint.textContent = `${contactedTotal} angeschrieben · ${users.length} registrierte Nutzer · Stand ${new Date().toLocaleString('de-DE')}`;
+    } catch (e) {
+        console.error('loadRegistrations:', e);
+        if (hint) hint.textContent = 'Fehler: ' + (e?.message || e);
+        if (contactedHost) contactedHost.innerHTML = `<p style="color:#dc2626;">Fehler beim Laden: ${escapeHtml(e?.message || String(e))}</p>`;
+    }
+}
+window.loadRegistrations = loadRegistrations;
 
 // ============================================
 // NEUE BETRIEBE (von Nutzern eingereicht: user_id IS NOT NULL)
@@ -8291,8 +8564,8 @@ function renderUsers(users) {
                     ${!isReadonly
                         ? `<button onclick="window.grantPlusPrompt('${u.id}', '${escapeHtml(u.email || '')}')"
                                    style="padding:6px 10px; background:#f3e8ff; color:#7e22ce; border:1px solid #e9d5ff; border-radius:6px; font-size:12px; cursor:pointer; margin-right:6px;"
-                                   title="Skipily Plus gewähren (z.B. Custom-Vertrag bei mehr als 10 Booten)">
-                            ⭐ Plus
+                                   title="Skipily-Abo gewähren: Basic oder Plus (z.B. Custom-Vertrag bei mehr als 10 Booten)">
+                            ⭐ Abo
                           </button>
                           <button onclick="window.revokePlusPrompt('${u.id}', '${escapeHtml(u.email || '')}')"
                                    style="padding:6px 10px; background:#fef3c7; color:#854d0e; border:1px solid #fde68a; border-radius:6px; font-size:12px; cursor:pointer; margin-right:6px;"
@@ -8383,17 +8656,19 @@ window.sendPasswordReset = sendPasswordReset;
 // ─── Skipily-Plus für User gewähren (Custom-Vertrag oder Test) ──────────
 async function grantPlusPrompt(userId, email) {
     const plan = prompt(
-        `Skipily-Plus für "${email}" gewähren.\n\n` +
+        `Skipily-Abo für "${email}" gewähren.\n\n` +
         `Welcher Plan?\n` +
-        `  1 = Individual (1 User, alle Boote)\n` +
-        `  2 = Family (1 Boot, bis 5 User)\n` +
-        `  3 = Fleet (1 User, bis 4 Boote)\n` +
-        `  4 = Enterprise (Custom, viele Boote)\n\n` +
-        `Bitte 1-4 eingeben:`,
+        `  0 = Basic (günstiger Tarif, 1 User/1 Boot)\n` +
+        `  1 = Plus Individual (1 User, alle Boote)\n` +
+        `  2 = Plus Family (1 Boot, bis 5 User)\n` +
+        `  3 = Plus Fleet (1 User, bis 4 Boote)\n` +
+        `  4 = Plus Enterprise (Custom, viele Boote)\n\n` +
+        `Bitte 0-4 eingeben:`,
         '1'
     );
     if (!plan) return;
     const planMap = {
+        '0': 'basic',
         '1': 'plus_individual',
         '2': 'plus_family',
         '3': 'plus_fleet',
@@ -8688,6 +8963,36 @@ async function loadMarketAnalysis() {
     }
 }
 window.loadMarketAnalysis = loadMarketAnalysis;
+
+// Öffnet die Marktanalyse und sorgt dafür, dass die Zahlen AKTUELL sind.
+// Die Ansicht liest Tages-Snapshots (market_snapshots) — ohne frischen
+// Snapshot „reagiert sie nicht auf Veränderungen". Deshalb erzeugen wir beim
+// Öffnen automatisch einen Snapshot für HEUTE, falls noch keiner existiert
+// (idempotent dank Dedup). Mit force=true (Button „Neu laden") wird immer
+// neu berechnet. Fehlt die Voll-Admin-Rolle (admin_readonly), wird der
+// Snapshot übersprungen und der letzte vorhandene Stand angezeigt.
+async function openMarketAnalysis({ force = false } = {}) {
+    const banner = document.getElementById('market-last-update');
+    try {
+        let needSnapshot = force;
+        if (!force) {
+            const rows  = await _fetchTrend('users_total', 2, 'all');
+            const latest = rows.reduce((m, r) => r.snapshot_date > m ? r.snapshot_date : m, '');
+            const today  = new Date().toISOString().slice(0, 10);
+            needSnapshot = latest !== today;
+        }
+        if (needSnapshot) {
+            if (banner) banner.textContent = '⏳ Aktualisiere Snapshot …';
+            const { error } = await supabaseClient.rpc('admin_run_market_snapshot');
+            if (error) throw error;
+        }
+    } catch (err) {
+        // Kein Voll-Admin oder Snapshot-Fehler → letzten Stand anzeigen.
+        console.warn('Marktanalyse Auto-Snapshot übersprungen:', err.message);
+    }
+    await loadMarketAnalysis();
+}
+window.openMarketAnalysis = openMarketAnalysis;
 
 async function runMarketSnapshot() {
     const btn = document.getElementById('snapshot-now-btn');
@@ -10662,7 +10967,8 @@ function buildDatevCsv(buchungen) {
         origNav.apply(this, arguments);
         if (page === 'invite-admin')      loadAdminList();
         if (page === 'users')             loadUsers();
-        if (page === 'market-analysis')   loadMarketAnalysis();
+        if (page === 'market-analysis')   openMarketAnalysis();
+        if (page === 'registrations')     loadRegistrations();
         if (page === 'review-moderation') loadModerationQueue();
         if (page === 'subscriptions')     loadSubscriptions();
         if (page === 'customers')         loadCustomers();

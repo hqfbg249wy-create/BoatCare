@@ -978,6 +978,8 @@ Ausrüstung unter Boote ergänzen.";
 "referral.cap" = "Jahres-Cap erreicht (12 Empfehlungen). Neue Empfehlungen werden ab Januar wieder gutgeschrieben.";
 "profile.plus.active" = "AKTIV";
 "profile.plus.activeSubtitle" = "Dein Abo ist aktiv – KI-Assistent, Foto-Analyse & mehr.";
+"profile.plus.grantedBySkipily" = "Über Skipily freigeschaltet – keine Verwaltung bei Apple nötig.";
+
 "profile.plus.manage" = "Abo verwalten / kündigen";
 "referral.share.message" = "Ich nutze Skipily für mein Boot — Wartung, Equipment-Inventar, Shop und KI-Assistent in einer App. Wenn du dich anmeldest und meinen Empfehlungs-Code eingibst, bekommen wir beide einen Monat Skipily Plus geschenkt.\n\nMein Code: %@\n\nApp laden: https://apps.apple.com/app/skipily";
 
@@ -1108,4 +1110,9 @@ Ausrüstung unter Boote ergänzen.";
 "profile.plan.monthly" = "Monatlich";
 "profile.plan.yearly" = "Jährlich";
 "plus.sheet.loading" = "Pläne werden geladen …";
-"profile.plus.headerSub" = "Schon ab 1,99 €/Monat – Basic oder Plus";
+"profile.plus.headerSub" = "Basic oder Plus – monatlich oder jährlich kündbar";
+
+"plus.sheet.perMonth" = "/ Monat";
+"plus.sheet.perYear" = "/ Jahr";
+
+"plus.sheet.freeTrial" = "%@ gratis testen";

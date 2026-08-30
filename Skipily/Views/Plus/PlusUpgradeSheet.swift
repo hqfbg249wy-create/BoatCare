@@ -296,18 +296,25 @@ struct PlusUpgradeSheet: View {
               deviceCurrency=\(Locale.current.currency?.identifier ?? "nil")
             """)
 
-        // Fallback: wenn currencyCode nicht zur Device-Storefront passt,
-        // re-formatieren mit Device-Locale (behaelt currencyCode aus Product)
-        var fallbackStyle = style
-        fallbackStyle.locale = .current
-        return product.price.formatted(fallbackStyle)
+        // Fix: Wenn die vom Produkt gemeldete Währung NICHT zur Geräte-
+        // Storefront passt (bekannter StoreKit-Cache-Bug bei Country-Price-
+        // Overrides → meldet Base-Currency USD), auf die Storefront-Währung
+        // des Geräts umstellen. Nur die Locale zu ändern reicht NICHT — das
+        // Währungssymbol ($) kommt aus dem currencyCode. Apple bucht ohnehin
+        // in der Storefront-Währung ab, daher ist der Betrag korrekt.
+        if let deviceCurrency = Locale.current.currency?.identifier,
+           style.currencyCode != deviceCurrency {
+            AppLog.info("PRICE FIX \(product.id): \(style.currencyCode) → \(deviceCurrency)")
+            return product.price.formatted(.currency(code: deviceCurrency).locale(.current))
+        }
+        return product.price.formatted(style)
     }
 
     @ViewBuilder
     private func priceRow(tier: PlanTier, period: BillingPeriod, product current: StoreKit.Product) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(formattedPrice(current)).font(.title2.bold())
-            Text(period == .yearly ? "/ Jahr" : "/ Monat")
+            Text(period == .yearly ? "plus.sheet.perYear".loc : "plus.sheet.perMonth".loc)
                 .font(.subheadline).foregroundStyle(.secondary)
             Spacer()
             // Bei Jahres-Auswahl: Sparbetrag im Vergleich zum Monats-Plan
@@ -393,16 +400,23 @@ struct PlusUpgradeSheet: View {
         guard manager.introEligibleProductIDs.contains(product.id),
               let offer = product.subscription?.introductoryOffer,
               offer.paymentMode == .freeTrial else { return nil }
+        // Zeitraum lokalisiert formatieren (z.B. "7 Tage" / "7 days" / "7 jours")
+        // — DateComponentsFormatter übersetzt Einheit + Plural automatisch.
         let period = offer.period
-        let unitText: String
+        var comps = DateComponents()
         switch period.unit {
-        case .day:   unitText = period.value == 1 ? "Tag" : "Tage"
-        case .week:  unitText = period.value == 1 ? "Woche" : "Wochen"
-        case .month: unitText = period.value == 1 ? "Monat" : "Monate"
-        case .year:  unitText = period.value == 1 ? "Jahr" : "Jahre"
+        case .day:   comps.day = period.value
+        case .week:  comps.weekOfMonth = period.value
+        case .month: comps.month = period.value
+        case .year:  comps.year = period.value
         @unknown default: return nil
         }
-        return "\(period.value) \(unitText) gratis testen"
+        let fmt = DateComponentsFormatter()
+        fmt.unitsStyle = .full
+        fmt.allowedUnits = [.day, .weekOfMonth, .month, .year]
+        fmt.maximumUnitCount = 1
+        let periodText = fmt.string(from: comps) ?? "\(period.value)"
+        return String(format: "plus.sheet.freeTrial".loc, periodText)
     }
 
     // MARK: - Kauf

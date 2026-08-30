@@ -200,7 +200,10 @@ Deno.serve(async (req) => {
     }
 
     // Request Body parsen
-    const { messages, boatContext, lang, providerId } = await req.json();
+    const { messages, boatContext, lang, providerId, userLocale } = await req.json();
+    // `lang` = eine der 6 UI-Sprachen (für Shop-Label-Defaults). `userLocale`
+    // = echte Gerätesprache (BCP-47, z.B. "pt-BR", "pl") → die KI antwortet
+    // darin, auch außerhalb der UI-Sprachen.
     const userLang: string = (typeof lang === "string" && ["de","en","fr","es","it","nl"].includes(lang)) ? lang : "de";
 
     // ── AI-Quota-Check vor dem teuren API-Call
@@ -224,6 +227,20 @@ Deno.serve(async (req) => {
       es: "Spanish", it: "Italian", nl: "Dutch",
     };
 
+    // Antwortsprache dynamisch aus der echten Gerätesprache ableiten — KEINE
+    // harte Whitelist mehr. Claude beherrscht ~alle Sprachen, daher folgt die
+    // KI dem Land des Nutzers (z.B. Portugiesisch, Polnisch, Schwedisch).
+    // `respondLangName` = englischer Sprachname für den Prompt (z.B. "Polish").
+    const localeTag: string = (typeof userLocale === "string" && userLocale.trim())
+      ? userLocale.trim()
+      : userLang;
+    const primarySubtag = localeTag.split(/[-_]/)[0].toLowerCase();
+    let respondLangName = LANG_NAMES[primarySubtag] ?? LANG_NAMES[userLang] ?? "German";
+    try {
+      const dn = new Intl.DisplayNames(["en"], { type: "language" }).of(primarySubtag);
+      if (dn && dn.toLowerCase() !== primarySubtag) respondLangName = dn;
+    } catch (_e) { /* Intl-Fallback: LANG_NAMES bleibt gültig */ }
+
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(
         JSON.stringify({ error: "Keine Nachrichten angegeben" }),
@@ -237,7 +254,7 @@ Deno.serve(async (req) => {
     // erneute Verarbeiten und senkt Latenz, ohne die Antwortqualität zu ändern.
     let dynamicSystem = "";
     // Antwortsprache zwingend setzen (überschreibt jede Eingabe-Sprache des Users)
-    dynamicSystem += `\n\nIMPORTANT: Always respond in ${LANG_NAMES[userLang]} regardless of the language of the user's message. Use proper marine/sailing terminology native to that language.`;
+    dynamicSystem += `\n\nIMPORTANT: Always respond in ${respondLangName} regardless of the language of the user's message. Use proper marine/sailing terminology native to that language.`;
     if (boatContext?.boats && Array.isArray(boatContext.boats) && boatContext.boats.length > 0) {
       const boatDescriptions = boatContext.boats.map((boat: Record<string, unknown>, i: number) => {
         const parts: string[] = [];
@@ -297,7 +314,7 @@ Deno.serve(async (req) => {
     // Antwortsprache FINAL erzwingen — muss die LETZTE Anweisung im System-Prompt
     // sein, damit weder der deutsche Basis-Prompt (Expertise-Liste) noch die
     // deutschen Few-Shot-Beispiele die Ausgabesprache überschreiben.
-    dynamicSystem += `\n\n=== VERBINDLICHE AUSGABESPRACHE ===\nAntworte AUSSCHLIESSLICH auf ${LANG_NAMES[userLang]} (${userLang}). Das gilt unabhängig von der Sprache der obigen Anweisungen, der Lernbeispiele und der Nutzernachricht. Verwende die in ${LANG_NAMES[userLang]} übliche maritime Fachterminologie.`;
+    dynamicSystem += `\n\n=== VERBINDLICHE AUSGABESPRACHE ===\nAntworte AUSSCHLIESSLICH auf ${respondLangName} (${localeTag}). Das gilt unabhängig von der Sprache der obigen Anweisungen, der Lernbeispiele und der Nutzernachricht. Verwende die in ${respondLangName} übliche maritime Fachterminologie.`;
 
     // Claude API aufrufen
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");

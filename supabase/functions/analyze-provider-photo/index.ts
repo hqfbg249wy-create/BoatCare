@@ -68,14 +68,24 @@ Deno.serve(async (req) => {
     if (!userId) return json({ error: "Nicht authentifiziert" }, 401);
 
     const body = await req.json().catch(() => ({}));
-    const { image_base64, media_type, lang } = body ?? {};
+    const { image_base64, media_type, lang, userLocale } = body ?? {};
 
     if (typeof image_base64 !== "string" || image_base64.length < 100) {
       return json({ error: "image_base64 fehlt" }, 400);
     }
     const mediaType = ALLOWED_MEDIA.includes(String(media_type)) ? String(media_type) : "image/jpeg";
     const userLang: Lang = (typeof lang === "string" && SUPPORTED_LANGS.includes(lang)) ? lang : "de";
-    const langName = LANG_NAMES[userLang];
+    // Soft-coded: echte Gerätesprache (userLocale) bestimmt die KI-Antwort­sprache
+    // — keine harte 6-Sprachen-Whitelist mehr; Claude beherrscht ~alle Sprachen.
+    let langName: string = LANG_NAMES[userLang];
+    {
+      const _tag = (typeof userLocale === "string" && userLocale.trim()) ? userLocale.trim() : userLang;
+      const _prim = _tag.split(/[-_]/)[0].toLowerCase();
+      try {
+        const _dn = new Intl.DisplayNames(["en"], { type: "language" }).of(_prim);
+        if (_dn && _dn.toLowerCase() !== _prim) langName = _dn;
+      } catch (_e) { /* Whitelist-Name bleibt gültig */ }
+    }
 
     // ── AI-Quota-Check vor dem teuren API-Call
     const quota = await checkAiQuota({ userId, providerId: null, feature: "photo_analysis" });

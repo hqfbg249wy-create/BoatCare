@@ -172,6 +172,9 @@ class AuthService: ObservableObject {
         isAuthenticated = false
         currentUser = nil
         userProfile = nil
+        // Backend-Tier zurücksetzen, damit kein Rest-Entitlement des alten
+        // Accounts stehen bleibt (StoreKit-Käufe bleiben gerätegebunden).
+        await PlusSubscriptionManager.shared.refreshBackendEntitlement()
     }
 
     /// Permanently delete the current user's account and all associated data.
@@ -351,6 +354,10 @@ class AuthService: ObservableObject {
         } catch {
             AppLog.error("Failed to load profile: \(error)")
         }
+        // Abo-Status aus dem Backend spiegeln (Admin-Grants + geräteüber-
+        // greifende Käufe), damit Feature-Gates app-weit korrekt greifen —
+        // auch ohne dass der User erst das Profil-Sheet öffnet.
+        await PlusSubscriptionManager.shared.refreshBackendEntitlement()
     }
 
     var isProfileComplete: Bool {

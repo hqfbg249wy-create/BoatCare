@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { boat, existing_equipment, lang, providerId, focus } = body ?? {};
+    const { boat, existing_equipment, lang, providerId, focus, userLocale } = body ?? {};
     // focus (optional): ein konkretes Gerät, dessen typische Ersatz-/
     // Verschleißteile vorgeschlagen werden sollen (z.B. Motor "Yanmar 3JH5E"
     // → Impeller, Seewasserpumpe, Ölfilter, Dieselvorfilter …).
@@ -98,7 +98,17 @@ Deno.serve(async (req) => {
     }
 
     const userLang: Lang = (typeof lang === "string" && SUPPORTED_LANGS.includes(lang)) ? lang : "de";
-    const langName = LANG_NAMES[userLang];
+    // Soft-coded: echte Gerätesprache (userLocale) bestimmt die KI-Antwort­sprache
+    // — keine harte 6-Sprachen-Whitelist mehr; Claude beherrscht ~alle Sprachen.
+    let langName: string = LANG_NAMES[userLang];
+    {
+      const _tag = (typeof userLocale === "string" && userLocale.trim()) ? userLocale.trim() : userLang;
+      const _prim = _tag.split(/[-_]/)[0].toLowerCase();
+      try {
+        const _dn = new Intl.DisplayNames(["en"], { type: "language" }).of(_prim);
+        if (_dn && _dn.toLowerCase() !== _prim) langName = _dn;
+      } catch (_e) { /* Whitelist-Name bleibt gültig */ }
+    }
 
     if (!boat || typeof boat !== "object") {
       return json({ error: "boat ist Pflicht" }, 400);

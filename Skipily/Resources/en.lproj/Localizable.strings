@@ -975,6 +975,8 @@
 "referral.cap" = "Yearly cap reached (12 referrals). New referrals will be credited again from January.";
 "profile.plus.active" = "ACTIVE";
 "profile.plus.activeSubtitle" = "Your subscription is active – AI assistant, photo analysis & more.";
+"profile.plus.grantedBySkipily" = "Unlocked via Skipily – no Apple management needed.";
+
 "profile.plus.manage" = "Manage / cancel subscription";
 "referral.share.message" = "I use Skipily for my boat — maintenance, equipment inventory, shop and an AI assistant in one app. If you sign up and enter my referral code, we both get one month of Skipily Plus free.\n\nMy code: %@\n\nGet the app: https://apps.apple.com/app/skipily";
 
@@ -1105,4 +1107,9 @@
 "profile.plan.monthly" = "Monthly";
 "profile.plan.yearly" = "Yearly";
 "plus.sheet.loading" = "Loading plans …";
-"profile.plus.headerSub" = "From €1.99/month – Basic or Plus";
+"profile.plus.headerSub" = "Basic or Plus – cancel monthly or yearly";
+
+"plus.sheet.perMonth" = "/ month";
+"plus.sheet.perYear" = "/ year";
+
+"plus.sheet.freeTrial" = "%@ free trial";

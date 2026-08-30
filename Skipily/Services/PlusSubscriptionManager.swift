@@ -16,6 +16,7 @@
 import Foundation
 import Combine       // für @Published / ObservableObject
 import StoreKit
+import Supabase      // Backend-Entitlement (RPC user_ai_tier) + Access-Token
 
 /// Abo-Stufe des Bootseigners (Phase 1). Reihenfolge = Wertigkeit.
 enum SubscriptionTier: Int, Comparable {
@@ -41,6 +42,12 @@ final class PlusSubscriptionManager: ObservableObject {
 
     @Published private(set) var products: [StoreKit.Product] = []
     @Published private(set) var purchasedProductIDs: Set<String> = []
+    /// Tier laut Backend (`user_subscriptions` via RPC `user_ai_tier`).
+    /// Deckt Fälle ab, die StoreKit LOKAL NICHT kennt — insbesondere
+    /// kostenlose Admin-Freischaltungen (Custom-Verträge) und Käufe, die auf
+    /// einem anderen Gerät getätigt und serverseitig verbucht wurden.
+    /// Das effektive `tier` ist das MAXIMUM aus StoreKit und Backend.
+    @Published private(set) var backendTier: SubscriptionTier = .free
     /// Produkt-IDs, für die der aktuelle Account TATSÄCHLICH noch für das
     /// Intro-Offer (Gratis-Trial) berechtigt ist. StoreKit liefert
     /// `introductoryOffer` auch dann, wenn der Trial bereits verbraucht wurde —
@@ -68,6 +75,7 @@ final class PlusSubscriptionManager: ObservableObject {
             let storeProducts = try await StoreKit.Product.products(for: Self.productIDs)
             self.products = storeProducts.sorted { $0.price < $1.price }
             await refreshPurchasedState()
+            await refreshBackendEntitlement()
             await refreshIntroEligibility()
 
             // Hilfreiche Diagnose: wenn App Store Connect die Produkte nicht
@@ -156,12 +164,25 @@ final class PlusSubscriptionManager: ObservableObject {
         self.purchasedProductIDs = active
     }
 
-    /// KI-/Feature-Stufe des aktuellen Accounts (aus den aktiven Käufen).
-    /// Plus hat Vorrang vor Basic.
-    var tier: SubscriptionTier {
+    /// Tier NUR aus den lokalen StoreKit-Käufen. Plus hat Vorrang vor Basic.
+    var storeKitTier: SubscriptionTier {
         if !purchasedProductIDs.isDisjoint(with: Self.plusIDs)  { return .plus }
         if !purchasedProductIDs.isDisjoint(with: Self.basicIDs) { return .basic }
         return .free
+    }
+
+    /// Effektive KI-/Feature-Stufe des Accounts: das Maximum aus StoreKit
+    /// (lokaler Kauf) und Backend (`user_subscriptions`, inkl. Admin-Grants).
+    var tier: SubscriptionTier {
+        max(storeKitTier, backendTier)
+    }
+
+    /// Aktives Abo existiert nur im Backend, nicht in StoreKit — typisch für
+    /// eine kostenlose Admin-Freischaltung. Dann gibt es KEIN Apple-Abo zum
+    /// Verwalten; die UI zeigt einen entsprechenden Hinweis statt des
+    /// „Bei Apple verwalten"-Buttons.
+    var isBackendOnlyGrant: Bool {
+        storeKitTier == .free && backendTier != .free
     }
 
     /// Plus-Stufe aktiv (4,99): stärkere KI, Family, Excel-Import, Wartungsreport.
@@ -169,6 +190,37 @@ final class PlusSubscriptionManager: ObservableObject {
 
     /// Irgendein bezahltes Abo aktiv (Basic ODER Plus): Foto-Analyse, SKIPILY-Rabatte.
     var hasPaidTier: Bool { tier != .free }
+
+    // MARK: - Backend-Entitlement (Admin-Grants + geräteübergreifende Käufe)
+    /// Fragt `user_ai_tier` in Supabase ab und spiegelt das Ergebnis nach
+    /// `backendTier`. So werden kostenlose Admin-Freischaltungen und auf
+    /// anderen Geräten getätigte Käufe in der App sichtbar, obwohl StoreKit
+    /// sie lokal nicht kennt. Bei fehlender Session (nicht eingeloggt) bleibt
+    /// `backendTier` unverändert bzw. free.
+    func refreshBackendEntitlement() async {
+        let client = SupabaseManager.shared.client
+        guard let uid = try? await client.auth.session.user.id else {
+            // Nicht eingeloggt → kein Backend-Entitlement.
+            self.backendTier = .free
+            return
+        }
+        do {
+            let tierStr: String = try await client
+                .rpc("user_ai_tier", params: ["p_user_id": uid.uuidString])
+                .execute()
+                .value
+            switch tierStr {
+            case "plus":  self.backendTier = .plus
+            case "basic": self.backendTier = .basic
+            default:      self.backendTier = .free
+            }
+            AppLog.info("PlusManager: backendTier = \(tierStr)")
+        } catch {
+            // Netz-/Decode-Fehler dürfen den lokalen StoreKit-Status nicht
+            // verschlechtern — backendTier bleibt wie er war.
+            AppLog.warning("PlusManager.refreshBackendEntitlement: \(error.localizedDescription)")
+        }
+    }
 
     // MARK: - Intro-Offer-Eligibility (Gratis-Trial) ermitteln
     /// Prüft pro Produkt, ob der aktuelle Account noch für das Intro-Offer
@@ -255,13 +307,11 @@ final class PlusSubscriptionManager: ObservableObject {
     }
 }
 
-// MARK: - Auth-Helper Stub
-/// Bitte durch die echte Implementation deines AuthService ersetzen, sobald
-/// die Plus-Sheet in die App eingebunden wird.
-///   z.B.   return AuthService.shared.currentSession?.accessToken
+// MARK: - Auth-Helper
+/// Liefert das aktuelle Supabase-Access-Token für den Backend-Sync der
+/// StoreKit-Transaktionen. Ohne gültige Session (nicht eingeloggt) `nil`.
 private enum SupabaseAuthHelper {
     static func currentAccessToken() async -> String? {
-        // TODO: An den echten AuthService anbinden
-        return nil
+        try? await SupabaseManager.shared.client.auth.session.accessToken
     }
 }

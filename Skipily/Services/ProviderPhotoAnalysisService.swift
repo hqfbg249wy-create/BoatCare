@@ -43,6 +43,7 @@ final class ProviderPhotoAnalysisService {
         let image_base64: String
         let media_type: String
         let lang: String
+        let userLocale: String   // echte Gerätesprache (BCP-47) für die KI-Antwort
     }
 
     /// Skaliert das Foto, schickt es an die Edge Function und gibt die
@@ -58,7 +59,8 @@ final class ProviderPhotoAnalysisService {
         let body = RequestBody(
             image_base64: jpeg.base64EncodedString(),
             media_type: "image/jpeg",
-            lang: LanguageManager.shared.currentLanguage.code
+            lang: LanguageManager.shared.currentLanguage.code,
+            userLocale: LanguageManager.shared.aiResponseLocale
         )
 
         let result: Result = try await client.functions.invoke(
