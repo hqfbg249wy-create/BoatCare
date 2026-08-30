@@ -75,6 +75,9 @@ final class PlusSubscriptionManager: ObservableObject {
             let storeProducts = try await StoreKit.Product.products(for: Self.productIDs)
             self.products = storeProducts.sorted { $0.price < $1.price }
             await refreshPurchasedState()
+            // Bestehende Bindung dieses Kontos aktualisieren (Renewals) — legt
+            // keine neue an, daher kein Doppel-Abo bei Konto-Wechsel.
+            await reconcileEntitlements(intent: "sync")
             await refreshBackendEntitlement()
             await refreshIntroEligibility()
 
@@ -114,9 +117,11 @@ final class PlusSubscriptionManager: ObservableObject {
             // den wir an unser Backend schicken können.
             let signedJWS = verification.jwsRepresentation
             let transaction = try checkVerified(verification)
-            await syncWithBackend(jws: signedJWS)
+            // Aktiver Kauf → an DIESES Konto binden.
+            await syncWithBackend(jws: signedJWS, intent: "purchase")
             await transaction.finish()
             await refreshPurchasedState()
+            await refreshBackendEntitlement()
             return true
 
         case .userCancelled, .pending:
@@ -146,8 +151,26 @@ final class PlusSubscriptionManager: ObservableObject {
         do {
             try await AppStore.sync()
             await refreshPurchasedState()
+            // Explizite Nutzer-Aktion → Kauf an DIESES Konto binden (mit
+            // Cross-Account-Schutz im Backend). So holen sich Bestandskäufer
+            // (z.B. Kauf aus einer älteren App-Version) ihr Abo ins Konto.
+            await reconcileEntitlements(intent: "purchase")
+            await refreshBackendEntitlement()
         } catch {
             lastError = "Restore fehlgeschlagen: \(error.localizedDescription)"
+        }
+    }
+
+    /// Schickt alle aktuell gültigen StoreKit-Entitlements ans Backend.
+    /// `intent: "sync"` aktualisiert nur eine bereits bestehende Bindung dieses
+    /// Kontos (Renewals), legt aber NIE eine neue an. `intent: "purchase"`
+    /// bindet aktiv (Kauf/Restore).
+    private func reconcileEntitlements(intent: String) async {
+        for await result in StoreKit.Transaction.currentEntitlements {
+            guard case .verified(let tx) = result,
+                  tx.revocationDate == nil,
+                  (tx.expirationDate ?? .distantFuture) > Date() else { continue }
+            await syncWithBackend(jws: result.jwsRepresentation, intent: intent)
         }
     }
 
@@ -171,11 +194,16 @@ final class PlusSubscriptionManager: ObservableObject {
         return .free
     }
 
-    /// Effektive KI-/Feature-Stufe des Accounts: das Maximum aus StoreKit
-    /// (lokaler Kauf) und Backend (`user_subscriptions`, inkl. Admin-Grants).
-    var tier: SubscriptionTier {
-        max(storeKitTier, backendTier)
-    }
+    /// Effektive KI-/Feature-Stufe des ANGEMELDETEN KONTOS.
+    ///
+    /// Autorität ist das Backend (`user_subscriptions` ist pro Konto an die
+    /// Apple-Transaktion gebunden) — NICHT die lokale StoreKit-Entitlement.
+    /// Grund: StoreKit-Käufe hängen an der Apple-ID, nicht am Skipily-Konto.
+    /// Würde man StoreKit hier mit einbeziehen (`max`), erschiene derselbe Kauf
+    /// in JEDEM Skipily-Konto, das auf demselben Gerät/derselben Apple-ID
+    /// eingeloggt wird (Doppel-Abo-Bug). StoreKit dient nur zum Kauf, zum
+    /// Wiederherstellen und zum Aktualisieren der bereits gebundenen Zeile.
+    var tier: SubscriptionTier { backendTier }
 
     /// Aktives Abo existiert nur im Backend, nicht in StoreKit — typisch für
     /// eine kostenlose Admin-Freischaltung. Dann gibt es KEIN Apple-Abo zum
@@ -245,9 +273,11 @@ final class PlusSubscriptionManager: ObservableObject {
             for await update in StoreKit.Transaction.updates {
                 guard case .verified(let tx) = update else { continue }
                 let jws = update.jwsRepresentation
-                await MainActor.run {
-                    Task { await PlusSubscriptionManager.shared.syncWithBackend(jws: jws) }
-                }
+                // Passiver Hintergrund-Abgleich (Renewal/Refund/Family) →
+                // nur bestehende Bindung dieses Kontos aktualisieren, keine
+                // neue anlegen (verhindert Doppel-Abo bei Konto-Wechsel).
+                await PlusSubscriptionManager.shared.syncWithBackend(jws: jws, intent: "sync")
+                await PlusSubscriptionManager.shared.refreshBackendEntitlement()
                 await tx.finish()
             }
         }
@@ -265,7 +295,7 @@ final class PlusSubscriptionManager: ObservableObject {
     // MARK: - Backend-Sync
     /// Schickt den signierten JWS einer Transaktion an unsere Edge Function
     /// damit `user_subscriptions` aktualisiert wird.
-    private func syncWithBackend(jws: String) async {
+    private func syncWithBackend(jws: String, intent: String) async {
         do {
             guard let accessToken = await SupabaseAuthHelper.currentAccessToken() else {
                 AppLog.warning("PlusSync: kein Access-Token, abbruch")
@@ -283,7 +313,8 @@ final class PlusSubscriptionManager: ObservableObject {
             req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
             req.httpBody = try JSONSerialization.data(withJSONObject: [
                 "transaction_jws": jws,
-                "environment": Self.currentEnvironment()
+                "environment": Self.currentEnvironment(),
+                "intent": intent
             ])
 
             let (data, response) = try await URLSession.shared.data(for: req)
