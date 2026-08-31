@@ -37,7 +37,6 @@ private enum PlanTier: String, CaseIterable, Identifiable {
             return ["plus.tier.plus.ai".loc,
                     "plus.tier.plus.strongerAI".loc,
                     "plus.tier.plus.photo".loc,
-                    "plus.tier.plus.family".loc,
                     "plus.tier.plus.import".loc,
                     "plus.tier.plus.report".loc]
         }
