@@ -404,7 +404,7 @@ struct ChatScreen: View {
         }
         // Plus-Upgrade-Sheet bei aufgebrauchtem KI-Limit
         .sheet(isPresented: $showPlusUpgradeSheet) {
-            PlusUpgradeSheet(reason: "Du hast deine kostenlosen KI-Anfragen für diesen Monat aufgebraucht.")
+            PlusUpgradeSheet(reason: "Du hast deine 10 kostenlosen KI-Anfragen aufgebraucht.")
         }
         .onChange(of: cameraImage) { _, img in
             guard let img else { return }

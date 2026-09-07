@@ -437,5 +437,5 @@ struct PlusUpgradeSheet: View {
 }
 
 #Preview {
-    PlusUpgradeSheet(reason: "Du hast deine kostenlosen KI-Anfragen für diesen Monat aufgebraucht.")
+    PlusUpgradeSheet(reason: "Du hast deine 10 kostenlosen KI-Anfragen aufgebraucht.")
 }
