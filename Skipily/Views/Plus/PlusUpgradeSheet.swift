@@ -99,7 +99,7 @@ struct PlusUpgradeSheet: View {
                 }
                 .padding(.vertical)
             }
-            .navigationTitle("Skipily Plus")
+            .navigationTitle("Tarife")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
