@@ -1,0 +1,50 @@
+# Taeglicher Wartungs-Push
+#
+# Ruft die Supabase Edge Function `push-maintenance-due` einmal pro Tag auf.
+# Die Function findet Equipment-Wartungen, die HEUTE oder in genau 7 Tagen
+# faellig sind, und schickt dem jeweiligen Bootseigner einen APNs-Push
+# (ueber send-push). Ergaenzt die lokalen Erinnerungen (Plan A) fuer Nutzer,
+# die die App selten oeffnen.
+#
+# Benoetigte GitHub-Secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_URL                - z.B. https://<ref>.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY   - Service-Role-Key (Supabase → Project Settings → API)
+#
+# WICHTIG: Der Schedule greift erst, wenn diese Datei auf dem Default-Branch
+# (main) liegt. Manueller Test jederzeit: Actions → Run workflow.
+
+name: Daily Maintenance Push
+
+on:
+  schedule:
+    # Taeglich 07:00 UTC (= 08:00 MEZ / 09:00 MESZ)
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Wartungs-Push ausloesen
+        run: |
+          if [ -z "${{ secrets.SUPABASE_URL }}" ] || [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "❌ GitHub-Secrets fehlen: SUPABASE_URL und/oder SUPABASE_SERVICE_ROLE_KEY."
+            echo "   Settings → Secrets and variables → Actions anlegen."
+            exit 1
+          fi
+
+          URL="${{ secrets.SUPABASE_URL }}/functions/v1/push-maintenance-due"
+          echo "🔔 Rufe $URL auf …"
+
+          RESPONSE=$(curl -sf -m 120 -X POST "$URL" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+
+          echo "Antwort: $RESPONSE"
+          echo "$RESPONSE" | jq -e '.status == "ok" or .status == "none"' > /dev/null \
+            && echo "✅ Fertig ($(echo "$RESPONSE" | jq -r '.sent // 0') Push(es) gesendet)." \
+            || { echo "⚠️  Unerwartete Antwort"; exit 1; }
