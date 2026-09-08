@@ -145,6 +145,9 @@
 
 // MARK: - Maintenance
 "maintenance.title" = "Wartung";
+"maintenance.notif.title" = "Wartung fällig";
+"maintenance.notif.body" = "%1$@ (%2$@) ist am %3$@ fällig.";
+"maintenance.notif.body_noboat" = "%1$@ ist am %2$@ fällig.";
 "maintenance.due" = "Fällig";
 "maintenance.overdue" = "Überfällig";
 "maintenance.upcoming" = "Demnächst";

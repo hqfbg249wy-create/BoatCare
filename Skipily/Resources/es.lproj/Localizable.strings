@@ -117,6 +117,9 @@
 
 // MARK: - Maintenance
 "maintenance.title" = "Mantenimiento";
+"maintenance.notif.title" = "Mantenimiento pendiente";
+"maintenance.notif.body" = "%1$@ (%2$@) vence el %3$@.";
+"maintenance.notif.body_noboat" = "%1$@ vence el %2$@.";
 "maintenance.due" = "Vencido";
 "maintenance.overdue" = "Atrasado";
 "maintenance.upcoming" = "Próximo";

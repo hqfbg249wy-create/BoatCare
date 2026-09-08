@@ -51,6 +51,10 @@ struct SkipilyApp: App {
             directory: nil
         )
         URLCache.shared = cache
+
+        // Notification-Delegate frueh verankern, damit Wartungserinnerungen
+        // auch bei geoeffneter App als Banner erscheinen (Plan A, lokal).
+        _ = MaintenanceNotificationService.shared
     }
 
     var body: some Scene {

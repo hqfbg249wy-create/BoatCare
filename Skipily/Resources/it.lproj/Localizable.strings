@@ -117,6 +117,9 @@
 
 // MARK: - Maintenance
 "maintenance.title" = "Manutenzione";
+"maintenance.notif.title" = "Manutenzione in scadenza";
+"maintenance.notif.body" = "%1$@ (%2$@) è prevista per il %3$@.";
+"maintenance.notif.body_noboat" = "%1$@ è prevista per il %2$@.";
 "maintenance.due" = "Scaduto";
 "maintenance.overdue" = "In ritardo";
 "maintenance.upcoming" = "Prossimo";

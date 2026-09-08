@@ -117,6 +117,9 @@
 
 // MARK: - Maintenance
 "maintenance.title" = "Entretien";
+"maintenance.notif.title" = "Entretien à prévoir";
+"maintenance.notif.body" = "%1$@ (%2$@) est à effectuer le %3$@.";
+"maintenance.notif.body_noboat" = "%1$@ est à effectuer le %2$@.";
 "maintenance.due" = "Dû";
 "maintenance.overdue" = "En retard";
 "maintenance.upcoming" = "À venir";
