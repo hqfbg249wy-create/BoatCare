@@ -59,9 +59,13 @@ final class MaintenanceNotificationService: NSObject, UNUserNotificationCenterDe
             self.center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
                 if let error { AppLog.warning("Wartungs-Notif Auth-Fehler: \(error)") }
                 AppLog.info("Wartungs-Notif Auth erteilt: \(granted)")
-                // Nach erstmaliger Erteilung sofort die gecachten Reminder planen.
+                // Nach erstmaliger Erteilung sofort die gecachten Reminder planen
+                // und die APNs-Registrierung (Remote-Push, Plan B) anstossen.
                 if granted {
-                    DispatchQueue.main.async { self.sync(reminders: self.lastReminders) }
+                    DispatchQueue.main.async {
+                        self.sync(reminders: self.lastReminders)
+                        RemotePushService.shared.registerIfAuthorized()
+                    }
                 }
             }
         }

@@ -73,6 +73,26 @@ serve(async (req: Request) => {
     const portalUrl = ownerSent ? "https://provider.skipily.app/" : "https://app.skipily.app/messages";
     const portalLabel = ownerSent ? "Im Provider-Portal antworten" : "In der App antworten";
 
+    // Push an den Eigner (App-Nutzer), wenn ein PROVIDER geschrieben hat.
+    // Fire-and-forget: darf den Mail-Versand nicht blockieren/fehlschlagen lassen.
+    if (!ownerSent) {
+      try {
+        const preview = (msg.content || "").slice(0, 140);
+        await fetch(`${supabaseUrl}/functions/v1/send-push`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: conv.user_id,
+            title: `Neue Nachricht von ${senderName}`,
+            body: preview,
+            data: { type: "message", conversation_id: String(conv.id) },
+          }),
+        });
+      } catch (e) {
+        console.warn("send-push (message) fehlgeschlagen:", (e as Error).message);
+      }
+    }
+
     if (!toEmail) return json({ status: "no_recipient_email" });
 
     const hint = "Bitte antworte idealerweise direkt im Skipily-Portal – so bleibt der gesamte Nachrichten-Verlauf an einem Ort und nachvollziehbar.";

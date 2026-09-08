@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import UIKit
 import StripePaymentSheet
 #if canImport(Sentry)
 import Sentry
@@ -11,6 +12,9 @@ import Sentry
 
 @main
 struct SkipilyApp: App {
+    // AppDelegate fuer APNs-Device-Token-Callbacks (Remote-Push, Plan B).
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     // ObservableObject services (used by original screens via @EnvironmentObject)
     @StateObject private var authService = AuthService()
     @StateObject private var languageManager = LanguageManager.shared
@@ -80,6 +84,27 @@ struct SkipilyApp: App {
     }
 }
 
+// MARK: - App Delegate (Remote-Push / APNs)
+
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        // Falls Notifications bereits erlaubt: Token beim Start auffrischen.
+        RemotePushService.shared.registerIfAuthorized()
+        return true
+    }
+
+    func application(_ application: UIApplication,
+                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        RemotePushService.shared.handleDeviceToken(deviceToken)
+    }
+
+    func application(_ application: UIApplication,
+                     didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        AppLog.warning("Remote-Push Registrierung fehlgeschlagen: \(error)")
+    }
+}
+
 // MARK: - Root View (Auth Gate)
 
 struct RootView: View {
@@ -130,6 +155,8 @@ struct RootView: View {
             if isAuth && !showSplash && !AppTourView.hasSeen {
                 showTour = true
             }
+            // Remote-Push: nach Login Geraet registrieren + Token binden.
+            if isAuth { RemotePushService.shared.onLogin() }
         }
     }
 }

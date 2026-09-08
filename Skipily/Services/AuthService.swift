@@ -168,6 +168,8 @@ class AuthService: ObservableObject {
     }
 
     func signOut() async {
+        // APNs-Token abmelden, solange auth.uid() noch gueltig ist.
+        await RemotePushService.shared.onLogout()
         try? await supabase.auth.signOut()
         isAuthenticated = false
         currentUser = nil
