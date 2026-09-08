@@ -16,6 +16,7 @@
 import Foundation
 import UIKit
 import UserNotifications
+import Supabase
 
 final class RemotePushService {
     static let shared = RemotePushService()
