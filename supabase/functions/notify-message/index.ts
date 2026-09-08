@@ -80,7 +80,10 @@ serve(async (req: Request) => {
         const preview = (msg.content || "").slice(0, 140);
         await fetch(`${supabaseUrl}/functions/v1/send-push`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+          headers: {
+            "x-internal-secret": Deno.env.get("PUSH_INTERNAL_SECRET") ?? "",
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
             user_id: conv.user_id,
             title: `Neue Nachricht von ${senderName}`,

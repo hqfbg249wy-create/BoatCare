@@ -7,8 +7,8 @@
 # die die App selten oeffnen.
 #
 # Benoetigte GitHub-Secrets (Settings → Secrets and variables → Actions):
-#   SUPABASE_URL                - z.B. https://<ref>.supabase.co
-#   SUPABASE_SERVICE_ROLE_KEY   - Service-Role-Key (Supabase → Project Settings → API)
+#   SUPABASE_URL           - z.B. https://<ref>.supabase.co
+#   PUSH_INTERNAL_SECRET   - gemeinsames Secret (identisch in Supabase-Secrets)
 #
 # WICHTIG: Der Schedule greift erst, wenn diese Datei auf dem Default-Branch
 # (main) liegt. Manueller Test jederzeit: Actions → Run workflow.
@@ -29,8 +29,8 @@ jobs:
     steps:
       - name: Wartungs-Push ausloesen
         run: |
-          if [ -z "${{ secrets.SUPABASE_URL }}" ] || [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
-            echo "❌ GitHub-Secrets fehlen: SUPABASE_URL und/oder SUPABASE_SERVICE_ROLE_KEY."
+          if [ -z "${{ secrets.SUPABASE_URL }}" ] || [ -z "${{ secrets.PUSH_INTERNAL_SECRET }}" ]; then
+            echo "❌ GitHub-Secrets fehlen: SUPABASE_URL und/oder PUSH_INTERNAL_SECRET."
             echo "   Settings → Secrets and variables → Actions anlegen."
             exit 1
           fi
@@ -39,8 +39,7 @@ jobs:
           echo "🔔 Rufe $URL auf …"
 
           RESPONSE=$(curl -sf -m 120 -X POST "$URL" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "x-internal-secret: ${{ secrets.PUSH_INTERNAL_SECRET }}" \
             -H "Content-Type: application/json" \
             -d '{}')
 

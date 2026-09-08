@@ -33,8 +33,8 @@ function isoDay(offsetDays: number): string {
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const auth = req.headers.get("Authorization") ?? "";
-  if (!serviceKey || auth !== `Bearer ${serviceKey}`) {
+  const internal = Deno.env.get("PUSH_INTERNAL_SECRET") ?? "";
+  if (!internal || req.headers.get("x-internal-secret") !== internal) {
     return json({ error: "unauthorized" }, 401);
   }
 
@@ -62,7 +62,7 @@ serve(async (req: Request) => {
 
       const res = await fetch(`${supabaseUrl}/functions/v1/send-push`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+        headers: { "x-internal-secret": internal, "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id: ownerId,
           title: "Wartung fällig",

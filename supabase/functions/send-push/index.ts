@@ -94,9 +94,10 @@ serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  // Nur intern: Service-Role-Key erforderlich.
-  const auth = req.headers.get("Authorization") ?? "";
-  if (!serviceKey || auth !== `Bearer ${serviceKey}`) {
+  // Nur intern: gemeinsames Secret erforderlich (unabhaengig vom Supabase-
+  // Key-System). Aufrufer (notify-message, Cron) senden x-internal-secret.
+  const internal = Deno.env.get("PUSH_INTERNAL_SECRET") ?? "";
+  if (!internal || req.headers.get("x-internal-secret") !== internal) {
     return json({ error: "unauthorized" }, 401);
   }
 
