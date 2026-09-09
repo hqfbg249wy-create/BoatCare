@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom'
 import { Plus, Pencil, Trash2, Search, Upload, X, Save, Loader, Image as ImageIcon, Package, CheckSquare, Square, FileSpreadsheet, Download, Lock, Sparkles } from 'lucide-react'
 import { useT } from '../i18n'
 import * as XLSX from 'xlsx'
+import { exportEquipmentXlsx } from '../lib/equipmentExport'
 
 export default function Products() {
   const { provider } = useAuth()
@@ -745,6 +746,14 @@ export default function Products() {
             <>
               <button className="btn-secondary" onClick={clearSelection}>
                 <X size={16} /> {t('products.deselectAll')}
+              </button>
+              <button className="btn-secondary" onClick={() => exportEquipmentXlsx(
+                products.filter(p => selected.has(p.id)).map(p => ({
+                  name: p.name, manufacturer: p.manufacturer, part_number: p.part_number, quantity: p.stock_quantity,
+                })),
+                'skipily-produkte-auswahl.xlsx'
+              )} title={t('products.exportXlsxTitle')}>
+                <FileSpreadsheet size={16} /> {t('products.exportXlsx')}
               </button>
               <button className="btn-danger" onClick={handleBulkDelete} disabled={bulkDeleting}>
                 {bulkDeleting ? <><Loader size={16} className="spin" /> {t('products.deleting')}</> : <><Trash2 size={16} /> {t('products.deleteN', { n: selected.size })}</>}

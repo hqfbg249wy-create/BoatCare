@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { FileText, Truck, CheckCircle, DollarSign, Package, Clock, XCircle, MessageSquare } from 'lucide-react'
+import { FileText, Truck, CheckCircle, DollarSign, Package, Clock, XCircle, MessageSquare, FileSpreadsheet } from 'lucide-react'
 import { useT } from '../i18n'
+import { exportEquipmentXlsx, safeFilePart } from '../lib/equipmentExport'
 
 // Label kommt zur Laufzeit aus order.status.<value>
 const STATUS_OPTIONS = [
@@ -283,6 +284,26 @@ export default function Orders() {
                     ))}
                   </tbody>
                 </table>
+              )}
+
+              {order.order_items?.length > 0 && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  title={t('orders.exportXlsxTitle')}
+                  onClick={() => exportEquipmentXlsx(
+                    order.order_items.map(it => ({
+                      name: it.product_name,
+                      manufacturer: it.product_manufacturer,
+                      part_number: it.product_sku,
+                      quantity: it.quantity,
+                    })),
+                    `skipily-bestellung-${safeFilePart(order.order_number)}.xlsx`
+                  )}
+                >
+                  <FileSpreadsheet size={16} /> {t('orders.exportXlsx')}
+                </button>
               )}
 
               {order.buyer_note && (
