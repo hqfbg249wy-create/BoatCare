@@ -53,6 +53,7 @@ const FIELD_HEADERS: Record<string,string[]> = {
   last_maintenance_date:["letzte wartung","last maintenance","letzte-wartung"],
   item_description:["beschreibung","description","item description"],
   notes:["notizen","notiz","notes","bemerkung"],
+  quantity:["menge","anzahl","stück","stueck","stückzahl","stueckzahl","quantity","qty","stk","stck"],
 };
 
 // ─────────────────────────── Segel/Tauwerk ───────────────────────────
@@ -182,6 +183,7 @@ function mapEquipmentRows(rows: any[]) {
       last_maintenance_date: toISODate(item.last_maintenance_date),
       item_description: String(item.item_description ?? "").trim() || null,
       notes: String(item.notes ?? "").trim() || null,
+      quantity: (() => { const n = parseInt(String(item.quantity ?? "").replace(/[^\d]/g, ""), 10); return Number.isFinite(n) && n > 0 ? n : 1; })(),
     };
     if (isExampleEquipRow(obj)) continue;
     out.push(obj);
@@ -249,50 +251,89 @@ Deno.serve(async (req) => {
 
     if (equipment.length > 1000) return json({ error: "Max. 1000 Ausrüstungszeilen pro Import." }, 400);
 
-    // ── Vorhandene Ausrüstung des Boots (Dedupe + Verknüpfung)
-    const { data: existing } = await admin.from("equipment").select("id, name, serial_number").eq("boat_id", boatId);
-    const bySerial = new Map<string,{id:string;name:string}>();
-    const byName   = new Map<string,{id:string;name:string}>();
-    for (const e of (existing ?? [])) {
+    // ── Vorhandene Ausrüstung des Boots (Match: exakt + fuzzy)
+    const { data: existing } = await admin.from("equipment")
+      .select("id, name, serial_number, part_number, quantity").eq("boat_id", boatId);
+    type Existing = { id:string; name:string; serial_number:string|null; part_number:string|null; quantity:number|null };
+    const existingList = (existing ?? []) as Existing[];
+    const bySerial = new Map<string,Existing>();
+    const byPart   = new Map<string,Existing>();
+    const byName   = new Map<string,Existing>();
+    for (const e of existingList) {
       if (e.serial_number) bySerial.set(normKey(e.serial_number), e);
+      if (e.part_number)   byPart.set(normKey(e.part_number), e);
       byName.set(normKey(e.name), e);
     }
-    // deno-lint-ignore no-explicit-any
-    const dupInfo = (r: any) => {
-      if (r.serial_number && bySerial.has(normKey(r.serial_number))) return { dup: true, reason: "Seriennummer", matchedName: bySerial.get(normKey(r.serial_number))!.name };
-      if (byName.has(normKey(r.name))) return { dup: true, reason: "Name", matchedName: byName.get(normKey(r.name))!.name };
-      return { dup: false as const };
+
+    // Levenshtein-Distanz → Ähnlichkeit 0..1 für Fuzzy-Namensabgleich.
+    const lev = (a: string, b: string): number => {
+      const m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+      let prev = Array.from({ length: n + 1 }, (_, j) => j);
+      for (let i = 1; i <= m; i++) {
+        const cur = [i];
+        for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + (a[i-1]===b[j-1]?0:1));
+        prev = cur;
+      }
+      return prev[n];
     };
-    // ID der vorhandenen Ausrüstung, die eine Import-Zeile aktualisiert (oder null → neu).
-    // deno-lint-ignore no-explicit-any
-    const matchedId = (r: any): string | null => {
-      if (r.serial_number && bySerial.has(normKey(r.serial_number))) return bySerial.get(normKey(r.serial_number))!.id;
-      if (byName.has(normKey(r.name))) return byName.get(normKey(r.name))!.id;
-      return null;
+    const sim = (aRaw: string, bRaw: string): number => {
+      const a = normKey(aRaw), b = normKey(bRaw); if (!a || !b) return 0; if (a === b) return 1;
+      if (a.includes(b) || b.includes(a)) return 0.9;
+      return 1 - lev(a, b) / Math.max(a.length, b.length);
     };
 
-    // ── PREVIEW
+    type MatchType = "exact" | "fuzzy" | "none";
+    // deno-lint-ignore no-explicit-any
+    const matchOf = (r: any): { type: MatchType; e: Existing | null; reason: string | null } => {
+      if (r.serial_number && bySerial.has(normKey(r.serial_number))) return { type:"exact", e: bySerial.get(normKey(r.serial_number))!, reason:"Seriennummer" };
+      if (r.part_number   && byPart.has(normKey(r.part_number)))     return { type:"exact", e: byPart.get(normKey(r.part_number))!, reason:"Artikelnummer" };
+      if (byName.has(normKey(r.name)))                                return { type:"exact", e: byName.get(normKey(r.name))!, reason:"Name" };
+      let best: Existing | null = null, bestScore = 0;
+      for (const e of existingList) { const s = sim(r.name, e.name); if (s > bestScore) { bestScore = s; best = e; } }
+      if (best && bestScore >= 0.82) return { type:"fuzzy", e: best, reason:`ähnlich zu „${best.name}"` };
+      return { type:"none", e:null, reason:null };
+    };
+    // Stabiler Zeilen-Key — MUSS in der App identisch gebildet werden.
+    // deno-lint-ignore no-explicit-any
+    const rowKey = (r: any) => [normKey(r.name), normKey(r.serial_number ?? ""), normKey(r.part_number ?? "")].join("|");
+
+    // ── PREVIEW: je Zeile Match-Typ + Vorschlag (exakt→merge, ähnlich→ask, neu→new)
     if (mode === "preview") {
-      const eqPrev = equipment.map(r => { const d = dupInfo(r); return { name: r.name, serial_number: r.serial_number, category: r.category, dup: d.dup, reason: d.dup ? d.reason : null, matchedName: d.dup ? d.matchedName : null }; });
-      const nameSet = new Set([...byName.keys(), ...equipment.filter(r => !dupInfo(r).dup).map(r => normKey(r.name))]);
+      const eqPrev = equipment.map(r => {
+        const m = matchOf(r);
+        return {
+          key: rowKey(r), name: r.name, serial_number: r.serial_number, category: r.category, quantity: r.quantity,
+          matchType: m.type, matchedId: m.e?.id ?? null, matchedName: m.e?.name ?? null,
+          matchedQuantity: m.e?.quantity ?? null, reason: m.reason,
+          suggestedAction: m.type === "exact" ? "merge" : m.type === "fuzzy" ? "ask" : "new",
+          dup: m.type !== "none",   // rückwärtskompatibel (alte App)
+        };
+      });
+      const nameSet = new Set([...byName.keys(), ...equipment.filter(r => matchOf(r).type === "none").map(r => normKey(r.name))]);
       const sailPrev = sails.map(s => ({ equipment: s._equipment, sail_type: s.sail_type, linked: nameSet.has(normKey(s._equipment)) }));
       const ropePrev = ropes.map(r => ({ equipment: r._equipment, article_number: r.article_number, linked: nameSet.has(normKey(r._equipment)) }));
       return json({
         equipment: eqPrev, sails: sailPrev, ropes: ropePrev,
         summary: {
-          equipmentNew: eqPrev.filter(e => !e.dup).length,
-          equipmentUpdated: eqPrev.filter(e => e.dup).length,   // vorhandene werden aktualisiert
-          equipmentSkipped: 0,                                  // nichts wird mehr uebersprungen
+          equipmentNew: eqPrev.filter(e => e.matchType === "none").length,
+          equipmentUpdated: eqPrev.filter(e => e.matchType !== "none").length,
+          equipmentFuzzy: eqPrev.filter(e => e.matchType === "fuzzy").length,
+          equipmentSkipped: 0,
           sails: sailPrev.length, ropes: ropePrev.length,
           unlinked: sailPrev.filter(s => !s.linked).length + ropePrev.filter(r => !r.linked).length,
         },
       });
     }
 
-    // ── COMMIT: neue Ausrüstung anlegen, VORHANDENE aktualisieren (Merge).
-    // Match per Seriennummer (sonst Name). So kann der Kunde eine Provider-Excel
-    // laden bzw. bei Nachbestellungen dieselbe Liste erneut importieren, ohne
-    // Duplikate zu erzeugen — vorhandene Positionen werden ergänzt/aktualisiert.
+    // ── COMMIT: Aktion je Zeile anwenden.
+    //   decisions (optional): [{ key, action, matchedId? }]
+    //   action: replace | merge | add_stock | new | skip
+    //   Ohne Entscheidung (alte App / Zeile fehlt): exakt→merge, sonst→new
+    //   (kein stilles Fuzzy-Merge).
+    const decisions: Record<string,{action:string;matchedId?:string}> = {};
+    if (Array.isArray(body?.decisions)) {
+      for (const d of body.decisions) if (d?.key) decisions[String(d.key)] = { action: String(d.action || ""), matchedId: d.matchedId ? String(d.matchedId) : undefined };
+    }
     // deno-lint-ignore no-explicit-any
     const withDates = (r: any) => {
       const p: any = { ...r };
@@ -302,35 +343,50 @@ Deno.serve(async (req) => {
       }
       return p;
     };
+    const VALID = new Set(["replace","merge","add_stock","new","skip"]);
 
-    const toInsert = equipment.filter(r => !matchedId(r));
-    const toUpdate = equipment.filter(r => matchedId(r));
-    let equipmentNew = 0, equipmentUpdated = 0;
+    let equipmentNew = 0, equipmentUpdated = 0, equipmentStock = 0, equipmentSkipped = 0;
+    // deno-lint-ignore no-explicit-any
+    const inserts: any[] = [];
 
-    if (toInsert.length > 0) {
-      const payload = toInsert.map(r => ({ ...withDates(r), boat_id: boatId }));
-      const { error } = await admin.from("equipment").insert(payload);
-      if (error) return json({ error: "Ausrüstung-Insert fehlgeschlagen: " + error.message }, 500);
-      equipmentNew = payload.length;
-    }
+    for (const r of equipment) {
+      const m = matchOf(r);
+      const dec = decisions[rowKey(r)];
+      let action = dec?.action && VALID.has(dec.action) ? dec.action : (m.type === "exact" ? "merge" : "new");
+      const targetId = dec?.matchedId ?? m.e?.id ?? null;
+      if ((action === "merge" || action === "replace" || action === "add_stock") && !targetId) action = "new"; // kein Ziel → anlegen
 
-    // Vorhandene aktualisieren: nur gelieferte, nicht-leere Felder setzen
-    // (0/false bleiben gültig) → ein sparsam gefülltes Sheet leert nichts.
-    for (const r of toUpdate) {
-      const id = matchedId(r)!;
+      if (action === "skip") { equipmentSkipped++; continue; }
+      if (action === "new") { inserts.push({ ...withDates(r), boat_id: boatId }); continue; }
+
+      if (action === "add_stock") {
+        const cur = m.e?.quantity ?? 1;
+        const add = Number.isFinite(r.quantity) && r.quantity > 0 ? r.quantity : 1;
+        const { error } = await admin.from("equipment").update({ quantity: cur + add }).eq("id", targetId);
+        if (error) return json({ error: "Bestand-Update fehlgeschlagen: " + error.message }, 500);
+        equipmentStock++; continue;
+      }
+
+      // merge (nur nicht-leere Felder) oder replace (alle Felder inkl. Leerung)
       const src = withDates(r);
       // deno-lint-ignore no-explicit-any
       const fields: any = {};
       for (const k of Object.keys(src)) {
         if (k === "boat_id") continue;
         const v = src[k];
-        if (v === null || v === undefined || v === "") continue;
-        fields[k] = v;
+        if (action === "merge" && (v === null || v === undefined || v === "")) continue;
+        fields[k] = (v === "" ? null : v);
       }
-      if (Object.keys(fields).length === 0) continue;
-      const { error } = await admin.from("equipment").update(fields).eq("id", id);
+      if (Object.keys(fields).length === 0) { equipmentSkipped++; continue; }
+      const { error } = await admin.from("equipment").update(fields).eq("id", targetId);
       if (error) return json({ error: "Ausrüstung-Update fehlgeschlagen: " + error.message }, 500);
       equipmentUpdated++;
+    }
+
+    if (inserts.length > 0) {
+      const { error } = await admin.from("equipment").insert(inserts);
+      if (error) return json({ error: "Ausrüstung-Insert fehlgeschlagen: " + error.message }, 500);
+      equipmentNew = inserts.length;
     }
 
     // Name -> id (vorhandene + neue)
@@ -349,7 +405,7 @@ Deno.serve(async (req) => {
 
     return json({
       summary: {
-        equipmentNew, equipmentUpdated, equipmentSkipped: 0,
+        equipmentNew, equipmentUpdated, equipmentStock, equipmentSkipped,
         sails: sailInserted, ropes: ropeInserted, unlinked: sailUnlinked + ropeUnlinked,
       },
     });
