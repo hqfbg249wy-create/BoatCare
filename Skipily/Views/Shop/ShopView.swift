@@ -10,6 +10,7 @@ import Supabase
 
 struct ShopView: View {
     @EnvironmentObject var authService: AuthService
+    @EnvironmentObject var favoritesManager: FavoritesManager
     @Environment(CartManager.self) private var cartManager
 
     @State private var searchText = ""
@@ -200,7 +201,7 @@ struct ShopView: View {
     private var promotionsBanner: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
-                ForEach(promotionService.activePromotions.prefix(3)) { promo in
+                ForEach(prioritizedPromotions.prefix(3)) { promo in
                     Button {
                         // Search for products matching this promotion's categories
                         if let cats = promo.filterCategories, let first = cats.first {
@@ -894,6 +895,22 @@ struct ShopView: View {
         }
     }
 
+    /// Gehört das Produkt zu einem als Favorit markierten Betrieb?
+    private func isFavoriteProduct(_ p: Product) -> Bool {
+        guard let pid = p.providerId else { return false }
+        return favoritesManager.isFavorite(pid)
+    }
+
+    /// Aktive Promotions mit Favoriten-Betrieben zuerst.
+    private var prioritizedPromotions: [Promotion] {
+        promotionService.activePromotions.sorted { a, b in
+            let aFav = favoritesManager.isFavorite(a.providerId)
+            let bFav = favoritesManager.isFavorite(b.providerId)
+            if aFav != bFav { return aFav }
+            return false
+        }
+    }
+
     private func loadProducts() async {
         isLoading = true
         errorMessage = nil
@@ -919,8 +936,12 @@ struct ShopView: View {
                 }
             }
 
-            // Sort: promoted products first
+            // Sort: Produkte von Favoriten-Betrieben zuerst, dann beworbene,
+            // dann der Rest (stabil). So werden vom Eigner favorisierte Betriebe
+            // mit ihren Produkten vorrangig angezeigt.
             loaded.sort { a, b in
+                let aFav = isFavoriteProduct(a), bFav = isFavoriteProduct(b)
+                if aFav != bFav { return aFav }
                 let aHasPromo = promotionService.bestPromotion(for: a) != nil
                 let bHasPromo = promotionService.bestPromotion(for: b) != nil
                 if aHasPromo != bHasPromo { return aHasPromo }
