@@ -74,19 +74,28 @@ Deno.serve(async (req) => {
     });
 
     // ── Upsert: bestehende Artikel AKTUALISIEREN, neue ANLEGEN, nichts löschen ──
-    // Match-Key = part_number pro Provider. So kann der Betrieb dieselbe Excel-
-    // Liste nachpflegen (Preise/Bestände ändern) und erneut hochladen: bekannte
-    // Artikelnummern werden aktualisiert statt gedoppelt, neue kommen dazu. Zeilen
-    // OHNE Artikelnummer sind nicht matchbar → immer neu angelegt.
+    // Match-Key pro Provider: primär die Artikelnummer (part_number). Fehlt sie,
+    // fällt der Abgleich auf Name + Hersteller zurück. So wird derselbe Artikel
+    // auch OHNE Artikelnummer wiedererkannt und bei erneutem Upload aktualisiert
+    // statt gedoppelt (Preise/Bestände nachpflegbar).
+    const norm = (v: unknown) => String(v ?? "").trim().toLowerCase();
+    // deno-lint-ignore no-explicit-any
+    const keyOf = (r: any): string => {
+      const pn = norm(r.part_number);
+      if (pn) return "p:" + pn;
+      const name = norm(r.name);
+      if (!name) return "";                       // ohne Name/Artikelnr. nicht matchbar
+      return "n:" + name + "|" + norm(r.manufacturer);
+    };
+
     const { data: existing } = await admin
       .from("metashop_products")
-      .select("id, part_number")
-      .eq("provider_id", providerId)
-      .not("part_number", "is", null);
-    const idByPart = new Map<string, string>();
+      .select("id, part_number, name, manufacturer")
+      .eq("provider_id", providerId);
+    const idByKey = new Map<string, string>();
     for (const r of (existing || []) as Array<Record<string, unknown>>) {
-      const pn = String(r.part_number ?? "").trim().toLowerCase();
-      if (pn && !idByPart.has(pn)) idByPart.set(pn, String(r.id));
+      const k = keyOf(r);
+      if (k && !idByKey.has(k)) idByKey.set(k, String(r.id));
     }
 
     // Beim UPDATE nur gelieferte, nicht-leere Felder setzen (0/false bleiben
@@ -104,18 +113,17 @@ Deno.serve(async (req) => {
 
     const toInsert: Array<Record<string, unknown>> = [];
     const toUpdate: Array<{ id: string; fields: Record<string, unknown>; row: number }> = [];
-    const seenInFile = new Map<string, number>();   // pn → toUpdate-Index (Datei-interne Doubletten mergen)
+    const seenInFile = new Map<string, number>();   // key → toInsert-Index (Datei-interne Doubletten mergen)
     rows.forEach((r, idx) => {
-      const pn = r.part_number ? String(r.part_number).trim().toLowerCase() : "";
-      if (pn && idByPart.has(pn)) {
+      const k = keyOf(r);
+      if (k && idByKey.has(k)) {
         // schon in DB → aktualisieren (bei Datei-Doublette gewinnt die letzte Zeile)
-        toUpdate.push({ id: idByPart.get(pn)!, fields: updateFields(r), row: idx + 2 });
-      } else if (pn && seenInFile.has(pn)) {
-        // in der Datei doppelt, aber (noch) nicht in DB → als Update auf die neue ID mergen
-        const prev = seenInFile.get(pn)!;
-        Object.assign(toInsert[prev], r);
+        toUpdate.push({ id: idByKey.get(k)!, fields: updateFields(r), row: idx + 2 });
+      } else if (k && seenInFile.has(k)) {
+        // in der Datei doppelt, aber (noch) nicht in DB → in die erste Zeile mergen
+        Object.assign(toInsert[seenInFile.get(k)!], r);
       } else {
-        if (pn) seenInFile.set(pn, toInsert.length);
+        if (k) seenInFile.set(k, toInsert.length);
         toInsert.push(r);
       }
     });
