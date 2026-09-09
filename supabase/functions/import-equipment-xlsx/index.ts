@@ -263,6 +263,13 @@ Deno.serve(async (req) => {
       if (byName.has(normKey(r.name))) return { dup: true, reason: "Name", matchedName: byName.get(normKey(r.name))!.name };
       return { dup: false as const };
     };
+    // ID der vorhandenen Ausrüstung, die eine Import-Zeile aktualisiert (oder null → neu).
+    // deno-lint-ignore no-explicit-any
+    const matchedId = (r: any): string | null => {
+      if (r.serial_number && bySerial.has(normKey(r.serial_number))) return bySerial.get(normKey(r.serial_number))!.id;
+      if (byName.has(normKey(r.name))) return byName.get(normKey(r.name))!.id;
+      return null;
+    };
 
     // ── PREVIEW
     if (mode === "preview") {
@@ -274,27 +281,56 @@ Deno.serve(async (req) => {
         equipment: eqPrev, sails: sailPrev, ropes: ropePrev,
         summary: {
           equipmentNew: eqPrev.filter(e => !e.dup).length,
-          equipmentSkipped: eqPrev.filter(e => e.dup).length,
+          equipmentUpdated: eqPrev.filter(e => e.dup).length,   // vorhandene werden aktualisiert
+          equipmentSkipped: 0,                                  // nichts wird mehr uebersprungen
           sails: sailPrev.length, ropes: ropePrev.length,
           unlinked: sailPrev.filter(s => !s.linked).length + ropePrev.filter(r => !r.linked).length,
         },
       });
     }
 
-    // ── COMMIT
-    const toInsert = equipment.filter(r => !dupInfo(r).dup);
+    // ── COMMIT: neue Ausrüstung anlegen, VORHANDENE aktualisieren (Merge).
+    // Match per Seriennummer (sonst Name). So kann der Kunde eine Provider-Excel
+    // laden bzw. bei Nachbestellungen dieselbe Liste erneut importieren, ohne
+    // Duplikate zu erzeugen — vorhandene Positionen werden ergänzt/aktualisiert.
+    // deno-lint-ignore no-explicit-any
+    const withDates = (r: any) => {
+      const p: any = { ...r };
+      if (p.maintenance_cycle_years && p.last_maintenance_date) {
+        const d = new Date(p.last_maintenance_date); d.setFullYear(d.getFullYear() + p.maintenance_cycle_years);
+        p.next_maintenance_date = d.toISOString().slice(0,10);
+      }
+      return p;
+    };
+
+    const toInsert = equipment.filter(r => !matchedId(r));
+    const toUpdate = equipment.filter(r => matchedId(r));
+    let equipmentNew = 0, equipmentUpdated = 0;
+
     if (toInsert.length > 0) {
-      const payload = toInsert.map(r => {
-        // deno-lint-ignore no-explicit-any
-        const p: any = { ...r, boat_id: boatId };
-        if (p.maintenance_cycle_years && p.last_maintenance_date) {
-          const d = new Date(p.last_maintenance_date); d.setFullYear(d.getFullYear() + p.maintenance_cycle_years);
-          p.next_maintenance_date = d.toISOString().slice(0,10);
-        }
-        return p;
-      });
+      const payload = toInsert.map(r => ({ ...withDates(r), boat_id: boatId }));
       const { error } = await admin.from("equipment").insert(payload);
       if (error) return json({ error: "Ausrüstung-Insert fehlgeschlagen: " + error.message }, 500);
+      equipmentNew = payload.length;
+    }
+
+    // Vorhandene aktualisieren: nur gelieferte, nicht-leere Felder setzen
+    // (0/false bleiben gültig) → ein sparsam gefülltes Sheet leert nichts.
+    for (const r of toUpdate) {
+      const id = matchedId(r)!;
+      const src = withDates(r);
+      // deno-lint-ignore no-explicit-any
+      const fields: any = {};
+      for (const k of Object.keys(src)) {
+        if (k === "boat_id") continue;
+        const v = src[k];
+        if (v === null || v === undefined || v === "") continue;
+        fields[k] = v;
+      }
+      if (Object.keys(fields).length === 0) continue;
+      const { error } = await admin.from("equipment").update(fields).eq("id", id);
+      if (error) return json({ error: "Ausrüstung-Update fehlgeschlagen: " + error.message }, 500);
+      equipmentUpdated++;
     }
 
     // Name -> id (vorhandene + neue)
@@ -313,7 +349,7 @@ Deno.serve(async (req) => {
 
     return json({
       summary: {
-        equipmentNew: toInsert.length, equipmentSkipped: equipment.length - toInsert.length,
+        equipmentNew, equipmentUpdated, equipmentSkipped: 0,
         sails: sailInserted, ropes: ropeInserted, unlinked: sailUnlinked + ropeUnlinked,
       },
     });
