@@ -73,66 +73,113 @@ Deno.serve(async (req) => {
       return clean;
     });
 
-    // ── Upsert: bestehende Artikel AKTUALISIEREN, neue ANLEGEN, nichts löschen ──
-    // Match-Key pro Provider: primär die Artikelnummer (part_number). Fehlt sie,
-    // fällt der Abgleich auf Name + Hersteller zurück. So wird derselbe Artikel
-    // auch OHNE Artikelnummer wiedererkannt und bei erneutem Upload aktualisiert
-    // statt gedoppelt (Preise/Bestände nachpflegbar).
+    // ── Match-Klassifikation ────────────────────────────────────────────────
+    // Primär Artikelnummer (part_number) → sicherer Auto-Abgleich. Fehlt sie,
+    // Fallback auf Name+Hersteller — solche Treffer sind heikel (Bestand könnte
+    // versehentlich überschrieben werden) → im preview zur RÜCKFRAGE gemeldet.
     const norm = (v: unknown) => String(v ?? "").trim().toLowerCase();
     // deno-lint-ignore no-explicit-any
-    const keyOf = (r: any): string => {
-      const pn = norm(r.part_number);
-      if (pn) return "p:" + pn;
-      const name = norm(r.name);
-      if (!name) return "";                       // ohne Name/Artikelnr. nicht matchbar
-      return "n:" + name + "|" + norm(r.manufacturer);
-    };
+    const artKey  = (r: any) => { const pn = norm(r.part_number); return pn ? "p:" + pn : ""; };
+    // deno-lint-ignore no-explicit-any
+    const nameKey = (r: any) => { const n = norm(r.name); return n ? "n:" + n + "|" + norm(r.manufacturer) : ""; };
 
     const { data: existing } = await admin
       .from("metashop_products")
-      .select("id, part_number, name, manufacturer")
+      .select("id, part_number, name, manufacturer, stock_quantity")
       .eq("provider_id", providerId);
-    const idByKey = new Map<string, string>();
-    for (const r of (existing || []) as Array<Record<string, unknown>>) {
-      const k = keyOf(r);
-      if (k && !idByKey.has(k)) idByKey.set(k, String(r.id));
+    // deno-lint-ignore no-explicit-any
+    const byArt = new Map<string, any>(); const byName = new Map<string, any>();
+    for (const e of (existing || []) as Array<Record<string, unknown>>) {
+      const a = artKey(e); if (a && !byArt.has(a)) byArt.set(a, e);
+      const n = nameKey(e); if (n && !byName.has(n)) byName.set(n, e);
+    }
+    // deno-lint-ignore no-explicit-any
+    const classify = (r: any) => {
+      const a = artKey(r);
+      if (a && byArt.has(a)) return { status: "article", e: byArt.get(a) };
+      if (!a) { const n = nameKey(r); if (n && byName.has(n)) return { status: "name", e: byName.get(n) }; }
+      return { status: "new", e: null };
+    };
+
+    const mode = body?.mode === "preview" ? "preview" : "commit";
+
+    // ── PREVIEW: nur die Rückfrage-Zeilen (Name-Treffer ohne Artikelnummer) melden
+    if (mode === "preview") {
+      let cArticle = 0, cNew = 0;
+      // deno-lint-ignore no-explicit-any
+      const review: any[] = [];
+      rows.forEach((r, idx) => {
+        const c = classify(r);
+        if (c.status === "article") cArticle++;
+        else if (c.status === "new") cNew++;
+        else review.push({
+          index: idx, name: r.name ?? null, manufacturer: r.manufacturer ?? null,
+          existingId: c.e.id, existingName: c.e.name,
+          existingStock: c.e.stock_quantity ?? null, newStock: r.stock_quantity ?? null,
+        });
+      });
+      return json({ mode: "preview", counts: { article: cArticle, review: review.length, new: cNew }, review });
     }
 
-    // Beim UPDATE nur gelieferte, nicht-leere Felder setzen (0/false bleiben
-    // gültige Werte) — so leert ein sparsam gefülltes Sheet keine Bestandsdaten.
-    const updateFields = (r: Record<string, unknown>): Record<string, unknown> => {
+    // ── COMMIT ────────────────────────────────────────────────────────────────
+    // decisions (optional): { "<index>": { action, part_number } }
+    //   action (nur für Name-Treffer): update | add_stock | new | skip
+    //   part_number: vom Provider im Dialog ergänzte Artikelnummer
+    // deno-lint-ignore no-explicit-any
+    const decisions: Record<string, any> = (body?.decisions && typeof body.decisions === "object") ? body.decisions : {};
+    // deno-lint-ignore no-explicit-any
+    const updateFields = (r: any): Record<string, unknown> => {
       const u: Record<string, unknown> = {};
-      for (const k of Object.keys(r)) {
-        if (k === "provider_id") continue;
-        const v = r[k];
-        if (v === null || v === undefined || v === "") continue;
-        u[k] = v;
-      }
+      for (const k of Object.keys(r)) { if (k === "provider_id") continue; const v = r[k]; if (v === null || v === undefined || v === "") continue; u[k] = v; }
       return u;
     };
 
-    const toInsert: Array<Record<string, unknown>> = [];
-    const toUpdate: Array<{ id: string; fields: Record<string, unknown>; row: number }> = [];
-    const seenInFile = new Map<string, number>();   // key → toInsert-Index (Datei-interne Doubletten mergen)
-    rows.forEach((r, idx) => {
-      const k = keyOf(r);
-      if (k && idByKey.has(k)) {
-        // schon in DB → aktualisieren (bei Datei-Doublette gewinnt die letzte Zeile)
-        toUpdate.push({ id: idByKey.get(k)!, fields: updateFields(r), row: idx + 2 });
-      } else if (k && seenInFile.has(k)) {
-        // in der Datei doppelt, aber (noch) nicht in DB → in die erste Zeile mergen
-        Object.assign(toInsert[seenInFile.get(k)!], r);
-      } else {
-        if (k) seenInFile.set(k, toInsert.length);
-        toInsert.push(r);
-      }
-    });
-
-    let ok = 0;        // neu angelegt
-    let updated = 0;   // aktualisiert
+    let ok = 0, updated = 0, stock = 0, skipped = 0;
     const failed: Array<{ row: number; error: string }> = [];
+    // deno-lint-ignore no-explicit-any
+    const toInsert: any[] = [];
+    const seenInFile = new Map<string, number>();
 
-    // Inserts (Batch)
+    for (let idx = 0; idx < rows.length; idx++) {
+      const r = rows[idx];
+      const dec = decisions[String(idx)] || {};
+
+      // WICHTIG: erst mit den ORIGINAL-Werten klassifizieren (Ziel bestimmen),
+      // DANN eine im Dialog ergänzte Artikelnummer übernehmen — so wird das per
+      // Name gematchte Produkt aktualisiert (und bekommt die Artikelnummer),
+      // statt als neues Produkt behandelt zu werden.
+      const c = classify(r);
+      let action: string;
+      if (c.status === "article") action = "update";
+      else if (c.status === "name") action = ["update","add_stock","new","skip"].includes(dec.action) ? dec.action : "update";
+      else action = "new";
+
+      if (dec.part_number && !norm(r.part_number)) r.part_number = String(dec.part_number).trim();
+
+      try {
+        if (action === "skip") { skipped++; continue; }
+        if (action === "new") {
+          const a = artKey(r);
+          if (a && seenInFile.has(a)) Object.assign(toInsert[seenInFile.get(a)!], r);
+          else { if (a) seenInFile.set(a, toInsert.length); toInsert.push(r); }
+          continue;
+        }
+        const targetId = c.e?.id;
+        if (!targetId) { toInsert.push(r); continue; }
+        if (action === "add_stock") {
+          const cur = Number(c.e.stock_quantity ?? 0);
+          const add = Number(r.stock_quantity ?? 0);
+          const { error } = await admin.from("metashop_products").update({ stock_quantity: (Number.isFinite(cur)?cur:0) + (Number.isFinite(add)?add:0) }).eq("id", targetId);
+          if (error) failed.push({ row: idx + 2, error: error.message }); else stock++;
+          continue;
+        }
+        const fields = updateFields(r);
+        if (Object.keys(fields).length === 0) { skipped++; continue; }
+        const { error } = await admin.from("metashop_products").update(fields).eq("id", targetId);
+        if (error) failed.push({ row: idx + 2, error: error.message }); else updated++;
+      } catch (e) { failed.push({ row: idx + 2, error: (e as Error).message }); }
+    }
+
     for (let i = 0; i < toInsert.length; i += 50) {
       const batch = toInsert.slice(i, i + 50);
       const { error } = await admin.from("metashop_products").insert(batch);
@@ -140,21 +187,7 @@ Deno.serve(async (req) => {
       else ok += batch.length;
     }
 
-    // Updates (chunked parallel, damit grosse Kataloge nicht zu langsam werden)
-    for (let i = 0; i < toUpdate.length; i += 25) {
-      const chunk = toUpdate.slice(i, i + 25);
-      const results = await Promise.all(chunk.map(async (u) => {
-        if (Object.keys(u.fields).length === 0) return { row: u.row, error: null }; // nichts zu ändern
-        const { error } = await admin.from("metashop_products").update(u.fields).eq("id", u.id);
-        return { row: u.row, error: error?.message ?? null };
-      }));
-      for (const r of results) {
-        if (r.error) failed.push({ row: r.row, error: r.error });
-        else updated++;
-      }
-    }
-
-    return json({ ok, updated, failed });
+    return json({ ok, updated, stock, skipped, failed });
   } catch (err) {
     return json({ error: (err as Error).message }, 500);
   }

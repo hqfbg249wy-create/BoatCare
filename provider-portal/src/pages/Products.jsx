@@ -70,6 +70,8 @@ export default function Products() {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [csvImporting, setCsvImporting] = useState(false)
   const [csvResult, setCsvResult] = useState(null) // { ok: n, failed: [{row, error}] }
+  // Rückfrage-Dialog bei Zeilen ohne Artikelnummer, die per Name matchen:
+  const [importReview, setImportReview] = useState(null) // { payloads, rows:[{index,name,...}], decisions:{} }
   const fileInputRef = useRef(null)
   const csvInputRef = useRef(null)
 
@@ -400,6 +402,31 @@ export default function Products() {
     }
   }
 
+  // Ruft die import-products Edge Function (preview oder commit).
+  async function callImport({ products, mode, decisions }) {
+    const { data: { session } } = await supabase.auth.getSession()
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
+    const res = await fetch(`${supabaseUrl}/functions/v1/import-products`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ provider_id: provider.id, products, mode, decisions }),
+    })
+    const result = await res.json().catch(() => ({}))
+    if (!res.ok) return { error: result.error || `Import fehlgeschlagen (HTTP ${res.status})` }
+    return result
+  }
+
+  // Führt den eigentlichen Import aus und zeigt das Ergebnis.
+  async function commitImport(payloads, decisions, parseFailed = []) {
+    setCsvImporting(true)
+    const result = await callImport({ products: payloads, mode: 'commit', decisions })
+    if (result.error) { setMessage({ type: 'error', text: result.error }); setCsvImporting(false); return }
+    const failed = [...parseFailed, ...(Array.isArray(result.failed) ? result.failed : [])]
+    setCsvResult({ ok: result.ok || 0, updated: result.updated || 0, stock: result.stock || 0, skipped: result.skipped || 0, failed })
+    await loadProducts()
+    setCsvImporting(false)
+  }
+
   async function handleCsvUpload(e) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -448,29 +475,22 @@ export default function Products() {
         payloads.push(p)
       })
 
-      // Import über Service-Role Edge Function (umgeht RLS-Fragilität,
-      // prüft serverseitig Owner/Mitglied-Berechtigung).
-      let imported = 0
-      const { data: { session } } = await supabase.auth.getSession()
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vcjwlyqkfkszumdrfvtm.supabase.co'
-      const res = await fetch(`${supabaseUrl}/functions/v1/import-products`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({ provider_id: provider.id, products: payloads }),
-      })
-      const result = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setMessage({ type: 'error', text: result.error || `Import fehlgeschlagen (HTTP ${res.status})` })
-      } else {
-        imported = result.ok || 0
-        if (Array.isArray(result.failed)) failed.push(...result.failed)
+      // Zuerst Vorschau: gibt es Zeilen ohne Artikelnummer, die per Name auf
+      // ein vorhandenes Produkt matchen? Die brauchen eine Rückfrage, damit
+      // nicht versehentlich Bestände überschrieben werden.
+      const preview = await callImport({ products: payloads, mode: 'preview' })
+      if (preview.error) { setMessage({ type: 'error', text: preview.error }); return }
+
+      if (preview.review && preview.review.length > 0) {
+        // Dialog öffnen; Default-Aktion je Zeile = aktualisieren
+        const decisions = {}
+        preview.review.forEach(r => { decisions[r.index] = { action: 'update', part_number: '' } })
+        setImportReview({ payloads, rows: preview.review, decisions, parseFailed: failed })
+        return   // Commit erst nach Bestätigung
       }
 
-      setCsvResult({ ok: imported, updated: result.updated || 0, failed })
-      await loadProducts()
+      // Keine Rückfragen → direkt committen
+      await commitImport(payloads, {}, failed)
     } catch (err) {
       setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     } finally {
@@ -834,6 +854,7 @@ export default function Products() {
             <strong>
               {t('products.csvResultOk', { n: csvResult.ok })}
               {csvResult.updated > 0 && ` · ${t('products.csvResultUpdated', { n: csvResult.updated })}`}
+              {csvResult.stock > 0 && ` · ${t('products.csvResultStock', { n: csvResult.stock })}`}
               {csvResult.failed.length > 0 && t('products.csvResultFailed', { n: csvResult.failed.length })}
             </strong>
             <button className="btn-icon" onClick={() => setCsvResult(null)} title={t('common.close')}>
@@ -956,6 +977,50 @@ export default function Products() {
           )})}
         </div>
         </>
+      )}
+
+      {importReview && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
+          <div style={{ background:'#fff', borderRadius:12, maxWidth:720, width:'100%', maxHeight:'85vh', overflow:'auto', padding:20 }}>
+            <h3 style={{ marginTop:0 }}>{t('products.reviewTitle')}</h3>
+            <p style={{ color:'#475569', fontSize:14 }}>{t('products.reviewIntro')}</p>
+            <div style={{ display:'flex', flexDirection:'column', gap:12, margin:'12px 0' }}>
+              {importReview.rows.map(r => {
+                const d = importReview.decisions[r.index] || { action:'update', part_number:'' }
+                const setD = (patch) => setImportReview(prev => ({ ...prev, decisions: { ...prev.decisions, [r.index]: { ...d, ...patch } } }))
+                return (
+                  <div key={r.index} style={{ border:'1px solid #e2e8f0', borderRadius:8, padding:12 }}>
+                    <div style={{ fontWeight:600 }}>{r.name}{r.manufacturer ? ` · ${r.manufacturer}` : ''}</div>
+                    <div style={{ fontSize:13, color:'#64748b', marginBottom:8 }}>
+                      {t('products.reviewMatch', { name: r.existingName })}
+                      {(r.existingStock != null || r.newStock != null) && ` · ${t('products.reviewStock', { old: r.existingStock ?? '—', new: r.newStock ?? '—' })}`}
+                    </div>
+                    <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
+                      <input type="text" value={d.part_number} onChange={e => setD({ part_number: e.target.value })}
+                        placeholder={t('products.reviewArticlePlaceholder')}
+                        style={{ flex:'1 1 200px', padding:'8px 10px', border:'1px solid #cbd5e1', borderRadius:6 }} />
+                      <select value={d.action} onChange={e => setD({ action: e.target.value })}
+                        style={{ padding:'8px 10px', border:'1px solid #cbd5e1', borderRadius:6 }}>
+                        <option value="update">{t('products.reviewActionUpdate')}</option>
+                        <option value="add_stock">{t('products.reviewActionStock')}</option>
+                        <option value="new">{t('products.reviewActionNew')}</option>
+                        <option value="skip">{t('products.reviewActionSkip')}</option>
+                      </select>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
+              <button className="btn-secondary" onClick={() => { setImportReview(null); setCsvImporting(false) }}>{t('common.cancel')}</button>
+              <button className="btn-primary" onClick={async () => {
+                const { payloads, decisions, parseFailed } = importReview
+                setImportReview(null)
+                await commitImport(payloads, decisions, parseFailed)
+              }}>{t('products.reviewConfirm')}</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
