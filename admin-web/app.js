@@ -467,7 +467,7 @@ async function loadDashboard() {
                 .eq('status', 'approved')
                 .gte('reviewed_at', new Date().toISOString().split('T')[0]),
             supabaseClient.from('service_providers').select('id', { count: 'exact', head: true })
-                .not('user_id', 'is', null)   // Nur User-Einreichungen
+                .eq('is_approved', false)   // Nur noch nicht genehmigte Einreichungen
         ]);
 
         console.log('✅ Statistiken geladen:', {
@@ -794,12 +794,12 @@ async function loadNewProviders() {
     container.innerHTML = '<p>Wird geladen...</p>';
 
     try {
-        // NUR User-Einreichungen: user_id IS NOT NULL
-        // Admin-importierte Provider haben user_id = NULL
+        // NUR noch nicht genehmigte Einreichungen: is_approved = false.
+        // (Frueher fälschlich user_id IS NOT NULL → erfasste jeden Betrieb mit Owner.)
         const { data, error } = await supabaseClient
             .from('service_providers')
             .select('id, name, category, street, city, phone, email, website, latitude, longitude, brands, description, user_id, created_at')
-            .not('user_id', 'is', null)
+            .eq('is_approved', false)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -854,10 +854,11 @@ async function loadNewProviders() {
 async function approveNewProvider(providerId) {
     if (!confirm('Betrieb genehmigen? Er bleibt auf der Karte sichtbar und verschwindet aus dieser Liste.')) return;
     try {
-        // user_id auf null setzen → verschwindet aus "Neue Betriebe"-Liste, bleibt auf Karte
+        // is_approved = true → verschwindet aus "Neue Betriebe", Owner-Verknüpfung
+        // (user_id) bleibt erhalten.
         const { error } = await supabaseClient
             .from('service_providers')
-            .update({ user_id: null })
+            .update({ is_approved: true })
             .eq('id', providerId);
         if (error) throw error;
         console.log(`✅ Betrieb ${providerId} genehmigt`);
