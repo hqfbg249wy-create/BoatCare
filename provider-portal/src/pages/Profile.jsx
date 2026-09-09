@@ -1193,7 +1193,7 @@ export default function Profile() {
                     onClick={async () => {
                       try {
                         const { error } = await supabase
-                          .rpc('accept_provider_agb', { p_version: '2026-05' })
+                          .rpc('accept_provider_agb', { p_version: '2026-05', p_provider_id: provider.id })
                         if (error) throw error
                         // Reload provider data
                         window.location.reload()

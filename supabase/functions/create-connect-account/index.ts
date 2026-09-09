@@ -62,11 +62,20 @@ serve(async (req: Request) => {
       );
     }
 
+    // Owner ODER Admin-Mitglied (Stammdaten/Zahlungen = Owner+Admin-Recht).
     if (provider.user_id !== user.id) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      const { data: member } = await supabase
+        .from("provider_members")
+        .select("role")
+        .eq("provider_id", provider_id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!member || member.role !== "admin") {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     let accountId = provider.stripe_account_id;
