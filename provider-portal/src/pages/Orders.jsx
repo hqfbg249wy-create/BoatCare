@@ -286,25 +286,36 @@ export default function Orders() {
                 </table>
               )}
 
-              {order.order_items?.length > 0 && (
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                  title={t('orders.exportXlsxTitle')}
-                  onClick={() => exportEquipmentXlsx(
-                    order.order_items.map(it => ({
-                      name: it.product_name,
-                      manufacturer: it.product_manufacturer,
-                      part_number: it.product_sku,
-                      quantity: it.quantity,
-                    })),
-                    `skipily-bestellung-${safeFilePart(order.order_number)}.xlsx`
-                  )}
-                >
-                  <FileSpreadsheet size={16} /> {t('orders.exportXlsx')}
-                </button>
-              )}
+              {order.order_items?.length > 0 && (() => {
+                // Gesamtbestellung des Kunden: ALLE Bestellungen desselben Kunden
+                // (buyer_id) zusammenfassen, Positionen pro Produkt mergen (Menge
+                // summieren). So bekommt der Kunde eine Excel mit allem, was er
+                // gekauft hat — direkt in der App importierbar.
+                const custOrders = orders.filter(o => o.buyer_id === order.buyer_id)
+                const merged = new Map()
+                for (const o of custOrders) for (const it of (o.order_items || [])) {
+                  const sku = (it.product_sku || '').trim().toLowerCase()
+                  const key = sku || `${(it.product_name || '').trim().toLowerCase()}|${(it.product_manufacturer || '').trim().toLowerCase()}`
+                  if (!key || key === '|') continue
+                  const q = Number(it.quantity) || 0
+                  const prev = merged.get(key)
+                  if (prev) prev.quantity += q
+                  else merged.set(key, { name: it.product_name, manufacturer: it.product_manufacturer, part_number: it.product_sku, quantity: q })
+                }
+                const rows = [...merged.values()]
+                const multi = custOrders.length > 1
+                return (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    title={t('orders.exportXlsxTitle')}
+                    onClick={() => exportEquipmentXlsx(rows, `skipily-kunde-${safeFilePart(order.shipping_name)}.xlsx`)}
+                  >
+                    <FileSpreadsheet size={16} /> {multi ? t('orders.exportXlsxAll', { n: custOrders.length }) : t('orders.exportXlsx')}
+                  </button>
+                )
+              })()}
 
               {order.buyer_note && (
                 <div className="order-note">{t('orders.buyerNote')} {order.buyer_note}</div>
