@@ -266,47 +266,37 @@ struct PlusUpgradeSheet: View {
         .pickerStyle(.segmented)
     }
 
-    /// Formatiert den Preis robust gegen StoreKit-Stolperfallen.
+    /// Liefert den Anzeigepreis — bevorzugt Apples eigenen `displayPrice`.
     ///
-    /// Beobachtetes Problem in TestFlight: `displayPrice` UND `priceFormatStyle`
-    /// koennen die Base-Tier-Currency (USD) liefern obwohl der User auf einer
-    /// EUR-Storefront ist und Apples Subscribe-Sheet korrekt 4,99 € zeigt.
-    /// Ursache: bei manuellen Country-Price-Overrides in App Store Connect
-    /// liefert `Product.products(for:)` mitunter veraltete Cache-Werte.
+    /// Warum `displayPrice` statt selbst formatiertem `product.price`:
+    /// `displayPrice` ist der fertige, von StoreKit gerenderte Preis-String,
+    /// den auch Apples Kauf-Sheet verwendet. Damit zeigen Tarif-Karte und
+    /// Kauf-Bestaetigung IMMER denselben Betrag. (Frueher formatierten wir den
+    /// Decimal `product.price` selbst — dabei kann StoreKit den Decimal
+    /// veraltet cachen, sodass die Karte z. B. 3,99 zeigte, das Sheet aber 4,99.)
     ///
-    /// Strategie:
-    /// 1. Logge alles fuer Diagnose
-    /// 2. Wenn Storefront-Currency aus dem PriceFormatStyle nicht zur Device-
-    ///    Locale passt, ueberschreibe Locale mit `Locale.current` (das matcht
-    ///    bei einem deutschen Geraet auf de_DE und gibt das Komma + €-Symbol
-    ///    in deutscher Notation aus). Der Decimal-Wert bleibt unveraendert.
+    /// Ausnahme (bekannter StoreKit-Cache-Bug bei Country-Price-Overrides):
+    /// meldet das Produkt eine andere Waehrung als die Geraete-Storefront
+    /// (z. B. Base-Currency USD statt EUR), formatieren wir den Decimal selbst
+    /// in der korrekten Storefront-Waehrung.
     private func formattedPrice(_ product: StoreKit.Product) -> String {
         let style = product.priceFormatStyle
-        let primaryResult = product.price.formatted(style)
 
         AppLog.info("""
             PRICE DEBUG \(product.id):
               price=\(product.price)
               displayPrice=\(product.displayPrice)
               currencyCode=\(style.currencyCode)
-              locale=\(style.locale.identifier)
-              primaryResult=\(primaryResult)
-              deviceLocale=\(Locale.current.identifier)
               deviceCurrency=\(Locale.current.currency?.identifier ?? "nil")
             """)
 
-        // Fix: Wenn die vom Produkt gemeldete Währung NICHT zur Geräte-
-        // Storefront passt (bekannter StoreKit-Cache-Bug bei Country-Price-
-        // Overrides → meldet Base-Currency USD), auf die Storefront-Währung
-        // des Geräts umstellen. Nur die Locale zu ändern reicht NICHT — das
-        // Währungssymbol ($) kommt aus dem currencyCode. Apple bucht ohnehin
-        // in der Storefront-Währung ab, daher ist der Betrag korrekt.
         if let deviceCurrency = Locale.current.currency?.identifier,
            style.currencyCode != deviceCurrency {
             AppLog.info("PRICE FIX \(product.id): \(style.currencyCode) → \(deviceCurrency)")
             return product.price.formatted(.currency(code: deviceCurrency).locale(.current))
         }
-        return product.price.formatted(style)
+        // Normalfall: Apples eigener Preis-String — konsistent mit dem Kauf-Sheet.
+        return product.displayPrice
     }
 
     @ViewBuilder
