@@ -73,36 +73,58 @@ Deno.serve(async (req) => {
       return clean;
     });
 
-    // ── Additiv & doublettensicher ──
-    // Import ergänzt Produkte, er löscht/ersetzt NICHTS. Damit ein erneuter
-    // Upload derselben Datei keine Duplikate erzeugt, überspringen wir
-    // Artikelnummern, die es bei diesem Provider schon gibt (und Doubletten
-    // innerhalb der Datei). Bestände werden danach in der Oberfläche gepflegt.
+    // ── Upsert: bestehende Artikel AKTUALISIEREN, neue ANLEGEN, nichts löschen ──
+    // Match-Key = part_number pro Provider. So kann der Betrieb dieselbe Excel-
+    // Liste nachpflegen (Preise/Bestände ändern) und erneut hochladen: bekannte
+    // Artikelnummern werden aktualisiert statt gedoppelt, neue kommen dazu. Zeilen
+    // OHNE Artikelnummer sind nicht matchbar → immer neu angelegt.
     const { data: existing } = await admin
       .from("metashop_products")
-      .select("part_number")
+      .select("id, part_number")
       .eq("provider_id", providerId)
       .not("part_number", "is", null);
-    const seen = new Set(
-      (existing || [])
-        .map((r: Record<string, unknown>) => String(r.part_number ?? "").trim().toLowerCase())
-        .filter(Boolean),
-    );
-
-    let skipped = 0;
-    const toInsert: Array<Record<string, unknown>> = [];
-    for (const r of rows) {
-      const pn = r.part_number ? String(r.part_number).trim().toLowerCase() : "";
-      if (pn) {
-        if (seen.has(pn)) { skipped++; continue; }  // schon vorhanden → nicht doppeln
-        seen.add(pn);
-      }
-      toInsert.push(r);  // ohne Artikelnummer: immer anlegen (nicht dedupbar)
+    const idByPart = new Map<string, string>();
+    for (const r of (existing || []) as Array<Record<string, unknown>>) {
+      const pn = String(r.part_number ?? "").trim().toLowerCase();
+      if (pn && !idByPart.has(pn)) idByPart.set(pn, String(r.id));
     }
 
-    // ── Batch-Insert (Service-Role) ──
-    let ok = 0;
+    // Beim UPDATE nur gelieferte, nicht-leere Felder setzen (0/false bleiben
+    // gültige Werte) — so leert ein sparsam gefülltes Sheet keine Bestandsdaten.
+    const updateFields = (r: Record<string, unknown>): Record<string, unknown> => {
+      const u: Record<string, unknown> = {};
+      for (const k of Object.keys(r)) {
+        if (k === "provider_id") continue;
+        const v = r[k];
+        if (v === null || v === undefined || v === "") continue;
+        u[k] = v;
+      }
+      return u;
+    };
+
+    const toInsert: Array<Record<string, unknown>> = [];
+    const toUpdate: Array<{ id: string; fields: Record<string, unknown>; row: number }> = [];
+    const seenInFile = new Map<string, number>();   // pn → toUpdate-Index (Datei-interne Doubletten mergen)
+    rows.forEach((r, idx) => {
+      const pn = r.part_number ? String(r.part_number).trim().toLowerCase() : "";
+      if (pn && idByPart.has(pn)) {
+        // schon in DB → aktualisieren (bei Datei-Doublette gewinnt die letzte Zeile)
+        toUpdate.push({ id: idByPart.get(pn)!, fields: updateFields(r), row: idx + 2 });
+      } else if (pn && seenInFile.has(pn)) {
+        // in der Datei doppelt, aber (noch) nicht in DB → als Update auf die neue ID mergen
+        const prev = seenInFile.get(pn)!;
+        Object.assign(toInsert[prev], r);
+      } else {
+        if (pn) seenInFile.set(pn, toInsert.length);
+        toInsert.push(r);
+      }
+    });
+
+    let ok = 0;        // neu angelegt
+    let updated = 0;   // aktualisiert
     const failed: Array<{ row: number; error: string }> = [];
+
+    // Inserts (Batch)
     for (let i = 0; i < toInsert.length; i += 50) {
       const batch = toInsert.slice(i, i + 50);
       const { error } = await admin.from("metashop_products").insert(batch);
@@ -110,7 +132,21 @@ Deno.serve(async (req) => {
       else ok += batch.length;
     }
 
-    return json({ ok, skipped, failed });
+    // Updates (chunked parallel, damit grosse Kataloge nicht zu langsam werden)
+    for (let i = 0; i < toUpdate.length; i += 25) {
+      const chunk = toUpdate.slice(i, i + 25);
+      const results = await Promise.all(chunk.map(async (u) => {
+        if (Object.keys(u.fields).length === 0) return { row: u.row, error: null }; // nichts zu ändern
+        const { error } = await admin.from("metashop_products").update(u.fields).eq("id", u.id);
+        return { row: u.row, error: error?.message ?? null };
+      }));
+      for (const r of results) {
+        if (r.error) failed.push({ row: r.row, error: r.error });
+        else updated++;
+      }
+    }
+
+    return json({ ok, updated, failed });
   } catch (err) {
     return json({ error: (err as Error).message }, 500);
   }

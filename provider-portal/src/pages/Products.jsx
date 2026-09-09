@@ -469,7 +469,7 @@ export default function Products() {
         if (Array.isArray(result.failed)) failed.push(...result.failed)
       }
 
-      setCsvResult({ ok: imported, skipped: result.skipped || 0, failed })
+      setCsvResult({ ok: imported, updated: result.updated || 0, failed })
       await loadProducts()
     } catch (err) {
       setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
@@ -833,7 +833,7 @@ export default function Products() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <strong>
               {t('products.csvResultOk', { n: csvResult.ok })}
-              {csvResult.skipped > 0 && ` · ${t('products.csvResultSkipped', { n: csvResult.skipped })}`}
+              {csvResult.updated > 0 && ` · ${t('products.csvResultUpdated', { n: csvResult.updated })}`}
               {csvResult.failed.length > 0 && t('products.csvResultFailed', { n: csvResult.failed.length })}
             </strong>
             <button className="btn-icon" onClick={() => setCsvResult(null)} title={t('common.close')}>
