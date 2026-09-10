@@ -35,7 +35,8 @@ app.use(express.json());
 // ============================================================
 async function requireAdmin(req, res, next) {
     if (req.method === 'OPTIONS') return next();
-    if (req.path === '/health' || req.path === '/') return next();
+    // /health + / für Fly-Checks; /img ist der öffentliche Thumbnail-Proxy.
+    if (req.path === '/health' || req.path === '/' || req.path === '/img') return next();
     try {
         const authH = req.headers['authorization'] || '';
         const token = authH.startsWith('Bearer ') ? authH.slice(7) : '';
@@ -69,6 +70,53 @@ async function requireAdmin(req, res, next) {
     }
 }
 app.use(requireAdmin);
+
+// ============================================================
+// Thumbnail-Proxy (öffentlich): verkleinert externe Produktbilder serverseitig
+// auf ~w px, damit die App kleine JPEGs (~30 KB) statt Full-Res (mehrere MB)
+// laedt. Wichtig fuer den iPad-Shop mit tausenden Produkten.
+//   GET /img?url=<original>&w=420
+// In-Memory-LRU-Cache begrenzt (die App cached zusaetzlich on-device).
+// ============================================================
+const sharp = require('sharp');
+const _thumbCache = new Map();           // key -> Buffer
+const _THUMB_CAP = 800;
+app.get('/img', async (req, res) => {
+    try {
+        const src = String(req.query.url || '');
+        let w = parseInt(req.query.w, 10) || 420;
+        w = Math.max(40, Math.min(1200, w));
+        if (!/^https?:\/\//i.test(src)) return res.status(400).send('bad url');
+
+        const key = w + '|' + src;
+        const cached = _thumbCache.get(key);
+        if (cached) {
+            res.set('Content-Type', 'image/jpeg');
+            res.set('Cache-Control', 'public, max-age=2592000, immutable');
+            return res.send(cached);
+        }
+
+        const resp = await fetch(src, { redirect: 'follow', headers: { 'User-Agent': 'SkipilyImg/1.0' } });
+        if (!resp.ok) return res.status(502).send('fetch failed');
+        const input = Buffer.from(await resp.arrayBuffer());
+        const out = await sharp(input)
+            .rotate()                                   // EXIF-Ausrichtung
+            .resize({ width: w, withoutEnlargement: true })
+            .jpeg({ quality: 78, mozjpeg: true })
+            .toBuffer();
+
+        if (_thumbCache.size >= _THUMB_CAP) {
+            _thumbCache.delete(_thumbCache.keys().next().value);   // LRU: aeltesten raus
+        }
+        _thumbCache.set(key, out);
+
+        res.set('Content-Type', 'image/jpeg');
+        res.set('Cache-Control', 'public, max-age=2592000, immutable');
+        return res.send(out);
+    } catch (e) {
+        return res.status(500).send('img error');
+    }
+});
 
 // ============================================================
 // KONFIGURATION

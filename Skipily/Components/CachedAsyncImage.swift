@@ -101,8 +101,8 @@ actor ImageDownsampler {
                 return image
             }
 
-            // 3. Netz: einmalig laden, downsamplen, in Speicher + auf Platte ablegen.
-            guard let data = await Self.fetchData(url) else { return nil }
+            // 3. Netz: einmalig laden (über Thumbnail-Proxy), downsamplen, ablegen.
+            guard let data = await Self.fetchData(url, maxPixel: maxPixel) else { return nil }
             guard let image = Self.downsample(data: data, maxPixel: maxPixel) else { return nil }
             Self.store(image, key: key)
             Self.writeThumb(image, to: thumbURL)
@@ -169,15 +169,35 @@ actor ImageDownsampler {
         }
     }
 
-    nonisolated private static func fetchData(_ url: URL) async -> Data? {
-        // URLSession.shared uses the app-wide URLCache (configured in
-        // SkipilyApp), so the raw bytes are reused across screens too.
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+    nonisolated private static func fetchData(_ url: URL, maxPixel: CGFloat) async -> Data? {
+        // Externe Bilder ueber den serverseitigen Thumbnail-Proxy holen (kleines
+        // JPEG statt Full-Res). URLSession.shared nutzt den app-weiten URLCache.
+        let fetchURL = proxied(url, maxPixel: maxPixel)
+        if let (data, resp) = try? await URLSession.shared.data(from: fetchURL),
+           ((resp as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? true),
+           !data.isEmpty {
             return data
-        } catch {
-            return nil
         }
+        // Fallback: Original direkt laden, falls der Proxy (noch) nicht live ist
+        // oder fuer dieses Bild fehlschlaegt — so brechen Bilder nie.
+        if fetchURL != url, let (data, _) = try? await URLSession.shared.data(from: url), !data.isEmpty {
+            return data
+        }
+        return nil
+    }
+
+    /// Baut die Proxy-URL fuer externe Bilder; eigene/Proxy-Hosts bleiben direkt.
+    nonisolated private static func proxied(_ url: URL, maxPixel: CGFloat) -> URL {
+        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return url }
+        let host = (url.host ?? "").lowercased()
+        if host.contains("skipily-scraper.fly.dev") || host.contains("supabase.co") { return url }
+        let w = max(40, min(1200, Int(maxPixel.rounded())))
+        var comps = URLComponents(string: "https://skipily-scraper.fly.dev/img")
+        comps?.queryItems = [
+            URLQueryItem(name: "url", value: url.absoluteString),
+            URLQueryItem(name: "w", value: String(w)),
+        ]
+        return comps?.url ?? url
     }
 
     /// Decodes `data` directly at a reduced size — never inflates the full
