@@ -603,6 +603,7 @@
 "product.promo_until" = "tot %@";
 "product.save_amount" = "Bespaar %@";
 "profile.section_personal" = "Persoonlijke gegevens";
+"profile.customerNumber" = "Klantnummer";
 "sail.section_dimensions" = "Afmetingen";
 "sail.soft_foot" = "Zachte voet";
 "sail.loose_foot" = "Losse onderlijk";

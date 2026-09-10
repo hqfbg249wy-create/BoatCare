@@ -659,6 +659,7 @@ export default {
   "pf.k1": "Mitglied",
   "pf.k2": "Produkte und Bestellungen",
   "pf.k3": "Stammdaten",
+  "pf.customerNumber": "Kundennummer",
   "pf.k4": "So sehen Kunden dein Profil in der Skipily-App. Leistungen und Marken werden anklickbar und führen Kunden zu passenden Produkten.",
   "pf.k5": "Live-Vorschau",
   "pf.k6": "Zahlungen & Auszahlungen",

@@ -125,6 +125,14 @@ export default function Profile() {
     supabase.from('provider_members').select('role').eq('provider_id', provider.id).eq('user_id', user.id).maybeSingle()
       .then(({ data }) => setMyRole(data?.role || 'member'))
   }, [provider?.id, provider?.user_id, user?.id])
+
+  // ── Kundennummer des angemeldeten Accounts (read-only, aus profiles) ──
+  const [customerNumber, setCustomerNumber] = useState(null)
+  useEffect(() => {
+    if (!user?.id) return
+    supabase.from('profiles').select('customer_number').eq('id', user.id).maybeSingle()
+      .then(({ data }) => setCustomerNumber(data?.customer_number ?? null))
+  }, [user?.id])
   const canAdmin = myRole === 'owner' || myRole === 'admin'
 
   // Stripe Connect state
@@ -1114,6 +1122,11 @@ export default function Profile() {
           <p className="subtitle" style={{ margin: 0 }}>
             {t('pf.k4')}
           </p>
+          {customerNumber != null && (
+            <p className="subtitle" style={{ margin: '4px 0 0', fontSize: 13 }}>
+              {t('pf.customerNumber')}: <strong>{customerNumber}</strong>
+            </p>
+          )}
         </div>
         <a
           href={`/provider/${provider.id}`}

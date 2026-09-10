@@ -610,6 +610,7 @@ Ausrüstung unter Boote ergänzen.";
 "product.promo_until" = "bis %@";
 "product.save_amount" = "Spare %@";
 "profile.section_personal" = "Persönliche Daten";
+"profile.customerNumber" = "Kundennummer";
 "sail.section_dimensions" = "Maße";
 "sail.soft_foot" = "Weicher Fußteil";
 "sail.loose_foot" = "Loses Unterliek";

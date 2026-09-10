@@ -13,6 +13,8 @@ struct UserProfile: Codable, Identifiable, Sendable {
     var fullName: String?
     var email: String?
     var role: String?
+    /// Fortlaufende Kundennummer (vom Backend vergeben, read-only).
+    var customerNumber: Int?
 
     // Original profile fields
     var username: String?
@@ -42,6 +44,7 @@ struct UserProfile: Codable, Identifiable, Sendable {
         case id
         case fullName = "full_name"
         case email, role, username
+        case customerNumber = "customer_number"
         case phoneNumber = "phone_number"
         case website
         case avatarUrl = "avatar_url"
@@ -62,6 +65,7 @@ struct UserProfile: Codable, Identifiable, Sendable {
         fullName: String? = nil,
         email: String? = nil,
         role: String? = nil,
+        customerNumber: Int? = nil,
         username: String? = nil,
         phoneNumber: String? = nil,
         website: String? = nil,
@@ -80,6 +84,7 @@ struct UserProfile: Codable, Identifiable, Sendable {
         self.fullName = fullName
         self.email = email
         self.role = role
+        self.customerNumber = customerNumber
         self.username = username
         self.phoneNumber = phoneNumber
         self.website = website

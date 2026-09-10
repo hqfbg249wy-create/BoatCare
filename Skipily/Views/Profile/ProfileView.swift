@@ -352,6 +352,20 @@ struct ProfileView: View {
                 .textFieldStyle(.roundedBorder)
                 .disabled(true)
                 .foregroundStyle(AppColors.gray400)
+
+            if let num = authService.userProfile?.customerNumber {
+                HStack {
+                    Text("profile.customerNumber".loc)
+                        .foregroundStyle(AppColors.gray400)
+                    Spacer()
+                    Text("\(num)")
+                        .fontWeight(.medium)
+                        .textSelection(.enabled)
+                }
+                .font(.subheadline)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 2)
+            }
         }
         .padding(.horizontal, 16)
     }

@@ -603,6 +603,7 @@
 "product.promo_until" = "fino al %@";
 "product.save_amount" = "Risparmia %@";
 "profile.section_personal" = "Dati personali";
+"profile.customerNumber" = "Numero cliente";
 "sail.section_dimensions" = "Dimensioni";
 "sail.soft_foot" = "Piede morbido";
 "sail.loose_foot" = "Bordame libero";

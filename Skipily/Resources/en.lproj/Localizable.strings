@@ -606,6 +606,7 @@
 "product.promo_until" = "until %@";
 "product.save_amount" = "Save %@";
 "profile.section_personal" = "Personal info";
+"profile.customerNumber" = "Customer number";
 "sail.section_dimensions" = "Dimensions";
 "sail.soft_foot" = "Soft foot";
 "sail.loose_foot" = "Loose foot";
