@@ -8430,7 +8430,7 @@ async function loadUsers() {
     const tbody = document.getElementById('users-body');
     if (!tbody || !supabaseClient) return;
 
-    tbody.innerHTML = '<tr><td colspan="8" style="padding:24px; text-align:center; color:#94a3b8;">Wird geladen…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="padding:24px; text-align:center; color:#94a3b8;">Wird geladen…</td></tr>';
 
     try {
         const { data, error } = await supabaseClient.rpc('admin_list_users');
@@ -8461,7 +8461,7 @@ async function loadUsers() {
         renderUsers(allUsers);
     } catch (err) {
         console.error('loadUsers Fehler:', err);
-        tbody.innerHTML = `<tr><td colspan="8" style="padding:24px; text-align:center; color:#dc2626;">Fehler: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="padding:24px; text-align:center; color:#dc2626;">Fehler: ${err.message}</td></tr>`;
     }
 }
 
@@ -8500,7 +8500,8 @@ function searchUsers() {
         if (typeFilter === 'both'     && !(u.is_owner && u.is_provider)) return false;
         if (!q) return true;
         return (u.email || '').toLowerCase().includes(q) ||
-               (u.full_name || '').toLowerCase().includes(q);
+               (u.full_name || '').toLowerCase().includes(q) ||
+               String(u.customer_number ?? '').includes(q);
     });
     renderUsers(filtered);
 }
@@ -8531,7 +8532,7 @@ function renderUsers(users) {
     if (!tbody) return;
 
     if (users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="padding:24px; text-align:center; color:#94a3b8;">Keine Benutzer gefunden.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="padding:24px; text-align:center; color:#94a3b8;">Keine Benutzer gefunden.</td></tr>';
         return;
     }
 
@@ -8547,6 +8548,7 @@ function renderUsers(users) {
         return `
             <tr style="border-bottom:1px solid #f1f5f9;">
                 <td style="padding:10px 12px;"><code style="font-size:12px;">${escapeHtml(u.email || '—')}</code>${isSelf ? ' <span style="font-size:11px; color:#16a34a;">(Sie)</span>' : ''}</td>
+                <td style="padding:10px 12px;"><code style="font-size:12px; color:#0f172a;">${u.customer_number ?? '—'}</code></td>
                 <td style="padding:10px 12px;">${escapeHtml(u.full_name || '—')}<div style="margin-top:4px;">${typeBadges(u)}</div></td>
                 <td style="padding:10px 12px;">
                     ${isReadonly || isSelf
