@@ -79,6 +79,20 @@ actor ImageDownsampler {
         cache.object(forKey: cacheKey(url, maxPixel))
     }
 
+    /// Synchroner Zugriff auf Memory- ODER Disk-Thumbnail. Wird im View-`init`
+    /// genutzt, damit vorgewärmte (auf Platte liegende) Bilder SOFORT erscheinen,
+    /// ohne asynchrone Lücke beim Erscheinen der Kachel. Der Thumbnail ist bereits
+    /// heruntergerechnet (~420 px, ~wenige KB) → Dekodieren ist im Millisekunden-
+    /// bereich, auch auf dem Main-Thread beim Scrollen.
+    nonisolated static func warmImage(for url: URL, maxPixel: CGFloat) -> UIImage? {
+        let key = cacheKey(url, maxPixel)
+        if let cached = cache.object(forKey: key) { return cached }
+        let thumbURL = thumbFileURL(url, maxPixel)
+        guard let data = try? Data(contentsOf: thumbURL), let img = UIImage(data: data) else { return nil }
+        store(img, key: key)   // ins Memory heben, damit der nächste Zugriff O(1) ist
+        return img
+    }
+
     /// Returns a decoded, downsampled image for `url`, no larger than
     /// `maxPixel` on its longest edge. Cached results are returned immediately.
     func image(for url: URL, maxPixel: CGFloat) async -> UIImage? {
@@ -237,11 +251,12 @@ struct CachedAsyncImage<Content: View>: View {
         self.url = url
         self.targetSize = targetSize
         self.content = content
-        // Bereits gecachtes Bild sofort als Startzustand -> kein Flackern beim
-        // Recycling/Zurückscrollen. Erst-Laden bleibt async (unten in load()).
+        // Bereits gecachtes Bild (Memory ODER Disk) sofort als Startzustand ->
+        // kein Flackern/keine Lücke beim Erscheinen/Zurückscrollen. Nur nie zuvor
+        // geladene Bilder starten async (unten in load()).
         if let url {
             let maxPixel = max(targetSize.width, targetSize.height) * UIScreen.main.scale
-            if let img = ImageDownsampler.cachedImage(for: url, maxPixel: maxPixel) {
+            if let img = ImageDownsampler.warmImage(for: url, maxPixel: maxPixel) {
                 _phase = State(initialValue: .success(Image(uiImage: img)))
                 return
             }
@@ -261,8 +276,8 @@ struct CachedAsyncImage<Content: View>: View {
             return
         }
         let maxPixel = max(targetSize.width, targetSize.height) * UIScreen.main.scale
-        // Synchroner Cache-Treffer -> sofort setzen, kein Actor-Hop nötig.
-        if let cached = ImageDownsampler.cachedImage(for: url, maxPixel: maxPixel) {
+        // Synchroner Treffer (Memory ODER Disk) -> sofort setzen, kein Actor-Hop.
+        if let cached = ImageDownsampler.warmImage(for: url, maxPixel: maxPixel) {
             phase = .success(Image(uiImage: cached))
             return
         }
