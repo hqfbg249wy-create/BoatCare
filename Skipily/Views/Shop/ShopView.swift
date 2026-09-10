@@ -895,6 +895,18 @@ struct ShopView: View {
         }
     }
 
+    /// Wärmt die Produktbilder der geladenen Seite im Hintergrund vor — gleiche
+    /// Kachelgröße (210×150) wie ProductCardView, also derselbe Cache-Key. So sind
+    /// die Bilder schon da, wenn man hinscrollt (auch bei langsamem Scrollen).
+    private func prefetchImages(_ items: [Product]) {
+        let urls = items.compactMap { $0.firstImageURL }
+        guard !urls.isEmpty else { return }
+        let maxPixel = max(210, 150) * UIScreen.main.scale
+        Task.detached(priority: .utility) {
+            await ImageDownsampler.shared.prefetch(urls, maxPixel: maxPixel)
+        }
+    }
+
     /// Gehört das Produkt zu einem als Favorit markierten Betrieb?
     private func isFavoriteProduct(_ p: Product) -> Bool {
         guard let pid = p.providerId else { return false }
@@ -950,6 +962,7 @@ struct ShopView: View {
 
             products = loaded
             hasMoreProducts = products.count >= pageSize
+            prefetchImages(loaded)   // Bilder der geladenen Seite vorwärmen
 
             // Strategie B: Übersetzungen für aktuelle Sprache nachziehen (Cache + Edge-Fn)
             await TranslationService.shared.ensureTranslations(
@@ -975,6 +988,7 @@ struct ShopView: View {
             )
             products.append(contentsOf: moreProducts)
             hasMoreProducts = moreProducts.count >= pageSize
+            prefetchImages(moreProducts)   // Bilder der nachgeladenen Seite vorwärmen
 
             await TranslationService.shared.ensureTranslations(
                 for: moreProducts,

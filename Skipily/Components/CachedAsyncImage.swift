@@ -85,20 +85,46 @@ actor ImageDownsampler {
         let key = Self.cacheKey(url, maxPixel)
         if let cached = Self.cache.object(forKey: key) { return cached }
 
-        // 2. Disk-Thumbnail: verdrängtes Bild ohne Netz/Downsampling zurückholen.
-        let thumbURL = Self.thumbFileURL(url, maxPixel)
-        if let data = try? Data(contentsOf: thumbURL),
-           let image = UIImage(data: data)?.preparingForDisplay() ?? UIImage(data: data) {
-            Self.store(image, key: key)
-            return image
-        }
+        // Disk-Read, Netz-Fetch UND Downsampling laufen in einem detached Task,
+        // NICHT auf dem Actor. Sonst blockiert die (CPU-schwere) Dekodierung den
+        // Actor und die Kacheln werden nacheinander statt parallel geladen — auf
+        // dem iPad mit vielen sichtbaren Kacheln entstehen dadurch beim Scrollen
+        // leere Stellen, die sich erst verzögert füllen. Ausgelagert dekodieren
+        // die sichtbaren Kacheln parallel; das Ergebnis landet im (thread-safen)
+        // NSCache + Disk-Thumbnail.
+        return await Task.detached(priority: .utility) { () -> UIImage? in
+            // 2. Disk-Thumbnail: verdrängtes Bild ohne Netz/Downsampling zurückholen.
+            let thumbURL = Self.thumbFileURL(url, maxPixel)
+            if let data = try? Data(contentsOf: thumbURL),
+               let image = UIImage(data: data)?.preparingForDisplay() ?? UIImage(data: data) {
+                Self.store(image, key: key)
+                return image
+            }
 
-        // 3. Netz: einmalig laden, downsamplen, in Speicher + auf Platte ablegen.
-        guard let data = await fetchData(url) else { return nil }
-        guard let image = Self.downsample(data: data, maxPixel: maxPixel) else { return nil }
-        Self.store(image, key: key)
-        Self.writeThumb(image, to: thumbURL)
-        return image
+            // 3. Netz: einmalig laden, downsamplen, in Speicher + auf Platte ablegen.
+            guard let data = await Self.fetchData(url) else { return nil }
+            guard let image = Self.downsample(data: data, maxPixel: maxPixel) else { return nil }
+            Self.store(image, key: key)
+            Self.writeThumb(image, to: thumbURL)
+            return image
+        }.value
+    }
+
+    /// Wärmt den Cache für kommende Kacheln vor (begrenzte Parallelität), damit
+    /// beim Scrollen — auch langsam — keine leeren Stellen entstehen. Bereits
+    /// gecachte/als Thumbnail vorhandene Bilder sind sofort übersprungen.
+    func prefetch(_ urls: [URL], maxPixel: CGFloat, maxConcurrent: Int = 6) async {
+        await withTaskGroup(of: Void.self) { group in
+            var it = urls.makeIterator()
+            for _ in 0..<max(1, maxConcurrent) {
+                guard let u = it.next() else { break }
+                group.addTask { _ = await self.image(for: u, maxPixel: maxPixel) }
+            }
+            for await _ in group {
+                guard let u = it.next() else { continue }
+                group.addTask { _ = await self.image(for: u, maxPixel: maxPixel) }
+            }
+        }
     }
 
     private static func store(_ image: UIImage, key: NSString) {
@@ -143,7 +169,7 @@ actor ImageDownsampler {
         }
     }
 
-    private func fetchData(_ url: URL) async -> Data? {
+    nonisolated private static func fetchData(_ url: URL) async -> Data? {
         // URLSession.shared uses the app-wide URLCache (configured in
         // SkipilyApp), so the raw bytes are reused across screens too.
         do {
