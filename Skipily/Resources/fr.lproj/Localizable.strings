@@ -938,6 +938,16 @@
 "equip.import.reading" = "Lecture du fichier…";
 "equip.import.summary" = "Résumé";
 "equip.import.new" = "Nouveau";
+"equip.import.updated" = "Mis à jour";
+"equip.import.stockAdded" = "Stock ajouté";
+"equip.import.chooseAction" = "Choisir l’action";
+"equip.import.action.merge" = "Fusionner";
+"equip.import.action.replace" = "Remplacer";
+"equip.import.action.addStock" = "Ajouter au stock";
+"equip.import.action.new" = "Créer";
+"equip.import.exactMatch" = "Existant : « %@ »";
+"equip.import.fuzzyMatch" = "Similaire à « %@ » (à choisir)";
+"equip.import.resolveFirst" = "Veuillez d’abord décider pour toutes les correspondances similaires.";
 "equip.import.skipped" = "Déjà présent (ignoré)";
 "equip.import.sails" = "Mesures de voile";
 "equip.import.ropes" = "Gréement";

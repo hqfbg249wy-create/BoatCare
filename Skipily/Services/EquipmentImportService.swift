@@ -27,18 +27,29 @@ final class EquipmentImportService {
         let sails: Int
         let ropes: Int
         let unlinked: Int
+        // Neu (#3): aktualisiert / Bestand ergänzt — optional (alte Responses ohne).
+        var equipmentUpdated: Int? = nil
+        var equipmentStock: Int? = nil
     }
 
     struct EqPreview: Decodable, Identifiable {
-        var id: String { name + (serialNumber ?? "") }
+        var id: String { key ?? (name + (serialNumber ?? "")) }
         let name: String
         let serialNumber: String?
         let category: String
         let dup: Bool
         let reason: String?
         let matchedName: String?
+        // Neu (#3 Fuzzy-Match + Entscheidungen):
+        let key: String?
+        let matchType: String?         // "exact" | "fuzzy" | "none"
+        let matchedId: String?
+        let matchedQuantity: Int?
+        let suggestedAction: String?   // "merge" | "ask" | "new"
+        let quantity: Int?
         enum CodingKeys: String, CodingKey {
             case name, category, dup, reason, matchedName
+            case key, matchType, matchedId, matchedQuantity, suggestedAction, quantity
             case serialNumber = "serial_number"
         }
     }
@@ -76,10 +87,18 @@ final class EquipmentImportService {
     // Fehlermodell der Function (z. B. requires_plus).
     struct FnError: Decodable { let error: String?; let requires_plus: Bool? }
 
+    /// Entscheidung pro Zeile für den Commit (Fuzzy-/Konfliktauflösung).
+    struct Decision: Encodable {
+        let key: String
+        let action: String        // replace | merge | add_stock | new | skip
+        let matchedId: String?
+    }
+
     private struct RequestBody: Encodable {
         let file_base64: String
         let boat_id: String
         let mode: String
+        var decisions: [Decision]? = nil
     }
 
     enum ImportError: LocalizedError {
@@ -107,12 +126,14 @@ final class EquipmentImportService {
         try await invoke(fileBase64: fileBase64, boatId: boatId, mode: "preview")
     }
 
-    func commit(fileBase64: String, boatId: UUID) async throws -> CommitResponse {
-        try await invoke(fileBase64: fileBase64, boatId: boatId, mode: "commit")
+    func commit(fileBase64: String, boatId: UUID, decisions: [Decision] = []) async throws -> CommitResponse {
+        try await invoke(fileBase64: fileBase64, boatId: boatId, mode: "commit",
+                         decisions: decisions.isEmpty ? nil : decisions)
     }
 
-    private func invoke<T: Decodable>(fileBase64: String, boatId: UUID, mode: String) async throws -> T {
-        let body = RequestBody(file_base64: fileBase64, boat_id: boatId.uuidString, mode: mode)
+    private func invoke<T: Decodable>(fileBase64: String, boatId: UUID, mode: String,
+                                      decisions: [Decision]? = nil) async throws -> T {
+        let body = RequestBody(file_base64: fileBase64, boat_id: boatId.uuidString, mode: mode, decisions: decisions)
         do {
             return try await client.functions.invoke("import-equipment-xlsx", options: .init(body: body))
         } catch let fnError as FunctionsError {

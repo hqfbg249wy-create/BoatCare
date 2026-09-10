@@ -938,6 +938,16 @@
 "equip.import.reading" = "Leyendo archivo…";
 "equip.import.summary" = "Resumen";
 "equip.import.new" = "Nuevo";
+"equip.import.updated" = "Actualizado";
+"equip.import.stockAdded" = "Stock añadido";
+"equip.import.chooseAction" = "Elegir acción";
+"equip.import.action.merge" = "Combinar";
+"equip.import.action.replace" = "Reemplazar";
+"equip.import.action.addStock" = "Añadir al stock";
+"equip.import.action.new" = "Crear nuevo";
+"equip.import.exactMatch" = "Existente: «%@»";
+"equip.import.fuzzyMatch" = "Similar a «%@» (elige)";
+"equip.import.resolveFirst" = "Decide primero todas las coincidencias similares.";
 "equip.import.skipped" = "Ya existente (omitido)";
 "equip.import.sails" = "Medidas de vela";
 "equip.import.ropes" = "Jarcia";

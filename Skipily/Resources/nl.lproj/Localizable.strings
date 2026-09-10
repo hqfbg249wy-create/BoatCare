@@ -938,6 +938,16 @@
 "equip.import.reading" = "Bestand wordt gelezen…";
 "equip.import.summary" = "Samenvatting";
 "equip.import.new" = "Nieuw";
+"equip.import.updated" = "Bijgewerkt";
+"equip.import.stockAdded" = "Voorraad aangevuld";
+"equip.import.chooseAction" = "Actie kiezen";
+"equip.import.action.merge" = "Samenvoegen";
+"equip.import.action.replace" = "Vervangen";
+"equip.import.action.addStock" = "Voorraad aanvullen";
+"equip.import.action.new" = "Nieuw aanmaken";
+"equip.import.exactMatch" = "Bestaand: “%@”";
+"equip.import.fuzzyMatch" = "Lijkt op “%@” (kies)";
+"equip.import.resolveFirst" = "Beslis eerst over alle vergelijkbare treffers.";
 "equip.import.skipped" = "Al aanwezig (overgeslagen)";
 "equip.import.sails" = "Zeilmeetblad";
 "equip.import.ropes" = "Touwwerk";

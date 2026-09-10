@@ -25,6 +25,8 @@ struct EquipmentImportSheet: View {
     @State private var result: EquipmentImportService.Summary?
     @State private var busy = false
     @State private var errorMessage: String?
+    /// Konfliktauflösung pro Zeile (key → action). Vorbelegt: exakt=merge, ähnlich=offen.
+    @State private var decisions: [String: String] = [:]
 
     private var allowedTypes: [UTType] {
         var types: [UTType] = [.commaSeparatedText, .spreadsheet]
@@ -76,7 +78,7 @@ struct EquipmentImportSheet: View {
             if let p = preview {
                 Section("equip.import.summary".loc) {
                     summaryRow("equip.import.new".loc, "\(p.summary.equipmentNew)", .green)
-                    if p.summary.equipmentSkipped > 0 { summaryRow("equip.import.skipped".loc, "\(p.summary.equipmentSkipped)", .orange) }
+                    if let u = p.summary.equipmentUpdated, u > 0 { summaryRow("equip.import.updated".loc, "\(u)", .blue) }
                     if p.summary.sails > 0 { summaryRow("equip.import.sails".loc, "\(p.summary.sails)", .green) }
                     if p.summary.ropes > 0 { summaryRow("equip.import.ropes".loc, "\(p.summary.ropes)", .green) }
                     if p.summary.unlinked > 0 { summaryRow("equip.import.unlinked".loc, "\(p.summary.unlinked)", .orange) }
@@ -84,21 +86,7 @@ struct EquipmentImportSheet: View {
 
                 if !p.equipment.isEmpty {
                     Section("equip.import.equipment".loc) {
-                        ForEach(p.equipment) { e in
-                            HStack(alignment: .top, spacing: 10) {
-                                Image(systemName: e.dup ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-                                    .foregroundStyle(e.dup ? .orange : .green)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(e.name).font(.subheadline).fontWeight(.medium)
-                                    if e.dup, let r = e.reason {
-                                        Text(dupText(reason: r, matched: e.matchedName))
-                                            .font(.caption).foregroundStyle(.orange)
-                                    } else if let s = e.serialNumber, !s.isEmpty {
-                                        Text(String(format: "equip.import.serial".loc, s)).font(.caption).foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                        }
+                        ForEach(p.equipment) { e in equipmentRow(e) }
                     }
                 }
 
@@ -116,6 +104,10 @@ struct EquipmentImportSheet: View {
 
             if preview != nil {
                 Section {
+                    if unresolvedFuzzy {
+                        Text("equip.import.resolveFirst".loc)
+                            .font(.caption).foregroundStyle(.orange)
+                    }
                     Button {
                         Task { await doCommit() }
                     } label: {
@@ -124,20 +116,68 @@ struct EquipmentImportSheet: View {
                             Text(busy ? "equip.import.importing".loc : "equip.import.import".loc)
                         }
                     }
-                    .disabled(busy)
+                    .disabled(busy || unresolvedFuzzy)
                 }
             }
         }
     }
 
-    // Duplikat-Hinweis. Der Grund kommt serverseitig als "Seriennummer"/"Name"
-    // (DE) und wird hier lokalisiert; typografische Anführungszeichen (kein ASCII-").
-    private func dupText(reason: String, matched: String?) -> String {
-        let reasonLoc = reason == "Seriennummer" ? "equip.import.bySerial".loc
-                      : reason == "Name" ? "equip.import.byName".loc : reason
-        var s = String(format: "equip.import.dupReason".loc, reasonLoc)
-        if let m = matched, !m.isEmpty { s += ": \u{201E}\(m)\u{201C}" }
-        return s
+    // MARK: - Zeile mit Konfliktauflösung
+
+    /// exakter Treffer → Default „Zusammenführen" (änderbar); ähnlicher Treffer →
+    /// Wahl erzwungen; kein Treffer → neu (grün, keine Auswahl).
+    @ViewBuilder
+    private func equipmentRow(_ e: EquipmentImportService.EqPreview) -> some View {
+        let type = e.matchType ?? (e.dup ? "exact" : "none")
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: type == "none" ? "checkmark.circle.fill" : "arrow.triangle.2.circlepath.circle.fill")
+                    .foregroundStyle(type == "none" ? .green : (type == "fuzzy" ? .orange : .blue))
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(e.name).font(.subheadline).fontWeight(.medium)
+                        if let q = e.quantity, q > 1 { Text("×\(q)").font(.caption).foregroundStyle(.secondary) }
+                    }
+                    if type == "none" {
+                        if let s = e.serialNumber, !s.isEmpty {
+                            Text(String(format: "equip.import.serial".loc, s)).font(.caption).foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Text(matchText(e, type: type))
+                            .font(.caption).foregroundStyle(type == "fuzzy" ? .orange : .secondary)
+                    }
+                }
+            }
+            if type != "none", let key = e.key {
+                Picker("equip.import.chooseAction".loc,
+                       selection: actionBinding(key: key, defaultAction: type == "exact" ? "merge" : "")) {
+                    if type == "fuzzy" { Text("equip.import.chooseAction".loc).tag("") }
+                    Text("equip.import.action.merge".loc).tag("merge")
+                    Text("equip.import.action.replace".loc).tag("replace")
+                    Text("equip.import.action.addStock".loc).tag("add_stock")
+                    Text("equip.import.action.new".loc).tag("new")
+                }
+                .pickerStyle(.menu)
+                .font(.caption)
+            }
+        }
+    }
+
+    private func matchText(_ e: EquipmentImportService.EqPreview, type: String) -> String {
+        let m = e.matchedName ?? ""
+        if type == "fuzzy" { return String(format: "equip.import.fuzzyMatch".loc, m) }
+        return String(format: "equip.import.exactMatch".loc, m)
+    }
+
+    private func actionBinding(key: String, defaultAction: String) -> Binding<String> {
+        Binding(get: { decisions[key] ?? defaultAction },
+                set: { decisions[key] = $0 })
+    }
+
+    /// Es gibt noch ähnliche Treffer ohne getroffene Wahl.
+    private var unresolvedFuzzy: Bool {
+        guard let p = preview else { return false }
+        return p.equipment.contains { $0.matchType == "fuzzy" && (decisions[$0.key ?? ""] ?? "").isEmpty }
     }
 
     private func summaryRow(_ label: String, _ value: String, _ color: Color) -> some View {
@@ -164,7 +204,8 @@ struct EquipmentImportSheet: View {
                 Label("equip.import.doneTitle".loc, systemImage: "checkmark.seal.fill")
                     .foregroundStyle(.green).font(.headline)
                 summaryRow("equip.import.equipmentNew".loc, "\(s.equipmentNew)", .green)
-                if s.equipmentSkipped > 0 { summaryRow("equip.import.skipped".loc, "\(s.equipmentSkipped)", .orange) }
+                if let u = s.equipmentUpdated, u > 0 { summaryRow("equip.import.updated".loc, "\(u)", .blue) }
+                if let st = s.equipmentStock, st > 0 { summaryRow("equip.import.stockAdded".loc, "\(st)", .blue) }
                 if s.sails > 0 { summaryRow("equip.import.sails".loc, "\(s.sails)", .green) }
                 if s.ropes > 0 { summaryRow("equip.import.ropes".loc, "\(s.ropes)", .green) }
                 if s.unlinked > 0 { summaryRow("equip.import.unlinked".loc, "\(s.unlinked)", .orange) }
@@ -189,11 +230,16 @@ struct EquipmentImportSheet: View {
     }
 
     private func loadPreview(_ url: URL) async {
-        busy = true; preview = nil; errorMessage = nil
+        busy = true; preview = nil; errorMessage = nil; decisions = [:]
         do {
             let b64 = try EquipmentImportService.base64(from: url)
             fileBase64 = b64
-            preview = try await EquipmentImportService.shared.preview(fileBase64: b64, boatId: boatId)
+            let p = try await EquipmentImportService.shared.preview(fileBase64: b64, boatId: boatId)
+            preview = p
+            // Exakte Treffer mit Default „Zusammenführen" vorbelegen; ähnliche offen lassen.
+            var d: [String: String] = [:]
+            for e in p.equipment where e.matchType == "exact" { if let k = e.key { d[k] = "merge" } }
+            decisions = d
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -201,10 +247,17 @@ struct EquipmentImportSheet: View {
     }
 
     private func doCommit() async {
-        guard let b64 = fileBase64 else { return }
+        guard let b64 = fileBase64, let p = preview else { return }
         busy = true; errorMessage = nil
+        // Entscheidungen je matchbarer Zeile zusammenstellen.
+        let decs: [EquipmentImportService.Decision] = p.equipment.compactMap { e in
+            guard let key = e.key else { return nil }
+            let action = decisions[key] ?? (e.matchType == "exact" ? "merge" : (e.matchType == "none" ? "new" : ""))
+            guard !action.isEmpty else { return nil }
+            return .init(key: key, action: action, matchedId: e.matchedId)
+        }
         do {
-            let res = try await EquipmentImportService.shared.commit(fileBase64: b64, boatId: boatId)
+            let res = try await EquipmentImportService.shared.commit(fileBase64: b64, boatId: boatId, decisions: decs)
             result = res.summary
         } catch {
             errorMessage = error.localizedDescription

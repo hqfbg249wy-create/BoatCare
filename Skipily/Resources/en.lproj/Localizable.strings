@@ -937,6 +937,16 @@
 "equip.import.reading" = "Reading file…";
 "equip.import.summary" = "Summary";
 "equip.import.new" = "New";
+"equip.import.updated" = "Updated";
+"equip.import.stockAdded" = "Stock added";
+"equip.import.chooseAction" = "Choose action";
+"equip.import.action.merge" = "Merge";
+"equip.import.action.replace" = "Replace";
+"equip.import.action.addStock" = "Add to stock";
+"equip.import.action.new" = "Create new";
+"equip.import.exactMatch" = "Existing: “%@”";
+"equip.import.fuzzyMatch" = "Similar to “%@” (please choose)";
+"equip.import.resolveFirst" = "Please decide on all similar matches first.";
 "equip.import.skipped" = "Already present (skipped)";
 "equip.import.sails" = "Sail measurements";
 "equip.import.ropes" = "Rigging";
