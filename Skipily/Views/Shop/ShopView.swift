@@ -923,6 +923,14 @@ struct ShopView: View {
         }
     }
 
+    /// Entfernt Duplikate anhand der Produkt-`id`, Reihenfolge bleibt erhalten.
+    /// Schützt `ForEach(products)` vor doppelten IDs (führt sonst zu leeren/
+    /// verschobenen Kacheln im LazyVGrid).
+    private static func dedupedByID(_ items: [Product]) -> [Product] {
+        var seen = Set<Product.ID>()
+        return items.filter { seen.insert($0.id).inserted }
+    }
+
     private func loadProducts() async {
         isLoading = true
         errorMessage = nil
@@ -960,8 +968,8 @@ struct ShopView: View {
                 return false
             }
 
-            products = loaded
-            hasMoreProducts = products.count >= pageSize
+            products = Self.dedupedByID(loaded)
+            hasMoreProducts = loaded.count >= pageSize
             prefetchImages(loaded)   // Bilder der geladenen Seite vorwärmen
 
             // Strategie B: Übersetzungen für aktuelle Sprache nachziehen (Cache + Edge-Fn)
@@ -986,9 +994,17 @@ struct ShopView: View {
                 limit: pageSize,
                 offset: products.count
             )
-            products.append(contentsOf: moreProducts)
-            hasMoreProducts = moreProducts.count >= pageSize
-            prefetchImages(moreProducts)   // Bilder der nachgeladenen Seite vorwärmen
+            // Nur wirklich neue IDs anhängen. Offset-Pagination kann bei nicht
+            // 100% stabiler Server-Reihenfolge Produkte doppelt liefern; doppelte
+            // IDs zerstören das LazyVGrid-Layout (leere/verschobene Kacheln).
+            let existingIDs = Set(products.map(\.id))
+            let newOnes = moreProducts.filter { !existingIDs.contains($0.id) }
+            products.append(contentsOf: newOnes)
+            // Nur weiterladen, wenn eine volle Seite kam UND sie echte neue
+            // Produkte enthielt — sonst würde eine reine Duplikat-Seite eine
+            // Endlosschleife auslösen.
+            hasMoreProducts = moreProducts.count >= pageSize && !newOnes.isEmpty
+            prefetchImages(newOnes)   // Bilder der nachgeladenen Seite vorwärmen
 
             await TranslationService.shared.ensureTranslations(
                 for: moreProducts,

@@ -19,6 +19,13 @@ struct ProductCardView: View {
         translator.name(for: product, lang: langManager.currentLanguage.code)
     }
 
+    /// Feste Gesamthöhe der Karte. Ohne sie sind Karten je nach Inhalt
+    /// (Verfügbarkeits-Badge, Hersteller-, Versandzeile) unterschiedlich hoch,
+    /// wodurch das LazyVGrid Reihen verschiebt und sichtbare Lücken lässt
+    /// (leere Kacheln auf dem iPad). Mit fixer Höhe verteilt der Spacer den
+    /// Rest und alle Karten sind exakt gleich groß -> lückenloses Raster.
+    private let cardHeight: CGFloat = 320
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Product Image with discount badge overlay — uniform size
@@ -124,6 +131,7 @@ struct ProductCardView: View {
                 }
             }
         }
+        .frame(height: cardHeight, alignment: .top)
         .padding(12)
         .background(.white)
         .clipShape(RoundedRectangle(cornerRadius: 16))

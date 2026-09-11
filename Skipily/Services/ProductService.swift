@@ -105,8 +105,14 @@ final class ProductService {
             query = query.ilike("name", pattern: "%\(searchQuery)%")
         }
 
+        // WICHTIG: stabiler Zweit-Sortierschlüssel `id`. Ohne ihn ist die
+        // Reihenfolge bei gleichem created_at nicht deterministisch (Massen-
+        // Import vergibt tausenden Produkten denselben Zeitstempel) — dann
+        // liefern aufeinanderfolgende Offset-Seiten überlappende Zeilen, d.h.
+        // dieselbe id landet doppelt in der Liste und zerstört das Grid-Layout.
         let products: [Product] = try await query
             .order("created_at", ascending: false)
+            .order("id", ascending: true)
             .range(from: offset, to: offset + limit - 1)
             .execute()
             .value
