@@ -79,8 +79,30 @@ app.use(requireAdmin);
 // In-Memory-LRU-Cache begrenzt (die App cached zusaetzlich on-device).
 // ============================================================
 const sharp = require('sharp');
-const _thumbCache = new Map();           // key -> Buffer
+const _fs = require('fs');
+const _path = require('path');
+const _os = require('os');
+const _crypto = require('crypto');
+const _thumbCache = new Map();           // key -> Buffer (heisser RAM-Cache)
 const _THUMB_CAP = 800;
+// Persistenter Disk-Cache: einmal erzeugte Thumbnails bleiben (bis Machine-
+// Neustart) liegen -> jeder Wiederabruf sofort, unabhaengig von den 800 RAM-
+// Eintraegen. Wichtig bei tausenden Produkten (reiner RAM-LRU wuerde thrashen).
+const _THUMB_DIR = _path.join(_os.tmpdir(), 'skipily-thumbs');
+try { _fs.mkdirSync(_THUMB_DIR, { recursive: true }); } catch (_e) { /* egal */ }
+function _thumbFile(key) {
+    const h = _crypto.createHash('sha256').update(key).digest('hex');
+    return _path.join(_THUMB_DIR, h + '.jpg');
+}
+function _sendJpeg(res, buf) {
+    res.set('Content-Type', 'image/jpeg');
+    res.set('Cache-Control', 'public, max-age=2592000, immutable');
+    return res.send(buf);
+}
+function _memPut(key, buf) {
+    if (_thumbCache.size >= _THUMB_CAP) _thumbCache.delete(_thumbCache.keys().next().value);
+    _thumbCache.set(key, buf);
+}
 app.get('/img', async (req, res) => {
     try {
         const src = String(req.query.url || '');
@@ -89,13 +111,17 @@ app.get('/img', async (req, res) => {
         if (!/^https?:\/\//i.test(src)) return res.status(400).send('bad url');
 
         const key = w + '|' + src;
-        const cached = _thumbCache.get(key);
-        if (cached) {
-            res.set('Content-Type', 'image/jpeg');
-            res.set('Cache-Control', 'public, max-age=2592000, immutable');
-            return res.send(cached);
-        }
-
+        // 1. RAM-Cache
+        const hot = _thumbCache.get(key);
+        if (hot) return _sendJpeg(res, hot);
+        // 2. Disk-Cache
+        const file = _thumbFile(key);
+        try {
+            const disk = await _fs.promises.readFile(file);
+            _memPut(key, disk);
+            return _sendJpeg(res, disk);
+        } catch (_e) { /* nicht auf Platte -> unten erzeugen */ }
+        // 3. Erzeugen (Full-Res holen, verkleinern, in RAM + auf Platte legen)
         const resp = await fetch(src, { redirect: 'follow', headers: { 'User-Agent': 'SkipilyImg/1.0' } });
         if (!resp.ok) return res.status(502).send('fetch failed');
         const input = Buffer.from(await resp.arrayBuffer());
@@ -104,15 +130,9 @@ app.get('/img', async (req, res) => {
             .resize({ width: w, withoutEnlargement: true })
             .jpeg({ quality: 78, mozjpeg: true })
             .toBuffer();
-
-        if (_thumbCache.size >= _THUMB_CAP) {
-            _thumbCache.delete(_thumbCache.keys().next().value);   // LRU: aeltesten raus
-        }
-        _thumbCache.set(key, out);
-
-        res.set('Content-Type', 'image/jpeg');
-        res.set('Cache-Control', 'public, max-age=2592000, immutable');
-        return res.send(out);
+        _memPut(key, out);
+        _fs.promises.writeFile(file, out).catch(() => {});   // async, fire-and-forget
+        return _sendJpeg(res, out);
     } catch (e) {
         return res.status(500).send('img error');
     }
