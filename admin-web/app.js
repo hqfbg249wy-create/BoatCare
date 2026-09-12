@@ -680,6 +680,7 @@ async function loadRegistrations(forceReload = false) {
                 .select('id,name,city,country,email,cleverreach_synced_at')
                 .not('cleverreach_synced_at', 'is', null)
                 .order('cleverreach_synced_at', { ascending: false })
+                .order('id', { ascending: true })   // eindeutiger Tiebreaker -> stabile Pagination
                 .range(from, from + 999);
             if (error) throw error;
             contacted.push(...(data || []));
@@ -6784,6 +6785,7 @@ async function loadAllMapProviders() {
                 .from('service_providers')
                 .select('*')
                 .order('name')
+                .order('id', { ascending: true })   // eindeutiger Tiebreaker -> stabile Pagination
                 .range(from, from + batchSize - 1);
 
             if (error) throw error;
@@ -9799,6 +9801,7 @@ async function loadCustomers() {
                     stripe_charges_enabled, stripe_payouts_enabled
                 `)
                 .order('name', { ascending: true })
+                .order('id', { ascending: true })   // eindeutiger Tiebreaker -> stabile Pagination
                 .range(from, to);
             if (pageErr) throw pageErr;
             const batch = data || [];
@@ -9836,8 +9839,9 @@ async function loadProductCountsBackground() {
         for (let from = 0; ; from += PAGE) {
             const { data, error } = await supabaseClient
                 .from('metashop_products')
-                .select('provider_id')
+                .select('provider_id, id')
                 .eq('is_active', true)
+                .order('id', { ascending: true })   // stabile Pagination (sonst Counts falsch)
                 .range(from, from + PAGE - 1);
             if (error) { console.warn('Produkt-Counts:', error); return; }
             if (!data || data.length === 0) break;
