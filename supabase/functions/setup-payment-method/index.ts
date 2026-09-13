@@ -108,6 +108,7 @@ serve(async (req: Request) => {
         ephemeral_key: ephemeralKey.secret,
         customer_id: customerId,
         publishable_key: stripePublishableKey,
+        setup_intent_id: setupIntent.id,
       }),
       {
         status: 200,

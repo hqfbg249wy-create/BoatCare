@@ -84,7 +84,8 @@ final class OrderService {
         buyerId: UUID,
         shippingAddress: ShippingAddress,
         buyerNote: String? = nil,
-        agbVersion: String? = nil
+        agbVersion: String? = nil,
+        deferredPayment: Bool = false
     ) async throws -> [Order] {
         var createdOrders: [Order] = []
 
@@ -118,6 +119,7 @@ final class OrderService {
                 let shippingPostalCode: String
                 let shippingCountry: String
                 let paymentStatus: String
+                let paymentFlow: String
                 let buyerNote: String?
                 let agbAcceptedVersion: String?
                 let agbAcceptedAt: String?
@@ -136,6 +138,7 @@ final class OrderService {
                     case shippingPostalCode = "shipping_postal_code"
                     case shippingCountry = "shipping_country"
                     case paymentStatus = "payment_status"
+                    case paymentFlow = "payment_flow"
                     case buyerNote = "buyer_note"
                     case agbAcceptedVersion = "agb_accepted_version"
                     case agbAcceptedAt      = "agb_accepted_at"
@@ -163,6 +166,7 @@ final class OrderService {
                 shippingPostalCode: shippingAddress.postalCode,
                 shippingCountry: shippingAddress.country,
                 paymentStatus: "pending",
+                paymentFlow: deferredPayment ? "deferred" : "immediate",
                 buyerNote: buyerNote,
                 agbAcceptedVersion: agbVersion,
                 agbAcceptedAt:      agbAcceptedAtIso
