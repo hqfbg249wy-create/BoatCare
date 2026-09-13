@@ -1140,3 +1140,7 @@
 "order.withdraw_desc" = "Je kunt deze aankoop binnen 14 dagen na ontvangst van de goederen herroepen. Het volledige bedrag wordt aan je terugbetaald.";
 "order.withdraw_action" = "Herroeping indienen";
 "order.withdraw_confirm" = "Wil je deze aankoop echt herroepen? Het bedrag wordt terugbetaald.";
+
+/* Annuleren na verzenden */
+"order.cancel_title" = "Bestelling annuleren";
+"order.cancel_desc" = "Zolang de bestelling niet is verzonden en niet is afgeschreven, kun je deze gratis annuleren.";

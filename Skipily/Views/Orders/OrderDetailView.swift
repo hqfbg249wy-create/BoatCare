@@ -96,12 +96,69 @@ struct OrderDetailView: View {
                     providerSection(provider)
                 }
 
+                // Stornieren nach dem Absenden (solange noch nicht bezahlt/
+                // versandt). Beim deferred-Flow wurde noch nichts abgebucht, daher
+                // kein Refund noetig. Der 'Jetzt bezahlen'-Banner (Sofort-Flow)
+                // hat seinen eigenen Storno-Button -> hier nur zeigen, wenn der
+                // Banner NICHT sichtbar ist.
+                if canCancel(order) && !needsPayment(order) {
+                    cancelSection
+                }
+
                 // Widerruf / Rückerstattung (bei bezahlten Bestellungen)
                 if canWithdraw(order) {
                     withdrawalSection(order)
                 }
             }
             .padding(16)
+        }
+    }
+
+    /// Storno moeglich: noch nicht bezahlt, nicht versandt, nicht bereits
+    /// storniert/erstattet.
+    private func canCancel(_ order: Order) -> Bool {
+        let unpaid = (order.paymentStatus ?? "pending").lowercased() != "paid"
+        let openStatus = order.status == "pending" || order.status == "confirmed"
+        return unpaid && openStatus
+    }
+
+    private var cancelSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("order.cancel_title".loc)
+                .font(.headline)
+            Text("order.cancel_desc".loc)
+                .font(.subheadline)
+                .foregroundStyle(AppColors.gray700)
+                .fixedSize(horizontal: false, vertical: true)
+            Button {
+                showCancelConfirm = true
+            } label: {
+                HStack(spacing: 6) {
+                    if isCancelling { ProgressView() } else { Image(systemName: "xmark.circle") }
+                    Text("order.cancel".loc).fontWeight(.medium)
+                }
+                .font(.subheadline)
+                .frame(maxWidth: .infinity)
+                .frame(height: 40)
+                .foregroundStyle(AppColors.error)
+            }
+            .disabled(isCancelling)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.gray100)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .confirmationDialog(
+            "order.cancelTitle".loc,
+            isPresented: $showCancelConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("order.cancelConfirm".loc, role: .destructive) {
+                Task { await cancelOrder() }
+            }
+            Button("common.cancel".loc, role: .cancel) {}
+        } message: {
+            Text("order.cancelDesc".loc)
         }
     }
 

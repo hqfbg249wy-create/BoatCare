@@ -1142,3 +1142,7 @@ Ausrüstung unter Boote ergänzen.";
 "order.withdraw_desc" = "Du kannst diesen Kauf innerhalb von 14 Tagen ab Erhalt der Ware widerrufen. Der Betrag wird dir vollständig erstattet.";
 "order.withdraw_action" = "Widerruf erklären";
 "order.withdraw_confirm" = "Möchtest du diesen Kauf wirklich widerrufen? Der Betrag wird zurückerstattet.";
+
+/* Storno nach Absenden */
+"order.cancel_title" = "Bestellung stornieren";
+"order.cancel_desc" = "Solange die Bestellung noch nicht versandt und nicht abgebucht wurde, kannst du sie kostenlos stornieren.";

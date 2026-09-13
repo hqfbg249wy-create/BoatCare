@@ -1139,3 +1139,7 @@
 "order.withdraw_desc" = "You can withdraw from this purchase within 14 days of receiving the goods. The full amount will be refunded to you.";
 "order.withdraw_action" = "Declare withdrawal";
 "order.withdraw_confirm" = "Do you really want to withdraw from this purchase? The amount will be refunded.";
+
+/* Cancel after submitting */
+"order.cancel_title" = "Cancel order";
+"order.cancel_desc" = "As long as the order has not been shipped or charged, you can cancel it free of charge.";
