@@ -94,8 +94,38 @@ export default function Orders() {
     }
   }, [provider, loadOrders])
 
+  // Deferred-Flow: Versandbestaetigung laeuft ueber die Edge Function
+  // confirm-shipment (bucht off-session ab, erzeugt Rechnung + Widerruf, setzt
+  // dann erst 'shipped'). Fehler (z.B. Abbuchung abgelehnt) werden angezeigt und
+  // die Bestellung NICHT auf versandt gesetzt.
+  async function callConfirmShipment(order, tracking) {
+    const { data, error } = await supabase.functions.invoke('confirm-shipment', {
+      body: {
+        order_id: order.id,
+        tracking_number: tracking?.tracking_number || null,
+        tracking_url: tracking?.tracking_url || null,
+      },
+    })
+    if (error) {
+      let msg = error.message
+      try { const b = await error.context?.json?.(); if (b?.error) msg = b.error } catch { /* ignore */ }
+      throw new Error(msg)
+    }
+    if (data?.error) throw new Error(data.error)
+    return data
+  }
+
   async function updateStatus(orderId, newStatus) {
     try {
+      const order = orders.find((o) => o.id === orderId)
+      // Bei deferred + Versand: ueber confirm-shipment (Abbuchung + Rechnung).
+      if (newStatus === 'shipped' && order?.payment_flow === 'deferred') {
+        await callConfirmShipment(order, null)
+        setMessage({ type: 'success', text: t('orders.shipConfirmedMsg') })
+        loadOrders()
+        return
+      }
+
       const update = { status: newStatus }
       if (newStatus === 'shipped') update.shipped_at = new Date().toISOString()
       if (newStatus === 'delivered') update.delivered_at = new Date().toISOString()
@@ -111,6 +141,16 @@ export default function Orders() {
 
   async function saveTracking(orderId) {
     try {
+      const order = orders.find((o) => o.id === orderId)
+      // Bei deferred: Versandbestaetigung inkl. Tracking ueber confirm-shipment.
+      if (order?.payment_flow === 'deferred') {
+        await callConfirmShipment(order, trackingForm)
+        setMessage({ type: 'success', text: t('orders.shipConfirmedMsg') })
+        setSelected(null)
+        loadOrders()
+        return
+      }
+
       const { error } = await supabase
         .from('orders')
         .update({
