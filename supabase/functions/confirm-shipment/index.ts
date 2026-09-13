@@ -16,7 +16,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { stripe } from "../_shared/stripe.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { buildInvoicePdf, type InvoiceItem } from "../_shared/invoice.ts";
-import { notifyOrderEvent } from "../_shared/notify.ts";
+import { notifyOrderEvent, pushToUser } from "../_shared/notify.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -149,15 +149,25 @@ Deno.serve(async (req) => {
 
     let paymentIntentId = "";
     try {
-      const pi = await stripe.paymentIntents.create(piParams as any);
+      // Idempotency-Key pro Bestellung: verhindert Doppelbuchung bei
+      // Doppelklick oder einem Retry nach Teil-Fehler (Stripe dedupliziert die
+      // create-Anfrage, solange sich die Parameter nicht aendern).
+      const pi = await stripe.paymentIntents.create(piParams as any, {
+        idempotencyKey: `confirm-shipment-${order.id}`,
+      });
       if (pi.status !== "succeeded") {
         // z.B. requires_action (SCA) -> als Fehlschlag behandeln, Kaeufer muss handeln
         await svc.from("orders").update({
           payment_status: "failed",
           charge_error: "requires_action:" + pi.status,
         }).eq("id", order.id);
+        await pushToUser(
+          order.buyer_id,
+          "Zahlung benötigt Bestätigung",
+          `Für deine Bestellung konnte der Betrag nicht automatisch abgebucht werden. Bitte prüfe deine Zahlungsdaten.`,
+        );
         return json({
-          error: "Zahlung konnte nicht automatisch abgebucht werden (Kundenbestaetigung noetig). Der Kaeufer wurde/wird informiert.",
+          error: "Zahlung konnte nicht automatisch abgebucht werden (Kundenbestaetigung noetig). Der Kaeufer wurde informiert.",
           code: "requires_action",
         }, 402);
       }
@@ -166,6 +176,11 @@ Deno.serve(async (req) => {
       const msg = (e as { message?: string })?.message ?? "Abbuchung fehlgeschlagen";
       const code = (e as { code?: string })?.code ?? "charge_failed";
       await svc.from("orders").update({ payment_status: "failed", charge_error: `${code}: ${msg}` }).eq("id", order.id);
+      await pushToUser(
+        order.buyer_id,
+        "Zahlung fehlgeschlagen",
+        `Für deine Bestellung konnte der Betrag nicht abgebucht werden. Bitte prüfe deine Zahlungsdaten in der App.`,
+      );
       return json({ error: "Abbuchung fehlgeschlagen: " + msg, code }, 402);
     }
 

@@ -136,6 +136,7 @@ export default {
   'orders.newOrder': 'Neue Bestellung eingegangen!',
   'orders.statusUpdated': 'Status aktualisiert.',
   'orders.shipConfirmedMsg': 'Versand bestätigt & Tracking gespeichert.',
+  'orders.confirmShipmentFirst': 'Bitte zuerst den Versand bestätigen (die Zahlung wird dabei abgebucht), bevor die Bestellung auf zugestellt gesetzt wird.',
   'orders.noteSaved': 'Notiz gespeichert.',
   'orders.cancelConfirm': 'Bestellung wirklich stornieren?',
   'orders.cancelledMsg': 'Bestellung storniert.',

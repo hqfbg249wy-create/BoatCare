@@ -118,11 +118,22 @@ export default function Orders() {
   async function updateStatus(orderId, newStatus) {
     try {
       const order = orders.find((o) => o.id === orderId)
+      const isDeferredUnpaid =
+        order?.payment_flow === 'deferred' && (order?.payment_status || '').toLowerCase() !== 'paid'
+
       // Bei deferred + Versand: ueber confirm-shipment (Abbuchung + Rechnung).
       if (newStatus === 'shipped' && order?.payment_flow === 'deferred') {
         await callConfirmShipment(order, null)
         setMessage({ type: 'success', text: t('orders.shipConfirmedMsg') })
         loadOrders()
+        return
+      }
+
+      // Abbuchung nicht umgehbar: solange eine deferred-Bestellung nicht bezahlt
+      // ist, darf sie nicht direkt auf 'delivered' (oder 'shipped' auf anderem
+      // Weg) gesetzt werden. Der Versand MUSS ueber confirm-shipment laufen.
+      if (isDeferredUnpaid && (newStatus === 'delivered' || newStatus === 'shipped')) {
+        setMessage({ type: 'error', text: t('orders.confirmShipmentFirst') })
         return
       }
 
