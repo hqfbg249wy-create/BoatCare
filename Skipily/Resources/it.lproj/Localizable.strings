@@ -1144,3 +1144,5 @@
 /* Annullamento dopo l'invio */
 "order.cancel_title" = "Annulla ordine";
 "order.cancel_desc" = "Finché l'ordine non è stato spedito né addebitato, puoi annullarlo gratuitamente.";
+
+"order.withdraw_until" = "Recesso possibile fino al %@";

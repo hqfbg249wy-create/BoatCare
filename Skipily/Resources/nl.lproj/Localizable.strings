@@ -1144,3 +1144,5 @@
 /* Annuleren na verzenden */
 "order.cancel_title" = "Bestelling annuleren";
 "order.cancel_desc" = "Zolang de bestelling niet is verzonden en niet is afgeschreven, kun je deze gratis annuleren.";
+
+"order.withdraw_until" = "Herroeping mogelijk tot %@";

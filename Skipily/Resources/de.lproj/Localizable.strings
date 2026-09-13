@@ -1146,3 +1146,5 @@ Ausrüstung unter Boote ergänzen.";
 /* Storno nach Absenden */
 "order.cancel_title" = "Bestellung stornieren";
 "order.cancel_desc" = "Solange die Bestellung noch nicht versandt und nicht abgebucht wurde, kannst du sie kostenlos stornieren.";
+
+"order.withdraw_until" = "Widerruf möglich bis %@";

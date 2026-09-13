@@ -258,6 +258,9 @@ Deno.serve(async (req) => {
       invoice_number: invNo,
       invoice_url: invoiceUrl,
       invoice_issued_at: nowIso,
+      // Provisorische Widerrufsfrist ab Versand (14 Tage + ~2 Tage Transit).
+      // Wird bei Zustellung auf delivered_at + 14 Tage praezisiert.
+      withdrawal_until: new Date(Date.now() + 16 * 24 * 3600 * 1000).toISOString(),
       charge_error: null,
     }).eq("id", order.id);
     if (updErr) console.error("Order finalize update failed:", updErr.message);

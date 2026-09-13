@@ -1144,3 +1144,5 @@
 /* Annulation après envoi */
 "order.cancel_title" = "Annuler la commande";
 "order.cancel_desc" = "Tant que la commande n'a pas été expédiée ni débitée, vous pouvez l'annuler gratuitement.";
+
+"order.withdraw_until" = "Rétractation possible jusqu'au %@";

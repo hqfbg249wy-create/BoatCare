@@ -22,15 +22,24 @@ final class OrderService {
 
     // MARK: - Cancel / Delete
 
-    /// Storniert eine pending Order (Status → "cancelled"). Erlaubt nur, wenn
-    /// die Order noch nicht bezahlt wurde — bei bereits geleisteter Zahlung
-    /// muss ein Refund-Flow ueber Stripe laufen, das ist hier NICHT abgedeckt.
+    /// Storniert eine noch nicht bezahlte Order (Status pending/confirmed) ueber
+    /// die Edge Function cancel-order. Diese prueft die Berechtigung + den Status
+    /// serverseitig und benachrichtigt den Anbieter (nicht mehr versenden). Bei
+    /// bereits bezahlten Bestellungen muss der Widerruf/Refund-Flow laufen.
     func cancelOrder(id: UUID) async throws {
-        try await client
-            .from("orders")
-            .update(["status": "cancelled"])
-            .eq("id", value: id.uuidString)
-            .execute()
+        struct Body: Encodable { let order_id: String }
+        struct Resp: Decodable { let ok: Bool?; let error: String? }
+        let resp: Resp = try await client.functions.invoke(
+            "cancel-order",
+            options: .init(body: Body(order_id: id.uuidString))
+        )
+        if resp.ok != true {
+            throw NSError(
+                domain: "Skipily.Order",
+                code: 409,
+                userInfo: [NSLocalizedDescriptionKey: resp.error ?? "Stornierung fehlgeschlagen"]
+            )
+        }
     }
 
     /// Loescht eine Order komplett aus der DB inkl. order_items.

@@ -162,6 +162,18 @@ struct OrderDetailView: View {
         }
     }
 
+    /// "Widerruf möglich bis <Datum>" aus withdrawal_until, falls gesetzt.
+    private func withdrawalDeadlineText(_ order: Order) -> String? {
+        guard let iso = order.withdrawalUntil else { return nil }
+        let parser = ISO8601DateFormatter()
+        parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let date = parser.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
+        guard let date else { return nil }
+        let df = DateFormatter()
+        df.dateStyle = .medium
+        return String(format: "order.withdraw_until".loc, df.string(from: date))
+    }
+
     /// Widerruf moeglich: bezahlt, nicht storniert/erstattet.
     private func canWithdraw(_ order: Order) -> Bool {
         (order.paymentStatus ?? "").lowercased() == "paid"
@@ -177,6 +189,11 @@ struct OrderDetailView: View {
                 .font(.subheadline)
                 .foregroundStyle(AppColors.gray700)
                 .fixedSize(horizontal: false, vertical: true)
+            if let deadline = withdrawalDeadlineText(order) {
+                Text(deadline)
+                    .font(.caption)
+                    .foregroundStyle(AppColors.gray500)
+            }
             Button {
                 showWithdrawConfirm = true
             } label: {

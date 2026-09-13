@@ -1143,3 +1143,5 @@
 /* Cancel after submitting */
 "order.cancel_title" = "Cancel order";
 "order.cancel_desc" = "As long as the order has not been shipped or charged, you can cancel it free of charge.";
+
+"order.withdraw_until" = "Withdrawal possible until %@";

@@ -128,7 +128,12 @@ export default function Orders() {
 
       const update = { status: newStatus }
       if (newStatus === 'shipped') update.shipped_at = new Date().toISOString()
-      if (newStatus === 'delivered') update.delivered_at = new Date().toISOString()
+      if (newStatus === 'delivered') {
+        const now = new Date()
+        update.delivered_at = now.toISOString()
+        // Widerrufsfrist praezisieren: 14 Tage ab Zustellung.
+        update.withdrawal_until = new Date(now.getTime() + 14 * 24 * 3600 * 1000).toISOString()
+      }
 
       const { error } = await supabase.from('orders').update(update).eq('id', orderId)
       if (error) throw error

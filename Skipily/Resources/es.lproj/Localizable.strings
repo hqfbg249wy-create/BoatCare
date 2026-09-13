@@ -1144,3 +1144,5 @@
 /* Cancelación tras el envío */
 "order.cancel_title" = "Cancelar pedido";
 "order.cancel_desc" = "Mientras el pedido no se haya enviado ni cobrado, puedes cancelarlo de forma gratuita.";
+
+"order.withdraw_until" = "Desistimiento posible hasta el %@";

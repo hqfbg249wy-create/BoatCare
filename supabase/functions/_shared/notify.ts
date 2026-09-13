@@ -40,7 +40,7 @@ export async function emailTo(to: string, subject: string, text: string): Promis
   }
 }
 
-export type OrderEvent = "confirmed" | "shipped" | "refunded";
+export type OrderEvent = "confirmed" | "shipped" | "refunded" | "cancelled";
 
 /**
  * Laedt die Bestellung samt Kaeufer/Verkaeufer und verschickt die zum Event
@@ -118,6 +118,23 @@ export async function notifyOrderEvent(svc: Svc, orderId: string, event: OrderEv
             `(${amount}). Der an dich ausgezahlte Betrag wurde zurückgebucht.\n\nDein Skipily-Team`,
         );
       }
+    } else if (event === "cancelled") {
+      // Vom Kaeufer storniert, BEVOR abgebucht/versandt wurde -> Anbieter
+      // informieren, damit er nicht mehr versendet. Kaeufer bekommt eine kurze
+      // Bestaetigung.
+      if (provider?.email) {
+        await emailTo(
+          provider.email,
+          `Bestellung ${orderRef} wurde storniert`,
+          `Die Bestellung ${orderRef} wurde vom Kunden storniert, bevor sie ` +
+            `abgebucht/versandt wurde. Bitte nicht mehr versenden.\n\nDein Skipily-Team`,
+        );
+      }
+      await pushToUser(
+        order.buyer_id,
+        "Bestellung storniert",
+        `Deine Bestellung ${orderRef} wurde storniert. Es wurde nichts abgebucht.`,
+      );
     }
   } catch (e) {
     console.error("notifyOrderEvent failed:", (e as Error).message);
