@@ -11,6 +11,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { stripe } from "../_shared/stripe.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+import { notifyOrderEvent } from "../_shared/notify.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -104,6 +105,9 @@ Deno.serve(async (req) => {
       refund_reason: reason ?? (isBuyer ? "Widerruf durch Kaeufer" : "Erstattung durch Anbieter"),
       withdrawal_requested_at: isBuyer ? nowIso : null,
     }).eq("id", order.id);
+
+    // Kaeufer + Anbieter benachrichtigen (best-effort).
+    await notifyOrderEvent(svc, order.id, "refunded");
 
     return json({ ok: true, refund_id: refundId, reversed_transfer: reverseTransfer });
   } catch (err) {

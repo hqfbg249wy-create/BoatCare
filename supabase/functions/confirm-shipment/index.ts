@@ -16,6 +16,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { stripe } from "../_shared/stripe.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { buildInvoicePdf, type InvoiceItem } from "../_shared/invoice.ts";
+import { notifyOrderEvent } from "../_shared/notify.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -260,6 +261,9 @@ Deno.serve(async (req) => {
       charge_error: null,
     }).eq("id", order.id);
     if (updErr) console.error("Order finalize update failed:", updErr.message);
+
+    // Kaeufer benachrichtigen (best-effort, blockiert nie).
+    await notifyOrderEvent(svc, order.id, "shipped");
 
     return json({
       ok: true,

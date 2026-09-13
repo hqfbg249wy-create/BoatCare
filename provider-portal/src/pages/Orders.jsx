@@ -132,6 +132,12 @@ export default function Orders() {
 
       const { error } = await supabase.from('orders').update(update).eq('id', orderId)
       if (error) throw error
+      // Bei Bestellbestaetigung den Kaeufer benachrichtigen (best-effort).
+      if (newStatus === 'confirmed') {
+        supabase.functions.invoke('notify-order', {
+          body: { order_id: orderId, event: 'confirmed' },
+        }).catch(() => {})
+      }
       setMessage({ type: 'success', text: t('orders.statusUpdated') })
       loadOrders()
     } catch (err) {
