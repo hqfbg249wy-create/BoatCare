@@ -109,6 +109,16 @@ enum MaintenanceEntry: Identifiable {
         case .equipment(let e): return e.status.label
         }
     }
+    /// Rang zur Sortierung nach Kategorie (Equipment). Manuelle Tasks ans Ende.
+    var categoryRank: Int {
+        switch self {
+        case .manual: return 999
+        case .equipment(let e):
+            let order = ["engine", "electrical", "navigation", "safety", "communication",
+                         "rigging", "hull", "deck", "anchor", "other"]
+            return order.firstIndex(of: e.category) ?? 900
+        }
+    }
 }
 
 // MARK: - Maintenance Screen
@@ -131,6 +141,7 @@ struct MaintenanceScreen: View {
         all += equipmentItems.map { .equipment($0) }
         return all.sorted { a, b in
             if a.isCompleted != b.isCompleted { return !a.isCompleted }
+            if a.categoryRank != b.categoryRank { return a.categoryRank < b.categoryRank }
             return a.dueDate < b.dueDate
         }
     }
@@ -183,11 +194,30 @@ struct MaintenanceScreen: View {
         }
         .sheet(isPresented: $showingAdd) {
             AddMaintenanceTaskView(boatNames: savedBoatNames) { newTask in
-                tasks.append(newTask); saveTasks()
+                tasks.append(newTask); saveTasks(); syncReminders()
             }
         }
-        .onAppear { loadTasks(); loadBoatNames() }
+        .onAppear {
+            loadTasks(); loadBoatNames()
+            MaintenanceNotificationService.shared.requestAuthorizationIfNeeded()
+            syncReminders()
+        }
         .task { await loadEquipmentMaintenance() }
+    }
+
+    // MARK: - Lokale Wartungserinnerungen (Plan A)
+    /// Baut aus manuellen Aufgaben + Equipment-Wartungen die Reminder-Liste und
+    /// plant die lokalen Notifications neu. Bei jeder Aenderung aufrufen.
+    private func syncReminders() {
+        var reminders: [MaintenanceNotificationService.Reminder] = tasks.map {
+            .init(id: $0.id, title: $0.title, boatName: $0.boatName,
+                  dueDate: $0.dueDate, isCompleted: $0.isCompleted)
+        }
+        reminders += equipmentItems.map {
+            .init(id: $0.id, title: $0.equipmentName, boatName: $0.boatName,
+                  dueDate: $0.nextMaintenanceDate, isCompleted: false)
+        }
+        MaintenanceNotificationService.shared.sync(reminders: reminders)
     }
 
     private var emptyState: some View {
@@ -264,7 +294,10 @@ struct MaintenanceScreen: View {
                     ))
                 }
             }
-            await MainActor.run { equipmentItems = allItems.sorted(by: { $0.nextMaintenanceDate < $1.nextMaintenanceDate }) }
+            await MainActor.run {
+                equipmentItems = allItems.sorted(by: { $0.nextMaintenanceDate < $1.nextMaintenanceDate })
+                syncReminders()
+            }
         } catch {
             AppLog.error("Equipment-Wartung laden: \(error)")
         }
@@ -330,7 +363,7 @@ struct MaintenanceScreen: View {
     // MARK: - Manual Tasks CRUD
     private func toggleTask(_ task: MaintenanceTask) {
         if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
-            tasks[idx].isCompleted.toggle(); saveTasks()
+            tasks[idx].isCompleted.toggle(); saveTasks(); syncReminders()
         }
     }
 
@@ -341,12 +374,12 @@ struct MaintenanceScreen: View {
             return nil
         }
         tasks.removeAll { idsToDelete.contains($0.id) }
-        saveTasks()
+        saveTasks(); syncReminders()
     }
 
     private func deleteManualTask(_ task: MaintenanceTask) {
         tasks.removeAll { $0.id == task.id }
-        saveTasks()
+        saveTasks(); syncReminders()
     }
 
     private func saveTasks() {

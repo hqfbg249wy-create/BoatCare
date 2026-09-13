@@ -19,6 +19,13 @@ struct ProductCardView: View {
         translator.name(for: product, lang: langManager.currentLanguage.code)
     }
 
+    /// Feste Gesamthöhe der Karte. Ohne sie sind Karten je nach Inhalt
+    /// (Verfügbarkeits-Badge, Hersteller-, Versandzeile) unterschiedlich hoch,
+    /// wodurch das LazyVGrid Reihen verschiebt und sichtbare Lücken lässt
+    /// (leere Kacheln auf dem iPad). Mit fixer Höhe verteilt der Spacer den
+    /// Rest und alle Karten sind exakt gleich groß -> lückenloses Raster.
+    private let cardHeight: CGFloat = 320
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Product Image with discount badge overlay — uniform size
@@ -28,7 +35,14 @@ struct ProductCardView: View {
                         .fill(AppColors.gray100)
 
                     if let url = product.firstImageURL {
-                        CachedAsyncImage(url: url, targetSize: CGSize(width: 400, height: 300)) { phase in
+                        // Zielgröße == echte Renderfläche der Kachel (~210 pt breit,
+                        // 150 pt hoch). Vorher 400×300 → maxPixel 800 px, d. h. jedes
+                        // dekodierte Bild ~1,9 MB → NSCache (160 MB) kippte schon nach
+                        // ~80 Bildern. Auf dem iPad (viele Kacheln gleichzeitig) flogen
+                        // dadurch bereits geladene Bilder beim Scrollen wieder raus und
+                        // "verschwanden". 210×150 (maxPixel ~420 px) = 1:1 auf Retina,
+                        // ~4× weniger Speicher → ~330 Bilder passen in den Cache.
+                        CachedAsyncImage(url: url, targetSize: CGSize(width: 210, height: 150)) { phase in
                             switch phase {
                             case .success(let image):
                                 image
@@ -79,7 +93,7 @@ struct ProductCardView: View {
             Text(displayName)
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .lineLimit(2)
+                .lineLimit(2, reservesSpace: true)   // gleiche Kartenhöhe -> Grid richtet sich sauber aus
                 .foregroundStyle(AppColors.gray900)
 
             // Manufacturer
@@ -117,6 +131,7 @@ struct ProductCardView: View {
                 }
             }
         }
+        .frame(height: cardHeight, alignment: .top)
         .padding(12)
         .background(.white)
         .clipShape(RoundedRectangle(cornerRadius: 16))

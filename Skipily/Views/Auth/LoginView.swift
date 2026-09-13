@@ -46,7 +46,7 @@ struct LoginView: View {
                             .textInputAutocapitalization(.never)
                             .textFieldStyle(.roundedBorder)
 
-                        SecureField("Passwort", text: $password)
+                        SecureField("login.password".loc, text: $password)
                             .textContentType(.password)
                             .textFieldStyle(.roundedBorder)
                     }
@@ -140,7 +140,7 @@ struct LoginView: View {
                     }
                 }
             } message: {
-                Text("Wir schicken dir einen 6-stelligen Code per E-Mail. Den gibst du gleich hier in der App ein und setzt dein neues Passwort.")
+                Text("login.resetHint".loc)
             }
             .sheet(isPresented: $showOTPSheet) {
                 ResetPasswordOTPSheet(email: resetEmail)

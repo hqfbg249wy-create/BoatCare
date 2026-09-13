@@ -16,12 +16,14 @@ struct PaymentIntentResponse: Codable, Sendable {
     let ephemeralKey: String
     let customerId: String
     let publishableKey: String
+    let setupIntentId: String?   // nur bei setup-payment-method gesetzt
 
     enum CodingKeys: String, CodingKey {
         case clientSecret = "client_secret"
         case ephemeralKey = "ephemeral_key"
         case customerId = "customer_id"
         case publishableKey = "publishable_key"
+        case setupIntentId = "setup_intent_id"
     }
 }
 
@@ -231,6 +233,78 @@ final class PaymentService {
 
         return (setupSheet, paymentResponse.customerId)
     }
+
+    // MARK: - Deferred checkout (Karte hinterlegen, Abbuchung erst bei Versand)
+
+    /// Erzeugt ein SetupSheet für den aufgeschobenen Checkout und liefert die
+    /// setup_intent_id zurück, mit der die Karte anschließend den Bestellungen
+    /// zugeordnet wird (attach-order-payment).
+    func createDeferredSetupSheet() async throws -> (PaymentSheet, String) {
+        struct EmptyBody: Encodable {}
+        let resp: PaymentIntentResponse = try await client.functions.invoke(
+            "setup-payment-method",
+            options: .init(body: EmptyBody())
+        )
+        guard let setupIntentId = resp.setupIntentId, !setupIntentId.isEmpty else {
+            throw PaymentError.serverError("setup_intent_id fehlt")
+        }
+
+        // Stripe-Mode-Sync (identisch zu createSetupSheet).
+        if !resp.publishableKey.isEmpty,
+           resp.publishableKey != (StripeAPI.defaultPublishableKey ?? "") {
+            StripeAPI.defaultPublishableKey = resp.publishableKey
+        }
+
+        var config = PaymentSheet.Configuration()
+        config.merchantDisplayName = StripeConfig.merchantDisplayName
+        config.customer = .init(id: resp.customerId, ephemeralKeySecret: resp.ephemeralKey)
+        config.appearance = boatCareAppearance
+        config.applePay = .init(
+            merchantId: StripeConfig.applePayMerchantIdentifier,
+            merchantCountryCode: StripeConfig.merchantCountryCode
+        )
+
+        let sheet = PaymentSheet(
+            setupIntentClientSecret: resp.clientSecret,
+            configuration: config
+        )
+        return (sheet, setupIntentId)
+    }
+
+    /// Widerruf / Rückerstattung einer bezahlten Bestellung. Löst den Stripe-
+    /// Refund aus (inkl. Rückholung des Provider-Transfers).
+    func refundOrder(orderId: UUID, reason: String? = nil) async throws {
+        struct Body: Encodable { let order_id: String; let reason: String? }
+        struct Resp: Decodable { let ok: Bool?; let refund_id: String?; let error: String? }
+        let resp: Resp = try await client.functions.invoke(
+            "refund-order",
+            options: .init(body: Body(order_id: orderId.uuidString, reason: reason))
+        )
+        if resp.ok != true {
+            throw PaymentError.serverError(resp.error ?? "Rückerstattung fehlgeschlagen")
+        }
+    }
+
+    /// Verknüpft die hinterlegte Karte (aus dem SetupIntent) mit den Bestellungen,
+    /// sodass der Provider bei Versandbestätigung off-session abbuchen kann.
+    func attachPaymentToOrders(orderIds: [UUID], setupIntentId: String) async throws {
+        struct Body: Encodable {
+            let order_ids: [String]
+            let setup_intent_id: String
+        }
+        struct Resp: Decodable { let ok: Bool?; let updated: Int?; let error: String? }
+
+        let resp: Resp = try await client.functions.invoke(
+            "attach-order-payment",
+            options: .init(body: Body(
+                order_ids: orderIds.map { $0.uuidString },
+                setup_intent_id: setupIntentId
+            ))
+        )
+        if resp.ok != true {
+            throw PaymentError.serverError(resp.error ?? "Zahlungszuordnung fehlgeschlagen")
+        }
+    }
 }
 
 enum PaymentError: LocalizedError {
@@ -241,11 +315,11 @@ enum PaymentError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .serverError(let msg):
-            return "Zahlungsfehler: \(msg)"
+            return String(format: "pay.err.server".loc, msg)
         case .noPaymentIntent:
-            return "Zahlung konnte nicht initialisiert werden"
+            return "pay.err.noIntent".loc
         case .cancelled:
-            return "Zahlung abgebrochen"
+            return "pay.err.cancelled".loc
         }
     }
 }

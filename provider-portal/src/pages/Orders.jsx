@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { FileText, Truck, CheckCircle, DollarSign, Package, Clock, XCircle, MessageSquare } from 'lucide-react'
+import { FileText, Truck, CheckCircle, DollarSign, Package, Clock, XCircle, MessageSquare, FileSpreadsheet } from 'lucide-react'
 import { useT } from '../i18n'
+import { exportEquipmentXlsx, safeFilePart } from '../lib/equipmentExport'
 
 // Label kommt zur Laufzeit aus order.status.<value>
 const STATUS_OPTIONS = [
@@ -93,14 +94,66 @@ export default function Orders() {
     }
   }, [provider, loadOrders])
 
+  // Deferred-Flow: Versandbestaetigung laeuft ueber die Edge Function
+  // confirm-shipment (bucht off-session ab, erzeugt Rechnung + Widerruf, setzt
+  // dann erst 'shipped'). Fehler (z.B. Abbuchung abgelehnt) werden angezeigt und
+  // die Bestellung NICHT auf versandt gesetzt.
+  async function callConfirmShipment(order, tracking) {
+    const { data, error } = await supabase.functions.invoke('confirm-shipment', {
+      body: {
+        order_id: order.id,
+        tracking_number: tracking?.tracking_number || null,
+        tracking_url: tracking?.tracking_url || null,
+      },
+    })
+    if (error) {
+      let msg = error.message
+      try { const b = await error.context?.json?.(); if (b?.error) msg = b.error } catch { /* ignore */ }
+      throw new Error(msg)
+    }
+    if (data?.error) throw new Error(data.error)
+    return data
+  }
+
   async function updateStatus(orderId, newStatus) {
     try {
+      const order = orders.find((o) => o.id === orderId)
+      const isDeferredUnpaid =
+        order?.payment_flow === 'deferred' && (order?.payment_status || '').toLowerCase() !== 'paid'
+
+      // Bei deferred + Versand: ueber confirm-shipment (Abbuchung + Rechnung).
+      if (newStatus === 'shipped' && order?.payment_flow === 'deferred') {
+        await callConfirmShipment(order, null)
+        setMessage({ type: 'success', text: t('orders.shipConfirmedMsg') })
+        loadOrders()
+        return
+      }
+
+      // Abbuchung nicht umgehbar: solange eine deferred-Bestellung nicht bezahlt
+      // ist, darf sie nicht direkt auf 'delivered' (oder 'shipped' auf anderem
+      // Weg) gesetzt werden. Der Versand MUSS ueber confirm-shipment laufen.
+      if (isDeferredUnpaid && (newStatus === 'delivered' || newStatus === 'shipped')) {
+        setMessage({ type: 'error', text: t('orders.confirmShipmentFirst') })
+        return
+      }
+
       const update = { status: newStatus }
       if (newStatus === 'shipped') update.shipped_at = new Date().toISOString()
-      if (newStatus === 'delivered') update.delivered_at = new Date().toISOString()
+      if (newStatus === 'delivered') {
+        const now = new Date()
+        update.delivered_at = now.toISOString()
+        // Widerrufsfrist praezisieren: 14 Tage ab Zustellung.
+        update.withdrawal_until = new Date(now.getTime() + 14 * 24 * 3600 * 1000).toISOString()
+      }
 
       const { error } = await supabase.from('orders').update(update).eq('id', orderId)
       if (error) throw error
+      // Bei Bestellbestaetigung den Kaeufer benachrichtigen (best-effort).
+      if (newStatus === 'confirmed') {
+        supabase.functions.invoke('notify-order', {
+          body: { order_id: orderId, event: 'confirmed' },
+        }).catch(() => {})
+      }
       setMessage({ type: 'success', text: t('orders.statusUpdated') })
       loadOrders()
     } catch (err) {
@@ -110,6 +163,16 @@ export default function Orders() {
 
   async function saveTracking(orderId) {
     try {
+      const order = orders.find((o) => o.id === orderId)
+      // Bei deferred: Versandbestaetigung inkl. Tracking ueber confirm-shipment.
+      if (order?.payment_flow === 'deferred') {
+        await callConfirmShipment(order, trackingForm)
+        setMessage({ type: 'success', text: t('orders.shipConfirmedMsg') })
+        setSelected(null)
+        loadOrders()
+        return
+      }
+
       const { error } = await supabase
         .from('orders')
         .update({
@@ -148,6 +211,25 @@ export default function Orders() {
   async function cancelOrder(orderId) {
     if (!confirm(t('orders.cancelConfirm'))) return
     try {
+      const order = orders.find((o) => o.id === orderId)
+      // Bereits bezahlt -> echte Rueckerstattung ueber refund-order (holt auch
+      // den Provider-Transfer zurueck). Ein reines Status-Update wuerde den
+      // Kaeufer belastet lassen.
+      if ((order?.payment_status || '').toLowerCase() === 'paid') {
+        const { data, error } = await supabase.functions.invoke('refund-order', {
+          body: { order_id: orderId, reason: 'Storno/Erstattung durch Anbieter' },
+        })
+        if (error) {
+          let msg = error.message
+          try { const b = await error.context?.json?.(); if (b?.error) msg = b.error } catch { /* ignore */ }
+          throw new Error(msg)
+        }
+        if (data?.error) throw new Error(data.error)
+        setMessage({ type: 'success', text: t('orders.cancelledMsg') })
+        loadOrders()
+        return
+      }
+
       const { error } = await supabase
         .from('orders')
         .update({ status: 'cancelled' })
@@ -284,6 +366,37 @@ export default function Orders() {
                   </tbody>
                 </table>
               )}
+
+              {order.order_items?.length > 0 && (() => {
+                // Gesamtbestellung des Kunden: ALLE Bestellungen desselben Kunden
+                // (buyer_id) zusammenfassen, Positionen pro Produkt mergen (Menge
+                // summieren). So bekommt der Kunde eine Excel mit allem, was er
+                // gekauft hat — direkt in der App importierbar.
+                const custOrders = orders.filter(o => o.buyer_id === order.buyer_id)
+                const merged = new Map()
+                for (const o of custOrders) for (const it of (o.order_items || [])) {
+                  const sku = (it.product_sku || '').trim().toLowerCase()
+                  const key = sku || `${(it.product_name || '').trim().toLowerCase()}|${(it.product_manufacturer || '').trim().toLowerCase()}`
+                  if (!key || key === '|') continue
+                  const q = Number(it.quantity) || 0
+                  const prev = merged.get(key)
+                  if (prev) prev.quantity += q
+                  else merged.set(key, { name: it.product_name, manufacturer: it.product_manufacturer, part_number: it.product_sku, quantity: q })
+                }
+                const rows = [...merged.values()]
+                const multi = custOrders.length > 1
+                return (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    title={t('orders.exportXlsxTitle')}
+                    onClick={() => exportEquipmentXlsx(rows, `skipily-kunde-${safeFilePart(order.shipping_name)}.xlsx`)}
+                  >
+                    <FileSpreadsheet size={16} /> {multi ? t('orders.exportXlsxAll', { n: custOrders.length }) : t('orders.exportXlsx')}
+                  </button>
+                )
+              })()}
 
               {order.buyer_note && (
                 <div className="order-note">{t('orders.buyerNote')} {order.buyer_note}</div>

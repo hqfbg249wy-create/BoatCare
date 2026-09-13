@@ -12,6 +12,10 @@ import Supabase
 struct EquipmentSuggestionsSheet: View {
     let boatId: UUID
     let boatName: String
+    /// Optionales Fokus-Gerät → Spare-Parts-Modus: die KI schlägt typische
+    /// Ersatz-/Verschleißteile für genau dieses Gerät vor (z.B. Motor
+    /// "Yanmar 3JH5E" → Impeller, Seewasserpumpe, Ölfilter …).
+    var focusItem: EquipmentItem? = nil
     /// Wird aufgerufen wenn der User einen Vorschlag akzeptiert hat —
     /// Parent kann dann seine Equipment-Liste neu laden.
     let onAdded: () -> Void
@@ -23,6 +27,14 @@ struct EquipmentSuggestionsSheet: View {
     @State private var suggestions: [EquipmentSuggestionService.Suggestion] = []
     @State private var addingIds: Set<String> = []
     @State private var addedIds: Set<String> = []
+
+    /// Intro-Text — im Spare-Parts-Modus mit dem Gerätenamen personalisiert.
+    private var introText: String {
+        if let focus = focusItem {
+            return String(format: "equipment.spare_parts_intro".loc, focus.name)
+        }
+        return "equipment.suggestions_intro".loc
+    }
 
     var body: some View {
         NavigationStack {
@@ -53,7 +65,7 @@ struct EquipmentSuggestionsSheet: View {
                 } else {
                     List {
                         Section {
-                            Text("equipment.suggestions_intro".loc)
+                            Text(introText)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
@@ -63,7 +75,7 @@ struct EquipmentSuggestionsSheet: View {
                     }
                 }
             }
-            .navigationTitle("equipment.suggestions_title".loc)
+            .navigationTitle(focusItem == nil ? "equipment.suggestions_title".loc : "equipment.spare_parts_title".loc)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -124,25 +136,42 @@ struct EquipmentSuggestionsSheet: View {
 
             Spacer()
 
-            // Add-Button
-            Button {
-                Task { await add(sug) }
-            } label: {
-                if isAdding {
-                    ProgressView()
-                        .frame(width: 28, height: 28)
-                } else if isAdded {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(.green)
-                } else {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(AppColors.primary)
+            HStack(spacing: 14) {
+                // Ablehnen — Vorschlag aus der Liste entfernen
+                if !isAdded {
+                    Button {
+                        withAnimation { suggestions.removeAll { $0.id == sug.id } }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isAdding)
+                    .accessibilityLabel("equipment.suggestion_reject".loc)
                 }
+
+                // Übernehmen
+                Button {
+                    Task { await add(sug) }
+                } label: {
+                    if isAdding {
+                        ProgressView()
+                            .frame(width: 28, height: 28)
+                    } else if isAdded {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(.green)
+                    } else {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(AppColors.primary)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(isAdding || isAdded)
+                .accessibilityLabel("equipment.suggestion_accept".loc)
             }
-            .buttonStyle(.plain)
-            .disabled(isAdding || isAdded)
         }
         .padding(.vertical, 4)
     }
@@ -205,7 +234,7 @@ struct EquipmentSuggestionsSheet: View {
             }
 
             let result = try await EquipmentSuggestionService.shared.fetchSuggestions(
-                boat: boat, existing: items
+                boat: boat, existing: items, focus: focusItem
             )
             suggestions = result
         } catch {

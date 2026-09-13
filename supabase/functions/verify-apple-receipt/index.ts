@@ -34,7 +34,10 @@ const APPLE_PRIVATE_KEY   = Deno.env.get("APPLE_PRIVATE_KEY") ?? "";
 
 // Apple → unser DB-Plan-Mapping (Product-IDs aus Skipily.storekit)
 const PRODUCT_PLAN_MAP: Record<string, string> = {
-  // Plus = Endkunden-Abo für unbegrenzte KI-Nutzung
+  // Basic = Einstiegs-Abo (1,99 €): 5 KI-Fragen/Tag (Sonnet) + Foto-Analyse + Rabatte
+  "skipily.basic.monthly":       "basic",
+  "skipily.basic.yearly":        "basic",
+  // Plus (4,99 €) = 15 KI-Fragen/Tag, stärkere KI (Opus), Family/Excel/Report
   "skipily.plus.monthly":        "plus_individual",
   "skipily.plus.yearly":         "plus_individual",
   "skipily.plus.family.monthly": "plus_family",
@@ -65,8 +68,15 @@ Deno.serve(async (req) => {
     if (authErr || !user) return json({ error: "Ungültiger Token" }, 401);
 
     const body = await req.json().catch(() => ({}));
-    const { transaction_jws, environment } = body ?? {};
+    const { transaction_jws, environment, intent } = body ?? {};
     if (!transaction_jws) return json({ error: "transaction_jws fehlt" }, 400);
+    // intent = "purchase" (aktiver Kauf/Restore in DIESEM Konto) darf ein Abo
+    // an das Konto binden. intent = "sync" (passiver StoreKit-Abgleich beim
+    // Start/Renewal) darf NUR eine bereits bestehende Bindung dieses Kontos
+    // aktualisieren — niemals eine neue anlegen. Sonst würde derselbe Apple-Kauf
+    // beim Login eines zweiten Kontos auf DERSELBEN Apple-ID an beide Konten
+    // gebunden (Doppel-Abo-Bug).
+    const bindIntent: string = intent === "sync" ? "sync" : "purchase";
 
     // ── JWS-Payload dekodieren (Mitte zwischen den zwei Punkten ist Base64URL JSON)
     const parts = String(transaction_jws).split(".");
@@ -122,11 +132,35 @@ Deno.serve(async (req) => {
     const stillActive = !expiresMs || expiresMs > Date.now();
     const status = stillActive ? "active" : "expired";
 
+    // Gehört diese Apple-Transaktion bereits einem ANDEREN Konto?
+    // Ein Apple-Abo (original_transaction_id) darf nur EINEM Skipily-Konto
+    // gehören — sonst erscheint dasselbe Abo in mehreren Konten.
+    const { data: boundElsewhere } = await admin
+      .from("user_subscriptions")
+      .select("owner_user_id")
+      .eq("apple_original_tx_id", originalTxId)
+      .neq("owner_user_id", user.id)
+      .in("status", ["active", "in_billing_retry", "grace_period", "trial"])
+      .maybeSingle();
+    if (boundElsewhere) {
+      // Nicht an das aktuelle Konto binden. Das Abo bleibt beim Erst-Konto.
+      return json({
+        error:   "subscription_bound_to_other_account",
+        message: "Dieses Apple-Abo ist bereits einem anderen Skipily-Konto zugeordnet.",
+        status:  "not_owned",
+      }, 409);
+    }
+
     const { data: existing } = await admin
       .from("user_subscriptions")
       .select("id")
       .eq("owner_user_id", user.id)
       .maybeSingle();
+
+    // Passiver Sync ohne bestehende Bindung dieses Kontos → NICHT neu anlegen.
+    if (!existing && bindIntent === "sync") {
+      return json({ status: "not_owned", plan: null }, 200);
+    }
 
     let upsertResult;
     if (existing) {

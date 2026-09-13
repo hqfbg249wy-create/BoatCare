@@ -35,7 +35,8 @@ app.use(express.json());
 // ============================================================
 async function requireAdmin(req, res, next) {
     if (req.method === 'OPTIONS') return next();
-    if (req.path === '/health' || req.path === '/') return next();
+    // /health + / für Fly-Checks; /img ist der öffentliche Thumbnail-Proxy.
+    if (req.path === '/health' || req.path === '/' || req.path === '/img') return next();
     try {
         const authH = req.headers['authorization'] || '';
         const token = authH.startsWith('Bearer ') ? authH.slice(7) : '';
@@ -69,6 +70,73 @@ async function requireAdmin(req, res, next) {
     }
 }
 app.use(requireAdmin);
+
+// ============================================================
+// Thumbnail-Proxy (öffentlich): verkleinert externe Produktbilder serverseitig
+// auf ~w px, damit die App kleine JPEGs (~30 KB) statt Full-Res (mehrere MB)
+// laedt. Wichtig fuer den iPad-Shop mit tausenden Produkten.
+//   GET /img?url=<original>&w=420
+// In-Memory-LRU-Cache begrenzt (die App cached zusaetzlich on-device).
+// ============================================================
+const sharp = require('sharp');
+const _fs = require('fs');
+const _path = require('path');
+const _os = require('os');
+const _crypto = require('crypto');
+const _thumbCache = new Map();           // key -> Buffer (heisser RAM-Cache)
+const _THUMB_CAP = 800;
+// Persistenter Disk-Cache: einmal erzeugte Thumbnails bleiben (bis Machine-
+// Neustart) liegen -> jeder Wiederabruf sofort, unabhaengig von den 800 RAM-
+// Eintraegen. Wichtig bei tausenden Produkten (reiner RAM-LRU wuerde thrashen).
+const _THUMB_DIR = _path.join(_os.tmpdir(), 'skipily-thumbs');
+try { _fs.mkdirSync(_THUMB_DIR, { recursive: true }); } catch (_e) { /* egal */ }
+function _thumbFile(key) {
+    const h = _crypto.createHash('sha256').update(key).digest('hex');
+    return _path.join(_THUMB_DIR, h + '.jpg');
+}
+function _sendJpeg(res, buf) {
+    res.set('Content-Type', 'image/jpeg');
+    res.set('Cache-Control', 'public, max-age=2592000, immutable');
+    return res.send(buf);
+}
+function _memPut(key, buf) {
+    if (_thumbCache.size >= _THUMB_CAP) _thumbCache.delete(_thumbCache.keys().next().value);
+    _thumbCache.set(key, buf);
+}
+app.get('/img', async (req, res) => {
+    try {
+        const src = String(req.query.url || '');
+        let w = parseInt(req.query.w, 10) || 420;
+        w = Math.max(40, Math.min(1200, w));
+        if (!/^https?:\/\//i.test(src)) return res.status(400).send('bad url');
+
+        const key = w + '|' + src;
+        // 1. RAM-Cache
+        const hot = _thumbCache.get(key);
+        if (hot) return _sendJpeg(res, hot);
+        // 2. Disk-Cache
+        const file = _thumbFile(key);
+        try {
+            const disk = await _fs.promises.readFile(file);
+            _memPut(key, disk);
+            return _sendJpeg(res, disk);
+        } catch (_e) { /* nicht auf Platte -> unten erzeugen */ }
+        // 3. Erzeugen (Full-Res holen, verkleinern, in RAM + auf Platte legen)
+        const resp = await fetch(src, { redirect: 'follow', headers: { 'User-Agent': 'SkipilyImg/1.0' } });
+        if (!resp.ok) return res.status(502).send('fetch failed');
+        const input = Buffer.from(await resp.arrayBuffer());
+        const out = await sharp(input)
+            .rotate()                                   // EXIF-Ausrichtung
+            .resize({ width: w, withoutEnlargement: true })
+            .jpeg({ quality: 78, mozjpeg: true })
+            .toBuffer();
+        _memPut(key, out);
+        _fs.promises.writeFile(file, out).catch(() => {});   // async, fire-and-forget
+        return _sendJpeg(res, out);
+    } catch (e) {
+        return res.status(500).send('img error');
+    }
+});
 
 // ============================================================
 // KONFIGURATION
@@ -215,6 +283,33 @@ const CATEGORY_TO_GERMAN = {
     'heating_climate': 'Heizung/Klima',
     'marina':          'Marina',
 };
+
+// Kategorie-Labels je Sprache. Der Scraper speichert die Kategorie als
+// DEUTSCHES Label (CATEGORY_TO_GERMAN). Für die fremdsprachigen Newsletter
+// wird der Platzhalter {CATEGORY} hier in die Empfängersprache übersetzt,
+// damit in der englischen/französischen … Mail nicht "Segelmacher" steht.
+const CATEGORY_LABELS = {
+    'Werkstatt':      { en: 'boat repair shop', fr: 'atelier nautique', it: 'officina nautica', es: 'taller náutico', nl: 'botenwerkplaats' },
+    'Motorservice':   { en: 'engine service', fr: 'service moteur', it: 'assistenza motori', es: 'servicio de motores', nl: 'motorservice' },
+    'Zubehör':        { en: 'marine supplies store', fr: 'accastilleur', it: 'negozio di accessori nautici', es: 'tienda de accesorios náuticos', nl: 'watersportwinkel' },
+    'Segelmacher':    { en: 'sailmaker', fr: 'voilerie', it: 'veleria', es: 'velería', nl: 'zeilmaker' },
+    'Rigg':           { en: 'rigging specialist', fr: 'gréeur', it: 'specialista di sartiame', es: 'especialista en jarcia', nl: 'tuigagespecialist' },
+    'Instrumente':    { en: 'marine electronics specialist', fr: "spécialiste de l'électronique marine", it: 'specialista di elettronica nautica', es: 'especialista en electrónica náutica', nl: 'navigatie-elektronicaspecialist' },
+    'Bootsbauer':     { en: 'boat builder', fr: 'chantier naval', it: 'cantiere navale', es: 'astillero', nl: 'botenbouwer' },
+    'Gutachter':      { en: 'marine surveyor', fr: 'expert maritime', it: 'perito navale', es: 'perito naval', nl: 'scheepsexpert' },
+    'Kran':           { en: 'crane / lift service', fr: 'service de grue', it: 'servizio di gru', es: 'servicio de grúa', nl: 'kraan- en liftservice' },
+    'Lackiererei':    { en: 'paint & antifouling shop', fr: 'atelier de peinture & carénage', it: 'officina di verniciatura', es: 'taller de pintura náutica', nl: 'lakspuiterij' },
+    'Heizung/Klima':  { en: 'heating & climate specialist', fr: 'spécialiste chauffage & climatisation', it: 'specialista riscaldamento e clima', es: 'especialista en calefacción y clima', nl: 'verwarmings- en klimaatspecialist' },
+    'Marina':         { en: 'marina', fr: 'marina', it: 'marina', es: 'marina', nl: 'jachthaven' },
+    'Sonstige':       { en: 'marine service', fr: 'service nautique', it: 'servizio nautico', es: 'servicio náutico', nl: 'watersportservice' },
+};
+
+function localizeCategory(germanLabel, lang) {
+    if (!germanLabel) return '';
+    if (lang === 'de') return germanLabel;
+    const row = CATEGORY_LABELS[germanLabel];
+    return (row && row[lang]) ? row[lang] : germanLabel;
+}
 
 // Kategorien-Mapping: Google Places types → App-Kategorien
 //
@@ -3447,7 +3542,9 @@ async function cleverreachUpsertReceiver(groupId, provider) {
             company: provider.name || '',
             city: provider.city || '',
             country: provider.country || '',
-            category: provider.category || '',
+            // {CATEGORY} in die Empfängersprache übersetzen (sonst steht z.B.
+            // "Segelmacher" auch in der englischen Mail).
+            category: localizeCategory(provider.category, countryToLanguage(provider.country)),
             website: provider.website || '',
             language: countryToLanguage(provider.country),
             claim_url: claimUrl,
@@ -3577,6 +3674,7 @@ app.post('/api/cleverreach-sync', async (req, res) => {
         onlyVerified = true,
         country = null,
         groupMode = 'country',   // 'country' (alt) oder 'language' (12 Sprach-Gruppen)
+        providerIds = null,      // gezielter Push: nur genau diese Provider-IDs
     } = req.body || {};
 
     if (!CONFIG.SUPABASE_SERVICE_KEY) {
@@ -3586,8 +3684,8 @@ app.post('/api/cleverreach-sync', async (req, res) => {
     // ── NEU: Sprach-Modus — 6 Provider + 6 Shop Gruppen ──
     if (groupMode === 'language') {
         try {
-            const providers = await loadAllProvidersForLanguageSync({ onlyVerified, includeSynced: true });
-            console.log(`\n🌍 CleverReach Sprach-Sync: ${providers.length} Provider, dryRun=${dryRun}`);
+            const providers = await loadAllProvidersForLanguageSync({ onlyVerified, includeSynced: true, providerIds });
+            console.log(`\n🌍 CleverReach Sprach-Sync: ${providers.length} Provider, dryRun=${dryRun}${providerIds ? ' (gezielt)' : ''}`);
 
             const counts = { synced: 0, skipped: 0, errors: 0 };
             const perGroup = {}; // key: "provider:de" etc.
@@ -3635,8 +3733,8 @@ app.post('/api/cleverreach-sync', async (req, res) => {
     }
 
     try {
-        const providers = await loadProvidersForCleverReach({ limit, onlyVerified, country });
-        console.log(`\n📧 CleverReach-Sync: ${providers.length} Provider, dryRun=${dryRun}`);
+        const providers = await loadProvidersForCleverReach({ limit, onlyVerified, country, providerIds });
+        console.log(`\n📧 CleverReach-Sync: ${providers.length} Provider, dryRun=${dryRun}${providerIds ? ' (gezielt)' : ''}`);
 
         const results = [];
         const counts = { synced: 0, skipped: 0, errors: 0 };
@@ -3976,10 +4074,19 @@ app.get('/api/cleverreach-stats', async (req, res) => {
  * onlyVerified: nur email_check_status='valid'.
  * includeSynced: auch bereits synchronisierte erneut pushen (Upsert ist idempotent).
  */
-async function loadAllProvidersForLanguageSync({ onlyVerified = true, includeSynced = true } = {}) {
+async function loadAllProvidersForLanguageSync({ onlyVerified = true, includeSynced = true, providerIds = null } = {}) {
     let filter = 'email=not.is.null&email=neq.';
-    if (onlyVerified) filter += '&email_check_status=eq.valid';
-    if (!includeSynced) filter += '&cleverreach_synced_at=is.null';
+    const targeted = Array.isArray(providerIds) && providerIds.length > 0;
+    if (targeted) {
+        // Gezielter Push: genau diese Provider. Verified-Filter nur wenn
+        // ausdrücklich verlangt, KEIN synced-Filter (Re-Push erlaubt).
+        const inList = providerIds.map(id => `"${id}"`).join(',');
+        filter += `&id=in.(${inList})`;
+        if (onlyVerified) filter += '&email_check_status=eq.valid';
+    } else {
+        if (onlyVerified) filter += '&email_check_status=eq.valid';
+        if (!includeSynced) filter += '&cleverreach_synced_at=is.null';
+    }
 
     const fetchPage = (offset, pageSize) => new Promise((resolve, reject) => {
         const u = new URL(CONFIG.SUPABASE_URL);
@@ -4010,21 +4117,30 @@ async function loadAllProvidersForLanguageSync({ onlyVerified = true, includeSyn
     return all;
 }
 
-async function loadProvidersForCleverReach({ limit, onlyVerified, country }) {
+async function loadProvidersForCleverReach({ limit, onlyVerified, country, providerIds = null }) {
     // Wir filtern den Country-Filter NICHT direkt in der DB-Query, weil
     // die DB gemischte Schreibweisen hat ("DE" / "Deutschland" / "Germany").
     // Stattdessen laden wir mit grosszuegigem Limit und filtern in JS
     // ueber normalizeCountryCode, sodass alle Varianten gemappt werden.
     let filterClause = '&email=not.is.null&email=neq.';
-    if (onlyVerified) {
-        filterClause += '&email_check_status=eq.valid';
+    const targeted = Array.isArray(providerIds) && providerIds.length > 0;
+    if (targeted) {
+        // Gezielter Push: genau diese Provider, KEIN synced-Filter (Re-Push),
+        // Verified-Filter nur wenn ausdrücklich verlangt.
+        const inList = providerIds.map(id => `"${id}"`).join(',');
+        filterClause += `&id=in.(${inList})`;
+        if (onlyVerified) filterClause += '&email_check_status=eq.valid';
+    } else {
+        if (onlyVerified) {
+            filterClause += '&email_check_status=eq.valid';
+        }
+        filterClause += '&cleverreach_synced_at=is.null';
     }
-    filterClause += '&cleverreach_synced_at=is.null';
 
     // Wenn ein Country-Filter gesetzt ist, holen wir mehr Daten und
     // filtern nach normalisierung — sonst koennten wir die DE-Provider
     // verpassen die als "Deutschland" gespeichert sind.
-    const dbLimit = country ? Math.max(limit * 5, 500) : limit;
+    const dbLimit = targeted ? providerIds.length : (country ? Math.max(limit * 5, 500) : limit);
     const url = `${CONFIG.SUPABASE_URL}/rest/v1/service_providers?select=id,name,email,city,country,category,website,provider_secrets(claim_token)&${filterClause.substring(1)}&order=country&limit=${dbLimit}`;
 
     const raw = await new Promise((resolve, reject) => {
@@ -4047,6 +4163,7 @@ async function loadProvidersForCleverReach({ limit, onlyVerified, country }) {
         req.on('error', reject);
     });
 
+    if (targeted) return raw;            // gezielter Push: keine Country-Filterung
     if (!country) return raw.slice(0, limit);
 
     // Country-Filter nach Normalisierung anwenden
@@ -4475,6 +4592,43 @@ function geocodeGoogle(street, postalCode, city, country) {
         }).on('error', () => resolve(null));
     });
 }
+
+/**
+ * POST /api/geocode-google — Einzeladresse über Google Geocoding (Notfall,
+ * präziser als Nominatim). Body: { street, postal_code, city, country }.
+ * Antwort: { found, lat, lon, location_type, formatted_address }.
+ * location_type: ROOFTOP (exakt) | RANGE_INTERPOLATED | GEOMETRIC_CENTER | APPROXIMATE.
+ */
+app.post('/api/geocode-google', (req, res) => {
+    const { street = '', postal_code = '', city = '', country = '' } = req.body || {};
+    if (!String(city).trim() && !String(street).trim()) {
+        return res.status(400).json({ error: 'Adresse (mind. Stadt oder Straße) erforderlich' });
+    }
+    const key = CONFIG.GOOGLE_PLACES_API_KEY;
+    if (!key) return res.status(503).json({ error: 'Google Geocoding nicht konfiguriert (kein API-Key).' });
+    const addr = [street, [postal_code, city].filter(Boolean).join(' '), country].filter(Boolean).join(', ');
+    const path = `/maps/api/geocode/json?address=${encodeURIComponent(addr)}&key=${key}`;
+    https.get({ hostname: 'maps.googleapis.com', path }, (gr) => {
+        let d = '';
+        gr.on('data', c => d += c);
+        gr.on('end', () => {
+            try {
+                const j = JSON.parse(d);
+                if (j.status === 'REQUEST_DENIED') return res.status(502).json({ error: 'Google: REQUEST_DENIED (Key/Aktivierung prüfen)' });
+                const g = j.results?.[0];
+                const loc = g?.geometry?.location;
+                if (!loc) return res.json({ found: false, status: j.status });
+                res.json({
+                    found: true, lat: loc.lat, lon: loc.lng,
+                    location_type: g.geometry.location_type,
+                    formatted_address: g.formatted_address,
+                });
+            } catch (e) {
+                res.status(500).json({ error: 'Google-Antwort ungültig: ' + e.message });
+            }
+        });
+    }).on('error', (e) => res.status(500).json({ error: 'Google-Geocoding fehlgeschlagen: ' + e.message }));
+});
 
 // Alle Provider mit Adresse laden (paginiert), optional nur ohne Koordinaten.
 async function loadProvidersForGeo(mode, country) {

@@ -32,6 +32,9 @@ struct CheckoutView: View {
     // Stripe
     @State private var paymentSheet: PaymentSheet?
     @State private var isPreparingPayment = false
+    // Deferred-Flow: die setup_intent_id, mit der die hinterlegte Karte nach
+    // erfolgreichem SetupSheet den Bestellungen zugeordnet wird.
+    @State private var deferredSetupIntentId: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -106,11 +109,11 @@ struct CheckoutView: View {
                     .fontWeight(.bold)
 
                 VStack(spacing: 14) {
-                    TextField("Vollständiger Name", text: $shippingAddress.name)
+                    TextField("common.fullName".loc, text: $shippingAddress.name)
                         .textContentType(.name)
                         .textFieldStyle(.roundedBorder)
 
-                    TextField("Straße + Hausnummer", text: $shippingAddress.street)
+                    TextField("common.street".loc, text: $shippingAddress.street)
                         .textContentType(.streetAddressLine1)
                         .textFieldStyle(.roundedBorder)
 
@@ -301,10 +304,10 @@ struct CheckoutView: View {
                             .fixedSize(horizontal: false, vertical: true)
                         HStack(spacing: 14) {
                             Link("checkout.agb_link".loc,
-                                 destination: URL(string: "https://skipily.app/agb.html")!)
+                                 destination: URL(string: "https://skipily.app/agb")!)
                                 .font(.caption2).foregroundStyle(AppColors.info)
                             Link("checkout.revocation_link".loc,
-                                 destination: URL(string: "https://skipily.app/agb.html#widerruf")!)
+                                 destination: URL(string: "https://skipily.app/agb#widerruf")!)
                                 .font(.caption2).foregroundStyle(AppColors.info)
                         }
                     }
@@ -522,24 +525,32 @@ struct CheckoutView: View {
                 buyerId: buyerId,
                 shippingAddress: shippingAddress,
                 buyerNote: buyerNote.isEmpty ? nil : buyerNote,
-                agbVersion: agbVersion
+                agbVersion: agbVersion,
+                deferredPayment: FeatureFlags.deferredShopPayment
             )
 
             isPlacingOrder = false
             isPreparingPayment = true
 
-            // 2. Create Stripe PaymentIntent
-            let totalAmount = placedOrders.reduce(0.0) { $0 + $1.total }
-            let sheet = try await PaymentService.shared.createPaymentSheet(
-                for: placedOrders,
-                totalAmount: totalAmount
-            )
-
-            isPreparingPayment = false
-            paymentSheet = sheet
-
-            // 3. Present Payment Sheet
-            presentPaymentSheet()
+            if FeatureFlags.deferredShopPayment {
+                // Neuer Flow: Karte NUR hinterlegen (keine Abbuchung). Die
+                // Abbuchung erfolgt spaeter durch confirm-shipment beim Versand.
+                let (sheet, setupIntentId) = try await PaymentService.shared.createDeferredSetupSheet()
+                deferredSetupIntentId = setupIntentId
+                isPreparingPayment = false
+                paymentSheet = sheet
+                presentPaymentSheet()
+            } else {
+                // Bisheriger Flow: sofortige Zahlung.
+                let totalAmount = placedOrders.reduce(0.0) { $0 + $1.total }
+                let sheet = try await PaymentService.shared.createPaymentSheet(
+                    for: placedOrders,
+                    totalAmount: totalAmount
+                )
+                isPreparingPayment = false
+                paymentSheet = sheet
+                presentPaymentSheet()
+            }
 
         } catch {
             isPlacingOrder = false
@@ -576,7 +587,19 @@ struct CheckoutView: View {
         switch result {
         case .completed:
             do {
-                try await PaymentService.shared.confirmPayment(orderIds: orderIds)
+                if FeatureFlags.deferredShopPayment {
+                    // Karte hinterlegt -> den Bestellungen zuordnen. KEINE
+                    // Abbuchung, KEIN payment_status=paid. Order bleibt "pending"
+                    // bis der Provider den Versand bestaetigt.
+                    guard let setupIntentId = deferredSetupIntentId else {
+                        throw PaymentError.serverError("setup_intent_id fehlt")
+                    }
+                    try await PaymentService.shared.attachPaymentToOrders(
+                        orderIds: orderIds, setupIntentId: setupIntentId
+                    )
+                } else {
+                    try await PaymentService.shared.confirmPayment(orderIds: orderIds)
+                }
 
                 if var profile = authService.userProfile {
                     profile.shippingStreet = shippingAddress.street

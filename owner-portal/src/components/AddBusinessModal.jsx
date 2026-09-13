@@ -9,11 +9,34 @@
  *  3. Submit → INSERT in service_providers (is_approved=false → Pending)
  *  4. Erscheint auf der Karte sobald ein Admin approved
  */
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useT } from '../i18n'
-import { X, Save, MapPin, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { X, Save, MapPin, AlertCircle, CheckCircle2, Camera, Sparkles } from 'lucide-react'
+
+// analyze-provider-photo liefert iOS-Kategorien (dbKeys) → auf die Web-Kategorien
+// dieses Formulars abbilden (best effort; Nutzer kann korrigieren).
+const AI_CATEGORY_MAP = {
+  repair: 'werkstatt', boatbuilder: 'werft', supplies: 'versorgung',
+  sailmaker: 'segelmacher', rigging: 'werkstatt', instruments: 'elektronik',
+  heating: 'werkstatt', crane: 'werft', painting: 'lackiererei',
+  surveyor: 'gutachter', diver: 'werkstatt', other: 'werkstatt',
+}
+// Ländername (in beliebiger Sprache) → ISO-2-Code der Länder-Auswahl.
+function countryNameToCode(name) {
+  const c = (name || '').toString().trim().toLowerCase()
+  if (/deutschland|germany|allemagne|germania|alemania/.test(c)) return 'DE'
+  if (/österreich|osterreich|austria|autriche/.test(c)) return 'AT'
+  if (/schweiz|switzerland|suisse|svizzera|suiza/.test(c)) return 'CH'
+  if (/niederlande|netherlands|nederland|pays-bas|paesi bassi/.test(c)) return 'NL'
+  if (/frankreich|france|francia/.test(c)) return 'FR'
+  if (/italien|italy|italia|italie/.test(c)) return 'IT'
+  if (/spanien|spain|españa|espana|espagne|spagna/.test(c)) return 'ES'
+  if (/kroatien|croatia|hrvatska|croatie|croazia/.test(c)) return 'HR'
+  if (/griechenland|greece|grèce|grecia/.test(c)) return 'GR'
+  return null
+}
 
 const categories = [
   { value: 'werkstatt',    emoji: '🔧', key: 'addbiz.catWerkstatt' },
@@ -51,14 +74,64 @@ const emptyForm = {
 }
 
 export default function AddBusinessModal({ open, onClose, onSubmitted }) {
-  const { t } = useT()
+  const { t, lang } = useT()
   const { user } = useAuth()
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [geocoding, setGeocoding] = useState(false)
   const [done, setDone] = useState(false)
 
+  // KI-Foto-Analyse
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analyzeMsg, setAnalyzeMsg] = useState(null)
+  const [analyzeErr, setAnalyzeErr] = useState(null)
+  const photoInputRef = useRef(null)
+
   if (!open) return null
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result).split(',')[1] || '')
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+
+  async function onPickPhoto(e) {
+    const file = (e.target.files || [])[0]
+    e.target.value = ''
+    if (!file) return
+    setAnalyzing(true); setAnalyzeErr(null); setAnalyzeMsg(null)
+    try {
+      const image_base64 = await fileToBase64(file)
+      const { data, error } = await supabase.functions.invoke('analyze-provider-photo', {
+        body: { image_base64, media_type: file.type || 'image/jpeg', lang },
+      })
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+      const f = data?.fields || {}
+      setForm(prev => ({
+        ...prev,
+        name: f.name || prev.name,
+        category: AI_CATEGORY_MAP[f.category] || prev.category,
+        street: f.street || prev.street,
+        postal_code: f.postal_code || prev.postal_code,
+        city: f.city || prev.city,
+        country: countryNameToCode(f.country) || prev.country,
+        phone: f.phone || prev.phone,
+        email: f.email || prev.email,
+        website: f.website || prev.website,
+        description: f.description || prev.description,
+      }))
+      setAnalyzeMsg(data?.note || t('addbiz.photoDone'))
+    } catch (err) {
+      console.error('analyze-provider-photo:', err)
+      setAnalyzeErr(t('addbiz.photoFailed'))
+    } finally {
+      setAnalyzing(false)
+    }
+  }
 
   function reset() {
     setForm(emptyForm)
@@ -168,6 +241,24 @@ export default function AddBusinessModal({ open, onClose, onSubmitted }) {
           <p style={{ fontSize: 13, color: '#64748b', marginTop: 0, marginBottom: 18 }}>
             {t('addbiz.intro')}
           </p>
+
+          {/* KI-Foto-Analyse */}
+          <div style={{ padding: 12, marginBottom: 18, borderRadius: 8,
+                        background: '#faf5ff', border: '1px solid #e9d5ff' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#6b21a8', marginBottom: 4,
+                          display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Sparkles size={15} /> {t('addbiz.photoSection')}
+            </div>
+            <p style={{ fontSize: 12, color: '#7c3aed', margin: '0 0 10px' }}>{t('addbiz.photoHint')}</p>
+            <input ref={photoInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onPickPhoto} />
+            <button type="button" className="btn-secondary" disabled={analyzing}
+              onClick={() => photoInputRef.current?.click()}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Camera size={15} /> {analyzing ? t('addbiz.photoAnalyzing') : t('addbiz.photoTake')}
+            </button>
+            {analyzeMsg && <p style={{ fontSize: 12, color: '#15803d', margin: '8px 0 0' }}>✓ {analyzeMsg}</p>}
+            {analyzeErr && <p style={{ fontSize: 12, color: '#c2410c', margin: '8px 0 0' }}>{analyzeErr}</p>}
+          </div>
 
           {/* Pflichtangaben */}
           <div className="form-row">

@@ -26,6 +26,14 @@ struct LocalChatMessage: Identifiable, Equatable {
     var attachmentUrls: [String]
     /// Markiert Karten die statt eines Fehlers einen Plus-Upgrade-CTA anzeigen.
     var isUpgradePrompt: Bool
+    /// Von Claude vorgeschlagene Shop-Suchbegriffe (deutsch, für die Suche).
+    var shopSearchTerms: [String]
+    /// Lokalisierte Anzeige-Beschriftungen der Shop-Chips (gleiche Reihenfolge
+    /// wie `shopSearchTerms`). Angezeigt wird das Label, gesucht der Suchbegriff.
+    var shopSearchLabels: [String]
+    /// true → Claude signalisiert, dass eine bootspezifische Ausrüstungsliste
+    /// zum Übernehmen sinnvoll ist (Einsteiger-Frage).
+    var showsEquipmentChecklist: Bool
 
     init(
         id: UUID = UUID(),
@@ -35,7 +43,10 @@ struct LocalChatMessage: Identifiable, Equatable {
         timestamp: Date = Date(),
         feedback: ChatFeedback? = nil,
         attachmentUrls: [String] = [],
-        isUpgradePrompt: Bool = false
+        isUpgradePrompt: Bool = false,
+        shopSearchTerms: [String] = [],
+        shopSearchLabels: [String] = [],
+        showsEquipmentChecklist: Bool = false
     ) {
         self.id = id
         self.remoteId = remoteId
@@ -45,6 +56,9 @@ struct LocalChatMessage: Identifiable, Equatable {
         self.feedback = feedback
         self.attachmentUrls = attachmentUrls
         self.isUpgradePrompt = isUpgradePrompt
+        self.shopSearchTerms = shopSearchTerms
+        self.shopSearchLabels = shopSearchLabels
+        self.showsEquipmentChecklist = showsEquipmentChecklist
     }
 }
 
@@ -60,6 +74,10 @@ struct ChatScreen: View {
     @State private var messages: [LocalChatMessage] = []
     @State private var inputText = ""
     @State private var isTyping = false
+    /// Steuert den Tastatur-Fokus des Eingabefelds. Ohne expliziten FocusState
+    /// kann SwiftUI die Tastatur nach dem Wegscrollen nicht zuverlässig wieder
+    /// aktivieren – Tippen ins Feld blieb dann wirkungslos.
+    @FocusState private var isInputFocused: Bool
     @State private var boatContext: AIChatContext?
     @State private var hasLoadedContext = false
 
@@ -97,6 +115,10 @@ struct ChatScreen: View {
     // Aktions-Sheets aus dem Chat heraus
     @State private var shareTargetMessages: [LocalChatMessage]?
     @State private var equipmentFromPhotos: [String]?
+    /// Nicht-nil → Shop-Suche-Sheet mit diesem Begriff öffnen (aus Produkt-Chip).
+    @State private var shopSearchQuery: String?
+    /// Öffnet die bootspezifische Ausrüstungsliste zum Übernehmen.
+    @State private var showEquipmentChecklist = false
 
     private let chatService = AIChatService.shared
 
@@ -123,6 +145,19 @@ struct ChatScreen: View {
                                         }
                                     )
                                     .padding(.leading, 40)
+                                }
+
+                                // Aktionen aus dem Antwort-Block: Shop-Suche
+                                // und/oder Ausrüstungsliste-Übernehmen.
+                                if !msg.isUser,
+                                   !msg.shopSearchTerms.isEmpty || msg.showsEquipmentChecklist {
+                                    ChatMessageActions(
+                                        message: msg,
+                                        onShopSearch: { shopSearchQuery = $0 },
+                                        onEquipmentChecklist: { showEquipmentChecklist = true }
+                                    )
+                                    .padding(.leading, 40)
+                                    .padding(.trailing, 8)
                                 }
 
                                 // User-Frage mit Fotos? "Als Equipment anlegen"
@@ -153,6 +188,7 @@ struct ChatScreen: View {
                     }
                     .padding()
                 }
+                .scrollDismissesKeyboard(.interactively)
                 .onChange(of: messages.count) { _, _ in
                     scrollToBottom(proxy)
                 }
@@ -255,8 +291,12 @@ struct ChatScreen: View {
 
                 TextField("chat.input_hint".loc, text: $inputText)
                     .textFieldStyle(.roundedBorder)
+                    .focused($isInputFocused)
                     .submitLabel(.send)
                     .onSubmit { sendMessage() }
+                    // Ein Tap ins Feld holt die Tastatur zuverlässig zurück,
+                    // auch nachdem sie durch Scrollen ausgeblendet wurde.
+                    .onTapGesture { isInputFocused = true }
 
                 Button {
                     sendMessage()
@@ -344,6 +384,19 @@ struct ChatScreen: View {
                 )
             }
         }
+        // Shop-Suche zu einem von der KI empfohlenen Teil
+        .sheet(item: Binding(
+            get: { shopSearchQuery.map { ShopQuery(query: $0) } },
+            set: { shopSearchQuery = $0?.query }
+        )) { q in
+            ChatShopSearchSheet(query: q.query)
+                .environmentObject(authService)
+        }
+        // Bootspezifische Ausrüstungsliste zum Übernehmen (Einsteiger-Frage)
+        .sheet(isPresented: $showEquipmentChecklist) {
+            ChatEquipmentChecklistSheet()
+                .environmentObject(authService)
+        }
         // Kamera-Sheet
         .fullScreenCover(isPresented: $showingCamera) {
             CameraPickerView(image: $cameraImage)
@@ -351,7 +404,7 @@ struct ChatScreen: View {
         }
         // Plus-Upgrade-Sheet bei aufgebrauchtem KI-Limit
         .sheet(isPresented: $showPlusUpgradeSheet) {
-            PlusUpgradeSheet(reason: "Du hast deine kostenlosen KI-Anfragen für diesen Monat aufgebraucht.")
+            PlusUpgradeSheet(reason: "Du hast deine 10 kostenlosen KI-Anfragen aufgebraucht.")
         }
         .onChange(of: cameraImage) { _, img in
             guard let img else { return }
@@ -486,13 +539,22 @@ struct ChatScreen: View {
             let persisted = try await chatService.loadMessages(sessionId: id)
             sessionId = id
             messages = persisted.map { p in
-                LocalChatMessage(
+                let isUser = p.role == "user"
+                // Assistenten-Antworten enthalten evtl. den Aktions-Block — hier
+                // erneut parsen, damit Chips/Buttons auch aus der Historie kommen.
+                let parsed = isUser
+                    ? (text: p.content, actions: ChatActions())
+                    : ChatActionParser.parse(p.content)
+                return LocalChatMessage(
                     remoteId: p.id,
-                    text: p.content,
-                    isUser: p.role == "user",
+                    text: parsed.text.isEmpty ? p.content : parsed.text,
+                    isUser: isUser,
                     timestamp: p.createdAt,
                     feedback: p.feedback,
-                    attachmentUrls: p.attachmentUrls
+                    attachmentUrls: p.attachmentUrls,
+                    shopSearchTerms: parsed.actions.shopSearchTerms,
+                    shopSearchLabels: parsed.actions.shopSearchLabels,
+                    showsEquipmentChecklist: parsed.actions.showsEquipmentChecklist
                 )
             }
             if messages.isEmpty { addWelcomeMessage() }
@@ -515,6 +577,10 @@ struct ChatScreen: View {
         messages.append(userMsg)
         inputText = ""
         pendingPhotos.removeAll()
+        // Tastatur beim Absenden schließen: sonst kämpfen Keyboard-Avoidance
+        // und Auto-Scroll gegeneinander und der Tipp-Indikator ("KI arbeitet…")
+        // wird aus dem Sichtbereich geschoben.
+        isInputFocused = false
         isTyping = true
 
         Task {
@@ -558,7 +624,17 @@ struct ChatScreen: View {
                     boatContext: boatContext
                 )
 
-                var assistantMsg = LocalChatMessage(text: reply, isUser: false)
+                // Sichtbaren Text vom Aktions-Block trennen. Der ROH-Text (inkl.
+                // Block) wird persistiert, damit die Aktionen auch beim späteren
+                // Laden der Session erhalten bleiben.
+                let parsed = ChatActionParser.parse(reply)
+                var assistantMsg = LocalChatMessage(
+                    text: parsed.text.isEmpty ? reply : parsed.text,
+                    isUser: false,
+                    shopSearchTerms: parsed.actions.shopSearchTerms,
+                    shopSearchLabels: parsed.actions.shopSearchLabels,
+                    showsEquipmentChecklist: parsed.actions.showsEquipmentChecklist
+                )
                 if let sid = sessionId {
                     do {
                         let remoteId = try await chatService.saveMessage(sessionId: sid, role: "assistant", content: reply)

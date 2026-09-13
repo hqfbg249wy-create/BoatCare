@@ -109,8 +109,13 @@ class AIChatService {
 
     private init() {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 45
+        // Claude (Sonnet, max_tokens 2048) braucht mit Boots-Kontext und – vor
+        // allem – Foto-Analyse (Vision) regelmäßig deutlich länger als 30 s.
+        // Die Edge-Function selbst setzt kein Timeout auf den Anthropic-Call,
+        // also war bisher der Client der Flaschenhals ("Zeitüberschreitung bei
+        // der Anforderung"). Großzügig bemessen, damit echte Antworten ankommen.
+        config.timeoutIntervalForRequest = 120
+        config.timeoutIntervalForResource = 180
         session = URLSession(configuration: config)
     }
 
@@ -122,7 +127,25 @@ class AIChatService {
         guard let url = URL(string: endpoint) else {
             throw AIChatError.invalidURL
         }
+        // Erster Versuch; bei einem Auth-Fehler (fehlender/abgelaufener Token
+        // oder 401 vom Server) EINMAL die Supabase-Session auffrischen und
+        // erneut senden. Ein abgelaufenes Token heilt sich damit selbst, statt
+        // sofort "Bitte melde dich erneut an" zu zeigen. Schlägt auch der
+        // Refresh fehl (Refresh-Token ungültig), greift die lokalisierte
+        // Meldung — dann ist echtes Neu-Anmelden nötig.
+        do {
+            return try await performSend(to: url, messages: messages, boatContext: boatContext)
+        } catch AIChatError.notAuthenticated {
+            _ = try? await SupabaseManager.shared.client.auth.refreshSession()
+            return try await performSend(to: url, messages: messages, boatContext: boatContext)
+        }
+    }
 
+    private func performSend(
+        to url: URL,
+        messages: [AIChatMessage],
+        boatContext: AIChatContext?
+    ) async throws -> String {
         // Auth Token holen
         guard let accessToken = try? await SupabaseManager.shared.client.auth.session.accessToken else {
             throw AIChatError.notAuthenticated
@@ -140,12 +163,16 @@ class AIChatService {
             let messages: [AIChatMessage]
             let boatContext: AIChatContext?
             let lang: String
+            /// Echte Gerätesprache als BCP-47-Tag (z.B. "pt-BR", "pl") — die
+            /// KI antwortet darin, auch außerhalb der 6 UI-Sprachen.
+            let userLocale: String
         }
 
         let body = RequestBody(
             messages: messages,
             boatContext: boatContext,
-            lang: LanguageManager.shared.currentLanguage.code
+            lang: LanguageManager.shared.currentLanguage.code,
+            userLocale: LanguageManager.shared.aiResponseLocale
         )
         request.httpBody = try JSONEncoder().encode(body)
 
@@ -600,13 +627,13 @@ enum AIChatError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Ungültige Server-URL"
+            return "chat.err.invalidURL".loc
         case .notAuthenticated:
-            return "Bitte melde dich erneut an"
+            return "chat.err.notAuthenticated".loc
         case .networkError:
-            return "Keine Internetverbindung"
+            return "chat.err.network".loc
         case .emptyResponse:
-            return "Keine Antwort erhalten"
+            return "chat.err.emptyResponse".loc
         case .aiServiceError(let msg):
             return msg
         case .serverError(_, let msg):

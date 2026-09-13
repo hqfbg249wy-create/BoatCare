@@ -83,11 +83,11 @@ enum InquiryStatus: String, Codable, Sendable {
 
     var label: String {
         switch self {
-        case .draft:   return "Entwurf"
-        case .sent:    return "Gesendet"
-        case .read:    return "Gelesen"
-        case .replied: return "Beantwortet"
-        case .closed:  return "Geschlossen"
+        case .draft:   return "inq.status.draft".loc
+        case .sent:    return "inq.status.sent".loc
+        case .read:    return "inq.status.read".loc
+        case .replied: return "inq.status.replied".loc
+        case .closed:  return "inq.status.closed".loc
         }
     }
 

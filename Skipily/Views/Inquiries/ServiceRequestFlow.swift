@@ -119,18 +119,18 @@ struct ServiceRequestFlow: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if step == .pickProvider {
-                        Button("Abbrechen") { dismiss() }
+                        Button("srf.cancel".loc) { dismiss() }
                     } else {
                         Button {
                             goBack()
                         } label: {
-                            Label("Zurück", systemImage: "chevron.left")
+                            Label("srf.back".loc, systemImage: "chevron.left")
                         }
                     }
                 }
             }
             .task { await loadProviders() }
-            .alert("Fehler", isPresented: Binding(
+            .alert("srf.error".loc, isPresented: Binding(
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
             )) {
@@ -170,10 +170,10 @@ struct ServiceRequestFlow: View {
 
     private var navigationTitle: String {
         switch step {
-        case .pickProvider: return "Service-Anbieter wählen"
-        case .compose:      return "Anfrage formulieren"
-        case .channel:      return "Versandweg"
-        case .review:       return "Vorschau & Senden"
+        case .pickProvider: return "srf.nav.pick".loc
+        case .compose:      return "srf.nav.compose".loc
+        case .channel:      return "srf.nav.channel".loc
+        case .review:       return "srf.nav.review".loc
         }
     }
 
@@ -197,20 +197,20 @@ struct ServiceRequestFlow: View {
     private var providerStep: some View {
         Group {
             if loadingProviders {
-                ProgressView("Anbieter laden…")
+                ProgressView("srf.loadingProviders".loc)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if filteredProviders.isEmpty {
                 ContentUnavailableView(
-                    "Keine Anbieter",
+                    "srf.noProviders".loc,
                     systemImage: "magnifyingglass",
-                    description: Text("Keine Anbieter zur Suche gefunden.")
+                    description: Text("srf.noProvidersDesc".loc)
                 )
             } else {
                 List {
                     Section {
-                        TextField("Suchen…", text: $providerSearch)
+                        TextField("srf.search".loc, text: $providerSearch)
                     }
-                    Section("Anbieter wählen") {
+                    Section("srf.chooseProvider".loc) {
                         ForEach(filteredProviders) { p in
                             Button {
                                 Task { await selectProvider(p) }
@@ -274,10 +274,10 @@ struct ServiceRequestFlow: View {
                 if briefingLoading {
                     HStack {
                         ProgressView().scaleEffect(0.8)
-                        Text("Bootsdaten werden zusammengestellt…").foregroundStyle(.secondary).font(.subheadline)
+                        Text("srf.briefingLoading".loc).foregroundStyle(.secondary).font(.subheadline)
                     }
                 } else if !briefingMarkdown.isEmpty {
-                    DisclosureGroup("Vorschau der übernommenen Daten") {
+                    DisclosureGroup("srf.previewData".loc) {
                         Text(briefingMarkdown)
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -285,17 +285,17 @@ struct ServiceRequestFlow: View {
                     }
                 }
             } header: {
-                Label("Automatisch übernommen", systemImage: "checkmark.seal.fill")
+                Label("srf.autoIncluded".loc, systemImage: "checkmark.seal.fill")
                     .foregroundStyle(AppColors.success)
             } footer: {
-                Text("Schiffsdaten und Ausrüstungsinformationen werden automatisch in die Nachricht eingefügt.")
+                Text("srf.autoFooter".loc)
             }
 
             // Problem-Beschreibung
             Section {
                 ZStack(alignment: .topLeading) {
                     if problemDescription.isEmpty {
-                        Text("z. B. Motor springt nicht mehr an, lässt sich nur kurz starten und stirbt dann ab…")
+                        Text("srf.problemPlaceholder".loc)
                             .foregroundStyle(.tertiary).font(.callout)
                             .padding(.top, 8).padding(.leading, 4)
                             .allowsHitTesting(false)
@@ -304,9 +304,9 @@ struct ServiceRequestFlow: View {
                         .frame(minHeight: 140)
                 }
             } header: {
-                Text("Problem-Beschreibung *")
+                Text("srf.problemHeader".loc)
             } footer: {
-                Text("Beschreibe das Problem in deiner eigenen Sprache. Falls der Anbieter im Ausland ist, kannst du die Nachricht später automatisch übersetzen lassen.")
+                Text("srf.problemFooter".loc)
             }
 
             // Fotos
@@ -339,7 +339,7 @@ struct ServiceRequestFlow: View {
                     PhotosPicker(selection: $photoPickerItems,
                                  maxSelectionCount: 5,
                                  matching: .images) {
-                        Label("Aus Mediathek", systemImage: "photo.on.rectangle")
+                        Label("srf.fromLibrary".loc, systemImage: "photo.on.rectangle")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
                             .background(AppColors.info.opacity(0.12))
@@ -349,7 +349,7 @@ struct ServiceRequestFlow: View {
                     Button {
                         showCamera = true
                     } label: {
-                        Label("Kamera", systemImage: "camera.fill")
+                        Label("srf.camera".loc, systemImage: "camera.fill")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
                             .background(AppColors.success.opacity(0.12))
@@ -360,9 +360,9 @@ struct ServiceRequestFlow: View {
                 }
                 .buttonStyle(.plain)
             } header: {
-                Label("Fotos zum Problem", systemImage: "camera")
+                Label("srf.photosHeader".loc, systemImage: "camera")
             } footer: {
-                Text("Optional. Hilft dem Anbieter, das Problem schneller einzuschätzen. Maximal 5 Fotos.")
+                Text("srf.photosFooter".loc)
             }
             .onChange(of: photoPickerItems) { _, newItems in
                 Task { await loadPhotosFromPicker(newItems) }
@@ -372,7 +372,7 @@ struct ServiceRequestFlow: View {
                 Button {
                     step = .channel
                 } label: {
-                    Label("Weiter", systemImage: "chevron.right")
+                    Label("srf.next".loc, systemImage: "chevron.right")
                         .frame(maxWidth: .infinity)
                         .fontWeight(.semibold)
                 }
@@ -428,9 +428,9 @@ struct ServiceRequestFlow: View {
                     .disabled(!avail)
                 }
             } header: {
-                Text("Wie soll die Anfrage versendet werden?")
+                Text("srf.channelHeader".loc)
             } footer: {
-                Text("Bei E-Mail und SMS werden Fotos automatisch als Anhang hinzugefügt. WhatsApp unterstützt nur Text — Fotos kannst du dort nachträglich anhängen.")
+                Text("srf.channelFooter".loc)
             }
 
             Section {
@@ -438,7 +438,7 @@ struct ServiceRequestFlow: View {
                     step = .review
                     Task { await maybeAutoTranslate() }
                 } label: {
-                    Label("Weiter zur Vorschau", systemImage: "chevron.right")
+                    Label("srf.nextToReview".loc, systemImage: "chevron.right")
                         .frame(maxWidth: .infinity)
                         .fontWeight(.semibold)
                 }
@@ -452,9 +452,9 @@ struct ServiceRequestFlow: View {
     private func channelHint(for ch: SendChannel, available: Bool, provider: ServiceProvider?) -> String {
         if !available {
             switch ch {
-            case .email:    return "Anbieter hat keine E-Mail-Adresse"
-            case .whatsapp: return "Anbieter hat keine Telefonnummer"
-            case .sms:      return "SMS auf diesem Gerät nicht verfügbar"
+            case .email:    return "srf.noEmail".loc
+            case .whatsapp: return "srf.noPhone".loc
+            case .sms:      return "srf.smsUnavailable".loc
             }
         }
         switch ch {
@@ -477,7 +477,7 @@ struct ServiceRequestFlow: View {
                         .background(channel.color)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Versand via \(channel.label)")
+                        Text(String(format: "srf.sendVia".loc, channel.label))
                             .font(.subheadline).fontWeight(.semibold)
                         Text(recipientDisplay).font(.caption).foregroundStyle(.secondary)
                     }
@@ -489,28 +489,28 @@ struct ServiceRequestFlow: View {
                 if isTranslating {
                     HStack {
                         ProgressView().scaleEffect(0.8)
-                        Text("Übersetzen…").foregroundStyle(.secondary)
+                        Text("srf.translating".loc).foregroundStyle(.secondary)
                     }
                 } else {
-                    Picker("Sprache", selection: $targetLang) {
-                        Text("Deutsch (Original)").tag("de")
-                        Text("Englisch").tag("en")
-                        Text("Französisch").tag("fr")
-                        Text("Spanisch").tag("es")
-                        Text("Italienisch").tag("it")
-                        Text("Niederländisch").tag("nl")
+                    Picker("srf.language".loc, selection: $targetLang) {
+                        Text("srf.lang.de".loc).tag("de")
+                        Text("srf.lang.en".loc).tag("en")
+                        Text("srf.lang.fr".loc).tag("fr")
+                        Text("srf.lang.es".loc).tag("es")
+                        Text("srf.lang.it".loc).tag("it")
+                        Text("srf.lang.nl".loc).tag("nl")
                     }
                     .onChange(of: targetLang) { _, _ in
                         Task { await translateIfNeeded() }
                     }
                 }
             } header: {
-                Label("Sprache", systemImage: "globe")
+                Label("srf.language".loc, systemImage: "globe")
             } footer: {
                 if let auto = autoDetectedLang(), auto != "de" {
-                    Text("Anbieter sitzt vermutlich in einem \(autoLangLabel(auto))-sprachigen Land. Eine automatische Übersetzung ist sinnvoll.")
+                    Text("srf.autoTranslateHint".loc)
                 } else {
-                    Text("Ändere die Sprache, um die Nachricht automatisch übersetzen zu lassen.")
+                    Text("srf.changeLangHint".loc)
                 }
             }
 
@@ -521,12 +521,12 @@ struct ServiceRequestFlow: View {
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } header: {
-                Text("Vollständige Nachricht")
+                Text("srf.fullMessage".loc)
             }
 
             // Fotos
             if !photos.isEmpty {
-                Section("Anhänge (\(photos.count))") {
+                Section(String(format: "srf.attachments".loc, photos.count)) {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
                             ForEach(Array(photos.enumerated()), id: \.offset) { _, img in
@@ -545,7 +545,7 @@ struct ServiceRequestFlow: View {
                 Button {
                     sendNow()
                 } label: {
-                    Label("Senden via \(channel.label)", systemImage: "paperplane.fill")
+                    Label(String(format: "srf.sendButton".loc, channel.label), systemImage: "paperplane.fill")
                         .frame(maxWidth: .infinity)
                         .fontWeight(.semibold)
                 }
@@ -566,8 +566,8 @@ struct ServiceRequestFlow: View {
     // MARK: - Final Message Builder
 
     private var mailSubject: String {
-        let eq = equipmentName.isEmpty ? "Service-Anfrage" : equipmentName
-        return "Anfrage \(eq) – \(selectedProvider?.name ?? "")"
+        let eq = equipmentName.isEmpty ? "srf.subjectFallback".loc : equipmentName
+        return String(format: "srf.subject".loc, eq, selectedProvider?.name ?? "")
     }
 
     private var finalMessage: String {
@@ -625,7 +625,7 @@ struct ServiceRequestFlow: View {
                 lang: LanguageManager.shared.currentLanguage.code
             ) { name in equipmentName = name }
         } catch {
-            errorMessage = "Briefing konnte nicht erzeugt werden: \(error.localizedDescription)"
+            errorMessage = String(format: "srf.errBriefing".loc, error.localizedDescription)
         }
         briefingLoading = false
         // Verfügbaren Default-Channel setzen
@@ -725,7 +725,7 @@ struct ServiceRequestFlow: View {
                 UIApplication.shared.open(url)
                 logInquiry()
             } else {
-                errorMessage = "Mail-Versand auf diesem Gerät nicht möglich."
+                errorMessage = "srf.errMail".loc
             }
         case .whatsapp:
             sendViaWhatsApp(phone: p.phone ?? "")
@@ -733,7 +733,7 @@ struct ServiceRequestFlow: View {
             if MFMessageComposeViewController.canSendText() {
                 showSmsComposer = true
             } else {
-                errorMessage = "SMS auf diesem Gerät nicht verfügbar."
+                errorMessage = "srf.errSms".loc
             }
         }
     }
@@ -751,7 +751,7 @@ struct ServiceRequestFlow: View {
             logInquiry()
             dismiss()
         } else {
-            errorMessage = "WhatsApp ist auf diesem Gerät nicht installiert."
+            errorMessage = "srf.errWhatsApp".loc
         }
     }
 

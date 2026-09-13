@@ -18,7 +18,7 @@ struct InstallationPlanView: View {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "exclamationmark.shield.fill")
                         .foregroundColor(.orange)
-                    Text("Dieser Montageplan ist ein KI-Vorschlag für eine mögliche Variante. Die Ausführung sollte einem qualifizierten Fachbetrieb übertragen werden — er trägt die Verantwortung für die korrekte Installation und Abnahme.")
+                    Text("install.disclaimer".loc)
                         .font(.caption)
                 }
                 .listRowBackground(Color.orange.opacity(0.12))

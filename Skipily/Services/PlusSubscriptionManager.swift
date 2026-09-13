@@ -16,21 +16,45 @@
 import Foundation
 import Combine       // für @Published / ObservableObject
 import StoreKit
+import Supabase      // Backend-Entitlement (RPC user_ai_tier) + Access-Token
+
+/// Abo-Stufe des Bootseigners (Phase 1). Reihenfolge = Wertigkeit.
+enum SubscriptionTier: Int, Comparable {
+    case free  = 0
+    case basic = 1
+    case plus  = 2
+
+    static func < (lhs: SubscriptionTier, rhs: SubscriptionTier) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+}
 
 @MainActor
 final class PlusSubscriptionManager: ObservableObject {
     static let shared = PlusSubscriptionManager()
 
-    // Product-IDs müssen mit Skipily.storekit / App Store Connect übereinstimmen
-    static let productIDs: [String] = [
-        "skipily.plus.monthly",
-        "skipily.plus.yearly",
-        "skipily.pro.monthly",        // = plus_family Mapping im Backend
-        "skipily.pro.yearly"
-    ]
+    // Product-IDs müssen mit Skipily.storekit / App Store Connect übereinstimmen.
+    // Zwei Stufen (Phase 1): Basic (1,99/19,99) und Plus (4,99/49,00).
+    // Fleet/Family kommen später (eigene Produkt-IDs).
+    static let basicIDs: Set<String> = ["skipily.basic.monthly", "skipily.basic.yearly"]
+    static let plusIDs:  Set<String> = ["skipily.plus.monthly",  "skipily.plus.yearly"]
+    static let productIDs: [String] = Array(basicIDs) + Array(plusIDs)
 
     @Published private(set) var products: [StoreKit.Product] = []
     @Published private(set) var purchasedProductIDs: Set<String> = []
+    /// Tier laut Backend (`user_subscriptions` via RPC `user_ai_tier`).
+    /// Deckt Fälle ab, die StoreKit LOKAL NICHT kennt — insbesondere
+    /// kostenlose Admin-Freischaltungen (Custom-Verträge) und Käufe, die auf
+    /// einem anderen Gerät getätigt und serverseitig verbucht wurden.
+    /// Das effektive `tier` ist das MAXIMUM aus StoreKit und Backend.
+    @Published private(set) var backendTier: SubscriptionTier = .free
+    /// Produkt-IDs, für die der aktuelle Account TATSÄCHLICH noch für das
+    /// Intro-Offer (Gratis-Trial) berechtigt ist. StoreKit liefert
+    /// `introductoryOffer` auch dann, wenn der Trial bereits verbraucht wurde —
+    /// deshalb dürfen wir einen Trial nur bewerben, wenn die ID hier enthalten
+    /// ist. Andernfalls verspricht die App einen Gratiszeitraum, den Apples
+    /// Kauf-Bestätigung nicht gewährt (App-Store-Guideline 2.1(b)).
+    @Published private(set) var introEligibleProductIDs: Set<String> = []
     @Published private(set) var isLoading = false
     @Published var lastError: String?
 
@@ -51,6 +75,11 @@ final class PlusSubscriptionManager: ObservableObject {
             let storeProducts = try await StoreKit.Product.products(for: Self.productIDs)
             self.products = storeProducts.sorted { $0.price < $1.price }
             await refreshPurchasedState()
+            // Bestehende Bindung dieses Kontos aktualisieren (Renewals) — legt
+            // keine neue an, daher kein Doppel-Abo bei Konto-Wechsel.
+            await reconcileEntitlements(intent: "sync")
+            await refreshBackendEntitlement()
+            await refreshIntroEligibility()
 
             // Hilfreiche Diagnose: wenn App Store Connect die Produkte nicht
             // freigeschaltet hat (TestFlight ignoriert Skipily.storekit!),
@@ -88,9 +117,11 @@ final class PlusSubscriptionManager: ObservableObject {
             // den wir an unser Backend schicken können.
             let signedJWS = verification.jwsRepresentation
             let transaction = try checkVerified(verification)
-            await syncWithBackend(jws: signedJWS)
+            // Aktiver Kauf → an DIESES Konto binden.
+            await syncWithBackend(jws: signedJWS, intent: "purchase")
             await transaction.finish()
             await refreshPurchasedState()
+            await refreshBackendEntitlement()
             return true
 
         case .userCancelled, .pending:
@@ -120,8 +151,26 @@ final class PlusSubscriptionManager: ObservableObject {
         do {
             try await AppStore.sync()
             await refreshPurchasedState()
+            // Explizite Nutzer-Aktion → Kauf an DIESES Konto binden (mit
+            // Cross-Account-Schutz im Backend). So holen sich Bestandskäufer
+            // (z.B. Kauf aus einer älteren App-Version) ihr Abo ins Konto.
+            await reconcileEntitlements(intent: "purchase")
+            await refreshBackendEntitlement()
         } catch {
             lastError = "Restore fehlgeschlagen: \(error.localizedDescription)"
+        }
+    }
+
+    /// Schickt alle aktuell gültigen StoreKit-Entitlements ans Backend.
+    /// `intent: "sync"` aktualisiert nur eine bereits bestehende Bindung dieses
+    /// Kontos (Renewals), legt aber NIE eine neue an. `intent: "purchase"`
+    /// bindet aktiv (Kauf/Restore).
+    private func reconcileEntitlements(intent: String) async {
+        for await result in StoreKit.Transaction.currentEntitlements {
+            guard case .verified(let tx) = result,
+                  tx.revocationDate == nil,
+                  (tx.expirationDate ?? .distantFuture) > Date() else { continue }
+            await syncWithBackend(jws: result.jwsRepresentation, intent: intent)
         }
     }
 
@@ -138,7 +187,85 @@ final class PlusSubscriptionManager: ObservableObject {
         self.purchasedProductIDs = active
     }
 
-    var hasActivePlus: Bool { !purchasedProductIDs.isEmpty }
+    /// Tier NUR aus den lokalen StoreKit-Käufen. Plus hat Vorrang vor Basic.
+    var storeKitTier: SubscriptionTier {
+        if !purchasedProductIDs.isDisjoint(with: Self.plusIDs)  { return .plus }
+        if !purchasedProductIDs.isDisjoint(with: Self.basicIDs) { return .basic }
+        return .free
+    }
+
+    /// Effektive KI-/Feature-Stufe des ANGEMELDETEN KONTOS.
+    ///
+    /// Autorität ist das Backend (`user_subscriptions` ist pro Konto an die
+    /// Apple-Transaktion gebunden) — NICHT die lokale StoreKit-Entitlement.
+    /// Grund: StoreKit-Käufe hängen an der Apple-ID, nicht am Skipily-Konto.
+    /// Würde man StoreKit hier mit einbeziehen (`max`), erschiene derselbe Kauf
+    /// in JEDEM Skipily-Konto, das auf demselben Gerät/derselben Apple-ID
+    /// eingeloggt wird (Doppel-Abo-Bug). StoreKit dient nur zum Kauf, zum
+    /// Wiederherstellen und zum Aktualisieren der bereits gebundenen Zeile.
+    var tier: SubscriptionTier { backendTier }
+
+    /// Aktives Abo existiert nur im Backend, nicht in StoreKit — typisch für
+    /// eine kostenlose Admin-Freischaltung. Dann gibt es KEIN Apple-Abo zum
+    /// Verwalten; die UI zeigt einen entsprechenden Hinweis statt des
+    /// „Bei Apple verwalten"-Buttons.
+    var isBackendOnlyGrant: Bool {
+        storeKitTier == .free && backendTier != .free
+    }
+
+    /// Plus-Stufe aktiv (4,99): stärkere KI, Family, Excel-Import, Wartungsreport.
+    var hasActivePlus: Bool { tier == .plus }
+
+    /// Irgendein bezahltes Abo aktiv (Basic ODER Plus): Foto-Analyse, SKIPILY-Rabatte.
+    var hasPaidTier: Bool { tier != .free }
+
+    // MARK: - Backend-Entitlement (Admin-Grants + geräteübergreifende Käufe)
+    /// Fragt `user_ai_tier` in Supabase ab und spiegelt das Ergebnis nach
+    /// `backendTier`. So werden kostenlose Admin-Freischaltungen und auf
+    /// anderen Geräten getätigte Käufe in der App sichtbar, obwohl StoreKit
+    /// sie lokal nicht kennt. Bei fehlender Session (nicht eingeloggt) bleibt
+    /// `backendTier` unverändert bzw. free.
+    func refreshBackendEntitlement() async {
+        let client = SupabaseManager.shared.client
+        guard let uid = try? await client.auth.session.user.id else {
+            // Nicht eingeloggt → kein Backend-Entitlement.
+            self.backendTier = .free
+            return
+        }
+        do {
+            let tierStr: String = try await client
+                .rpc("user_ai_tier", params: ["p_user_id": uid.uuidString])
+                .execute()
+                .value
+            switch tierStr {
+            case "plus":  self.backendTier = .plus
+            case "basic": self.backendTier = .basic
+            default:      self.backendTier = .free
+            }
+            AppLog.info("PlusManager: backendTier = \(tierStr)")
+        } catch {
+            // Netz-/Decode-Fehler dürfen den lokalen StoreKit-Status nicht
+            // verschlechtern — backendTier bleibt wie er war.
+            AppLog.warning("PlusManager.refreshBackendEntitlement: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Intro-Offer-Eligibility (Gratis-Trial) ermitteln
+    /// Prüft pro Produkt, ob der aktuelle Account noch für das Intro-Offer
+    /// berechtigt ist. Nur dann darf die UI einen Gratis-Trial bewerben —
+    /// sonst entsteht der 2.1(b)-Widerspruch (App verspricht Trial, Apples
+    /// Kauf-Sheet zeigt keinen).
+    private func refreshIntroEligibility() async {
+        var eligible: Set<String> = []
+        for product in products {
+            guard let sub = product.subscription,
+                  sub.introductoryOffer != nil else { continue }
+            if await sub.isEligibleForIntroOffer {
+                eligible.insert(product.id)
+            }
+        }
+        self.introEligibleProductIDs = eligible
+    }
 
     // MARK: - Listener für Background-Updates (Renewal, Refund, Family-Sharing)
     private func listenForTransactions() -> Task<Void, Never> {
@@ -146,9 +273,11 @@ final class PlusSubscriptionManager: ObservableObject {
             for await update in StoreKit.Transaction.updates {
                 guard case .verified(let tx) = update else { continue }
                 let jws = update.jwsRepresentation
-                await MainActor.run {
-                    Task { await PlusSubscriptionManager.shared.syncWithBackend(jws: jws) }
-                }
+                // Passiver Hintergrund-Abgleich (Renewal/Refund/Family) →
+                // nur bestehende Bindung dieses Kontos aktualisieren, keine
+                // neue anlegen (verhindert Doppel-Abo bei Konto-Wechsel).
+                await PlusSubscriptionManager.shared.syncWithBackend(jws: jws, intent: "sync")
+                await PlusSubscriptionManager.shared.refreshBackendEntitlement()
                 await tx.finish()
             }
         }
@@ -166,7 +295,7 @@ final class PlusSubscriptionManager: ObservableObject {
     // MARK: - Backend-Sync
     /// Schickt den signierten JWS einer Transaktion an unsere Edge Function
     /// damit `user_subscriptions` aktualisiert wird.
-    private func syncWithBackend(jws: String) async {
+    private func syncWithBackend(jws: String, intent: String) async {
         do {
             guard let accessToken = await SupabaseAuthHelper.currentAccessToken() else {
                 AppLog.warning("PlusSync: kein Access-Token, abbruch")
@@ -184,7 +313,8 @@ final class PlusSubscriptionManager: ObservableObject {
             req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
             req.httpBody = try JSONSerialization.data(withJSONObject: [
                 "transaction_jws": jws,
-                "environment": Self.currentEnvironment()
+                "environment": Self.currentEnvironment(),
+                "intent": intent
             ])
 
             let (data, response) = try await URLSession.shared.data(for: req)
@@ -208,13 +338,11 @@ final class PlusSubscriptionManager: ObservableObject {
     }
 }
 
-// MARK: - Auth-Helper Stub
-/// Bitte durch die echte Implementation deines AuthService ersetzen, sobald
-/// die Plus-Sheet in die App eingebunden wird.
-///   z.B.   return AuthService.shared.currentSession?.accessToken
+// MARK: - Auth-Helper
+/// Liefert das aktuelle Supabase-Access-Token für den Backend-Sync der
+/// StoreKit-Transaktionen. Ohne gültige Session (nicht eingeloggt) `nil`.
 private enum SupabaseAuthHelper {
     static func currentAccessToken() async -> String? {
-        // TODO: An den echten AuthService anbinden
-        return nil
+        try? await SupabaseManager.shared.client.auth.session.accessToken
     }
 }

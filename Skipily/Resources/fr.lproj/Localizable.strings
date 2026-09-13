@@ -35,6 +35,13 @@
 "map.call" = "Appeler";
 "map.open_in_maps" = "Ouvrir dans Plans";
 "map.add_business" = "Ajouter un prestataire";
+"map.photo_section" = "Saisir via une photo";
+"map.photo_hint" = "Photographie une enseigne, une vitrine ou une carte de visite – l'IA remplit le formulaire. Vérifie puis envoie.";
+"map.photo_take" = "Prendre une photo";
+"map.photo_gallery" = "Choisir dans la galerie";
+"map.photo_analyzing" = "L'IA analyse la photo …";
+"map.photo_done" = "Photo analysée – vérifie les informations.";
+"map.photo_failed" = "Impossible d'analyser la photo. Saisis les informations manuellement.";
 "map.submitted" = "Soumis !";
 "map.submitted_hint" = "Votre prestataire a été soumis pour examen et apparaîtra sur la carte après approbation.";
 "map.section_basic" = "Informations de base";
@@ -110,6 +117,9 @@
 
 // MARK: - Maintenance
 "maintenance.title" = "Entretien";
+"maintenance.notif.title" = "Entretien à prévoir";
+"maintenance.notif.body" = "%1$@ (%2$@) est à effectuer le %3$@.";
+"maintenance.notif.body_noboat" = "%1$@ est à effectuer le %2$@.";
 "maintenance.due" = "Dû";
 "maintenance.overdue" = "En retard";
 "maintenance.upcoming" = "À venir";
@@ -188,6 +198,19 @@
 
 // MARK: - Chat
 "chat.title" = "Chat";
+"chat.error_prefix" = "Désolé, une erreur s'est produite : ";
+"chat.err.invalidURL" = "URL de serveur invalide";
+"chat.err.notAuthenticated" = "Veuillez vous reconnecter";
+"chat.err.network" = "Pas de connexion Internet";
+"chat.err.emptyResponse" = "Aucune réponse reçue";
+"pay.err.server" = "Erreur de paiement : %@";
+"pay.err.noIntent" = "Le paiement n'a pas pu être initialisé";
+"pay.err.cancelled" = "Paiement annulé";
+"equip.ai.lblManufacturer" = "Fabricant";
+"equip.ai.lblModel" = "Modèle";
+"equip.ai.lblDimensions" = "Dimensions";
+"equip.ai.lblLocation" = "Emplacement";
+"equip.ai.question" = "J'ai besoin d'aide concernant un équipement sur mon %1$@ : %2$@. Catégorie : %3$@. Que recommandes-tu ?";
 "chat.welcome" = "Bienvenue sur Skipily ! Cette section sera bientôt alimentée par l'IA.";
 "chat.input_hint" = "Écrire un message...";
 "chat.coming_soon" = "Chat IA bientôt disponible ! 🚢";
@@ -569,13 +592,18 @@
 "equipment.article_no" = "Réf.:";
 "shop.title" = "Boutique";
 "shop.details" = "Voir les détails";
-"data_quality.hint" = "Plus vos saisies sont précises, plus il est facile pour l'IA de vous aider et pour la boutique de trouver la bonne pièce.";
+"data_quality.hint" = "Plus vos saisies sont précises, plus il est facile pour l'IA de vous aider et pour la boutique de trouver la bonne pièce. Idéalement, saisissez votre équipement jusqu'au moindre détail – par exemple filtre à huile, pompe à eau ou turbine.";
+"chat.shop_search_header" = "Trouver les pièces adaptées dans la boutique :";
+"chat.shop_search_title" = "Rechercher dans la boutique";
+"chat.shop_search_empty" = "Aucun produit correspondant trouvé. Essayez un autre terme ou contactez un professionnel.";
+"chat.equipment_checklist_button" = "Afficher la liste d'équipement suggérée";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";
 "product.stock_remaining" = "Plus que %d";
 "product.promo_until" = "jusqu'au %@";
 "product.save_amount" = "Économisez %@";
 "profile.section_personal" = "Informations personnelles";
+"profile.customerNumber" = "Numéro client";
 "sail.section_dimensions" = "Dimensions";
 "sail.soft_foot" = "Bordure libre";
 "sail.loose_foot" = "Bordure lâche";
@@ -674,6 +702,49 @@
 // Equipment suggestions
 "equipment.suggestions_title" = "Suggestions";
 "equipment.suggestions_intro" = "Les bateaux comme le tien ont typiquement cet équipement à entretenir. Touche + pour l'ajouter.";
+"equipment.spare_parts_ai" = "Pièces de rechange typiques (IA)";
+"rope.title" = "Configure rope";
+"rope.form_title" = "Rope configuration";
+"rope.intro" = "Your details generate a quote via the shop.";
+"rope.submit" = "Save";
+"rope.section_product" = "Product";
+"rope.f.article" = "Article number (rope product)";
+"rope.f.material" = "Material";
+"rope.material.none" = "Please select";
+"rope.f.length" = "Length";
+"rope.f.diameter" = "Diameter";
+"rope.f.color" = "Couleur";
+"rope.section_end1" = "End 1";
+"rope.section_end2" = "End 2";
+"rope.f.end" = "Type";
+"rope.end.none" = "Please select";
+"rope.f.eye_length" = "Eye length (stretched)";
+"rope.section_accessory" = "Accessory & notes";
+"rope.f.accessory_article" = "Accessory article number";
+"rope.f.notes" = "Notes";
+"rope.saved_matched" = "Saved – matching shop product found.";
+"rope.saved_offer" = "Saved – we'll prepare a quote via the shop.";
+"rope.save_error" = "Saving failed.";
+"rope.material.geschlagen" = "Laid rope";
+"rope.material.kern_mantel" = "Braided (core-cover)";
+"rope.material.squareline" = "Squareline 8-strand";
+"rope.material.pes_dyneema" = "PES/Dyneema braided";
+"rope.material.dyneema_hohlgeflecht" = "Dyneema hollow braid (Brummel lock)";
+"rope.end.glatt_abgeschnitten" = "Cut flat";
+"rope.end.takling" = "Whipping";
+"rope.end.augspleiss_indiv_mit_schamfil" = "Eye splice, custom, with chafe protection";
+"rope.end.augspleiss_indiv_ohne_schamfil" = "Eye splice, custom, without chafe protection";
+"rope.end.augspleiss_3_5" = "Eye splice (3-5 cm)";
+"rope.end.augspleiss_6_8" = "Eye splice (6-8 cm)";
+"rope.end.augspleiss_9_12" = "Eye splice (9-12 cm)";
+"rope.end.augspleiss_low_friction" = "Eye splice with low friction ring";
+"rope.end.augspleiss_kausch_edelstahl" = "Eye splice with thimble (stainless)";
+"rope.end.augspleiss_kausch_verzinkt" = "Eye splice with thimble (galvanized)";
+"rope.end.augspleiss_zubehoer" = "Eye splice with accessory";
+"equipment.spare_parts_title" = "Suggestions de pièces";
+"equipment.spare_parts_intro" = "Pièces d'usure et de rechange typiques pour « %@ ». Touche ➕ pour ajouter ou ✕ pour rejeter.";
+"equipment.suggestion_accept" = "Ajouter";
+"equipment.suggestion_reject" = "Rejeter";
 "equipment.suggestions_loading" = "L'IA analyse ton bateau…";
 "equipment.suggestions_no_boat" = "Bateau introuvable.";
 "equipment.years_short" = "a";
@@ -807,6 +878,7 @@
 "inquiry.loading_equipment" = "Chargement des bateaux et équipements…";
 "inquiry.boat_and_equipment" = "Bateau et équipement";
 "inquiry.category" = "Catégorie";
+"inquiry.category_none" = "Sans catégorie";
 "inquiry.selected_count" = "%d sélectionnés";
 "inquiry.no_equipment" = "Aucun équipement enregistré. Les données du bateau seront jointes si un bateau est choisi ci-dessus.";
 "inquiry.attach_measurement" = "Joindre les mesures de voile (PDF)";
@@ -815,6 +887,14 @@
 "inquiry.camera" = "Appareil photo";
 "inquiry.photos_label" = "Photos du problème";
 "inquiry.photos_hint" = "Facultatif. 5 photos maximum. Envoyées en pièce jointe.";
+"inquiry.video_label" = "Vidéo du problème";
+"inquiry.video_hint" = "Facultatif – une courte vidéo (max. 1 min) aide le prestataire à évaluer le problème. Envoyée sous forme de lien dans la demande.";
+"inquiry.video_library" = "Depuis la galerie";
+"inquiry.video_record" = "Enregistrer une vidéo";
+"inquiry.video_attached" = "Vidéo jointe";
+"inquiry.video_uploading" = "Téléversement de la vidéo…";
+"inquiry.video_error" = "La vidéo n'a pas pu être traitée.";
+"inquiry.video_too_large" = "La vidéo est trop volumineuse (max. 60 Mo).";
 "inquiry.notes_label" = "Notes privées";
 "inquiry.notes_hint" = "Visibles uniquement par vous – non envoyées au prestataire.";
 "inquiry.notes_placeholder" = "Vos propres réflexions, budget, planning…";
@@ -843,3 +923,226 @@
 "category.surveyor" = "Expert maritime";
 "category.diver" = "Plongeur";
 "category.other" = "Autres";
+
+/* ── Referral, Plus-Features & Ausrüstungs-Import (lokalisiert) ── */
+"referral.banner.title" = "Parrainer = 1 mois de Skipily Plus offert";
+"referral.banner.subtitle" = "12 parrainages = 1 an de Skipily Plus offert";
+"plus.feat.ai" = "Assistant IA : chat, analyse photo des dommages et suggestions d'équipement";
+"plus.feat.import" = "Importer l'équipement via Excel (feuille de mesures de voile et gréement inclus)";
+"plus.feat.report" = "Rapport d'entretien en PDF – séparément par bateau";
+"plus.feat.discounts" = "Profiter des réductions Skipily dans la boutique";
+"equip.import.a11y" = "Importer l'équipement (Excel/CSV)";
+"equip.import.paywallReason" = "L'import Excel/CSV (équipement, feuille de mesures de voile et gréement) fait partie de Skipily Plus.";
+"equip.import.title" = "Importer l'équipement";
+"equip.import.intro" = "Pour %@, importez un fichier Excel avec les feuilles Équipement, Mesures de voile et Gréement. L'équipement déjà présent est détecté et non ajouté en double.";
+"equip.import.pick" = "Choisir un fichier (.xlsx / .csv)";
+"equip.import.reading" = "Lecture du fichier…";
+"equip.import.summary" = "Résumé";
+"equip.import.new" = "Nouveau";
+"equip.import.updated" = "Mis à jour";
+"equip.import.stockAdded" = "Stock ajouté";
+"equip.import.chooseAction" = "Choisir l’action";
+"equip.import.action.merge" = "Fusionner";
+"equip.import.action.replace" = "Remplacer";
+"equip.import.action.addStock" = "Ajouter au stock";
+"equip.import.action.new" = "Créer";
+"equip.import.exactMatch" = "Existant : « %@ »";
+"equip.import.fuzzyMatch" = "Similaire à « %@ » (à choisir)";
+"equip.import.resolveFirst" = "Veuillez d’abord décider pour toutes les correspondances similaires.";
+"equip.import.skipped" = "Déjà présent (ignoré)";
+"equip.import.sails" = "Mesures de voile";
+"equip.import.ropes" = "Gréement";
+"equip.import.unlinked" = "Non associé";
+"equip.import.equipment" = "Équipement";
+"equip.import.equipmentNew" = "Nouvel équipement";
+"equip.import.linkSection" = "Association voile/gréement";
+"equip.import.sailPrefix" = "Voile : %@";
+"equip.import.noMatch" = "aucun équipement correspondant trouvé";
+"equip.import.import" = "Importer";
+"equip.import.importing" = "Importation…";
+"equip.import.close" = "Fermer";
+"equip.import.doneTitle" = "Import terminé";
+"equip.import.done" = "Terminé";
+"equip.import.serial" = "N° de série %@";
+"equip.import.dupReason" = "Déjà présent (correspondance par %@)";
+"equip.import.bySerial" = "numéro de série";
+"equip.import.byName" = "nom";
+"equip.import.errFile" = "Le fichier n'a pas pu être lu.";
+"equip.import.errPlus" = "Skipily Plus requis.";
+
+/* ── Plus-Karte (Profil) ── */
+"plus.card.ai" = "Plus de questions IA par jour";
+"plus.card.photo" = "Analyse photo des dommages";
+"plus.card.suggest" = "Suggestions d'équipement";
+"plus.card.report" = "Carnet d'entretien en PDF – par bateau";
+"plus.card.import" = "Importer la liste d'équipement via Excel";
+"plus.card.discover" = "Découvrir les offres";
+
+/* ── Referral-Sektion (Profil) ── */
+"referral.invite.title" = "Inviter des amis";
+"referral.invite.desc" = "Invitez des propriétaires de bateau sur Skipily. Dès qu'ils sont actifs depuis 7 jours, vous recevez tous les deux un mois de Skipily Plus offert.";
+"referral.invite.code" = "Ton code de parrainage";
+"referral.invite.share" = "Partager";
+"referral.invite.codeLoading" = "Chargement du code …";
+"referral.stat.granted" = "Crédité";
+"referral.stat.pending" = "En attente";
+"referral.stat.thisYear" = "Cette année";
+"referral.cap" = "Plafond annuel atteint (12 parrainages). Les nouveaux parrainages seront de nouveau crédités à partir de janvier.";
+"profile.plus.active" = "ACTIF";
+"profile.plus.activeSubtitle" = "Ton abonnement est actif – assistant IA, analyse photo et plus.";
+"profile.plus.grantedBySkipily" = "Activé via Skipily – aucune gestion Apple nécessaire.";
+
+"profile.plus.manage" = "Gérer / résilier l'abonnement";
+"referral.share.message" = "J'utilise Skipily pour mon bateau — entretien, inventaire d'équipement, boutique et assistant IA dans une seule app. Si tu t'inscris et saisis mon code de parrainage, nous recevons tous les deux un mois de Skipily Plus offert.\n\nMon code : %@\n\nTélécharger l'app : https://apps.apple.com/app/skipily";
+
+/* ── Plus-Kauf-Sheet ── */
+"plus.sheet.restore" = "Restaurer les achats";
+"plus.sheet.close" = "Fermer";
+"plus.sheet.headerTitle" = "Tirez le meilleur de votre bateau";
+"plus.sheet.headerSubtitle" = "Toutes les fonctions de base restent gratuites. Plus enrichit l’app.";
+"plus.sheet.legal" = "Le paiement sera débité de votre compte Apple ID à la confirmation de l’achat. L’abonnement se renouvelle automatiquement pour la même durée s’il n’est pas résilié au moins 24 heures avant la fin de la période en cours. Le débit du renouvellement intervient dans les 24 heures précédant la fin de la période. Vous pouvez gérer ou résilier votre abonnement à tout moment dans les réglages de votre compte Apple ID.";
+"plus.sheet.terms" = "Conditions d’utilisation";
+"plus.sheet.privacy" = "Politique de confidentialité";
+"plus.sheet.loadError" = "Les forfaits ne peuvent pas être chargés pour le moment.";
+"plus.sheet.loadErrorCauses" = "Causes possibles :\n• Produits pas encore validés dans App Store Connect\n• Aucun compte sandbox valide sur cet appareil\n• Problème de réseau";
+"plus.sheet.active" = "Actif";
+"plus.sheet.save" = "Économisez %d %%";
+
+/* ── Service-Anfrage-Flow ── */
+"srf.nav.pick" = "Choisir un prestataire";
+"srf.nav.compose" = "Rédiger la demande";
+"srf.nav.channel" = "Mode d'envoi";
+"srf.nav.review" = "Aperçu et envoi";
+"srf.cancel" = "Annuler";
+"srf.error" = "Erreur";
+"srf.loadingProviders" = "Chargement des prestataires…";
+"srf.noProviders" = "Aucun prestataire";
+"srf.noProvidersDesc" = "Aucun prestataire trouvé pour votre recherche.";
+"srf.search" = "Rechercher…";
+"srf.chooseProvider" = "Choisir un prestataire";
+"srf.briefingLoading" = "Compilation des données du bateau…";
+"srf.previewData" = "Aperçu des données reprises";
+"srf.autoIncluded" = "Repris automatiquement";
+"srf.autoFooter" = "Les données du bateau et les informations d'équipement sont ajoutées automatiquement au message.";
+"srf.problemPlaceholder" = "p. ex. le moteur ne démarre plus, ne tourne qu’un instant puis cale…";
+"srf.problemHeader" = "Description du problème *";
+"srf.problemFooter" = "Décris le problème dans ta propre langue. Si le prestataire est à l’étranger, tu pourras faire traduire le message automatiquement plus tard.";
+"srf.fromLibrary" = "Depuis la photothèque";
+"srf.camera" = "Appareil photo";
+"srf.photosHeader" = "Photos du problème";
+"srf.photosFooter" = "Facultatif. Aide le prestataire à évaluer le problème plus vite. 5 photos maximum.";
+"srf.next" = "Suivant";
+"srf.channelHeader" = "Comment envoyer la demande ?";
+"srf.channelFooter" = "Pour l’e-mail et le SMS, les photos sont jointes automatiquement. WhatsApp ne prend en charge que le texte — tu peux y ajouter les photos ensuite.";
+"srf.nextToReview" = "Suivant : aperçu";
+"srf.noEmail" = "Le prestataire n’a pas d’adresse e-mail";
+"srf.noPhone" = "Le prestataire n’a pas de numéro de téléphone";
+"srf.smsUnavailable" = "SMS non disponible sur cet appareil";
+"srf.sendVia" = "Envoi via %@";
+"srf.translating" = "Traduction…";
+"srf.language" = "Langue";
+"srf.lang.de" = "Allemand (original)";
+"srf.lang.en" = "Anglais";
+"srf.lang.fr" = "Français";
+"srf.lang.es" = "Espagnol";
+"srf.lang.it" = "Italien";
+"srf.lang.nl" = "Néerlandais";
+"srf.autoTranslateHint" = "Le prestataire est probablement à l’étranger. Une traduction automatique est utile.";
+"srf.changeLangHint" = "Change la langue pour faire traduire le message automatiquement.";
+"srf.fullMessage" = "Message complet";
+"srf.attachments" = "Pièces jointes (%d)";
+"srf.sendButton" = "Envoyer via %@";
+"srf.subjectFallback" = "Demande de service";
+"srf.subject" = "Demande %@ – %@";
+"srf.back" = "Retour";
+"srf.errMail" = "L'envoi d'e-mail n'est pas possible sur cet appareil.";
+"srf.errSms" = "Le SMS n'est pas disponible sur cet appareil.";
+"srf.errWhatsApp" = "WhatsApp n'est pas installé sur cet appareil.";
+"srf.errBriefing" = "Le briefing n'a pas pu être généré : %@";
+
+/* ── Inquiries + Orders ── */
+"inq.deleteTitle" = "Supprimer la demande ?";
+"inq.delete" = "Supprimer";
+"inq.cancel" = "Annuler";
+"inq.deleteDesc" = "Cette demande sera définitivement supprimée.";
+"inq.error" = "Erreur";
+"inq.filterAll" = "Toutes";
+"inq.providerFallback" = "Prestataire";
+"inq.yourMessage" = "Ton message";
+"inq.replyFrom" = "Réponse de %@";
+"inq.noneAll" = "Aucune demande pour l’instant";
+"inq.noneFiltered" = "Aucune demande %@";
+"inq.emptyHint" = "Appuie sur « Demande » dans le profil d’un prestataire pour envoyer une demande.";
+"inq.status.draft" = "Brouillon";
+"inq.status.sent" = "Envoyée";
+"inq.status.read" = "Lue";
+"inq.status.replied" = "Répondu";
+"inq.status.closed" = "Fermée";
+"order.fallbackTitle" = "Commande";
+"order.paymentPending" = "Paiement en attente";
+"order.paymentPendingDesc" = "Ta commande est créée mais pas encore payée. Termine le paiement maintenant, sinon le vendeur ne la traitera pas.";
+"order.paymentPreparing" = "Préparation du paiement …";
+"order.cancel" = "Annuler la commande";
+"order.cancelTitle" = "Annuler la commande ?";
+"order.cancelConfirm" = "Annuler";
+"order.cancelDesc" = "La commande passera à « Annulée ». Les articles restent dans ton panier au cas où tu voudrais les recommander plus tard.";
+"order.paymentUpdateFailed" = "Le paiement a abouti, mais la mise à jour du statut a échoué. Redémarre l’app.";
+
+/* ── Auth / Shop-Suche / Montageplan ── */
+"reg.referralLabel" = "Code de parrainage (facultatif)";
+"reg.referralHint" = "As-tu été invité ? Saisis le code — toi ET ton parrain recevez chacun un mois de Skipily Plus offert dès que tu es actif depuis 7 jours.";
+"login.password" = "Mot de passe";
+"login.resetHint" = "Nous t'envoyons un code à 6 chiffres par e-mail. Saisis-le ici dans l'app et définis ton nouveau mot de passe.";
+"otp.spamHint" = "Si aucun e-mail n'arrive, vérifie ton dossier spam.";
+"otp.codeSection" = "Code de l'e-mail";
+"otp.codePlaceholder" = "Code de l'e-mail";
+"otp.newPwSection" = "Nouveau mot de passe";
+"otp.pwRepeat" = "Répéter le mot de passe";
+"otp.success" = "Mot de passe mis à jour — tu peux maintenant te connecter avec.";
+"otp.title" = "Définir un nouveau mot de passe";
+"otp.cancel" = "Annuler";
+"shop.searchAgain" = "Comment veux-tu poursuivre la recherche ?";
+"install.disclaimer" = "Ce plan de montage est une suggestion de l'IA pour une variante possible. L'exécution doit être confiée à un professionnel qualifié — il est responsable de l'installation et de la réception correctes.";
+
+/* ── Gemeinsam ── */
+"common.cancel" = "Annuler";
+"common.fullName" = "Nom complet";
+"common.street" = "Rue + numéro";
+
+/* Paywall Tarif-Bullets (Basic/Plus) */
+"plus.tier.basic.ai" = "5 questions IA par jour";
+"plus.tier.basic.photo" = "Analyse photo des dommages";
+"plus.tier.basic.discounts" = "Profiter des remises SKIPILY";
+"plus.tier.plus.ai" = "15 questions IA par jour";
+"plus.tier.plus.strongerAI" = "IA plus puissante pour analyses approfondies";
+"plus.tier.plus.photo" = "Analyse photo des dommages";
+"plus.tier.plus.family" = "Partage familial Apple inclus";
+"plus.tier.plus.import" = "Importer l'équipement via Excel";
+"plus.tier.plus.report" = "Rapport d'entretien en PDF";
+"profile.plan.monthly" = "Mensuel";
+"profile.plan.yearly" = "Annuel";
+"plus.sheet.loading" = "Chargement des offres …";
+"profile.plus.headerSub" = "Basic ou Plus – résiliable au mois ou à l'année";
+
+"plus.sheet.perMonth" = "/ mois";
+"plus.sheet.perYear" = "/ an";
+
+"plus.sheet.freeTrial" = "%@ d'essai gratuit";
+
+/* Deferred payment / facture */
+"order.deferred_title" = "Paiement après expédition";
+"order.deferred_desc" = "Vos données de paiement sont enregistrées. Le montant n'est débité que lorsque le vendeur confirme l'expédition. Vous recevrez alors votre facture ici, avec les informations sur le droit de rétractation.";
+"order.invoice_title" = "Facture";
+"order.invoice_download" = "Télécharger la facture";
+
+/* Rétractation / remboursement */
+"order.withdraw_title" = "Rétractation / remboursement";
+"order.withdraw_desc" = "Vous pouvez vous rétracter de cet achat dans un délai de 14 jours à compter de la réception des marchandises. Le montant total vous sera remboursé.";
+"order.withdraw_action" = "Déclarer la rétractation";
+"order.withdraw_confirm" = "Voulez-vous vraiment vous rétracter de cet achat ? Le montant sera remboursé.";
+
+/* Annulation après envoi */
+"order.cancel_title" = "Annuler la commande";
+"order.cancel_desc" = "Tant que la commande n'a pas été expédiée ni débitée, vous pouvez l'annuler gratuitement.";
+
+"order.withdraw_until" = "Rétractation possible jusqu'au %@";

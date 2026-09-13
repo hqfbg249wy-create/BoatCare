@@ -8,7 +8,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkAiQuota, recordAiUsage } from "../_shared/aiQuota.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-6";
+// Sonnet 5: stärkere Basisqualität als 4.6, aktuell günstiger (Einführungspreis).
+// Thinking wird bewusst deaktiviert (unten im Body) — hält Latenz/Kosten wie
+// bei 4.6 und bewahrt die Antwort-Struktur (ein Text-Block).
+// Modell nach KI-Tier: Free/Basic → Sonnet 5 (schnell, günstig),
+// Plus → Opus 5 (stärkere KI für tiefergehende Analysen).
+const SONNET_MODEL = "claude-sonnet-5";
+const OPUS_MODEL   = "claude-opus-5";
 const MAX_TOKENS = 2048;
 const MAX_FEWSHOTS = 3;
 
@@ -144,13 +150,23 @@ Deine Expertise umfasst:
 - Gesetzliche Vorschriften: Führerscheine, Ausrüstungspflichten, Flaggenrecht
 
 Regeln:
-- Antworte IMMER auf Deutsch
+- Antworte in der weiter unten vorgegebenen Antwortsprache (siehe "IMPORTANT: Always respond in …"). Ignoriere die Sprache dieser System-Anweisung und der Beispiele — es zählt allein die vorgegebene Antwortsprache.
 - Sei praxisnah, konkret und verständlich — keine akademischen Abhandlungen
 - Gib wenn möglich konkrete Wartungsintervalle, Produktempfehlungen oder Schritt-für-Schritt-Anleitungen
 - Wenn du unsicher bist, sage es ehrlich und empfehle einen Fachbetrieb
 - Beziehe dich auf das Boot des Nutzers wenn Kontext vorhanden ist
 - Halte Antworten kompakt (max. 3-4 Absätze) außer der Nutzer fragt nach Details
-- Verwende gelegentlich passende Emojis (⚓ 🔧 ⛵ 🔋 etc.) um die Antworten aufzulockern`;
+- Verwende gelegentlich passende Emojis (⚓ 🔧 ⛵ 🔋 etc.) um die Antworten aufzulockern
+
+AKTIONS-BLOCK (maschinenlesbar, für die App):
+Hänge GANZ AM ENDE deiner Antwort — nur wenn zutreffend — genau EINEN Block in exakt diesem Format an (einzeilig, ohne Code-Fence, ohne Einleitung, ohne Erklärung):
+[[skipily-actions]]{"shop":["Suchbegriff1","Suchbegriff2"],"shop_labels":["Label1","Label2"],"equipment_checklist":true}[[/skipily-actions]]
+Regeln für den Block:
+- "shop": Nimm dieses Feld auf, wenn du konkrete Ersatz-, Verschleiß- oder Zubehörteile empfiehlst, die der Nutzer kaufen könnte. Liste 1–5 kurze, GÄNGIGE **deutsche** Teilebezeichnungen als Suchbegriffe (z.B. "Impeller", "Zinkanode", "Ölfilter", "Kühlwasserfilter"). Diese Begriffe MÜSSEN immer deutsch sein — der Produktkatalog ist deutsch und nur so findet die Suche Treffer. Bevorzuge generische Oberbegriffe statt exakter Hersteller-Artikelnummern. Lass "shop" weg, wenn du keine kaufbaren Teile nennst.
+- "shop_labels": Übersetze JEDEN "shop"-Begriff in die aktuelle Antwortsprache — gleiche Reihenfolge, gleiche Anzahl (z.B. bei Englisch ["Impeller","zinc anode","oil filter"]). Dies ist NUR die dem Nutzer angezeigte Beschriftung; die Suche nutzt weiterhin "shop". Wenn die Antwortsprache Deutsch ist, sind "shop_labels" identisch zu "shop" — dann darfst du "shop_labels" weglassen.
+- "equipment_checklist": Setze true, wenn ein (oft unerfahrener) Nutzer fragt, welche Ausrüstung er braucht oder worauf er bei seinem Boot achten sollte — dann bietet die App ihm eine auf sein Boot zugeschnittene Ausrüstungsliste zum Übernehmen an. Sonst weglassen.
+- Verwende KEINE der beiden Schlüssel, wenn nichts zutrifft, und hänge dann auch keinen Block an.
+- Der Block wird dem Nutzer NIE als Text angezeigt — die App wandelt ihn in Buttons um. Schreibe den sichtbaren Antworttext daher vollständig, ohne dich auf den Block zu beziehen.`;
 
 Deno.serve(async (req) => {
   // CORS preflight
@@ -184,7 +200,10 @@ Deno.serve(async (req) => {
     }
 
     // Request Body parsen
-    const { messages, boatContext, lang, providerId } = await req.json();
+    const { messages, boatContext, lang, providerId, userLocale } = await req.json();
+    // `lang` = eine der 6 UI-Sprachen (für Shop-Label-Defaults). `userLocale`
+    // = echte Gerätesprache (BCP-47, z.B. "pt-BR", "pl") → die KI antwortet
+    // darin, auch außerhalb der UI-Sprachen.
     const userLang: string = (typeof lang === "string" && ["de","en","fr","es","it","nl"].includes(lang)) ? lang : "de";
 
     // ── AI-Quota-Check vor dem teuren API-Call
@@ -208,6 +227,20 @@ Deno.serve(async (req) => {
       es: "Spanish", it: "Italian", nl: "Dutch",
     };
 
+    // Antwortsprache dynamisch aus der echten Gerätesprache ableiten — KEINE
+    // harte Whitelist mehr. Claude beherrscht ~alle Sprachen, daher folgt die
+    // KI dem Land des Nutzers (z.B. Portugiesisch, Polnisch, Schwedisch).
+    // `respondLangName` = englischer Sprachname für den Prompt (z.B. "Polish").
+    const localeTag: string = (typeof userLocale === "string" && userLocale.trim())
+      ? userLocale.trim()
+      : userLang;
+    const primarySubtag = localeTag.split(/[-_]/)[0].toLowerCase();
+    let respondLangName = LANG_NAMES[primarySubtag] ?? LANG_NAMES[userLang] ?? "German";
+    try {
+      const dn = new Intl.DisplayNames(["en"], { type: "language" }).of(primarySubtag);
+      if (dn && dn.toLowerCase() !== primarySubtag) respondLangName = dn;
+    } catch (_e) { /* Intl-Fallback: LANG_NAMES bleibt gültig */ }
+
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(
         JSON.stringify({ error: "Keine Nachrichten angegeben" }),
@@ -215,10 +248,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // System-Prompt mit Boot- und Equipment-Kontext erweitern
-    let systemPrompt = SYSTEM_PROMPT;
+    // Dynamischer System-Teil (Sprache, Boots-/Equipment-Kontext, Few-Shots).
+    // Der stabile Basis-Prompt (SYSTEM_PROMPT) bleibt separat und wird als
+    // gecachter Block gesendet (Prompt-Caching) — spart bei jedem Call das
+    // erneute Verarbeiten und senkt Latenz, ohne die Antwortqualität zu ändern.
+    let dynamicSystem = "";
     // Antwortsprache zwingend setzen (überschreibt jede Eingabe-Sprache des Users)
-    systemPrompt += `\n\nIMPORTANT: Always respond in ${LANG_NAMES[userLang]} regardless of the language of the user's message. Use proper marine/sailing terminology native to that language.`;
+    dynamicSystem += `\n\nIMPORTANT: Always respond in ${respondLangName} regardless of the language of the user's message. Use proper marine/sailing terminology native to that language.`;
     if (boatContext?.boats && Array.isArray(boatContext.boats) && boatContext.boats.length > 0) {
       const boatDescriptions = boatContext.boats.map((boat: Record<string, unknown>, i: number) => {
         const parts: string[] = [];
@@ -250,8 +286,8 @@ Deno.serve(async (req) => {
 
         return `Boot ${i + 1}:\n${parts.join("\n")}`;
       });
-      systemPrompt += `\n\nBoote des Nutzers mit kompletter Ausrüstung:\n${boatDescriptions.join("\n\n")}`;
-      systemPrompt += `\n\nWichtig:
+      dynamicSystem += `\n\nBoote des Nutzers mit kompletter Ausrüstung:\n${boatDescriptions.join("\n\n")}`;
+      dynamicSystem += `\n\nWichtig:
 - Beziehe dich bei Fragen immer auf das passende Boot und dessen konkrete Ausrüstung.
 - Bei allgemeinen Fragen zu Wartung, Antifouling etc. gehe vom Hauptboot (dem größten) aus, nicht vom Beiboot/Dingi.
 - Nutze die konkreten Gerätedaten (Hersteller, Modell, Installationsdatum, Wartungstermine) für spezifische Empfehlungen.
@@ -271,9 +307,14 @@ Deno.serve(async (req) => {
             `Beispiel ${i + 1}:\nFrage: ${ex.question}\nHochbewertete Antwort: ${ex.answer}`
           )
           .join("\n\n");
-        systemPrompt += `\n\nLernkontext — frueher als hilfreich bewertete Antworten zu aehnlichen Themen. Nutze sie als Qualitaets-Referenz (Tonfall, Detailtiefe, Struktur), uebernimm aber niemals wortwoertlich und passe an den aktuellen Kontext an:\n\n${block}`;
+        dynamicSystem += `\n\nLernkontext — frueher als hilfreich bewertete Antworten zu aehnlichen Themen. Nutze sie als Qualitaets-Referenz (Tonfall, Detailtiefe, Struktur), uebernimm aber niemals wortwoertlich und passe an den aktuellen Kontext an:\n\n${block}`;
       }
     }
+
+    // Antwortsprache FINAL erzwingen — muss die LETZTE Anweisung im System-Prompt
+    // sein, damit weder der deutsche Basis-Prompt (Expertise-Liste) noch die
+    // deutschen Few-Shot-Beispiele die Ausgabesprache überschreiben.
+    dynamicSystem += `\n\n=== VERBINDLICHE AUSGABESPRACHE ===\nAntworte AUSSCHLIESSLICH auf ${respondLangName} (${localeTag}). Das gilt unabhängig von der Sprache der obigen Anweisungen, der Lernbeispiele und der Nutzernachricht. Verwende die in ${respondLangName} übliche maritime Fachterminologie.`;
 
     // Claude API aufrufen
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
@@ -314,6 +355,27 @@ Deno.serve(async (req) => {
       )
     );
 
+    // Modellwahl nach Tier: Plus → Opus 5 (adaptive Thinking + effort medium),
+    // sonst Sonnet 5 (Thinking aus). Opus NICHT hart abschalten (Fehlermodi) —
+    // die Kosten werden über effort "medium" dosiert.
+    const usePlusModel = quota.tier === "plus";
+    const chosenModel  = usePlusModel ? OPUS_MODEL : SONNET_MODEL;
+    const reqBody: Record<string, unknown> = {
+      model:      chosenModel,
+      max_tokens: usePlusModel ? 4096 : MAX_TOKENS,
+      system: [
+        { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+        { type: "text", text: dynamicSystem },
+      ],
+      messages: trimmedMessages,
+    };
+    if (usePlusModel) {
+      reqBody.thinking      = { type: "adaptive" };
+      reqBody.output_config = { effort: "medium" };
+    } else {
+      reqBody.thinking = { type: "disabled" };
+    }
+
     const anthropicResponse = await fetch(ANTHROPIC_API_URL, {
       method: "POST",
       headers: {
@@ -321,12 +383,7 @@ Deno.serve(async (req) => {
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        system: systemPrompt,
-        messages: trimmedMessages,
-      }),
+      body: JSON.stringify(reqBody),
     });
 
     if (!anthropicResponse.ok) {
@@ -339,7 +396,14 @@ Deno.serve(async (req) => {
     }
 
     const result = await anthropicResponse.json();
-    const reply = result.content?.[0]?.text ?? "Entschuldigung, ich konnte keine Antwort generieren.";
+    // Robust: den Text-Block finden (nicht content[0] annehmen) und evtl.
+    // durchgesickerte <thinking>-Tags entfernen (Sicherheitsnetz).
+    const textBlock = Array.isArray(result.content)
+      ? result.content.find((b: { type?: string }) => b?.type === "text")
+      : null;
+    let reply = String(textBlock?.text ?? "").trim();
+    reply = reply.replace(/<thinking>[\s\S]*?<\/thinking>/gi, "").replace(/<\/?thinking>/gi, "").trim();
+    if (!reply) reply = "Entschuldigung, ich konnte keine Antwort generieren.";
 
     // ── Quota verbuchen (nicht-blockierend)
     const usedTokens =
@@ -350,7 +414,7 @@ Deno.serve(async (req) => {
       feature:    "chat",
       source:     quota.source!,
       costTokens: usedTokens,
-      metadata:   { model: MODEL, lang: userLang },
+      metadata:   { model: chosenModel, lang: userLang },
     }).catch(() => null);
 
     return new Response(

@@ -32,11 +32,11 @@ struct ResetPasswordOTPSheet: View {
                     LabeledContent("E-Mail", value: email)
                         .foregroundColor(.secondary)
                 } footer: {
-                    Text("Falls keine Mail kommt, prüfe deinen Spam-Ordner.")
+                    Text("otp.spamHint".loc)
                 }
 
-                Section("Code aus der E-Mail") {
-                    TextField("Code aus der Mail", text: $code)
+                Section("otp.codeSection".loc) {
+                    TextField("otp.codePlaceholder".loc, text: $code)
                         .keyboardType(.numberPad)
                         .textContentType(.oneTimeCode)
                         .focused($focus, equals: .code)
@@ -50,11 +50,11 @@ struct ResetPasswordOTPSheet: View {
                         }
                 }
 
-                Section("Neues Passwort") {
+                Section("otp.newPwSection".loc) {
                     SecureField("Mindestens 8 Zeichen", text: $newPassword)
                         .textContentType(.newPassword)
                         .focused($focus, equals: .password)
-                    SecureField("Passwort wiederholen", text: $confirm)
+                    SecureField("otp.pwRepeat".loc, text: $confirm)
                         .textContentType(.newPassword)
                         .focused($focus, equals: .confirm)
                 }
@@ -69,17 +69,17 @@ struct ResetPasswordOTPSheet: View {
 
                 if success {
                     Section {
-                        Label("Passwort aktualisiert — du kannst dich jetzt damit anmelden.",
+                        Label("otp.success".loc,
                               systemImage: "checkmark.circle.fill")
                             .foregroundColor(.green)
                     }
                 }
             }
-            .navigationTitle("Neues Passwort setzen")
+            .navigationTitle("otp.title".loc)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }.disabled(working)
+                    Button("otp.cancel".loc) { dismiss() }.disabled(working)
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button(working ? "…" : "Speichern") { submit() }

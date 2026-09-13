@@ -17,7 +17,10 @@ struct PrivacyPolicyView: View {
                     section(
                         title: "1. Verantwortlicher",
                         content: """
-                        Skipily App
+                        SKIPILY GmbH
+                        Hegeweg 7, 57580 Gebhardshain
+                        Handelsregister: Amtsgericht Montabaur, HRB 31404
+                        Gesch\u{00E4}ftsf\u{00FC}hrer: Ekkehart Michael Padberg
                         E-Mail: info@skipily.app
 
                         F\u{00FC}r die Verarbeitung personenbezogener Daten im Rahmen \

@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Wrench, CheckCircle, AlertTriangle, Clock, Filter, Check, ShoppingCart, MapPin, Bot } from 'lucide-react'
+import { Wrench, CheckCircle, AlertTriangle, Clock, Filter, Check, ShoppingCart, MapPin, Bot, Download } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { buildShopQuery, buildServiceQuery, buildMaintenanceAIQuestion } from '../lib/equipmentSearch'
 import { buildSparePartsParams } from '../lib/sparePartsSearch'
+import { generateMaintenanceReport, CAT_ORDER } from '../lib/maintenanceReport'
+import { useHasPlus } from '../hooks/useHasPlus'
+
+const catRank = (c) => { const i = CAT_ORDER.indexOf(c); return i < 0 ? 99 : i }
 import { useT } from '../i18n'
 
 export default function Maintenance() {
@@ -16,6 +20,20 @@ export default function Maintenance() {
   const [selectedBoat, setSelectedBoat] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [loading, setLoading] = useState(true)
+  const [genPdf, setGenPdf] = useState(false)
+  // Eigene Bootsauswahl NUR für den Report (unabhängig vom Listenfilter).
+  const [reportBoat, setReportBoat] = useState('')
+  const { hasPlus } = useHasPlus()
+
+  async function downloadReport() {
+    if (!hasPlus) { navigate('/plus'); return }   // Soft-Gate: Upsell statt Ausführung
+    setGenPdf(true)
+    // Ist ein Boot gewählt, enthält das PDF nur dieses Boot (getrennte
+    // Historie, z. B. Hauptboot ohne Beiboot beim Verkauf).
+    try { await generateMaintenanceReport(user.id, reportBoat || null) }
+    catch (e) { console.error('Wartungsreport:', e); alert('Report konnte nicht erstellt werden.') }
+    finally { setGenPdf(false) }
+  }
 
   useEffect(() => { if (user) loadData() }, [user])
 
@@ -54,7 +72,7 @@ export default function Maintenance() {
     if (selectedBoat && i.boat_id !== selectedBoat) return false
     if (filterStatus !== 'all' && i._status.cls !== filterStatus) return false
     return true
-  }).sort((a, b) => a._status.days - b._status.days)
+  }).sort((a, b) => catRank(a.category) - catRank(b.category) || a._status.days - b._status.days)
 
   const counts = { overdue: 0, due_soon: 0, ok: 0 }
   enriched.forEach(i => { if (counts[i._status.cls] !== undefined) counts[i._status.cls]++ })
@@ -63,10 +81,21 @@ export default function Maintenance() {
     const today = new Date().toISOString().slice(0, 10)
     const nextDate = new Date()
     nextDate.setFullYear(nextDate.getFullYear() + (item.maintenance_cycle_years || 1))
+    const nextStr = nextDate.toISOString().slice(0, 10)
     await supabase.from('equipment').update({
       last_maintenance_date: today,
-      next_maintenance_date: nextDate.toISOString().slice(0, 10)
+      next_maintenance_date: nextStr
     }).eq('id', item.id)
+    // Historien-Eintrag protokollieren (Migration 121). Robust: falls die
+    // Tabelle noch nicht existiert, bricht "Als erledigt" nicht.
+    try {
+      await supabase.from('maintenance_history').insert({
+        equipment_id: item.id,
+        performed_on: today,
+        cycle_years: item.maintenance_cycle_years || null,
+        next_due: nextStr
+      })
+    } catch (e) { console.warn('maintenance_history insert:', e?.message) }
     await loadData()
   }
 
@@ -78,6 +107,25 @@ export default function Maintenance() {
     <div className="page">
       <h1>{t('maint.title')}</h1>
       <p className="subtitle">{t('maint.subtitle')}</p>
+
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>Wartungsreport für:</label>
+        <select value={reportBoat} onChange={e => setReportBoat(e.target.value)}
+                style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }}>
+          <option value="">Alle Boote</option>
+          {boats.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
+        <button className="btn-secondary" onClick={downloadReport} disabled={genPdf}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <Download size={16} /> {genPdf ? 'Report wird erstellt…' : 'PDF erstellen'}
+          {!hasPlus && <span style={{ fontSize: 11, fontWeight: 700, background: '#f97316', color: '#fff', padding: '2px 7px', borderRadius: 999 }}>Plus</span>}
+        </button>
+      </div>
+      <p style={{ margin: '0 0 14px', fontSize: 12, color: '#64748b' }}>
+        {reportBoat
+          ? `Nur „${boatName(reportBoat)}" — getrennte Historie (z. B. Hauptboot ohne Beiboot).`
+          : 'Alle Boote in einem PDF. Für ein einzelnes Schiff oben ein Boot wählen.'}
+      </p>
 
       <div className="stats-grid stats-grid-3">
         <div className={`stat-card clickable ${filterStatus === 'overdue' ? 'active-filter' : ''}`} onClick={() => setFilterStatus(filterStatus === 'overdue' ? 'all' : 'overdue')}>

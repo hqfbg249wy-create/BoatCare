@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import ProductRelationsView from '../components/ProductRelationsView'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { ChevronLeft, ShoppingCart, Check, Package, Truck, Star, Tag, Plus, Minus, MapPin } from 'lucide-react'
@@ -212,6 +213,9 @@ export default function ProductDetail() {
           )}
         </div>
       </div>
+
+      {/* Provider-kuratierte Verknüpfungen (Zubehör/Alternativen/Bundle) */}
+      <ProductRelationsView productId={product.id} lang={lang} />
 
       {/* Similar products */}
       {similar.length > 0 && (

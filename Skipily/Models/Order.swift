@@ -26,6 +26,10 @@ struct Order: Codable, Identifiable, Sendable {
     let shippingPostalCode: String?
     let shippingCountry: String?
     let paymentStatus: String?
+    let paymentFlow: String?
+    let invoiceNumber: String?
+    let invoiceUrl: String?
+    let withdrawalUntil: String?
     let trackingNumber: String?
     let trackingUrl: String?
     let estimatedDelivery: String?
@@ -56,6 +60,10 @@ struct Order: Codable, Identifiable, Sendable {
         case shippingPostalCode = "shipping_postal_code"
         case shippingCountry = "shipping_country"
         case paymentStatus = "payment_status"
+        case paymentFlow = "payment_flow"
+        case invoiceNumber = "invoice_number"
+        case invoiceUrl = "invoice_url"
+        case withdrawalUntil = "withdrawal_until"
         case trackingNumber = "tracking_number"
         case trackingUrl = "tracking_url"
         case estimatedDelivery = "estimated_delivery"

@@ -7,9 +7,11 @@
 //  aus dem App Store (über StoreKit 2) und triggert den Kauf-Flow.
 //
 //  Layout: zwei Tier-Karten (Solo / Familie) mit Monat-/Jahr-Toggle.
-//  Jahres-Auswahl trägt ein "2 Monate gratis"-Badge.
-//  Freier Trial (Apple Introductory Offer) wird automatisch erkannt
-//  und prominent in der gewählten Karte angezeigt.
+//  Jahres-Ersparnis wird als berechnetes "Spare X %"-Badge angezeigt.
+//  Ein freier Trial (Apple Introductory Offer) wird NUR beworben, wenn der
+//  Account laut StoreKit dafür auch berechtigt ist (isEligibleForIntroOffer) —
+//  sonst würde die App einen Gratiszeitraum versprechen, den Apples
+//  Kauf-Bestätigung nicht gewährt (Guideline 2.1(b)).
 //
 
 import SwiftUI
@@ -18,23 +20,25 @@ import StoreKit
 // MARK: - Tier-Modell
 
 private enum PlanTier: String, CaseIterable, Identifiable {
-    case solo    // skipily.plus.*
-    case family  // skipily.pro.*
+    case basic   // skipily.basic.*  (1,99 / 19,99)
+    case plus    // skipily.plus.*   (4,99 / 49,00)
 
     var id: String { rawValue }
-    var displayName: String { self == .solo ? "Skipily Plus" : "Skipily Plus Familie" }
-    var icon: String        { self == .solo ? "person.fill" : "person.3.fill" }
-    var idPrefix: String    { self == .solo ? "skipily.plus." : "skipily.pro." }
+    var displayName: String { self == .basic ? "Skipily Basic" : "Skipily Plus" }
+    var icon: String        { self == .basic ? "sailboat.fill" : "sparkles" }
+    var idPrefix: String    { self == .basic ? "skipily.basic." : "skipily.plus." }
     var bullets: [String] {
         switch self {
-        case .solo:
-            return ["Unbegrenzte KI-Chats",
-                    "Schadens-Foto-Analyse",
-                    "Ausrüstungs-Empfehlungen"]
-        case .family:
-            return ["Alle Plus-Features",
-                    "Bis 5 Skipper auf einem Boot",
-                    "Gemeinsame Wartungsplanung"]
+        case .basic:
+            return ["plus.tier.basic.ai".loc,
+                    "plus.tier.basic.photo".loc,
+                    "plus.tier.basic.discounts".loc]
+        case .plus:
+            return ["plus.tier.plus.ai".loc,
+                    "plus.tier.plus.strongerAI".loc,
+                    "plus.tier.plus.photo".loc,
+                    "plus.tier.plus.import".loc,
+                    "plus.tier.plus.report".loc]
         }
     }
 }
@@ -57,7 +61,7 @@ struct PlusUpgradeSheet: View {
     /// Pro Tier gewählter Abrechnungs-Rhythmus. Default jährlich
     /// (Jahres-Discount ist das stärkere Angebot).
     @State private var selectedPeriod: [PlanTier: BillingPeriod] = [
-        .solo: .yearly, .family: .yearly
+        .basic: .yearly, .plus: .yearly
     ]
     @State private var purchasing: String?
     @State private var purchaseError: String?
@@ -85,26 +89,21 @@ struct PlusUpgradeSheet: View {
                             .padding(.horizontal)
                     }
 
-                    Button("Käufe wiederherstellen") {
+                    Button("plus.sheet.restore".loc) {
                         Task { await manager.restore() }
                     }
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
-                    Text("Du kannst das Abo jederzeit in den iPhone-Einstellungen kündigen.")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                        .padding(.bottom)
+                    legalFooter
                 }
                 .padding(.vertical)
             }
-            .navigationTitle("Skipily Plus")
+            .navigationTitle("Tarife")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Schließen") { dismiss() }
+                    Button("plus.sheet.close".loc) { dismiss() }
                 }
             }
         }
@@ -116,10 +115,10 @@ struct PlusUpgradeSheet: View {
     private var header: some View {
         VStack(spacing: 10) {
             Text("✨").font(.system(size: 60))
-            Text("Mehr aus deinem Boot herausholen")
+            Text("plus.sheet.headerTitle".loc)
                 .font(.title2.bold())
                 .multilineTextAlignment(.center)
-            Text("Alle Kernfunktionen bleiben gratis. Plus erweitert die App.")
+            Text("plus.sheet.headerSubtitle".loc)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -127,17 +126,42 @@ struct PlusUpgradeSheet: View {
         }
     }
 
+    // MARK: - Rechtlicher Footer (App-Store-Pflichtangaben, Guideline 3.1.2)
+
+    private var legalFooter: some View {
+        VStack(spacing: 10) {
+            // Auto-Verlängerungs-Hinweis — von Apple wörtlich gefordert (lokalisiert).
+            Text("plus.sheet.legal".loc)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            // Pflicht-Links: Nutzungsbedingungen (EULA) + Datenschutz.
+            HStack(spacing: 6) {
+                Link("plus.sheet.terms".loc,
+                     destination: URL(string: "https://skipily.app/agb")!)
+                Text("·").foregroundStyle(.tertiary)
+                Link("plus.sheet.privacy".loc,
+                     destination: URL(string: "https://skipily.app/datenschutz")!)
+            }
+            .font(.caption2.bold())
+        }
+        .padding(.horizontal, 24)
+        .padding(.bottom)
+    }
+
     // MARK: - Pläne
 
     @ViewBuilder
     private var plansSection: some View {
         if manager.isLoading {
-            ProgressView("Pläne werden geladen…").padding()
+            ProgressView("plus.sheet.loading".loc).padding()
         } else if manager.products.isEmpty {
             emptyState
         } else {
             VStack(spacing: 14) {
-                ForEach(PlanTier.allCases) { tier in
+                // Zwei Stufen: Basic (Einstieg) zuerst, dann Plus (Premium).
+                ForEach([PlanTier.basic, PlanTier.plus]) { tier in
                     if hasAnyProduct(for: tier) {
                         tierCard(tier)
                     }
@@ -151,7 +175,7 @@ struct PlusUpgradeSheet: View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.title2).foregroundStyle(.orange)
-            Text("Pläne können gerade nicht geladen werden.")
+            Text("plus.sheet.loadError".loc)
                 .font(.subheadline.bold())
                 .multilineTextAlignment(.center)
             if let err = manager.lastError {
@@ -159,13 +183,13 @@ struct PlusUpgradeSheet: View {
                     .font(.caption).foregroundStyle(.red)
                     .multilineTextAlignment(.center).padding(.horizontal)
             }
-            Text("Mögliche Ursachen:\n• Produkte in App Store Connect noch nicht freigeschaltet\n• Kein gültiger Sandbox-Account auf diesem Gerät\n• Netzwerk-Problem")
+            Text("plus.sheet.loadErrorCauses".loc)
                 .font(.caption2).foregroundStyle(.secondary)
                 .multilineTextAlignment(.leading).padding(.horizontal, 20)
             Button {
                 Task { await manager.loadProducts() }
             } label: {
-                Label("Erneut versuchen", systemImage: "arrow.clockwise")
+                Label("general.retry".loc, systemImage: "arrow.clockwise")
             }
             .buttonStyle(.bordered)
         }
@@ -191,7 +215,7 @@ struct PlusUpgradeSheet: View {
                 Text(tier.displayName).font(.headline)
                 Spacer()
                 if isActive {
-                    Text("Aktiv")
+                    Text("plus.sheet.active".loc)
                         .font(.caption2.bold())
                         .padding(.horizontal, 8).padding(.vertical, 2)
                         .background(Color.green).foregroundStyle(.white)
@@ -237,52 +261,49 @@ struct PlusUpgradeSheet: View {
             set: { selectedPeriod[tier] = $0 }
         )) {
             Text(BillingPeriod.monthly.label).tag(BillingPeriod.monthly)
-            Text("\(BillingPeriod.yearly.label)  •  2 Monate gratis").tag(BillingPeriod.yearly)
+            Text(BillingPeriod.yearly.label).tag(BillingPeriod.yearly)
         }
         .pickerStyle(.segmented)
     }
 
-    /// Formatiert den Preis robust gegen StoreKit-Stolperfallen.
+    /// Liefert den Anzeigepreis — bevorzugt Apples eigenen `displayPrice`.
     ///
-    /// Beobachtetes Problem in TestFlight: `displayPrice` UND `priceFormatStyle`
-    /// koennen die Base-Tier-Currency (USD) liefern obwohl der User auf einer
-    /// EUR-Storefront ist und Apples Subscribe-Sheet korrekt 4,99 € zeigt.
-    /// Ursache: bei manuellen Country-Price-Overrides in App Store Connect
-    /// liefert `Product.products(for:)` mitunter veraltete Cache-Werte.
+    /// Warum `displayPrice` statt selbst formatiertem `product.price`:
+    /// `displayPrice` ist der fertige, von StoreKit gerenderte Preis-String,
+    /// den auch Apples Kauf-Sheet verwendet. Damit zeigen Tarif-Karte und
+    /// Kauf-Bestaetigung IMMER denselben Betrag. (Frueher formatierten wir den
+    /// Decimal `product.price` selbst — dabei kann StoreKit den Decimal
+    /// veraltet cachen, sodass die Karte z. B. 3,99 zeigte, das Sheet aber 4,99.)
     ///
-    /// Strategie:
-    /// 1. Logge alles fuer Diagnose
-    /// 2. Wenn Storefront-Currency aus dem PriceFormatStyle nicht zur Device-
-    ///    Locale passt, ueberschreibe Locale mit `Locale.current` (das matcht
-    ///    bei einem deutschen Geraet auf de_DE und gibt das Komma + €-Symbol
-    ///    in deutscher Notation aus). Der Decimal-Wert bleibt unveraendert.
+    /// Ausnahme (bekannter StoreKit-Cache-Bug bei Country-Price-Overrides):
+    /// meldet das Produkt eine andere Waehrung als die Geraete-Storefront
+    /// (z. B. Base-Currency USD statt EUR), formatieren wir den Decimal selbst
+    /// in der korrekten Storefront-Waehrung.
     private func formattedPrice(_ product: StoreKit.Product) -> String {
         let style = product.priceFormatStyle
-        let primaryResult = product.price.formatted(style)
 
         AppLog.info("""
             PRICE DEBUG \(product.id):
               price=\(product.price)
               displayPrice=\(product.displayPrice)
               currencyCode=\(style.currencyCode)
-              locale=\(style.locale.identifier)
-              primaryResult=\(primaryResult)
-              deviceLocale=\(Locale.current.identifier)
               deviceCurrency=\(Locale.current.currency?.identifier ?? "nil")
             """)
 
-        // Fallback: wenn currencyCode nicht zur Device-Storefront passt,
-        // re-formatieren mit Device-Locale (behaelt currencyCode aus Product)
-        var fallbackStyle = style
-        fallbackStyle.locale = .current
-        return product.price.formatted(fallbackStyle)
+        if let deviceCurrency = Locale.current.currency?.identifier,
+           style.currencyCode != deviceCurrency {
+            AppLog.info("PRICE FIX \(product.id): \(style.currencyCode) → \(deviceCurrency)")
+            return product.price.formatted(.currency(code: deviceCurrency).locale(.current))
+        }
+        // Normalfall: Apples eigener Preis-String — konsistent mit dem Kauf-Sheet.
+        return product.displayPrice
     }
 
     @ViewBuilder
     private func priceRow(tier: PlanTier, period: BillingPeriod, product current: StoreKit.Product) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(formattedPrice(current)).font(.title2.bold())
-            Text(period == .yearly ? "/ Jahr" : "/ Monat")
+            Text(period == .yearly ? "plus.sheet.perYear".loc : "plus.sheet.perMonth".loc)
                 .font(.subheadline).foregroundStyle(.secondary)
             Spacer()
             // Bei Jahres-Auswahl: Sparbetrag im Vergleich zum Monats-Plan
@@ -307,7 +328,7 @@ struct PlusUpgradeSheet: View {
         let annual   = monthlyD * 12.0
         let saved    = annual - yearlyD
         let pct      = saved > 0 ? Int((saved / annual * 100.0).rounded()) : 0
-        return Text("Spare \(pct) %")
+        return Text(String(format: "plus.sheet.save".loc, pct))
             .font(.caption2.bold())
             .padding(.horizontal, 8).padding(.vertical, 3)
             .background(Color.orange.opacity(0.15))
@@ -317,7 +338,8 @@ struct PlusUpgradeSheet: View {
 
     private func purchaseButton(product: StoreKit.Product) -> some View {
         let isPurchasing = purchasing == product.id
-        let hasTrial     = product.subscription?.introductoryOffer?.paymentMode == .freeTrial
+        let hasTrial     = manager.introEligibleProductIDs.contains(product.id)
+            && product.subscription?.introductoryOffer?.paymentMode == .freeTrial
         return Button {
             Task { await buy(product) }
         } label: {
@@ -361,19 +383,29 @@ struct PlusUpgradeSheet: View {
     }
 
     /// Liefert lokalisierten Text für ein Introductory Offer (z. B. "7 Tage gratis testen").
+    /// Nur wenn der Account für diese ID auch WIRKLICH berechtigt ist — sonst würde
+    /// die App einen Trial bewerben, den Apples Kauf-Sheet nicht gewährt (2.1(b)).
     private func introductoryOfferText(_ product: StoreKit.Product) -> String? {
-        guard let offer = product.subscription?.introductoryOffer,
+        guard manager.introEligibleProductIDs.contains(product.id),
+              let offer = product.subscription?.introductoryOffer,
               offer.paymentMode == .freeTrial else { return nil }
+        // Zeitraum lokalisiert formatieren (z.B. "7 Tage" / "7 days" / "7 jours")
+        // — DateComponentsFormatter übersetzt Einheit + Plural automatisch.
         let period = offer.period
-        let unitText: String
+        var comps = DateComponents()
         switch period.unit {
-        case .day:   unitText = period.value == 1 ? "Tag" : "Tage"
-        case .week:  unitText = period.value == 1 ? "Woche" : "Wochen"
-        case .month: unitText = period.value == 1 ? "Monat" : "Monate"
-        case .year:  unitText = period.value == 1 ? "Jahr" : "Jahre"
+        case .day:   comps.day = period.value
+        case .week:  comps.weekOfMonth = period.value
+        case .month: comps.month = period.value
+        case .year:  comps.year = period.value
         @unknown default: return nil
         }
-        return "\(period.value) \(unitText) gratis testen"
+        let fmt = DateComponentsFormatter()
+        fmt.unitsStyle = .full
+        fmt.allowedUnits = [.day, .weekOfMonth, .month, .year]
+        fmt.maximumUnitCount = 1
+        let periodText = fmt.string(from: comps) ?? "\(period.value)"
+        return String(format: "plus.sheet.freeTrial".loc, periodText)
     }
 
     // MARK: - Kauf
@@ -395,5 +427,5 @@ struct PlusUpgradeSheet: View {
 }
 
 #Preview {
-    PlusUpgradeSheet(reason: "Du hast deine kostenlosen KI-Anfragen für diesen Monat aufgebraucht.")
+    PlusUpgradeSheet(reason: "Du hast deine 10 kostenlosen KI-Anfragen aufgebraucht.")
 }

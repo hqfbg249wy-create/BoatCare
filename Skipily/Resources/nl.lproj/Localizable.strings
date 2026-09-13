@@ -35,6 +35,13 @@
 "map.call" = "Bellen";
 "map.open_in_maps" = "Openen in Kaarten";
 "map.add_business" = "Bedrijf toevoegen";
+"map.photo_section" = "Bedrijf vastleggen via foto";
+"map.photo_hint" = "Fotografeer een bord, gevel of visitekaartje – de AI vult het formulier in. Controleer daarna en verstuur.";
+"map.photo_take" = "Foto maken";
+"map.photo_gallery" = "Kies uit galerij";
+"map.photo_analyzing" = "AI analyseert de foto …";
+"map.photo_done" = "Foto geanalyseerd – controleer de gegevens.";
+"map.photo_failed" = "Kan de foto niet analyseren. Voer de gegevens handmatig in.";
 "map.submitted" = "Ingediend!";
 "map.submitted_hint" = "Je bedrijf is ingediend ter beoordeling en verschijnt op de kaart na goedkeuring.";
 "map.section_basic" = "Basisgegevens";
@@ -110,6 +117,9 @@
 
 // MARK: - Maintenance
 "maintenance.title" = "Onderhoud";
+"maintenance.notif.title" = "Onderhoud nodig";
+"maintenance.notif.body" = "%1$@ (%2$@) is gepland op %3$@.";
+"maintenance.notif.body_noboat" = "%1$@ is gepland op %2$@.";
 "maintenance.due" = "Vervallen";
 "maintenance.overdue" = "Achterstallig";
 "maintenance.upcoming" = "Binnenkort";
@@ -188,6 +198,19 @@
 
 // MARK: - Chat
 "chat.title" = "Chat";
+"chat.error_prefix" = "Sorry, er is iets misgegaan: ";
+"chat.err.invalidURL" = "Ongeldige server-URL";
+"chat.err.notAuthenticated" = "Log opnieuw in";
+"chat.err.network" = "Geen internetverbinding";
+"chat.err.emptyResponse" = "Geen antwoord ontvangen";
+"pay.err.server" = "Betalingsfout: %@";
+"pay.err.noIntent" = "Betaling kon niet worden geïnitialiseerd";
+"pay.err.cancelled" = "Betaling geannuleerd";
+"equip.ai.lblManufacturer" = "Fabrikant";
+"equip.ai.lblModel" = "Model";
+"equip.ai.lblDimensions" = "Afmetingen";
+"equip.ai.lblLocation" = "Locatie";
+"equip.ai.question" = "Ik heb hulp nodig met een uitrustingsstuk op mijn %1$@: %2$@. Categorie: %3$@. Wat raad je aan?";
 "chat.welcome" = "Welkom bij Skipily! Deze sectie wordt binnenkort aangedreven door AI.";
 "chat.input_hint" = "Bericht typen...";
 "chat.coming_soon" = "AI-chat komt binnenkort! 🚢";
@@ -569,13 +592,18 @@
 "equipment.article_no" = "Art.nr.:";
 "shop.title" = "Winkel";
 "shop.details" = "Details bekijken";
-"data_quality.hint" = "Hoe nauwkeuriger je invoer, hoe gemakkelijker de AI je kan helpen en de winkel het juiste onderdeel kan vinden.";
+"data_quality.hint" = "Hoe nauwkeuriger je invoer, hoe gemakkelijker de AI je kan helpen en de winkel het juiste onderdeel kan vinden. Voer je uitrusting idealiter tot in detail in – zoals oliefilter, waterpomp of impeller.";
+"chat.shop_search_header" = "Vind passende onderdelen in de shop:";
+"chat.shop_search_title" = "Zoeken in de shop";
+"chat.shop_search_empty" = "Geen passende producten gevonden. Probeer een andere term of vraag een servicebedrijf.";
+"chat.equipment_checklist_button" = "Toon aanbevolen uitrustingslijst";
 "shop.filter_min" = "Min";
 "shop.filter_max" = "Max";
 "product.stock_remaining" = "Nog %d stuks";
 "product.promo_until" = "tot %@";
 "product.save_amount" = "Bespaar %@";
 "profile.section_personal" = "Persoonlijke gegevens";
+"profile.customerNumber" = "Klantnummer";
 "sail.section_dimensions" = "Afmetingen";
 "sail.soft_foot" = "Zachte voet";
 "sail.loose_foot" = "Losse onderlijk";
@@ -674,6 +702,49 @@
 // Equipment suggestions
 "equipment.suggestions_title" = "Suggesties";
 "equipment.suggestions_intro" = "Boten zoals de jouwe onderhouden meestal deze items. Tik + om ze toe te voegen.";
+"equipment.spare_parts_ai" = "Typische reserveonderdelen (AI)";
+"rope.title" = "Configure rope";
+"rope.form_title" = "Rope configuration";
+"rope.intro" = "Your details generate a quote via the shop.";
+"rope.submit" = "Save";
+"rope.section_product" = "Product";
+"rope.f.article" = "Article number (rope product)";
+"rope.f.material" = "Material";
+"rope.material.none" = "Please select";
+"rope.f.length" = "Length";
+"rope.f.diameter" = "Diameter";
+"rope.f.color" = "Kleur";
+"rope.section_end1" = "End 1";
+"rope.section_end2" = "End 2";
+"rope.f.end" = "Type";
+"rope.end.none" = "Please select";
+"rope.f.eye_length" = "Eye length (stretched)";
+"rope.section_accessory" = "Accessory & notes";
+"rope.f.accessory_article" = "Accessory article number";
+"rope.f.notes" = "Notes";
+"rope.saved_matched" = "Saved – matching shop product found.";
+"rope.saved_offer" = "Saved – we'll prepare a quote via the shop.";
+"rope.save_error" = "Saving failed.";
+"rope.material.geschlagen" = "Laid rope";
+"rope.material.kern_mantel" = "Braided (core-cover)";
+"rope.material.squareline" = "Squareline 8-strand";
+"rope.material.pes_dyneema" = "PES/Dyneema braided";
+"rope.material.dyneema_hohlgeflecht" = "Dyneema hollow braid (Brummel lock)";
+"rope.end.glatt_abgeschnitten" = "Cut flat";
+"rope.end.takling" = "Whipping";
+"rope.end.augspleiss_indiv_mit_schamfil" = "Eye splice, custom, with chafe protection";
+"rope.end.augspleiss_indiv_ohne_schamfil" = "Eye splice, custom, without chafe protection";
+"rope.end.augspleiss_3_5" = "Eye splice (3-5 cm)";
+"rope.end.augspleiss_6_8" = "Eye splice (6-8 cm)";
+"rope.end.augspleiss_9_12" = "Eye splice (9-12 cm)";
+"rope.end.augspleiss_low_friction" = "Eye splice with low friction ring";
+"rope.end.augspleiss_kausch_edelstahl" = "Eye splice with thimble (stainless)";
+"rope.end.augspleiss_kausch_verzinkt" = "Eye splice with thimble (galvanized)";
+"rope.end.augspleiss_zubehoer" = "Eye splice with accessory";
+"equipment.spare_parts_title" = "Onderdeel-suggesties";
+"equipment.spare_parts_intro" = "Typische slijtage- en reserveonderdelen voor ‘%@’. Tik ➕ om toe te voegen of ✕ om af te wijzen.";
+"equipment.suggestion_accept" = "Toevoegen";
+"equipment.suggestion_reject" = "Afwijzen";
 "equipment.suggestions_loading" = "AI analyseert je boot…";
 "equipment.suggestions_no_boat" = "Boot niet gevonden.";
 "equipment.years_short" = "j";
@@ -807,6 +878,7 @@
 "inquiry.loading_equipment" = "Boten & uitrusting laden…";
 "inquiry.boat_and_equipment" = "Boot & uitrusting";
 "inquiry.category" = "Categorie";
+"inquiry.category_none" = "Zonder categorie";
 "inquiry.selected_count" = "%d geselecteerd";
 "inquiry.no_equipment" = "Geen uitrusting geregistreerd. Bootgegevens worden bijgevoegd als een boot is geselecteerd.";
 "inquiry.attach_measurement" = "Zeilmaatblad bijvoegen (PDF)";
@@ -815,6 +887,14 @@
 "inquiry.camera" = "Camera";
 "inquiry.photos_label" = "Foto's van het probleem";
 "inquiry.photos_hint" = "Optioneel. Maximaal 5 foto's. Worden meegestuurd als bijlage.";
+"inquiry.video_label" = "Video van het probleem";
+"inquiry.video_hint" = "Optioneel – een korte video (max. 1 min) helpt de aanbieder het probleem in te schatten. Wordt als link in de aanvraag meegestuurd.";
+"inquiry.video_library" = "Uit bibliotheek";
+"inquiry.video_record" = "Video opnemen";
+"inquiry.video_attached" = "Video toegevoegd";
+"inquiry.video_uploading" = "Video wordt geüpload…";
+"inquiry.video_error" = "Video kon niet worden verwerkt.";
+"inquiry.video_too_large" = "Video is te groot (max. 60 MB).";
 "inquiry.notes_label" = "Privé-notities";
 "inquiry.notes_hint" = "Alleen voor jou zichtbaar – niet naar de provider gestuurd.";
 "inquiry.notes_placeholder" = "Eigen gedachten, budget, planning…";
@@ -843,3 +923,226 @@
 "category.surveyor" = "Scheepsexpert";
 "category.diver" = "Duiker";
 "category.other" = "Overig";
+
+/* ── Referral, Plus-Features & Ausrüstungs-Import (lokalisiert) ── */
+"referral.banner.title" = "Aanbevelen = 1 maand Skipily Plus gratis";
+"referral.banner.subtitle" = "12 aanbevelingen = 1 jaar Skipily Plus gratis";
+"plus.feat.ai" = "AI-assistent: chat, schade-foto-analyse & uitrustingssuggesties";
+"plus.feat.import" = "Uitrusting importeren via Excel (incl. zeilmeetblad & touwwerk)";
+"plus.feat.report" = "Onderhoudsrapport als PDF – apart per boot";
+"plus.feat.discounts" = "Skipily-kortingen in de shop gebruiken";
+"equip.import.a11y" = "Uitrusting importeren (Excel/CSV)";
+"equip.import.paywallReason" = "De Excel/CSV-import (uitrusting, zeilmeetblad & touwwerk) hoort bij Skipily Plus.";
+"equip.import.title" = "Uitrusting importeren";
+"equip.import.intro" = "Upload voor %@ een Excel-bestand met de bladen Uitrusting, Zeilmeetblad en Touwwerk. Bestaande uitrusting wordt herkend en niet dubbel toegevoegd.";
+"equip.import.pick" = "Bestand kiezen (.xlsx / .csv)";
+"equip.import.reading" = "Bestand wordt gelezen…";
+"equip.import.summary" = "Samenvatting";
+"equip.import.new" = "Nieuw";
+"equip.import.updated" = "Bijgewerkt";
+"equip.import.stockAdded" = "Voorraad aangevuld";
+"equip.import.chooseAction" = "Actie kiezen";
+"equip.import.action.merge" = "Samenvoegen";
+"equip.import.action.replace" = "Vervangen";
+"equip.import.action.addStock" = "Voorraad aanvullen";
+"equip.import.action.new" = "Nieuw aanmaken";
+"equip.import.exactMatch" = "Bestaand: “%@”";
+"equip.import.fuzzyMatch" = "Lijkt op “%@” (kies)";
+"equip.import.resolveFirst" = "Beslis eerst over alle vergelijkbare treffers.";
+"equip.import.skipped" = "Al aanwezig (overgeslagen)";
+"equip.import.sails" = "Zeilmeetblad";
+"equip.import.ropes" = "Touwwerk";
+"equip.import.unlinked" = "Niet gekoppeld";
+"equip.import.equipment" = "Uitrusting";
+"equip.import.equipmentNew" = "Nieuwe uitrusting";
+"equip.import.linkSection" = "Koppeling zeil/touwwerk";
+"equip.import.sailPrefix" = "Zeil: %@";
+"equip.import.noMatch" = "geen bijpassend item gevonden";
+"equip.import.import" = "Importeren";
+"equip.import.importing" = "Importeren…";
+"equip.import.close" = "Sluiten";
+"equip.import.doneTitle" = "Import voltooid";
+"equip.import.done" = "Klaar";
+"equip.import.serial" = "Serienr. %@";
+"equip.import.dupReason" = "Al aanwezig (match via %@)";
+"equip.import.bySerial" = "serienummer";
+"equip.import.byName" = "naam";
+"equip.import.errFile" = "Het bestand kon niet worden gelezen.";
+"equip.import.errPlus" = "Skipily Plus vereist.";
+
+/* ── Plus-Karte (Profil) ── */
+"plus.card.ai" = "Meer AI-vragen per dag";
+"plus.card.photo" = "Schade-foto-analyse";
+"plus.card.suggest" = "Uitrustingssuggesties";
+"plus.card.report" = "Service-logboek als PDF – per boot";
+"plus.card.import" = "Uitrustingslijst importeren via Excel";
+"plus.card.discover" = "Abonnementen bekijken";
+
+/* ── Referral-Sektion (Profil) ── */
+"referral.invite.title" = "Vrienden uitnodigen";
+"referral.invite.desc" = "Nodig booteigenaren uit voor Skipily. Zodra ze 7 dagen actief zijn, krijgen jullie allebei een maand Skipily Plus cadeau.";
+"referral.invite.code" = "Jouw aanbevelingscode";
+"referral.invite.share" = "Delen";
+"referral.invite.codeLoading" = "Code laden …";
+"referral.stat.granted" = "Bijgeschreven";
+"referral.stat.pending" = "In behandeling";
+"referral.stat.thisYear" = "Dit jaar";
+"referral.cap" = "Jaarlimiet bereikt (12 aanbevelingen). Nieuwe aanbevelingen worden vanaf januari weer bijgeschreven.";
+"profile.plus.active" = "ACTIEF";
+"profile.plus.activeSubtitle" = "Je abonnement is actief – AI-assistent, foto-analyse en meer.";
+"profile.plus.grantedBySkipily" = "Geactiveerd via Skipily – geen beheer bij Apple nodig.";
+
+"profile.plus.manage" = "Abonnement beheren / opzeggen";
+"referral.share.message" = "Ik gebruik Skipily voor mijn boot — onderhoud, uitrustingsinventaris, shop en een AI-assistent in één app. Als je je aanmeldt en mijn aanbevelingscode invoert, krijgen we allebei een maand Skipily Plus cadeau.\n\nMijn code: %@\n\nApp downloaden: https://apps.apple.com/app/skipily";
+
+/* ── Plus-Kauf-Sheet ── */
+"plus.sheet.restore" = "Aankopen herstellen";
+"plus.sheet.close" = "Sluiten";
+"plus.sheet.headerTitle" = "Haal meer uit je boot";
+"plus.sheet.headerSubtitle" = "Alle kernfuncties blijven gratis. Plus breidt de app uit.";
+"plus.sheet.legal" = "De betaling wordt bij bevestiging van de aankoop van je Apple ID-account afgeschreven. Het abonnement wordt automatisch met dezelfde periode verlengd, tenzij het minstens 24 uur vóór het einde van de huidige periode wordt opgezegd. De afschrijving voor de verlenging vindt plaats binnen 24 uur vóór het einde van de periode. Je kunt je abonnement op elk moment beheren of opzeggen in de instellingen van je Apple ID-account.";
+"plus.sheet.terms" = "Gebruiksvoorwaarden";
+"plus.sheet.privacy" = "Privacybeleid";
+"plus.sheet.loadError" = "Abonnementen kunnen nu niet worden geladen.";
+"plus.sheet.loadErrorCauses" = "Mogelijke oorzaken:\n• Producten nog niet goedgekeurd in App Store Connect\n• Geen geldig sandbox-account op dit apparaat\n• Netwerkprobleem";
+"plus.sheet.active" = "Actief";
+"plus.sheet.save" = "Bespaar %d%%";
+
+/* ── Service-Anfrage-Flow ── */
+"srf.nav.pick" = "Serviceaanbieder kiezen";
+"srf.nav.compose" = "Aanvraag opstellen";
+"srf.nav.channel" = "Verzendmethode";
+"srf.nav.review" = "Voorbeeld & verzenden";
+"srf.cancel" = "Annuleren";
+"srf.error" = "Fout";
+"srf.loadingProviders" = "Aanbieders laden…";
+"srf.noProviders" = "Geen aanbieders";
+"srf.noProvidersDesc" = "Geen aanbieders gevonden voor je zoekopdracht.";
+"srf.search" = "Zoeken…";
+"srf.chooseProvider" = "Aanbieder kiezen";
+"srf.briefingLoading" = "Bootgegevens verzamelen…";
+"srf.previewData" = "Voorbeeld van overgenomen gegevens";
+"srf.autoIncluded" = "Automatisch overgenomen";
+"srf.autoFooter" = "Bootgegevens en uitrustingsinformatie worden automatisch aan het bericht toegevoegd.";
+"srf.problemPlaceholder" = "bijv. de motor start niet meer, draait kort en slaat dan af…";
+"srf.problemHeader" = "Probleembeschrijving *";
+"srf.problemFooter" = "Beschrijf het probleem in je eigen taal. Als de aanbieder in het buitenland zit, kun je het bericht later automatisch laten vertalen.";
+"srf.fromLibrary" = "Uit bibliotheek";
+"srf.camera" = "Camera";
+"srf.photosHeader" = "Foto's van het probleem";
+"srf.photosFooter" = "Optioneel. Helpt de aanbieder het probleem sneller in te schatten. Maximaal 5 foto's.";
+"srf.next" = "Verder";
+"srf.channelHeader" = "Hoe moet de aanvraag worden verzonden?";
+"srf.channelFooter" = "Bij e-mail en sms worden foto’s automatisch toegevoegd. WhatsApp ondersteunt alleen tekst — daar kun je foto’s later toevoegen.";
+"srf.nextToReview" = "Verder naar voorbeeld";
+"srf.noEmail" = "Aanbieder heeft geen e-mailadres";
+"srf.noPhone" = "Aanbieder heeft geen telefoonnummer";
+"srf.smsUnavailable" = "Sms niet beschikbaar op dit apparaat";
+"srf.sendVia" = "Verzenden via %@";
+"srf.translating" = "Vertalen…";
+"srf.language" = "Taal";
+"srf.lang.de" = "Duits (origineel)";
+"srf.lang.en" = "Engels";
+"srf.lang.fr" = "Frans";
+"srf.lang.es" = "Spaans";
+"srf.lang.it" = "Italiaans";
+"srf.lang.nl" = "Nederlands";
+"srf.autoTranslateHint" = "De aanbieder zit waarschijnlijk in het buitenland. Een automatische vertaling is zinvol.";
+"srf.changeLangHint" = "Wijzig de taal om het bericht automatisch te laten vertalen.";
+"srf.fullMessage" = "Volledig bericht";
+"srf.attachments" = "Bijlagen (%d)";
+"srf.sendButton" = "Verzenden via %@";
+"srf.subjectFallback" = "Serviceaanvraag";
+"srf.subject" = "Aanvraag %@ – %@";
+"srf.back" = "Terug";
+"srf.errMail" = "E-mail verzenden is niet mogelijk op dit apparaat.";
+"srf.errSms" = "Sms is niet beschikbaar op dit apparaat.";
+"srf.errWhatsApp" = "WhatsApp is niet geïnstalleerd op dit apparaat.";
+"srf.errBriefing" = "Briefing kon niet worden gegenereerd: %@";
+
+/* ── Inquiries + Orders ── */
+"inq.deleteTitle" = "Aanvraag verwijderen?";
+"inq.delete" = "Verwijderen";
+"inq.cancel" = "Annuleren";
+"inq.deleteDesc" = "Deze aanvraag wordt definitief verwijderd.";
+"inq.error" = "Fout";
+"inq.filterAll" = "Alle";
+"inq.providerFallback" = "Aanbieder";
+"inq.yourMessage" = "Jouw bericht";
+"inq.replyFrom" = "Antwoord van %@";
+"inq.noneAll" = "Nog geen aanvragen";
+"inq.noneFiltered" = "Geen %@-aanvragen";
+"inq.emptyHint" = "Tik op ‘Aanvraag’ in het profiel van een aanbieder om een aanvraag te versturen.";
+"inq.status.draft" = "Concept";
+"inq.status.sent" = "Verzonden";
+"inq.status.read" = "Gelezen";
+"inq.status.replied" = "Beantwoord";
+"inq.status.closed" = "Gesloten";
+"order.fallbackTitle" = "Bestelling";
+"order.paymentPending" = "Betaling in behandeling";
+"order.paymentPendingDesc" = "Je bestelling is aangemaakt maar nog niet betaald. Rond de betaling nu af — anders verwerkt de verkoper deze niet.";
+"order.paymentPreparing" = "Betaling voorbereiden …";
+"order.cancel" = "Bestelling annuleren";
+"order.cancelTitle" = "Bestelling annuleren?";
+"order.cancelConfirm" = "Annuleren";
+"order.cancelDesc" = "De bestelling wordt op ‘Geannuleerd’ gezet. De artikelen blijven in je winkelwagen voor het geval je ze later opnieuw wilt bestellen.";
+"order.paymentUpdateFailed" = "De betaling is gelukt, maar de statusupdate is mislukt. Start de app opnieuw.";
+
+/* ── Auth / Shop-Suche / Montageplan ── */
+"reg.referralLabel" = "Aanbevelingscode (optioneel)";
+"reg.referralHint" = "Ben je uitgenodigd? Voer de code in — jij ÉN degene die je aanbeval krijgen elk een maand Skipily Plus cadeau zodra je 7 dagen actief bent.";
+"login.password" = "Wachtwoord";
+"login.resetHint" = "We sturen je een 6-cijferige code per e-mail. Voer die hier in de app in en stel je nieuwe wachtwoord in.";
+"otp.spamHint" = "Als er geen e-mail komt, controleer je spammap.";
+"otp.codeSection" = "Code uit de e-mail";
+"otp.codePlaceholder" = "Code uit de e-mail";
+"otp.newPwSection" = "Nieuw wachtwoord";
+"otp.pwRepeat" = "Wachtwoord herhalen";
+"otp.success" = "Wachtwoord bijgewerkt — je kunt er nu mee inloggen.";
+"otp.title" = "Nieuw wachtwoord instellen";
+"otp.cancel" = "Annuleren";
+"shop.searchAgain" = "Hoe wil je verder zoeken?";
+"install.disclaimer" = "Dit montageplan is een AI-suggestie voor een mogelijke variant. De uitvoering moet aan een gekwalificeerd vakbedrijf worden overgelaten — dat is verantwoordelijk voor de juiste installatie en oplevering.";
+
+/* ── Gemeinsam ── */
+"common.cancel" = "Annuleren";
+"common.fullName" = "Volledige naam";
+"common.street" = "Straat + huisnummer";
+
+/* Paywall Tarif-Bullets (Basic/Plus) */
+"plus.tier.basic.ai" = "5 AI-vragen per dag";
+"plus.tier.basic.photo" = "Schade-fotoanalyse";
+"plus.tier.basic.discounts" = "SKIPILY-kortingen gebruiken";
+"plus.tier.plus.ai" = "15 AI-vragen per dag";
+"plus.tier.plus.strongerAI" = "Sterkere AI voor diepgaande analyses";
+"plus.tier.plus.photo" = "Schade-fotoanalyse";
+"plus.tier.plus.family" = "Delen met je gezin (Apple Family Sharing)";
+"plus.tier.plus.import" = "Uitrusting importeren via Excel";
+"plus.tier.plus.report" = "Onderhoudsrapport als PDF";
+"profile.plan.monthly" = "Maandelijks";
+"profile.plan.yearly" = "Jaarlijks";
+"plus.sheet.loading" = "Abonnementen laden …";
+"profile.plus.headerSub" = "Basic of Plus – maandelijks of jaarlijks opzegbaar";
+
+"plus.sheet.perMonth" = "/ maand";
+"plus.sheet.perYear" = "/ jaar";
+
+"plus.sheet.freeTrial" = "%@ gratis proberen";
+
+/* Deferred payment / factuur */
+"order.deferred_title" = "Betaling na verzending";
+"order.deferred_desc" = "Je betaalgegevens zijn opgeslagen. Het bedrag wordt pas afgeschreven zodra de verkoper de verzending bevestigt. Daarna ontvang je hier je factuur, inclusief de informatie over het herroepingsrecht.";
+"order.invoice_title" = "Factuur";
+"order.invoice_download" = "Factuur downloaden";
+
+/* Herroeping / terugbetaling */
+"order.withdraw_title" = "Herroeping / terugbetaling";
+"order.withdraw_desc" = "Je kunt deze aankoop binnen 14 dagen na ontvangst van de goederen herroepen. Het volledige bedrag wordt aan je terugbetaald.";
+"order.withdraw_action" = "Herroeping indienen";
+"order.withdraw_confirm" = "Wil je deze aankoop echt herroepen? Het bedrag wordt terugbetaald.";
+
+/* Annuleren na verzenden */
+"order.cancel_title" = "Bestelling annuleren";
+"order.cancel_desc" = "Zolang de bestelling niet is verzonden en niet is afgeschreven, kun je deze gratis annuleren.";
+
+"order.withdraw_until" = "Herroeping mogelijk tot %@";

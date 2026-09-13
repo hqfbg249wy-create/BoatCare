@@ -40,6 +40,10 @@
                     Neue Betriebe
                     <span class="badge" id="new-providers-badge">0</span>
                 </button>
+                <button class="nav-item" data-page="registrations" onclick="window.navigateToPage('registrations')">
+                    <span class="icon">📬</span>
+                    Registrierungen
+                </button>
                 <button class="nav-item" data-page="suggestions" onclick="window.navigateToPage('suggestions')">
                     <span class="icon">✏️</span>
                     Änderungsanfragen
@@ -208,10 +212,47 @@
                     </div>
                 </div>
 
-                <h2>Letzte Aktivitäten</h2>
+                <!-- Feature 3: Nutzerentwicklung & Aktivität (Segmente) -->
+                <div id="user-growth-section" style="margin-top:28px;">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <h2 style="margin:0;">👥 Nutzerentwicklung &amp; Aktivität</h2>
+                        <button class="btn-secondary" onclick="window.loadUserGrowth()" style="padding:6px 10px; font-size:13px;">🔄 Aktualisieren</button>
+                        <span id="user-growth-hint" style="font-size:12px; color:#94a3b8;"></span>
+                    </div>
+                    <p style="font-size:13px; color:#64748b; margin:6px 0 14px;">
+                        Getrennt nach <strong>einfachen Nutzern</strong> (kein Boot), <strong>Eignern</strong> (mind. 1 Boot) und <strong>Providern</strong> (Betrieb/Team). Ein User zählt in genau einem Segment (Priorität Provider&nbsp;&gt;&nbsp;Eigner&nbsp;&gt;&nbsp;einfach).
+                    </p>
+                    <div id="user-growth-kpis" class="stats-grid" style="margin-bottom:18px;"></div>
+                    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:18px;">
+                        <div style="font-size:13px; color:#475569; margin-bottom:10px;">Kumulierte Registrierungen (letzte 12 Monate)</div>
+                        <div style="position:relative; height:280px;"><canvas id="user-growth-chart"></canvas></div>
+                    </div>
+                    <div id="user-activity-table"></div>
+                </div>
+
+                <h2 style="margin-top:28px;">Letzte Aktivitäten</h2>
                 <div id="recent-activity-list" class="activity-list">
                     <p>Keine Aktivitäten</p>
                 </div>
+            </div>
+
+            <!-- Registrierungen (Outreach-Erfolg) Page -->
+            <div id="registrations-page" class="page">
+                <h1>📬 Registrierungen</h1>
+                <p class="subtitle">Wer von den angeschriebenen Betrieben hat sich registriert — und wer kam organisch dazu?</p>
+                <div style="display:flex; gap:8px; align-items:center; margin:8px 0 16px;">
+                    <button class="btn-secondary" onclick="window.loadRegistrations(true)" style="padding:8px 12px;">🔄 Neu laden</button>
+                    <span id="registrations-hint" style="font-size:12px; color:#94a3b8;"></span>
+                </div>
+                <div id="registrations-kpis" class="stats-grid" style="margin-bottom:20px;"></div>
+
+                <h2 style="margin-top:8px;">✅ Angeschrieben &amp; registriert</h2>
+                <p style="font-size:13px; color:#64748b; margin:2px 0 10px;">Betriebe mit Outreach-Mail (CleverReach) <strong>und</strong> abgeschlossener Registrierung/Claim.</p>
+                <div id="reg-contacted-list" style="overflow-x:auto;"></div>
+
+                <h2 style="margin-top:24px;">🌱 Organisch registriert (nicht angeschrieben)</h2>
+                <p style="font-size:13px; color:#64748b; margin:2px 0 10px;">Betriebe, die sich registriert/geclaimt haben, <strong>ohne</strong> vorher per CleverReach angeschrieben worden zu sein.</p>
+                <div id="reg-organic-list" style="overflow-x:auto;"></div>
             </div>
 
             <!-- Neue Betriebe Page -->
@@ -475,6 +516,21 @@
                                 Land
                                 <input id="edit-country" type="text" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
                             </label>
+                            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+                                <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">📍 Standort</div>
+                                <div style="display:flex; gap:8px;">
+                                    <input id="edit-latitude" type="number" step="any" placeholder="Latitude" style="flex:1; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                                    <input id="edit-longitude" type="number" step="any" placeholder="Longitude" style="flex:1; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px;">
+                                </div>
+                                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+                                    <button type="button" class="btn-secondary" onclick="geoParseEditModal()" style="flex:1; min-width:150px;">✂️ Adresse aufteilen</button>
+                                    <button type="button" class="btn-secondary" onclick="geocodeEditModal()" style="flex:1; min-width:150px;">🔍 Neu geocodieren</button>
+                                    <button type="button" class="btn-secondary" onclick="geoGoogleEditModal()" style="flex:1; min-width:150px;">🌍 Google (Notfall)</button>
+                                    <button type="button" class="btn-secondary" onclick="geoTogglePickerModal()" style="flex:1; min-width:150px;">📍 Pin verschieben</button>
+                                </div>
+                                <div id="edit-modal-map" style="display:none; height:300px; margin-top:8px; border:1px solid #e2e8f0; border-radius:8px; z-index:0;"></div>
+                                <div id="edit-modal-geo-status" style="font-size:12px; color:#555; margin-top:6px; line-height:1.4;"></div>
+                            </div>
                             <label style="font-size:13px; color:#475569;">
                                 Telefon
                                 <input id="edit-phone" type="text" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
@@ -596,6 +652,12 @@
                         </div>
                         <button type="button" id="geocode-btn" class="btn-secondary" onclick="window.geocodeAddress()">📍 Geocode</button>
                     </div>
+                    <div class="form-row">
+                        <button type="button" class="btn-secondary" onclick="geoParseIntoForm('add-provider-form')" style="flex:1; min-width:180px;">✂️ Adresse aufteilen</button>
+                        <button type="button" class="btn-secondary" onclick="geoGoogleAddForm()" style="flex:1; min-width:180px;">🌍 Google (Notfall)</button>
+                        <button type="button" class="btn-secondary" onclick="geoTogglePicker('add-provider-map','add-provider-form')" style="flex:1; min-width:180px;">📍 Pin manuell setzen / verschieben</button>
+                    </div>
+                    <div id="add-provider-map" style="display:none; height:300px; margin-top:8px; border:1px solid #e2e8f0; border-radius:8px; z-index:0;"></div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Telefon</label>
@@ -998,6 +1060,24 @@
                 <!-- Config-Status -->
                 <div id="cleverreach-config-status" style="background:#fef3c7; border:1px solid #fbbf24; border-radius:8px; padding:14px; margin-bottom:20px;">
                     <strong>⏳ Lade Konfiguration …</strong>
+                </div>
+
+                <!-- ★ NEU: Gezielter Push + manuelle Verifizierung einzelner Provider -->
+                <div style="background:#faf5ff; border:1px solid #c084fc; border-radius:8px; padding:18px; margin-bottom:20px;">
+                    <h3 style="margin-top:0;">🎯 Gezielter Push &amp; manuelle Verifizierung</h3>
+                    <p style="font-size:13px; color:#6b21a8; margin:0 0 12px;">
+                        Einzelne Provider suchen, bei Bedarf manuell als <strong>verifiziert</strong> markieren
+                        (E-Mail-Status = valid) und direkt in die passende CleverReach-Sprachgruppe pushen —
+                        unabhängig vom großen Sync.
+                    </p>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                        <input type="text" id="cr-target-search" placeholder="Name oder E-Mail …"
+                               onkeydown="if(event.key==='Enter'){event.preventDefault();window.crSearchProviders();}"
+                               style="flex:1; min-width:220px; padding:9px 12px; border:1px solid #d8b4fe; border-radius:6px;">
+                        <button class="btn-primary" onclick="window.crSearchProviders()"
+                                style="background:#9333ea; color:#fff;">🔍 Suchen</button>
+                    </div>
+                    <div id="cr-target-results" style="margin-top:14px;"></div>
                 </div>
 
                 <!-- CSV-Export-Sektion (PRIMÄR-Methode, keine API-Setup nötig) -->
@@ -2014,19 +2094,25 @@
                         <div class="stat-label">Admins</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">👁️</div>
+                        <div class="stat-icon">🚤</div>
                         <div class="stat-value" id="users-readonly">0</div>
-                        <div class="stat-label">Read-only Admins</div>
+                        <div class="stat-label">Eigner</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">⛵</div>
+                        <div class="stat-icon">🔧</div>
                         <div class="stat-value" id="users-with-boats">0</div>
-                        <div class="stat-label">Mit Booten</div>
+                        <div class="stat-label">Provider</div>
                     </div>
                 </div>
 
                 <div class="filter-bar" id="users-filter-bar" style="display:flex; gap:8px; align-items:center; margin:16px 0; flex-wrap:wrap;">
-                    <input type="text" id="users-search" placeholder="E-Mail oder Name suchen…" oninput="window.searchUsers()" style="flex:1; min-width:240px; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;">
+                    <input type="text" id="users-search" placeholder="E-Mail, Name oder Kundennr. suchen…" oninput="window.searchUsers()" style="flex:1; min-width:240px; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;">
+                    <select id="users-type-filter" onchange="window.searchUsers()" style="padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;">
+                        <option value="">Alle Typen</option>
+                        <option value="owner">🚤 Nur Eigner</option>
+                        <option value="provider">🔧 Nur Provider</option>
+                        <option value="both">Eigner &amp; Provider</option>
+                    </select>
                     <select id="users-role-filter" onchange="window.searchUsers()" style="padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px;">
                         <option value="">Alle Rollen</option>
                         <option value="user">Nutzer</option>
@@ -2042,6 +2128,7 @@
                             <thead>
                                 <tr style="text-align:left; background:#f8fafc; border-bottom:1px solid #e2e8f0;">
                                     <th style="padding:12px;">E-Mail</th>
+                                    <th style="padding:12px;">Kundennr.</th>
                                     <th style="padding:12px;">Name</th>
                                     <th style="padding:12px;">Rolle</th>
                                     <th style="padding:12px; text-align:right;">Boote</th>
@@ -2141,7 +2228,7 @@
                         <option value="180">Letzte 6 Monate</option>
                         <option value="365">Letzte 12 Monate</option>
                     </select>
-                    <button class="btn-secondary" onclick="window.loadMarketAnalysis()" style="padding:8px 12px;">🔄 Neu laden</button>
+                    <button class="btn-secondary" onclick="window.openMarketAnalysis({force:true})" style="padding:8px 12px;">🔄 Neu laden</button>
                     <button class="btn-primary" onclick="window.runMarketSnapshot()" id="snapshot-now-btn" style="padding:8px 14px;">📸 Snapshot jetzt</button>
                     <span id="market-last-update" style="font-size:12px; color:#94a3b8; margin-left:auto;"></span>
                 </div>
@@ -2248,7 +2335,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260711-vat2"></script>
+    <script src="app.js?v=20260912-pagination-stable"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;

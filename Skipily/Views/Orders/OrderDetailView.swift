@@ -27,6 +27,9 @@ struct OrderDetailView: View {
     // Storno-State
     @State private var showCancelConfirm = false
     @State private var isCancelling = false
+    // Widerruf-/Rueckerstattungs-State
+    @State private var showWithdrawConfirm = false
+    @State private var isRefunding = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -40,7 +43,7 @@ struct OrderDetailView: View {
                     .foregroundStyle(AppColors.error)
             }
         }
-        .navigationTitle(order?.orderNumber ?? "Bestellung")
+        .navigationTitle(order?.orderNumber ?? "order.fallbackTitle".loc)
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await loadOrder()
@@ -55,8 +58,18 @@ struct OrderDetailView: View {
                     pendingPaymentBanner(order)
                 }
 
+                // Aufgeschobener Flow: Info, dass erst bei Versand abgebucht wird.
+                if isDeferredAwaitingCharge(order) {
+                    deferredPaymentInfo
+                }
+
                 // Status timeline
                 statusTimeline(order)
+
+                // Rechnung (nach Versand verfügbar)
+                if let invoiceUrl = order.invoiceUrl, let url = URL(string: invoiceUrl) {
+                    invoiceSection(number: order.invoiceNumber, url: url)
+                }
 
                 // Tracking
                 if let tracking = order.trackingNumber {
@@ -82,8 +95,146 @@ struct OrderDetailView: View {
                 if let provider = order.provider {
                     providerSection(provider)
                 }
+
+                // Stornieren nach dem Absenden (solange noch nicht bezahlt/
+                // versandt). Beim deferred-Flow wurde noch nichts abgebucht, daher
+                // kein Refund noetig. Der 'Jetzt bezahlen'-Banner (Sofort-Flow)
+                // hat seinen eigenen Storno-Button -> hier nur zeigen, wenn der
+                // Banner NICHT sichtbar ist.
+                if canCancel(order) && !needsPayment(order) {
+                    cancelSection
+                }
+
+                // Widerruf / Rückerstattung (bei bezahlten Bestellungen)
+                if canWithdraw(order) {
+                    withdrawalSection(order)
+                }
             }
             .padding(16)
+        }
+    }
+
+    /// Storno moeglich: noch nicht bezahlt, nicht versandt, nicht bereits
+    /// storniert/erstattet.
+    private func canCancel(_ order: Order) -> Bool {
+        let unpaid = (order.paymentStatus ?? "pending").lowercased() != "paid"
+        let openStatus = order.status == "pending" || order.status == "confirmed"
+        return unpaid && openStatus
+    }
+
+    private var cancelSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("order.cancel_title".loc)
+                .font(.headline)
+            Text("order.cancel_desc".loc)
+                .font(.subheadline)
+                .foregroundStyle(AppColors.gray700)
+                .fixedSize(horizontal: false, vertical: true)
+            Button {
+                showCancelConfirm = true
+            } label: {
+                HStack(spacing: 6) {
+                    if isCancelling { ProgressView() } else { Image(systemName: "xmark.circle") }
+                    Text("order.cancel".loc).fontWeight(.medium)
+                }
+                .font(.subheadline)
+                .frame(maxWidth: .infinity)
+                .frame(height: 40)
+                .foregroundStyle(AppColors.error)
+            }
+            .disabled(isCancelling)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.gray100)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .confirmationDialog(
+            "order.cancelTitle".loc,
+            isPresented: $showCancelConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("order.cancelConfirm".loc, role: .destructive) {
+                Task { await cancelOrder() }
+            }
+            Button("common.cancel".loc, role: .cancel) {}
+        } message: {
+            Text("order.cancelDesc".loc)
+        }
+    }
+
+    /// "Widerruf möglich bis <Datum>" aus withdrawal_until, falls gesetzt.
+    private func withdrawalDeadlineText(_ order: Order) -> String? {
+        guard let iso = order.withdrawalUntil else { return nil }
+        let parser = ISO8601DateFormatter()
+        parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let date = parser.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
+        guard let date else { return nil }
+        let df = DateFormatter()
+        df.dateStyle = .medium
+        return String(format: "order.withdraw_until".loc, df.string(from: date))
+    }
+
+    /// Widerruf moeglich: bezahlt, nicht storniert/erstattet.
+    private func canWithdraw(_ order: Order) -> Bool {
+        (order.paymentStatus ?? "").lowercased() == "paid"
+            && order.status != "refunded"
+            && order.status != "cancelled"
+    }
+
+    private func withdrawalSection(_ order: Order) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("order.withdraw_title".loc)
+                .font(.headline)
+            Text("order.withdraw_desc".loc)
+                .font(.subheadline)
+                .foregroundStyle(AppColors.gray700)
+                .fixedSize(horizontal: false, vertical: true)
+            if let deadline = withdrawalDeadlineText(order) {
+                Text(deadline)
+                    .font(.caption)
+                    .foregroundStyle(AppColors.gray500)
+            }
+            Button {
+                showWithdrawConfirm = true
+            } label: {
+                HStack(spacing: 6) {
+                    if isRefunding { ProgressView() } else { Image(systemName: "arrow.uturn.left.circle") }
+                    Text("order.withdraw_action".loc).fontWeight(.medium)
+                }
+                .font(.subheadline)
+                .frame(maxWidth: .infinity)
+                .frame(height: 40)
+                .foregroundStyle(AppColors.error)
+            }
+            .disabled(isRefunding)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.gray100)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .confirmationDialog(
+            "order.withdraw_title".loc,
+            isPresented: $showWithdrawConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("order.withdraw_action".loc, role: .destructive) {
+                Task { await requestWithdrawal() }
+            }
+            Button("common.cancel".loc, role: .cancel) {}
+        } message: {
+            Text("order.withdraw_confirm".loc)
+        }
+    }
+
+    @MainActor
+    private func requestWithdrawal() async {
+        isRefunding = true
+        defer { isRefunding = false }
+        do {
+            try await PaymentService.shared.refundOrder(orderId: orderId)
+            await loadOrder()
+        } catch {
+            paymentMessage = "Widerruf fehlgeschlagen: \(error.localizedDescription)"
         }
     }
 
@@ -343,14 +494,74 @@ struct OrderDetailView: View {
         isLoading = false
     }
 
+    // MARK: - Deferred-Zahlung / Rechnung
+
+    private var deferredPaymentInfo: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "clock.badge.checkmark")
+                    .foregroundStyle(AppColors.primary)
+                Text("order.deferred_title".loc)
+                    .font(.headline)
+            }
+            Text("order.deferred_desc".loc)
+                .font(.subheadline)
+                .foregroundStyle(AppColors.gray700)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.primary.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func invoiceSection(number: String?, url: URL) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("order.invoice_title".loc)
+                .font(.headline)
+            if let number {
+                Text(number)
+                    .font(.subheadline)
+                    .foregroundStyle(AppColors.gray700)
+            }
+            Link(destination: url) {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.down.doc.fill")
+                    Text("order.invoice_download".loc)
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(AppColors.primary)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.gray100)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
     // MARK: - Payment-Retry
 
     /// True wenn die Bestellung noch eine Zahlung braucht (Status pending +
     /// Payment-Status nicht "paid"). Storniert/erfolgreich-Bezahlt → false.
     private func needsPayment(_ order: Order) -> Bool {
+        // Beim aufgeschobenen Flow ("deferred") bucht der Anbieter erst bei
+        // Versand ab, die Karte ist bereits hinterlegt -> KEIN manuelles
+        // "Jetzt bezahlen".
+        if order.paymentFlow == "deferred" { return false }
         let isPending = order.status == "pending"
         let isUnpaid  = (order.paymentStatus ?? "pending").lowercased() != "paid"
         return isPending && isUnpaid
+    }
+
+    /// Deferred-Bestellung, die noch nicht abgebucht wurde -> Info statt Zahlbutton.
+    private func isDeferredAwaitingCharge(_ order: Order) -> Bool {
+        order.paymentFlow == "deferred"
+            && (order.paymentStatus ?? "pending").lowercased() != "paid"
+            && order.status != "cancelled"
     }
 
     private func pendingPaymentBanner(_ order: Order) -> some View {
@@ -358,10 +569,10 @@ struct OrderDetailView: View {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.circle.fill")
                     .foregroundStyle(AppColors.warning)
-                Text("Zahlung ausstehend")
+                Text("order.paymentPending".loc)
                     .font(.headline)
             }
-            Text("Deine Bestellung ist angelegt, aber noch nicht bezahlt. Schließe die Zahlung jetzt ab — sonst wird sie vom Verkäufer nicht bearbeitet.")
+            Text("order.paymentPendingDesc".loc)
                 .font(.subheadline)
                 .foregroundStyle(AppColors.gray700)
                 .fixedSize(horizontal: false, vertical: true)
@@ -379,7 +590,7 @@ struct OrderDetailView: View {
                 HStack(spacing: 8) {
                     if isPreparingPayment {
                         ProgressView().tint(.white)
-                        Text("Zahlung wird vorbereitet …")
+                        Text("order.paymentPreparing".loc)
                     } else {
                         Image(systemName: "lock.fill")
                             .font(.caption)
@@ -404,7 +615,7 @@ struct OrderDetailView: View {
                     } else {
                         Image(systemName: "xmark.circle")
                     }
-                    Text("Bestellung stornieren")
+                    Text("order.cancel".loc)
                         .fontWeight(.medium)
                 }
                 .font(.subheadline)
@@ -422,16 +633,16 @@ struct OrderDetailView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .confirmationDialog(
-            "Bestellung stornieren?",
+            "order.cancelTitle".loc,
             isPresented: $showCancelConfirm,
             titleVisibility: .visible
         ) {
-            Button("Stornieren", role: .destructive) {
+            Button("order.cancelConfirm".loc, role: .destructive) {
                 Task { await cancelOrder() }
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("common.cancel".loc, role: .cancel) {}
         } message: {
-            Text("Die Bestellung wird auf \"Storniert\" gesetzt. Die Artikel bleiben in deinem Warenkorb erhalten, falls du sie später neu bestellen möchtest.")
+            Text("order.cancelDesc".loc)
         }
     }
 
@@ -495,7 +706,7 @@ struct OrderDetailView: View {
                 paymentMessage = nil
                 await loadOrder()    // Status neu aus DB ziehen
             } catch {
-                paymentMessage = "Zahlung lief durch, aber Status-Update fehlgeschlagen. Bitte App neu starten."
+                paymentMessage = "order.paymentUpdateFailed".loc
             }
         case .canceled:
             paymentMessage = "Zahlung abgebrochen. Du kannst es jederzeit erneut versuchen."

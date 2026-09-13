@@ -10,6 +10,25 @@ import { useT } from '../i18n'
 const PROVIDER_IMAGES_BUCKET = 'provider-images'
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5 MB (matches bucket limit)
 
+// Leaflet lazy-load (kein npm-Paket nötig — CDN, wie im Admin-Panel).
+let _leafletPromise = null
+function ensureLeaflet() {
+  if (window.L) return Promise.resolve(window.L)
+  if (_leafletPromise) return _leafletPromise
+  _leafletPromise = new Promise((resolve, reject) => {
+    const css = document.createElement('link')
+    css.rel = 'stylesheet'
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+    document.head.appendChild(css)
+    const s = document.createElement('script')
+    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+    s.onload = () => resolve(window.L)
+    s.onerror = () => { _leafletPromise = null; reject(new Error('Leaflet konnte nicht geladen werden')) }
+    document.head.appendChild(s)
+  })
+  return _leafletPromise
+}
+
 const CATEGORY_OPTIONS = [
   ['repair', '🔧', 'cat.repair'],
   ['motor_service', '⚙️', 'cat.motorService'],
@@ -106,6 +125,14 @@ export default function Profile() {
     supabase.from('provider_members').select('role').eq('provider_id', provider.id).eq('user_id', user.id).maybeSingle()
       .then(({ data }) => setMyRole(data?.role || 'member'))
   }, [provider?.id, provider?.user_id, user?.id])
+
+  // ── Kundennummer des angemeldeten Accounts (read-only, aus profiles) ──
+  const [customerNumber, setCustomerNumber] = useState(null)
+  useEffect(() => {
+    if (!user?.id) return
+    supabase.from('profiles').select('customer_number').eq('id', user.id).maybeSingle()
+      .then(({ data }) => setCustomerNumber(data?.customer_number ?? null))
+  }, [user?.id])
   const canAdmin = myRole === 'owner' || myRole === 'admin'
 
   // Stripe Connect state
@@ -208,6 +235,8 @@ export default function Profile() {
         postal_code: provider.postal_code || '',
         city: provider.city || '',
         country: provider.country || '',
+        latitude: provider.latitude ?? '',
+        longitude: provider.longitude ?? '',
         phone: provider.phone || '',
         email: provider.email || '',
         website: provider.website || '',
@@ -548,6 +577,80 @@ export default function Profile() {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
+  // ── Standort / Geolokalisierung (Provider-Selfservice)
+  const geoMapRef = useRef(null)      // Leaflet-Map-Instanz
+  const geoMarkerRef = useRef(null)   // Leaflet-Marker (draggable)
+  const geoMapElRef = useRef(null)    // DOM-Container
+  const [geoStatus, setGeoStatus] = useState(null) // { type, text }
+  const [geoBusy, setGeoBusy] = useState(false)
+
+  // Marker/Karte auf Koordinaten setzen (legt Karte bei Bedarf an).
+  async function geoRenderMap(lat, lon) {
+    const L = await ensureLeaflet()
+    const el = geoMapElRef.current
+    if (!el) return
+    const center = [lat, lon]
+    if (!geoMapRef.current) {
+      const map = L.map(el).setView(center, 15)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap', maxZoom: 19,
+      }).addTo(map)
+      const marker = L.marker(center, { draggable: true }).addTo(map)
+      marker.on('dragend', () => {
+        const p = marker.getLatLng()
+        setForm(prev => ({ ...prev, latitude: p.lat.toFixed(6), longitude: p.lng.toFixed(6) }))
+        setGeoStatus({ type: 'success', text: t('profile.geoPinMoved') })
+      })
+      geoMapRef.current = map
+      geoMarkerRef.current = marker
+      // Leaflet berechnet die Größe erst nach dem Layout korrekt.
+      setTimeout(() => map.invalidateSize(), 200)
+    } else {
+      geoMapRef.current.setView(center, 15)
+      geoMarkerRef.current.setLatLng(center)
+      setTimeout(() => geoMapRef.current.invalidateSize(), 100)
+    }
+  }
+
+  // Karte anzeigen, sobald Koordinaten vorhanden sind.
+  useEffect(() => {
+    const lat = parseFloat(form.latitude), lon = parseFloat(form.longitude)
+    if (!isNaN(lat) && !isNaN(lon)) geoRenderMap(lat, lon)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.latitude, form.longitude])
+
+  // Adresse via Nominatim (OpenStreetMap) lokalisieren.
+  async function geoLocate() {
+    setGeoBusy(true)
+    setGeoStatus({ type: 'info', text: t('profile.geoSearching') })
+    try {
+      const parts = [form.street, form.postal_code, form.city, form.country].map(s => (s || '').trim()).filter(Boolean)
+      const q = encodeURIComponent(parts.join(', '))
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=${q}`,
+        { headers: { 'Accept-Language': 'de' } }
+      )
+      const data = await res.json()
+      if (!data || !data.length) {
+        setGeoStatus({ type: 'error', text: t('profile.geoNotFound') })
+        return
+      }
+      const hit = data[0]
+      const lat = parseFloat(hit.lat), lon = parseFloat(hit.lon)
+      setForm(prev => ({ ...prev, latitude: lat.toFixed(6), longitude: lon.toFixed(6) }))
+      // Präzision einschätzen: Hausnummer vorhanden = genau.
+      const exact = hit.address && hit.address.house_number
+      setGeoStatus({
+        type: exact ? 'success' : 'info',
+        text: exact ? t('profile.geoFoundExact') : t('profile.geoFoundApprox'),
+      })
+    } catch (e) {
+      setGeoStatus({ type: 'error', text: t('common.errorPrefix') + ' ' + e.message })
+    } finally {
+      setGeoBusy(false)
+    }
+  }
+
   // ─── Skipily-Abo: vier wählbare Pläne ────────────────────────────────────
   const SUBSCRIPTION_PLANS = [
     { code: 'pro_monthly',  tier: 'Pro',        period: 'Monatlich', price: 79,   per: 'Monat',
@@ -724,8 +827,8 @@ export default function Profile() {
 
   // Team beim Provider-Load nachziehen, wenn Enterprise-Tier aktiv ist
   useEffect(() => {
-    if (provider?.id && access.isEnterprise) loadTeamMembers()
-  }, [provider?.id, access.isEnterprise])
+    if (provider?.id) loadTeamMembers()
+  }, [provider?.id])
 
   async function openBillingPortal() {
     setSubscriptionLoading(true)
@@ -774,6 +877,8 @@ export default function Profile() {
           postal_code: form.postal_code,
           city: form.city,
           country: form.country,
+          latitude:  form.latitude  === '' || form.latitude  == null ? null : Number(form.latitude),
+          longitude: form.longitude === '' || form.longitude == null ? null : Number(form.longitude),
           phone: form.phone,
           email: form.email,
           website: form.website,
@@ -1017,6 +1122,11 @@ export default function Profile() {
           <p className="subtitle" style={{ margin: 0 }}>
             {t('pf.k4')}
           </p>
+          {customerNumber != null && (
+            <p className="subtitle" style={{ margin: '4px 0 0', fontSize: 13 }}>
+              {t('pf.customerNumber')}: <strong>{customerNumber}</strong>
+            </p>
+          )}
         </div>
         <a
           href={`/provider/${provider.id}`}
@@ -1096,7 +1206,7 @@ export default function Profile() {
                     onClick={async () => {
                       try {
                         const { error } = await supabase
-                          .rpc('accept_provider_agb', { p_version: '2026-05' })
+                          .rpc('accept_provider_agb', { p_version: '2026-05', p_provider_id: provider.id })
                         if (error) throw error
                         // Reload provider data
                         window.location.reload()
@@ -1605,6 +1715,48 @@ export default function Profile() {
               <label>{t('profile.country')}</label>
               <input name="country" value={form.country} onChange={handleChange} />
             </div>
+          </div>
+
+          {/* Standort / Geolokalisierung — Provider kann Pin selbst korrigieren */}
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border, #e5e7eb)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+              <Globe size={16} /> {t('profile.geoTitle')}
+            </label>
+            <p style={{ fontSize: 13, color: 'var(--text-muted, #64748b)', margin: '4px 0 12px' }}>
+              {t('profile.geoHint')}
+            </p>
+            <div className="form-row">
+              <div className="form-group">
+                <label>{t('profile.geoLat')}</label>
+                <input name="latitude" value={form.latitude} onChange={handleChange} placeholder="53.55" inputMode="decimal" />
+              </div>
+              <div className="form-group">
+                <label>{t('profile.geoLon')}</label>
+                <input name="longitude" value={form.longitude} onChange={handleChange} placeholder="9.99" inputMode="decimal" />
+              </div>
+            </div>
+            <button type="button" className="btn-secondary" onClick={geoLocate} disabled={geoBusy}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {geoBusy ? <Loader size={15} className="spin" /> : <RefreshCw size={15} />}
+              {t('profile.geoLocateBtn')}
+            </button>
+            {geoStatus && (
+              <div style={{
+                marginTop: 10, fontSize: 13, padding: '8px 12px', borderRadius: 8,
+                background: geoStatus.type === 'error' ? '#fef2f2' : geoStatus.type === 'success' ? '#f0fdf4' : '#f1f5f9',
+                color: geoStatus.type === 'error' ? '#b91c1c' : geoStatus.type === 'success' ? '#15803d' : '#334155',
+              }}>{geoStatus.text}</div>
+            )}
+            <div ref={geoMapElRef} style={{
+              height: (form.latitude !== '' && form.longitude !== '') ? 300 : 0,
+              marginTop: 12, borderRadius: 10, overflow: 'hidden',
+              display: (form.latitude !== '' && form.longitude !== '') ? 'block' : 'none',
+            }} />
+            {(form.latitude !== '' && form.longitude !== '') && (
+              <p style={{ fontSize: 12, color: 'var(--text-muted, #64748b)', margin: '8px 0 0' }}>
+                {t('profile.geoDragHint')}
+              </p>
+            )}
           </div>
         </div>
 
@@ -2232,18 +2384,17 @@ export default function Profile() {
             <span style={{ fontSize: 22 }}>👥</span>
             <h2 style={{ margin: 0 }}>{t('profile.secTeam')}</h2>
             <span style={{
-              background: access.isEnterprise ? '#f3e8ff' : '#f1f5f9',
-              color:      access.isEnterprise ? '#7e22ce' : '#475569',
+              background: '#f3e8ff', color: '#7e22ce',
               padding: '2px 10px', borderRadius: 12,
               fontSize: 11, fontWeight: 700,
-            }}>💎 Enterprise</span>
+            }}>
+              {access.isEnterprise
+                ? t('team.seatsUnlimited')
+                : t('team.seatsLimited', { n: access.limits.maxTeamMembers })}
+            </span>
           </div>
 
-          {!access.isEnterprise ? (
-            <FeatureLock requiredTier="Enterprise" feature={t('team.feature')} icon="👥">
-              {t('team.lockBody')} <strong>{t('pf.k21')}</strong>{t('team.lockTariff')}
-            </FeatureLock>
-          ) : (
+          {(
             <>
               <p className="hint" style={{ marginBottom: 16 }}>
                 {t('team.invite')}
@@ -2368,7 +2519,7 @@ export default function Profile() {
                   type="button"
                   className="btn-primary"
                   onClick={inviteTeamMember}
-                  disabled={teamLoading || !canAdmin}
+                  disabled={teamLoading || !canAdmin || (!access.isEnterprise && teamMembers.length >= access.limits.maxTeamMembers)}
                 >
                   {teamLoading
                     ? <><Loader size={14} className="spin" /> {t('pf.k49')}</>
@@ -2376,9 +2527,15 @@ export default function Profile() {
                 </button>
               </div>
 
-              <p className="hint" style={{ marginTop: 10, fontSize: 12 }}>
-                {t('team.magicLink')}
-              </p>
+              {!access.isEnterprise && teamMembers.length >= access.limits.maxTeamMembers ? (
+                <p className="hint" style={{ marginTop: 10, fontSize: 12, color: '#7e22ce' }}>
+                  {t('team.seatsFull', { n: access.limits.maxTeamMembers })}
+                </p>
+              ) : (
+                <p className="hint" style={{ marginTop: 10, fontSize: 12 }}>
+                  {t('team.magicLink')}
+                </p>
+              )}
             </>
           )}
         </div>

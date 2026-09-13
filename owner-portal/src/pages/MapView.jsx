@@ -275,8 +275,14 @@ export default function MapView() {
       let from = 0
       const pageSize = 1000
       while (true) {
+        // Stabile Sortierung nach id: ohne sie kann die DB zwischen den
+        // range()-Aufrufen die Reihenfolge ändern, sodass Betriebe aus dem
+        // Fenster rutschen und ganz fehlen (fehlende Pins). Mit deterministischer
+        // id-Sortierung partitionieren die Batches lückenlos.
         const { data: batch, error } = await supabase
-          .from('service_providers').select('*').range(from, from + pageSize - 1)
+          .from('service_providers').select('*')
+          .order('id', { ascending: true })
+          .range(from, from + pageSize - 1)
         if (error) { console.error('Providers error:', error); break }
         if (!batch || batch.length === 0) break
         fetched = fetched.concat(batch)

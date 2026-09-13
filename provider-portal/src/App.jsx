@@ -38,7 +38,7 @@ function useAuthFlowFromHash() {
 }
 
 function ProtectedRoutes() {
-  const { user, provider, loading, mfaEnrolled, mfaRequired, refreshMfaStatus } = useAuth()
+  const { user, provider, loading, providerChecked, mfaEnrolled, mfaRequired, refreshMfaStatus } = useAuth()
   const flowType = useAuthFlowFromHash()
 
   if (loading) {
@@ -69,6 +69,17 @@ function ProtectedRoutes() {
 
   // MFA challenge after password login
   if (mfaRequired) return <MFAChallenge />
+
+  // Provider-Auflösung (inkl. asynchronem Claim) noch nicht abgeschlossen →
+  // Spinner statt "Kein Provider-Profil" aufblitzen zu lassen.
+  if (user && !providerChecked) {
+    return (
+      <div className="loading-screen">
+        <div className="spinner" />
+        <p>Laden...</p>
+      </div>
+    )
+  }
 
   if (!provider) {
     return (

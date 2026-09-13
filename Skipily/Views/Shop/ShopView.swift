@@ -10,6 +10,7 @@ import Supabase
 
 struct ShopView: View {
     @EnvironmentObject var authService: AuthService
+    @EnvironmentObject var favoritesManager: FavoritesManager
     @Environment(CartManager.self) private var cartManager
 
     @State private var searchText = ""
@@ -29,9 +30,6 @@ struct ShopView: View {
     @State private var equipmentKeywords: [String] = []
     @State private var equipmentDealProducts: [Product] = []
     @State private var cartToast: String?
-    /// Button-basierte Navigation zur Produktdetailseite (zuverlässiger als ein
-    /// Ganz-Kachel-NavigationLink, der auf iPad im Vollbild nicht auslöste).
-    @State private var selectedProduct: Product?
 
     private let productService = ProductService.shared
     private let recommendationService = RecommendationService.shared
@@ -50,7 +48,13 @@ struct ShopView: View {
             searchBar
 
             ScrollView {
-                LazyVStack(spacing: 16) {
+                // Bewusst KEIN LazyVStack: die Kopf-Sektionen sind wenige und
+                // günstig. Ein lazy Außen-Container entlädt auf dem iPad beim
+                // Weg-Navigieren das komplette Produkt-Grid → Bilder verschwinden
+                // und die Scroll-Position geht beim Rücksprung verloren (landet
+                // oben). Das Produkt-Grid selbst bleibt ein eigenes LazyVGrid
+                // (weiter unten) und ist damit weiterhin virtualisiert.
+                VStack(spacing: 16) {
                     // Search history chips (when search is empty and focused)
                     if searchText.isEmpty && !searchHistory.isEmpty {
                         searchHistoryChips
@@ -139,9 +143,6 @@ struct ShopView: View {
         .navigationDestination(for: Product.self) { product in
             ProductDetailView(product: product)
         }
-        .navigationDestination(item: $selectedProduct) { product in
-            ProductDetailView(product: product)
-        }
         .task {
             await loadCategories()
             await loadProducts()
@@ -200,7 +201,7 @@ struct ShopView: View {
     private var promotionsBanner: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
-                ForEach(promotionService.activePromotions.prefix(3)) { promo in
+                ForEach(prioritizedPromotions.prefix(3)) { promo in
                     Button {
                         // Search for products matching this promotion's categories
                         if let cats = promo.filterCategories, let first = cats.first {
@@ -794,11 +795,10 @@ struct ShopView: View {
                             promotionBadge: promotionService.promotionBadgeText(for: product),
                             discountedPrice: promotionService.displayDiscountedPrice(for: product)
                         )
-                        // Zuverlässiger Details-Button (Button-Action navigiert
-                        // auch auf iPad im Vollbild, anders als der Ganz-Kachel-Tap).
-                        Button {
-                            selectedProduct = product
-                        } label: {
+                        // Details-Navigation typbasiert (wie Empfehlungen/Deals) —
+                        // EIN einheitliches navigationDestination(for:) statt zusätzlich
+                        // item-basiert; das behebt den Blank-Screen beim Zurückspringen.
+                        NavigationLink(value: product) {
                             HStack(spacing: 6) {
                                 Image(systemName: "info.circle.fill")
                                 Text("shop.details".loc)
@@ -895,6 +895,42 @@ struct ShopView: View {
         }
     }
 
+    /// Wärmt die Produktbilder der geladenen Seite im Hintergrund vor — gleiche
+    /// Kachelgröße (210×150) wie ProductCardView, also derselbe Cache-Key. So sind
+    /// die Bilder schon da, wenn man hinscrollt (auch bei langsamem Scrollen).
+    private func prefetchImages(_ items: [Product]) {
+        let urls = items.compactMap { $0.firstImageURL }
+        guard !urls.isEmpty else { return }
+        let maxPixel = max(210, 150) * UIScreen.main.scale
+        Task.detached(priority: .utility) {
+            await ImageDownsampler.shared.prefetch(urls, maxPixel: maxPixel)
+        }
+    }
+
+    /// Gehört das Produkt zu einem als Favorit markierten Betrieb?
+    private func isFavoriteProduct(_ p: Product) -> Bool {
+        guard let pid = p.providerId else { return false }
+        return favoritesManager.isFavorite(pid)
+    }
+
+    /// Aktive Promotions mit Favoriten-Betrieben zuerst.
+    private var prioritizedPromotions: [Promotion] {
+        promotionService.activePromotions.sorted { a, b in
+            let aFav = favoritesManager.isFavorite(a.providerId)
+            let bFav = favoritesManager.isFavorite(b.providerId)
+            if aFav != bFav { return aFav }
+            return false
+        }
+    }
+
+    /// Entfernt Duplikate anhand der Produkt-`id`, Reihenfolge bleibt erhalten.
+    /// Schützt `ForEach(products)` vor doppelten IDs (führt sonst zu leeren/
+    /// verschobenen Kacheln im LazyVGrid).
+    private static func dedupedByID(_ items: [Product]) -> [Product] {
+        var seen = Set<Product.ID>()
+        return items.filter { seen.insert($0.id).inserted }
+    }
+
     private func loadProducts() async {
         isLoading = true
         errorMessage = nil
@@ -920,16 +956,21 @@ struct ShopView: View {
                 }
             }
 
-            // Sort: promoted products first
+            // Sort: Produkte von Favoriten-Betrieben zuerst, dann beworbene,
+            // dann der Rest (stabil). So werden vom Eigner favorisierte Betriebe
+            // mit ihren Produkten vorrangig angezeigt.
             loaded.sort { a, b in
+                let aFav = isFavoriteProduct(a), bFav = isFavoriteProduct(b)
+                if aFav != bFav { return aFav }
                 let aHasPromo = promotionService.bestPromotion(for: a) != nil
                 let bHasPromo = promotionService.bestPromotion(for: b) != nil
                 if aHasPromo != bHasPromo { return aHasPromo }
                 return false
             }
 
-            products = loaded
-            hasMoreProducts = products.count >= pageSize
+            products = Self.dedupedByID(loaded)
+            hasMoreProducts = loaded.count >= pageSize
+            prefetchImages(loaded)   // Bilder der geladenen Seite vorwärmen
 
             // Strategie B: Übersetzungen für aktuelle Sprache nachziehen (Cache + Edge-Fn)
             await TranslationService.shared.ensureTranslations(
@@ -953,8 +994,17 @@ struct ShopView: View {
                 limit: pageSize,
                 offset: products.count
             )
-            products.append(contentsOf: moreProducts)
-            hasMoreProducts = moreProducts.count >= pageSize
+            // Nur wirklich neue IDs anhängen. Offset-Pagination kann bei nicht
+            // 100% stabiler Server-Reihenfolge Produkte doppelt liefern; doppelte
+            // IDs zerstören das LazyVGrid-Layout (leere/verschobene Kacheln).
+            let existingIDs = Set(products.map(\.id))
+            let newOnes = moreProducts.filter { !existingIDs.contains($0.id) }
+            products.append(contentsOf: newOnes)
+            // Nur weiterladen, wenn eine volle Seite kam UND sie echte neue
+            // Produkte enthielt — sonst würde eine reine Duplikat-Seite eine
+            // Endlosschleife auslösen.
+            hasMoreProducts = moreProducts.count >= pageSize && !newOnes.isEmpty
+            prefetchImages(newOnes)   // Bilder der nachgeladenen Seite vorwärmen
 
             await TranslationService.shared.ensureTranslations(
                 for: moreProducts,

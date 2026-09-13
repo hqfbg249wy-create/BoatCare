@@ -36,9 +36,19 @@ final class EquipmentSuggestionService {
             let name: String
             let category: String
         }
+        /// Optionales Fokus-Gerät → Spare-Parts-Modus (typische Ersatzteile
+        /// für genau dieses Gerät, z.B. Motor "Yanmar 3JH5E").
+        struct FocusPart: Encodable {
+            let name: String
+            let category: String
+            let manufacturer: String?
+            let model: String?
+        }
         let boat: BoatPart
         let existing_equipment: [EquipmentPart]
         let lang: String
+        let userLocale: String   // echte Gerätesprache (BCP-47) für die KI-Antwort
+        let focus: FocusPart?
     }
 
     private struct ResponseBody: Decodable {
@@ -50,9 +60,12 @@ final class EquipmentSuggestionService {
     private var client: SupabaseClient { SupabaseManager.shared.client }
 
     /// Fragt Vorschläge für ein konkretes Boot + dessen Equipment-Bestand an.
+    /// Ist `focus` gesetzt, liefert die KI typische Ersatz-/Verschleißteile für
+    /// genau dieses Gerät statt allgemeiner Boots-Ausrüstung.
     func fetchSuggestions(
         boat: Boat,
-        existing: [EquipmentItem]
+        existing: [EquipmentItem],
+        focus: EquipmentItem? = nil
     ) async throws -> [Suggestion] {
         let body = RequestBody(
             boat: .init(
@@ -66,7 +79,16 @@ final class EquipmentSuggestionService {
             existing_equipment: existing.map {
                 .init(name: $0.name, category: $0.category)
             },
-            lang: LanguageManager.shared.currentLanguage.code
+            lang: LanguageManager.shared.currentLanguage.code,
+            userLocale: LanguageManager.shared.aiResponseLocale,
+            focus: focus.map {
+                .init(
+                    name: $0.name,
+                    category: $0.category,
+                    manufacturer: $0.manufacturer.isEmpty ? nil : $0.manufacturer,
+                    model: $0.model.isEmpty ? nil : $0.model
+                )
+            }
         )
 
         let response: ResponseBody = try await client.functions.invoke(

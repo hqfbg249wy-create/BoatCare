@@ -9,6 +9,7 @@ import SwiftUI
 import StripePaymentSheet
 import Supabase
 import PhotosUI
+import StoreKit   // manageSubscriptionsSheet (native Abo-Verwaltung)
 
 // MARK: - Simple Boat model for picker
 struct BoatInfo: Codable, Identifiable, Sendable {
@@ -74,6 +75,7 @@ struct ProfileView: View {
     // Skipily Plus
     @StateObject private var plusManager = PlusSubscriptionManager.shared
     @State private var showPlusSheet = false
+    @State private var showManageSubscriptions = false
 
     // Empfehlungs-Programm
     @State private var referralStats: AuthService.ReferralStats?
@@ -341,7 +343,7 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeader("profile.section_personal".loc, icon: "person.fill")
 
-            TextField("Vollständiger Name", text: $fullName)
+            TextField("common.fullName".loc, text: $fullName)
                 .textContentType(.name)
                 .textFieldStyle(.roundedBorder)
 
@@ -350,6 +352,20 @@ struct ProfileView: View {
                 .textFieldStyle(.roundedBorder)
                 .disabled(true)
                 .foregroundStyle(AppColors.gray400)
+
+            if let num = authService.userProfile?.customerNumber {
+                HStack {
+                    Text("profile.customerNumber".loc)
+                        .foregroundStyle(AppColors.gray400)
+                    Spacer()
+                    Text("\(num)")
+                        .fontWeight(.medium)
+                        .textSelection(.enabled)
+                }
+                .font(.subheadline)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 2)
+            }
         }
         .padding(.horizontal, 16)
     }
@@ -360,7 +376,7 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeader("Lieferadresse", icon: "shippingbox.fill")
 
-            TextField("Straße + Hausnummer", text: $shippingStreet)
+            TextField("common.street".loc, text: $shippingStreet)
                 .textContentType(.streetAddressLine1)
                 .textFieldStyle(.roundedBorder)
 
@@ -575,12 +591,12 @@ struct ProfileView: View {
                 Image(systemName: "gift.fill")
                     .font(.title3)
                     .foregroundStyle(.pink)
-                Text("Freunde einladen")
+                Text("referral.invite.title".loc)
                     .font(.headline)
                 Spacer()
             }
 
-            Text("Lade Bootseigner zu Skipily ein. Sobald sie 7 Tage dabei sind, bekommt ihr beide einen Monat Skipily Plus geschenkt.")
+            Text("referral.invite.desc".loc)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -589,7 +605,7 @@ struct ProfileView: View {
             if let code = referralStats?.my_code, !code.isEmpty {
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Dein Empfehlungs-Code")
+                        Text("referral.invite.code".loc)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                         Text(code)
@@ -606,7 +622,7 @@ struct ProfileView: View {
                     Button {
                         showShareSheet = true
                     } label: {
-                        Label("Teilen", systemImage: "square.and.arrow.up")
+                        Label("referral.invite.share".loc, systemImage: "square.and.arrow.up")
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -618,7 +634,7 @@ struct ProfileView: View {
             } else {
                 HStack {
                     ProgressView().controlSize(.small)
-                    Text("Code wird geladen …")
+                    Text("referral.invite.codeLoading".loc)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -627,12 +643,12 @@ struct ProfileView: View {
             // Stats
             if let s = referralStats {
                 HStack(spacing: 12) {
-                    referralStat(value: s.granted_count, label: "Gutschrift", color: .green)
-                    referralStat(value: s.pending_count, label: "Offen", color: .orange)
-                    referralStat(value: s.granted_this_year, label: "Dieses Jahr", color: .blue)
+                    referralStat(value: s.granted_count, label: "referral.stat.granted".loc, color: .green)
+                    referralStat(value: s.pending_count, label: "referral.stat.pending".loc, color: .orange)
+                    referralStat(value: s.granted_this_year, label: "referral.stat.thisYear".loc, color: .blue)
                 }
                 if s.granted_this_year >= 12 {
-                    Text("Jahres-Cap erreicht (12 Empfehlungen). Neue Empfehlungen werden ab Januar wieder gutgeschrieben.")
+                    Text("referral.cap".loc)
                         .font(.caption2)
                         .foregroundStyle(.orange)
                 }
@@ -686,13 +702,13 @@ struct ProfileView: View {
                         LinearGradient(colors: [.purple, .orange],
                                        startPoint: .topLeading, endPoint: .bottomTrailing)
                     )
-                Text("Skipily Plus")
+                Text("Skipily Basic & Plus")
                     .font(.headline)
                 Spacer()
             }
 
-            if plusManager.hasActivePlus {
-                // Aktiver Plus-User: Status + Verwalten
+            if plusManager.hasPaidTier {
+                // Aktiver Abonnent (Basic oder Plus): Status + Verwalten
                 activePlusCard
             } else {
                 // Free-User: CTA + Feature-Liste
@@ -715,47 +731,70 @@ struct ProfileView: View {
                     .font(.subheadline.bold())
                     .foregroundStyle(.green)
                 Spacer()
-                Text("AKTIV")
+                Text("profile.plus.active".loc)
                     .font(.caption2.bold())
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Color.green.opacity(0.15))
                     .foregroundStyle(.green)
                     .clipShape(Capsule())
             }
-            Text("Unbegrenzte KI, Foto-Analyse, Ausrüstungs-Empfehlungen.")
+            Text("profile.plus.activeSubtitle".loc)
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Button {
-                openAppleSubscriptionSettings()
-            } label: {
-                HStack {
-                    Image(systemName: "gear")
-                    Text("Abo verwalten / kündigen")
+            if plusManager.isBackendOnlyGrant {
+                // Kostenlose Admin-Freischaltung / Custom-Vertrag: es gibt
+                // KEIN Apple-Abo zum Verwalten oder Kündigen.
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundStyle(.green)
+                    Text("profile.plus.grantedBySkipily".loc)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                .font(.subheadline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(Color(.tertiarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.top, 4)
+            } else {
+                Button {
+                    showManageSubscriptions = true
+                } label: {
+                    HStack {
+                        Image(systemName: "gear")
+                        Text("profile.plus.manage".loc)
+                    }
+                    .font(.subheadline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color(.tertiarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .padding(.top, 4)
             }
-            .padding(.top, 4)
         }
+        // Natives StoreKit-Sheet: zeigt/kündigt das Abo für das AKTUELLE
+        // Environment (inkl. Sandbox/TestFlight). Die alte Web-URL
+        // (apps.apple.com/account/subscriptions) zeigte Sandbox-Abos nicht.
+        .manageSubscriptionsSheet(isPresented: $showManageSubscriptions)
     }
 
     @ViewBuilder
     private var inactivePlusCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            featureRow("Unbegrenzte KI-Chats")
-            featureRow("Schadens-Foto-Analyse")
-            featureRow("Ausrüstungs-Empfehlungen")
+            Text("profile.plus.headerSub".loc)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            featureRow("plus.card.ai".loc)
+            featureRow("plus.card.photo".loc)
+            featureRow("plus.card.suggest".loc)
+            featureRow("plus.card.report".loc)
+            featureRow("plus.card.import".loc)
 
             Button {
                 showPlusSheet = true
             } label: {
                 HStack {
                     Image(systemName: "sparkles")
-                    Text("Skipily Plus entdecken")
+                    Text("plus.card.discover".loc)
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
@@ -783,11 +822,11 @@ struct ProfileView: View {
 
     private func displayPlanName(for productId: String?) -> String {
         switch productId {
-        case "skipily.plus.monthly": return "Skipily Plus · Monatlich"
-        case "skipily.plus.yearly":  return "Skipily Plus · Jährlich"
-        case "skipily.pro.monthly":  return "Skipily Plus Familie · Monatlich"
-        case "skipily.pro.yearly":   return "Skipily Plus Familie · Jährlich"
-        default:                     return "Skipily Plus aktiv"
+        case "skipily.basic.monthly": return "Skipily Basic · \("profile.plan.monthly".loc)"
+        case "skipily.basic.yearly":  return "Skipily Basic · \("profile.plan.yearly".loc)"
+        case "skipily.plus.monthly":  return "Skipily Plus · \("profile.plan.monthly".loc)"
+        case "skipily.plus.yearly":   return "Skipily Plus · \("profile.plan.yearly".loc)"
+        default:                      return "Skipily \(plusManager.tier == .plus ? "Plus" : "Basic")"
         }
     }
 

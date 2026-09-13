@@ -10,6 +10,7 @@ import MapKit
 import CoreLocation
 import Combine
 import UIKit
+import PhotosUI
 import Supabase
 import PostgREST
 
@@ -1686,11 +1687,20 @@ struct AddBusinessView: View {
     @State private var coordinates: CLLocationCoordinate2D?
     @State private var isGeocoding = false
     @State private var geocodingError: String?
-    
+
     @State private var isSaving = false
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var showSuccessAlert = false
+
+    // KI-Foto-Analyse zum Vorbefüllen des Formulars
+    @State private var showingCamera = false
+    @State private var cameraImage: UIImage?
+    @State private var galleryItem: PhotosPickerItem?
+    @State private var isAnalyzing = false
+    @State private var analysisNote: String?
+    @State private var analysisError: String?
+    private var cameraAvailable: Bool { UIImagePickerController.isSourceTypeAvailable(.camera) }
     
     /// Dieselbe Liste wie der Map-Filter (single source of truth via
     /// ServiceCategory.allCases). `.all` ist nur ein Filter-Konzept, also
@@ -1708,12 +1718,32 @@ struct AddBusinessView: View {
     var body: some View {
         NavigationView {
             Form {
+                photoAnalysisSection
                 basicInfoSection
                 addressSection
                 contactSection
                 descriptionSection
                 promotionSection
                 footerSection
+            }
+            .fullScreenCover(isPresented: $showingCamera) {
+                CameraPickerView(image: $cameraImage)
+                    .ignoresSafeArea()
+            }
+            .onChange(of: cameraImage) { _, img in
+                guard let img else { return }
+                cameraImage = nil
+                Task { await analyzePhoto(img) }
+            }
+            .onChange(of: galleryItem) { _, item in
+                guard let item else { return }
+                Task {
+                    if let data = try? await item.loadTransferable(type: Data.self),
+                       let img = UIImage(data: data) {
+                        await analyzePhoto(img)
+                    }
+                    galleryItem = nil
+                }
             }
             .navigationTitle("map.add_business".loc)
             .navigationBarTitleDisplayMode(.inline)
@@ -1748,7 +1778,48 @@ struct AddBusinessView: View {
     }
     
     // MARK: - Form Sections
-    
+
+    private var photoAnalysisSection: some View {
+        Section {
+            if cameraAvailable {
+                Button {
+                    showingCamera = true
+                } label: {
+                    Label("map.photo_take".loc, systemImage: "camera.fill")
+                }
+                .disabled(isAnalyzing)
+            }
+
+            PhotosPicker(selection: $galleryItem, matching: .images) {
+                Label("map.photo_gallery".loc, systemImage: "photo.on.rectangle")
+            }
+            .disabled(isAnalyzing)
+
+            if isAnalyzing {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text("map.photo_analyzing".loc)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if let note = analysisNote {
+                Label(note, systemImage: "sparkles")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if let err = analysisError {
+                Label(err, systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+        } header: {
+            Text("map.photo_section".loc)
+        } footer: {
+            Text("map.photo_hint".loc)
+        }
+    }
+
     private var basicInfoSection: some View {
         Section("map.section_basic".loc) {
             TextField("map.company_name".loc, text: $name)
@@ -1881,6 +1952,41 @@ struct AddBusinessView: View {
         }
     }
     
+    /// Schickt das Foto an die KI und übernimmt die erkannten Werte ins
+    /// Formular. Nur nicht-leere Felder werden gesetzt; der Nutzer prüft danach.
+    private func analyzePhoto(_ image: UIImage) async {
+        isAnalyzing = true
+        analysisError = nil
+        analysisNote = nil
+        defer { isAnalyzing = false }
+        do {
+            let result = try await ProviderPhotoAnalysisService.shared.analyze(image)
+            applyFields(result.fields)
+            analysisNote = result.note.isEmpty ? "map.photo_done".loc : result.note
+            // Wenn Adresse erkannt wurde, gleich Koordinaten ermitteln.
+            if !address.isEmpty && !city.isEmpty {
+                geocodeAddress()
+            }
+        } catch {
+            analysisError = "map.photo_failed".loc
+            AppLog.warning("Provider-Foto-Analyse fehlgeschlagen: \(error)")
+        }
+    }
+
+    /// Übernimmt erkannte Werte, ohne bereits gefüllte Felder zu leeren.
+    private func applyFields(_ f: ProviderPhotoAnalysisService.Fields) {
+        if !f.name.isEmpty { name = f.name }
+        if !f.category.isEmpty { category = f.category }
+        if !f.street.isEmpty { address = f.street }
+        if !f.postal_code.isEmpty { postalCode = f.postal_code }
+        if !f.city.isEmpty { city = f.city }
+        if !f.country.isEmpty { country = f.country }
+        if !f.phone.isEmpty { phone = f.phone }
+        if !f.email.isEmpty { email = f.email }
+        if !f.website.isEmpty { website = f.website }
+        if !f.description.isEmpty { description = f.description }
+    }
+
     private func saveBusiness() {
         guard let userId = authService.currentUser?.id,
               let coords = coordinates else {
@@ -1969,6 +2075,8 @@ struct ProviderDetailCard: View {
     @State private var showingLoginRequired = false
     @State private var showingLogin = false
     @State private var showingInquiry = false
+    @State private var showingWriteReview = false
+    @StateObject private var reviewService = ReviewService()
     @State private var serviceNames: [String] = []
     
     private var isFavorite: Bool {
@@ -2138,6 +2246,33 @@ struct ProviderDetailCard: View {
                     .cornerRadius(8)
                 }
 
+                // Bewertung abgeben — direkt aus der Kurzansicht (Login erforderlich).
+                Button {
+                    if authService.isAuthenticated {
+                        showingWriteReview = true
+                    } else {
+                        showingLoginRequired = true
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "star.fill")
+                            .font(.caption)
+                        Text(reviewService.myReview(for: provider.id, userId: authService.currentUser?.id ?? UUID()) != nil
+                             ? "review.edit".loc
+                             : "provider.write_review".loc)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                    }
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Color.orange.opacity(0.12))
+                    .cornerRadius(8)
+                }
+
                 // Kontakt-Buttons - KOMPAKT
                 HStack(spacing: 6) {
                     if let phone = provider.phone, !phone.isEmpty {
@@ -2225,6 +2360,18 @@ struct ProviderDetailCard: View {
             )
             .environmentObject(authService)
         }
+        .sheet(isPresented: $showingWriteReview) {
+            WriteReviewView(
+                providerId: provider.id,
+                providerName: provider.name,
+                reviewService: reviewService,
+                existingReview: reviewService.myReview(
+                    for: provider.id,
+                    userId: authService.currentUser?.id ?? UUID()
+                )
+            )
+            .environmentObject(authService)
+        }
         .alert("map.login_required".loc, isPresented: $showingLoginRequired) {
             Button("general.cancel".loc, role: .cancel) {}
             Button("auth.login".loc) { showingLogin = true }
@@ -2233,9 +2380,10 @@ struct ProviderDetailCard: View {
         }
         .task {
             await loadServices()
+            await reviewService.loadReviews(for: provider.id)
         }
     }
-    
+
     private func compactActionButton(icon: String, text: String) -> some View {
         VStack(spacing: 2) {
             Image(systemName: icon)

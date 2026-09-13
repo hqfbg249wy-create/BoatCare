@@ -19,6 +19,7 @@ struct ProductDetailView: View {
     @State private var navigateToCart = false
     @State private var selectedImageIndex = 0
     @State private var similarProducts: [Product] = []
+    @State private var relations: [ProductRelation] = []
     @State private var providerProducts: [Product] = []
     @State private var showChat = false
     @State private var chatConversation: Conversation?
@@ -126,6 +127,12 @@ struct ProductDetailView: View {
                     // Quantity + Add to Cart
                     addToCartSection
 
+                    // Provider-kuratierte Verknüpfungen (Zubehör/Alternativen/Bundle)
+                    if !relations.isEmpty {
+                        Divider()
+                        relationsSection
+                    }
+
                     // Similar Products
                     if !similarProducts.isEmpty {
                         Divider()
@@ -162,6 +169,7 @@ struct ProductDetailView: View {
         }
         .task {
             await loadRelatedProducts()
+            relations = (try? await ProductService.shared.fetchProductRelations(sourceProductId: product.id)) ?? []
         }
     }
 
@@ -563,6 +571,48 @@ struct ProductDetailView: View {
     }
 
     // MARK: - Similar Products
+
+    // MARK: - Verknüpfte Produkte (provider-kuratiert)
+
+    private var relationGroups: [(type: String, de: String, en: String)] {
+        [("zubehoer_erforderlich", "Erforderliches Zubehör", "Required accessories"),
+         ("alternative",           "Alternativen",           "Alternatives"),
+         ("zubehoer_optional",     "Optionales Zubehör",     "Optional accessories"),
+         ("bundle",                "Passt dazu",             "Goes well together")]
+    }
+
+    @ViewBuilder
+    private var relationsSection: some View {
+        let lang = LanguageManager.shared.currentLanguage.code
+        ForEach(relationGroups, id: \.type) { g in
+            let items = relations.filter { $0.relationType == g.type }
+            if !items.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(lang == "de" ? g.de : g.en)
+                        .font(.headline)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(alignment: .top, spacing: 12) {
+                            ForEach(items) { rel in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    NavigationLink(value: rel.product) {
+                                        relatedProductCard(rel.product)
+                                    }
+                                    .buttonStyle(.plain)
+                                    if let note = rel.note, !note.isEmpty {
+                                        Text(note)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 150, alignment: .leading)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     private var similarProductsSection: some View {
         VStack(alignment: .leading, spacing: 12) {

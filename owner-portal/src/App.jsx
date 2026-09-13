@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
+import { PlusProvider } from './hooks/usePlus'
 import { LanguageProvider } from './i18n'
 import Layout from './components/Layout'
 import MFAChallenge from './components/MFAChallenge'
@@ -17,6 +18,7 @@ import Shop from './pages/Shop'
 import ProductDetail from './pages/ProductDetail'
 import ServiceSearch from './pages/ServiceSearch'
 import AIChat from './pages/AIChat'
+import Paywall from './pages/Paywall'
 import Checkout from './pages/Checkout'
 import Inquiries from './pages/Inquiries'
 import Messages from './pages/Messages'
@@ -55,6 +57,7 @@ function ProtectedRoutes() {
         <Route path="provider/:id" element={<ProviderDetail />} />
         <Route path="services" element={<ServiceSearch />} />
         <Route path="chat" element={<AIChat />} />
+        <Route path="plus" element={<Paywall />} />
         <Route path="checkout" element={<Checkout />} />
         <Route path="checkout/success" element={<Checkout />} />
         <Route path="inquiries" element={<Inquiries />} />
@@ -71,6 +74,7 @@ export default function App() {
     <BrowserRouter>
       <LanguageProvider>
       <AuthProvider>
+       <PlusProvider>
         <Routes>
           {/* Public route — Recovery-Link aus Reset-Mail trifft hier auf,
               BEVOR die Login-Sperre greift. ResetPassword nutzt die
@@ -81,6 +85,7 @@ export default function App() {
           <Route path="/entdecken" element={<GuestMap />} />
           <Route path="/*" element={<ProtectedRoutes />} />
         </Routes>
+       </PlusProvider>
       </AuthProvider>
       </LanguageProvider>
     </BrowserRouter>

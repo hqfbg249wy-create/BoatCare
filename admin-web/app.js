@@ -467,7 +467,7 @@ async function loadDashboard() {
                 .eq('status', 'approved')
                 .gte('reviewed_at', new Date().toISOString().split('T')[0]),
             supabaseClient.from('service_providers').select('id', { count: 'exact', head: true })
-                .not('user_id', 'is', null)   // Nur User-Einreichungen
+                .eq('is_approved', false)   // Nur noch nicht genehmigte Einreichungen
         ]);
 
         console.log('✅ Statistiken geladen:', {
@@ -494,11 +494,285 @@ async function loadDashboard() {
 
         // Lade letzte Aktivitäten
         await loadRecentActivity();
+        // Feature 3: Nutzerentwicklung & Aktivität (best-effort, blockiert das
+        // Dashboard nicht bei fehlenden Rechten).
+        loadUserGrowth();
     } catch (error) {
         console.error('❌ Dashboard Fehler:', error);
         alert('Fehler beim Laden des Dashboards: ' + error.message);
     }
 }
+
+// ============================================================
+// Feature 3: Nutzerentwicklung & Aktivität — Dashboard-Segmente
+//   Datenquelle: RPC admin_list_users (created_at, last_sign_in_at,
+//   boats_count, orders_count) + service_providers/provider_members für die
+//   Provider-Rolle. Segmente sind exklusiv: Provider > Eigner > Einfach.
+// ============================================================
+let _userGrowthChart = null;
+
+async function _fetchUsersWithSegments() {
+    // PostgREST kappt auch RPC-Ergebnisse bei 1000 Zeilen → paginieren.
+    const users = [];
+    for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabaseClient
+            .rpc('admin_list_users').range(from, from + 999);
+        if (error) throw error;
+        users.push(...(data || []));
+        if (!data || data.length < 1000) break;
+    }
+    const providerIds = new Set();
+    try {
+        const { data: sp } = await supabaseClient
+            .from('service_providers').select('user_id').not('user_id', 'is', null);
+        (sp || []).forEach(r => r.user_id && providerIds.add(r.user_id));
+    } catch (e) { console.warn('service_providers (Rollen) nicht lesbar:', e?.message); }
+    try {
+        const { data: pm } = await supabaseClient
+            .from('provider_members').select('user_id').not('user_id', 'is', null);
+        (pm || []).forEach(r => r.user_id && providerIds.add(r.user_id));
+    } catch (e) { /* provider_members evtl. nicht admin-lesbar — egal */ }
+
+    users.forEach(u => {
+        const isProvider = providerIds.has(u.id);
+        const isOwner    = Number(u.boats_count) > 0;
+        u.segment = isProvider ? 'provider' : (isOwner ? 'owner' : 'simple');
+    });
+    return users;
+}
+
+async function loadUserGrowth() {
+    const hint = document.getElementById('user-growth-hint');
+    const kpis = document.getElementById('user-growth-kpis');
+    if (!kpis) return;
+    try {
+        const users = await _fetchUsersWithSegments();
+        const now = Date.now();
+        const DAY = 86400000;
+        const within = (ts, days) => ts && (now - new Date(ts).getTime()) <= days * DAY;
+
+        const SEG = [
+            { key: 'simple',   label: 'Einfache Nutzer', icon: '🙋', color: '#2563eb' },
+            { key: 'owner',    label: 'Eigner',          icon: '⛵', color: '#16a34a' },
+            { key: 'provider', label: 'Provider',        icon: '🏢', color: '#9333ea' },
+        ];
+
+        // KPI-Kacheln je Segment: Gesamt · neu 30T · aktiv 30T
+        kpis.innerHTML = SEG.map(s => {
+            const list   = users.filter(u => u.segment === s.key);
+            const total  = list.length;
+            const new30  = list.filter(u => within(u.created_at, 30)).length;
+            const act30  = list.filter(u => within(u.last_sign_in_at, 30)).length;
+            const rate   = total ? Math.round(act30 / total * 100) : 0;
+            return `
+                <div class="stat-card" style="border-top:3px solid ${s.color};">
+                    <div class="stat-icon">${s.icon}</div>
+                    <div class="stat-value">${total}</div>
+                    <div class="stat-label">${s.label}</div>
+                    <div style="font-size:12px; color:#64748b; margin-top:6px; line-height:1.5;">
+                        <span title="Neu in den letzten 30 Tagen">🆕 +${new30} (30T)</span><br>
+                        <span title="Aktiv in den letzten 30 Tagen (letzter Login)">⚡ ${act30} aktiv · ${rate}%</span>
+                    </div>
+                </div>`;
+        }).join('');
+
+        // Kumulierte Registrierungen je Monat (letzte 12 Monate)
+        const months = [];
+        const d0 = new Date();
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(d0.getFullYear(), d0.getMonth() - i, 1);
+            months.push(d.toISOString().slice(0, 7)); // YYYY-MM
+        }
+        const datasets = SEG.map(s => {
+            const list = users.filter(u => u.segment === s.key);
+            const data = months.map(m =>
+                list.filter(u => u.created_at && u.created_at.slice(0, 7) <= m).length
+            );
+            return {
+                label: s.label, data,
+                borderColor: s.color, backgroundColor: s.color + '22',
+                tension: 0.25, fill: false, pointRadius: 2,
+            };
+        });
+
+        const canvas = document.getElementById('user-growth-chart');
+        if (canvas && window.Chart) {
+            if (_userGrowthChart) _userGrowthChart.destroy();
+            _userGrowthChart = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: { labels: months, datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+                },
+            });
+        }
+
+        // Aktivitäts-Tabelle: neu 7/30/90T · aktiv 7/30T · Boote/Bestellungen
+        const tableHost = document.getElementById('user-activity-table');
+        if (tableHost) {
+            const cell = (v) => `<td style="padding:10px; text-align:right;">${v}</td>`;
+            const rows = SEG.map(s => {
+                const list = users.filter(u => u.segment === s.key);
+                const n7  = list.filter(u => within(u.created_at, 7)).length;
+                const n30 = list.filter(u => within(u.created_at, 30)).length;
+                const n90 = list.filter(u => within(u.created_at, 90)).length;
+                const a7  = list.filter(u => within(u.last_sign_in_at, 7)).length;
+                const a30 = list.filter(u => within(u.last_sign_in_at, 30)).length;
+                const boats  = list.reduce((sum, u) => sum + Number(u.boats_count || 0), 0);
+                const orders = list.reduce((sum, u) => sum + Number(u.orders_count || 0), 0);
+                return `<tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:10px;"><strong>${s.icon} ${s.label}</strong></td>
+                    ${cell(n7)}${cell(n30)}${cell(n90)}${cell(a7)}${cell(a30)}${cell(boats)}${cell(orders)}
+                </tr>`;
+            }).join('');
+            tableHost.innerHTML = `
+                <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow-x:auto;">
+                    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                        <thead><tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0; text-align:right;">
+                            <th style="padding:10px; text-align:left;">Segment</th>
+                            <th style="padding:10px;">Neu 7T</th><th style="padding:10px;">Neu 30T</th><th style="padding:10px;">Neu 90T</th>
+                            <th style="padding:10px;">Aktiv 7T</th><th style="padding:10px;">Aktiv 30T</th>
+                            <th style="padding:10px;">Boote</th><th style="padding:10px;">Bestellungen</th>
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+        }
+
+        if (hint) hint.textContent = `${users.length} Nutzer · Stand ${new Date().toLocaleString('de-DE')}`;
+    } catch (e) {
+        console.warn('loadUserGrowth:', e?.message);
+        if (hint) hint.textContent = 'Nutzerdaten nicht verfügbar (Voll-Admin-Rolle nötig).';
+    }
+}
+window.loadUserGrowth = loadUserGrowth;
+
+// ============================================================
+// Feature 1 & 2: Registrierungs-Erfolg (Outreach)
+//   Angeschrieben (service_providers.cleverreach_synced_at) × registriert
+//   (profiles via admin_list_users), gematcht per E-Mail. NICHT über claim,
+//   weil sich Provider als Nutzer registrieren, ohne ihr Listing zu claimen.
+// ============================================================
+async function loadRegistrations(forceReload = false) {
+    const hint = document.getElementById('registrations-hint');
+    const kpis = document.getElementById('registrations-kpis');
+    const contactedHost = document.getElementById('reg-contacted-list');
+    const organicHost   = document.getElementById('reg-organic-list');
+    if (!kpis) return;
+    if (hint) hint.textContent = '⏳ Lade Betriebe…';
+
+    try {
+        // Datenmodell: Ein Provider „registriert" sich, indem er ein Konto
+        // anlegt (profiles) — NICHT indem er den service_providers-Eintrag
+        // „claimt" (das passiert fast nie: nur ~3). Deshalb matchen wir per
+        // E-MAIL: angeschriebene service_providers (cleverreach_synced_at)
+        // gegen registrierte Nutzer (profiles via admin_list_users).
+        const norm = e => (e || '').trim().toLowerCase();
+
+        // 1) Angeschriebene Betriebe (cleverreach_synced_at gesetzt) — paginiert.
+        const contacted = [];
+        for (let from = 0; ; from += 1000) {
+            const { data, error } = await supabaseClient
+                .from('service_providers')
+                .select('id,name,city,country,email,cleverreach_synced_at')
+                .not('cleverreach_synced_at', 'is', null)
+                .order('cleverreach_synced_at', { ascending: false })
+                .order('id', { ascending: true })   // eindeutiger Tiebreaker -> stabile Pagination
+                .range(from, from + 999);
+            if (error) throw error;
+            contacted.push(...(data || []));
+            if (!data || data.length < 1000) break;
+        }
+
+        // 2) Registrierte Nutzer (profiles) — paginiert via RPC.
+        const users = [];
+        for (let from = 0; ; from += 1000) {
+            const { data, error } = await supabaseClient
+                .rpc('admin_list_users').range(from, from + 999);
+            if (error) throw error;
+            users.push(...(data || []));
+            if (!data || data.length < 1000) break;
+        }
+        const userByEmail = new Map();
+        users.forEach(u => { const k = norm(u.email); if (k) userByEmail.set(k, u); });
+        const contactedEmails = new Set(contacted.map(p => norm(p.email)).filter(Boolean));
+
+        // 3) Matching
+        //   angeschrieben & registriert = angeschriebener Betrieb, dessen
+        //     E-Mail einem registrierten Nutzer entspricht.
+        const contactedRegistered = contacted
+            .filter(p => p.email && userByEmail.has(norm(p.email)))
+            .map(p => ({ ...p, reg: userByEmail.get(norm(p.email)) }));
+        //   organisch = Provider-Konto, dessen E-Mail NICHT angeschrieben wurde.
+        const organic = users
+            .filter(u => u.role === 'provider' && !contactedEmails.has(norm(u.email)));
+
+        const contactedTotal = contacted.length;
+        const conversion = contactedTotal ? Math.round(contactedRegistered.length / contactedTotal * 100) : 0;
+
+        kpis.innerHTML = `
+            <div class="stat-card"><div class="stat-icon">📨</div>
+                <div class="stat-value">${contactedTotal}</div><div class="stat-label">Angeschrieben (CleverReach)</div></div>
+            <div class="stat-card" style="border-top:3px solid #16a34a;"><div class="stat-icon">✅</div>
+                <div class="stat-value">${contactedRegistered.length}</div><div class="stat-label">Angeschrieben &amp; registriert</div></div>
+            <div class="stat-card"><div class="stat-icon">📈</div>
+                <div class="stat-value">${conversion}%</div><div class="stat-label">Conversion-Rate</div></div>
+            <div class="stat-card" style="border-top:3px solid #9333ea;"><div class="stat-icon">🌱</div>
+                <div class="stat-value">${organic.length}</div><div class="stat-label">Organisch registriert</div></div>
+        `;
+
+        const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('de-DE') : '—';
+
+        // Tabelle „Angeschrieben & registriert"
+        if (contactedHost) {
+            const rows = contactedRegistered
+                .slice()
+                .sort((a, b) => new Date(b.reg?.created_at || 0) - new Date(a.reg?.created_at || 0));
+            contactedHost.innerHTML = rows.length ? `<table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <thead><tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0; text-align:left;">
+                    <th style="padding:10px;">Betrieb</th><th style="padding:10px;">Ort</th>
+                    <th style="padding:10px;">E-Mail</th><th style="padding:10px;">Angeschrieben</th>
+                    <th style="padding:10px;">Registriert</th>
+                </tr></thead><tbody>${rows.map(p => `
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:10px;"><strong>${escapeHtml(p.name || '—')}</strong></td>
+                        <td style="padding:10px;">${escapeHtml([p.city, p.country].filter(Boolean).join(', ') || '—')}</td>
+                        <td style="padding:10px; color:#64748b;">${escapeHtml(p.email || '—')}</td>
+                        <td style="padding:10px; color:#64748b;">${fmt(p.cleverreach_synced_at)}</td>
+                        <td style="padding:10px;">${fmt(p.reg?.created_at)}</td>
+                    </tr>`).join('')}</tbody></table>`
+                : '<p style="color:#94a3b8; padding:8px;">Keine Einträge.</p>';
+        }
+
+        // Tabelle „Organisch registriert" (Provider-Konten ohne Outreach)
+        if (organicHost) {
+            const rows = organic
+                .slice()
+                .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+            organicHost.innerHTML = rows.length ? `<table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <thead><tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0; text-align:left;">
+                    <th style="padding:10px;">Name</th><th style="padding:10px;">E-Mail</th>
+                    <th style="padding:10px;">Registriert</th>
+                </tr></thead><tbody>${rows.map(u => `
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:10px;"><strong>${escapeHtml(u.full_name || '—')}</strong></td>
+                        <td style="padding:10px; color:#64748b;">${escapeHtml(u.email || '—')}</td>
+                        <td style="padding:10px;">${fmt(u.created_at)}</td>
+                    </tr>`).join('')}</tbody></table>`
+                : '<p style="color:#94a3b8; padding:8px;">Keine Einträge.</p>';
+        }
+
+        if (hint) hint.textContent = `${contactedTotal} angeschrieben · ${users.length} registrierte Nutzer · Stand ${new Date().toLocaleString('de-DE')}`;
+    } catch (e) {
+        console.error('loadRegistrations:', e);
+        if (hint) hint.textContent = 'Fehler: ' + (e?.message || e);
+        if (contactedHost) contactedHost.innerHTML = `<p style="color:#dc2626;">Fehler beim Laden: ${escapeHtml(e?.message || String(e))}</p>`;
+    }
+}
+window.loadRegistrations = loadRegistrations;
 
 // ============================================
 // NEUE BETRIEBE (von Nutzern eingereicht: user_id IS NOT NULL)
@@ -521,12 +795,12 @@ async function loadNewProviders() {
     container.innerHTML = '<p>Wird geladen...</p>';
 
     try {
-        // NUR User-Einreichungen: user_id IS NOT NULL
-        // Admin-importierte Provider haben user_id = NULL
+        // NUR noch nicht genehmigte Einreichungen: is_approved = false.
+        // (Frueher fälschlich user_id IS NOT NULL → erfasste jeden Betrieb mit Owner.)
         const { data, error } = await supabaseClient
             .from('service_providers')
             .select('id, name, category, street, city, phone, email, website, latitude, longitude, brands, description, user_id, created_at')
-            .not('user_id', 'is', null)
+            .eq('is_approved', false)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -581,10 +855,11 @@ async function loadNewProviders() {
 async function approveNewProvider(providerId) {
     if (!confirm('Betrieb genehmigen? Er bleibt auf der Karte sichtbar und verschwindet aus dieser Liste.')) return;
     try {
-        // user_id auf null setzen → verschwindet aus "Neue Betriebe"-Liste, bleibt auf Karte
+        // is_approved = true → verschwindet aus "Neue Betriebe", Owner-Verknüpfung
+        // (user_id) bleibt erhalten.
         const { error } = await supabaseClient
             .from('service_providers')
-            .update({ user_id: null })
+            .update({ is_approved: true })
             .eq('id', providerId);
         if (error) throw error;
         console.log(`✅ Betrieb ${providerId} genehmigt`);
@@ -1602,6 +1877,18 @@ function showEditForm(provider) {
                         🗺️ In Google Maps suchen
                     </button>
                 </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+                    <button type="button" class="btn-secondary" onclick="geoParseIntoForm('edit-provider-form')" style="flex:1; min-width:180px;">
+                        ✂️ Adresse aufteilen (Straße → PLZ/Stadt/Land)
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="geoGoogleEditForm()" style="flex:1; min-width:180px;">
+                        🌍 Google (Notfall)
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="geoTogglePicker('edit-provider-map','edit-provider-form')" style="flex:1; min-width:180px;">
+                        📍 Pin manuell setzen / verschieben
+                    </button>
+                </div>
+                <div id="edit-provider-map" style="display:none; height:300px; margin-top:8px; border:1px solid #e2e8f0; border-radius:8px; z-index:0;"></div>
                 <div id="geocode-edit-status" style="font-size:12px; color:#555; margin-top:8px; line-height:1.4;"></div>
                 <div style="font-size:11px; color:#888; margin-top:6px; border-top:1px solid #e2e8f0; padding-top:6px;">
                     💡 Für "Zone Technique", Häfen etc.: Google Maps öffnen → rechte Maustaste auf den genauen Ort → Koordinaten kopieren → oben eintragen
@@ -1691,6 +1978,8 @@ async function updateProvider(providerId) {
     // 2) Erfolg — Reloads sind „best effort" und dürfen das Speichern NICHT als Fehler melden.
     alert('✅ Provider erfolgreich aktualisiert!');
     document.getElementById('provider-modal').classList.remove('active');
+    // Änderung automatisch an CleverReach durchreichen (best-effort).
+    autoPushProviderToCleverReach(providerId);
     try {
         _invalidateProviderCache();
         loadProviders();
@@ -1797,7 +2086,7 @@ async function geocodeAddress() {
     if (btn) { btn.disabled = true; btn.textContent = '⏳ Suche…'; }
 
     const nominatimFetch = async (params) => {
-        const url = 'https://nominatim.openstreetmap.org/search?' + params + '&format=json&limit=1';
+        const url = 'https://nominatim.openstreetmap.org/search?' + params + '&format=json&limit=1&addressdetails=1';
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return await response.json();
@@ -1828,7 +2117,10 @@ async function geocodeAddress() {
         if (data?.length) {
             form.querySelector('input[name="latitude"]').value  = data[0].lat;
             form.querySelector('input[name="longitude"]').value = data[0].lon;
-            alert(`✅ Koordinaten gefunden:\n${data[0].lat}, ${data[0].lon}\n${data[0].display_name}`);
+            const prec = geoPrecision(data[0]);
+            geoUpdatePicker('add-provider-map', parseFloat(data[0].lat), parseFloat(data[0].lon));
+            alert(`✅ Koordinaten: ${data[0].lat}, ${data[0].lon}\n${prec.label}\n${data[0].display_name}`
+                + (prec.level !== 'exact' ? '\n\n→ Bitte per „🗺️ Auf Karte" den Pin genau setzen.' : ''));
         } else {
             alert('❌ Keine Koordinaten gefunden für:\n' + fullAddress);
         }
@@ -1861,7 +2153,7 @@ async function geocodeForEditForm() {
 
     // Hinweis: User-Agent darf vom Browser nicht gesetzt werden (forbidden header)
     const nominatimFetch = async (params) => {
-        const url = 'https://nominatim.openstreetmap.org/search?' + params + '&format=json&limit=1';
+        const url = 'https://nominatim.openstreetmap.org/search?' + params + '&format=json&limit=1&addressdetails=1';
         console.log('Nominatim Anfrage:', url);
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -1898,8 +2190,10 @@ async function geocodeForEditForm() {
         if (data && data.length > 0) {
             form.querySelector('input[name="latitude"]').value = data[0].lat;
             form.querySelector('input[name="longitude"]').value = data[0].lon;
-            const preview = data[0].display_name.length > 70 ? data[0].display_name.substring(0, 70) + '…' : data[0].display_name;
-            if (statusEl) statusEl.textContent = `✅ ${data[0].lat}, ${data[0].lon} — ${preview}`;
+            const prec = geoPrecision(data[0]);
+            geoUpdatePicker('edit-provider-map', parseFloat(data[0].lat), parseFloat(data[0].lon));
+            const preview = data[0].display_name.length > 55 ? data[0].display_name.substring(0, 55) + '…' : data[0].display_name;
+            if (statusEl) statusEl.textContent = `${prec.label} · ${data[0].lat}, ${data[0].lon} — ${preview}`;
         } else {
             if (statusEl) statusEl.textContent = '❌ Keine Koordinaten gefunden – bitte Adresse prüfen';
             console.warn('Nominatim: Keine Ergebnisse für:', fullAddress);
@@ -1909,6 +2203,219 @@ async function geocodeForEditForm() {
         if (statusEl) statusEl.textContent = '❌ Fehler beim Geocoding: ' + error.message;
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// GEO-HILFEN: Adresse aufteilen + Land erkennen · Genauigkeit · Pin-Karte
+// ═══════════════════════════════════════════════════════════════════
+const GEO_COUNTRY_MAP = {
+    france:'Frankreich', frankreich:'Frankreich', fr:'Frankreich',
+    deutschland:'Deutschland', germany:'Deutschland', de:'Deutschland',
+    italia:'Italien', italy:'Italien', italien:'Italien', it:'Italien',
+    'españa':'Spanien', espana:'Spanien', spain:'Spanien', spanien:'Spanien', es:'Spanien',
+    nederland:'Niederlande', netherlands:'Niederlande', niederlande:'Niederlande', nl:'Niederlande',
+    'österreich':'Österreich', oesterreich:'Österreich', austria:'Österreich', at:'Österreich',
+    schweiz:'Schweiz', switzerland:'Schweiz', suisse:'Schweiz', ch:'Schweiz',
+    croatia:'Kroatien', hrvatska:'Kroatien', kroatien:'Kroatien', hr:'Kroatien',
+    greece:'Griechenland', griechenland:'Griechenland', gr:'Griechenland',
+    belgium:'Belgien', belgique:'Belgien', 'belgië':'Belgien', be:'Belgien',
+    portugal:'Portugal', pt:'Portugal',
+};
+
+/** Zerlegt "Rue de l'Artisanat, 83400 Hyères, France" → {street, postal, city, country}. */
+function geoSplitAddress(raw) {
+    const parts = (raw || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (parts.length < 2) return null;
+    let street = '', postal = '', city = '', country = '';
+    const last = parts[parts.length - 1].toLowerCase();
+    if (GEO_COUNTRY_MAP[last]) { country = GEO_COUNTRY_MAP[last]; parts.pop(); }
+    for (let i = parts.length - 1; i >= 0; i--) {
+        const m = parts[i].match(/^(\d{4,6})\s+(.+)$/) || parts[i].match(/^(.+?)\s+(\d{4,6})$/);
+        if (m) {
+            if (/^\d/.test(m[1])) { postal = m[1]; city = m[2].trim(); }
+            else { city = m[1].trim(); postal = m[2]; }
+            parts.splice(i, 1); break;
+        }
+    }
+    street = parts.join(', ');
+    return { street, postal, city, country };
+}
+
+/** Teilt die "Straße"-Volladresse eines Formulars in die Einzelfelder auf. */
+function geoParseIntoForm(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    const streetEl = form.querySelector('[name="street"]');
+    const raw = (streetEl?.value || '').trim();
+    if (!raw.includes(',')) { alert('In „Straße" steht keine kombinierte Adresse (keine Kommas) — nichts aufzuteilen.'); return; }
+    const r = geoSplitAddress(raw);
+    if (!r) { alert('Adresse konnte nicht aufgeteilt werden.'); return; }
+    const set = (name, val) => { const el = form.querySelector(`[name="${name}"]`); if (el && val) el.value = val; };
+    if (r.street) streetEl.value = r.street;
+    set('postal_code', r.postal); set('city', r.city); set('country', r.country);
+    alert(`Aufgeteilt — bitte prüfen:\nStraße: ${r.street}\nPLZ: ${r.postal || '—'}\nStadt: ${r.city || '—'}\nLand: ${r.country || '—'}\n\nDann „Geocode" oder den Pin verschieben.`);
+}
+window.geoParseIntoForm = geoParseIntoForm;
+
+/** Schätzt die Genauigkeit eines Nominatim-Treffers (addressdetails nötig). */
+function geoPrecision(res) {
+    if (!res) return { level: 'none', label: 'kein Treffer' };
+    const rank = Number(res.place_rank || 0);
+    const at = (res.addresstype || res.type || '').toLowerCase();
+    const hasHouse = !!(res.address && res.address.house_number);
+    if (hasHouse || rank >= 30 || at === 'house' || at === 'building') return { level: 'exact', label: '🎯 hausnummer-genau' };
+    if (rank >= 26 || at === 'road') return { level: 'street', label: '⚠️ nur Straßen-genau — Pin prüfen' };
+    return { level: 'coarse', label: '⚠️ nur Orts-/PLZ-genau — bitte Pin setzen' };
+}
+
+// ─── Draggable Pin (Leaflet) ───
+const _geoPickers = {};
+function geoTogglePicker(mapDivId, formId) {
+    const el = document.getElementById(mapDivId);
+    if (!el) return;
+    const show = !el.style.display || el.style.display === 'none';
+    el.style.display = show ? 'block' : 'none';
+    if (show) geoInitPicker(mapDivId, formId);
+}
+window.geoTogglePicker = geoTogglePicker;
+
+function geoInitPicker(mapDivId, formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    geoInitPickerEls(mapDivId, form.querySelector('[name="latitude"]'), form.querySelector('[name="longitude"]'));
+}
+
+function geoInitPickerEls(mapDivId, latEl, lonEl) {
+    if (!document.getElementById(mapDivId) || typeof L === 'undefined') return;
+    const lat = parseFloat(latEl?.value), lon = parseFloat(lonEl?.value);
+    const hasCoords = !isNaN(lat) && !isNaN(lon);
+    const center = hasCoords ? [lat, lon] : [46.5, 6.5];
+    if (_geoPickers[mapDivId]) { try { _geoPickers[mapDivId].remove(); } catch (e) {} }
+    const map = L.map(mapDivId).setView(center, hasCoords ? 16 : 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+    const marker = L.marker(center, { draggable: true }).addTo(map);
+    const sync = (ll) => { if (latEl) latEl.value = ll.lat.toFixed(6); if (lonEl) lonEl.value = ll.lng.toFixed(6); };
+    marker.on('dragend', () => sync(marker.getLatLng()));
+    map.on('click', (e) => { marker.setLatLng(e.latlng); sync(e.latlng); });
+    _geoPickers[mapDivId] = map; map._geoMarker = marker;
+    setTimeout(() => map.invalidateSize(), 150);
+}
+
+/** Pin nach einem Geocode auf die neuen Koordinaten setzen (falls Karte offen). */
+function geoUpdatePicker(mapDivId, lat, lon) {
+    const map = _geoPickers[mapDivId];
+    if (!map || !map._geoMarker || isNaN(lat) || isNaN(lon)) return;
+    map._geoMarker.setLatLng([lat, lon]); map.setView([lat, lon], 16);
+    setTimeout(() => map.invalidateSize(), 100);
+}
+
+// ─── Provider-Bearbeiten-Modal (saveProviderModal, edit-* IDs) ───
+function geoParseEditModal() {
+    const streetEl = document.getElementById('edit-street');
+    const raw = (streetEl?.value || '').trim();
+    if (!raw.includes(',')) { alert('In „Straße" steht keine kombinierte Adresse (keine Kommas) — nichts aufzuteilen.'); return; }
+    const r = geoSplitAddress(raw);
+    if (!r) { alert('Adresse konnte nicht aufgeteilt werden.'); return; }
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+    if (r.street) streetEl.value = r.street;
+    set('edit-postal', r.postal); set('edit-city', r.city); set('edit-country', r.country);
+    alert(`Aufgeteilt — bitte prüfen:\nStraße: ${r.street}\nPLZ: ${r.postal || '—'}\nStadt: ${r.city || '—'}\nLand: ${r.country || '—'}\n\nDann „Neu geocodieren" oder den Pin verschieben.`);
+}
+window.geoParseEditModal = geoParseEditModal;
+
+function geoTogglePickerModal() {
+    const el = document.getElementById('edit-modal-map');
+    if (!el) return;
+    const show = !el.style.display || el.style.display === 'none';
+    el.style.display = show ? 'block' : 'none';
+    if (show) geoInitPickerEls('edit-modal-map', document.getElementById('edit-latitude'), document.getElementById('edit-longitude'));
+}
+window.geoTogglePickerModal = geoTogglePickerModal;
+
+async function geocodeEditModal() {
+    const g = (id) => (document.getElementById(id)?.value || '').trim();
+    const street = g('edit-street'), postal = g('edit-postal'), city = g('edit-city'), country = g('edit-country');
+    const statusEl = document.getElementById('edit-modal-geo-status');
+    if (!city) { if (statusEl) statusEl.textContent = '❌ Bitte mindestens eine Stadt angeben.'; return; }
+    if (statusEl) statusEl.textContent = '⏳ Suche Koordinaten…';
+    const fetchN = async (params) => {
+        const res = await fetch('https://nominatim.openstreetmap.org/search?' + params + '&format=json&limit=1&addressdetails=1');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+    };
+    try {
+        const sp = new URLSearchParams();
+        if (street) sp.set('street', street);
+        if (postal) sp.set('postalcode', postal);
+        if (city) sp.set('city', city);
+        if (country) sp.set('country', country);
+        let data = await fetchN(sp.toString());
+        if (!data?.length) data = await fetchN('q=' + encodeURIComponent([street, postal, city, country].filter(Boolean).join(', ')));
+        if (data?.length) {
+            document.getElementById('edit-latitude').value = data[0].lat;
+            document.getElementById('edit-longitude').value = data[0].lon;
+            const prec = geoPrecision(data[0]);
+            geoUpdatePicker('edit-modal-map', parseFloat(data[0].lat), parseFloat(data[0].lon));
+            if (statusEl) statusEl.textContent = `${prec.label} · ${data[0].lat}, ${data[0].lon}`
+                + (prec.level !== 'exact' ? ' — bitte Pin prüfen' : '');
+        } else if (statusEl) {
+            statusEl.textContent = '❌ Keine Koordinaten gefunden — bitte Pin manuell setzen.';
+        }
+    } catch (e) {
+        if (statusEl) statusEl.textContent = '❌ Fehler: ' + e.message;
+    }
+}
+window.geocodeEditModal = geocodeEditModal;
+
+// ─── Google Geocoding (Notfall, präziser) über das Fly-Backend ───
+async function geoGoogleCore(vals, setCoords, statusFn, mapDivId) {
+    statusFn('⏳ Google Geocoding (Notfall) …');
+    try {
+        const resp = await fetch(`${SCRAPER_URL}/api/geocode-google`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(vals),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) { statusFn('❌ Google: ' + (data.error || ('HTTP ' + resp.status))); return; }
+        if (!data.found) { statusFn('❌ Google: keine Koordinaten gefunden'); return; }
+        setCoords(data.lat, data.lon);
+        if (mapDivId) geoUpdatePicker(mapDivId, parseFloat(data.lat), parseFloat(data.lon));
+        const lt = data.location_type === 'ROOFTOP' ? '🎯 exakt (Google ROOFTOP)'
+            : data.location_type === 'RANGE_INTERPOLATED' ? '📏 interpoliert (Google)'
+            : '⚠️ ungefähr (Google ' + (data.location_type || '?') + ')';
+        statusFn(`${lt} · ${data.lat}, ${data.lon}\n${data.formatted_address || ''}`);
+    } catch (e) { statusFn('❌ Google-Fehler: ' + e.message); }
+}
+
+function geoGoogleAddForm() {
+    const form = document.getElementById('add-provider-form'); if (!form) return;
+    const g = (n) => (form.querySelector(`[name="${n}"]`)?.value || '').trim();
+    geoGoogleCore(
+        { street: g('street'), postal_code: g('postal_code'), city: g('city'), country: g('country') },
+        (lat, lon) => { form.querySelector('[name="latitude"]').value = lat; form.querySelector('[name="longitude"]').value = lon; },
+        (m) => alert(m), 'add-provider-map');
+}
+window.geoGoogleAddForm = geoGoogleAddForm;
+
+function geoGoogleEditForm() {
+    const form = document.getElementById('edit-provider-form'); if (!form) return;
+    const g = (n) => (form.querySelector(`[name="${n}"]`)?.value || '').trim();
+    const st = document.getElementById('geocode-edit-status');
+    geoGoogleCore(
+        { street: g('street'), postal_code: g('postal_code'), city: g('city'), country: g('country') },
+        (lat, lon) => { form.querySelector('[name="latitude"]').value = lat; form.querySelector('[name="longitude"]').value = lon; },
+        (m) => { if (st) st.textContent = m; }, 'edit-provider-map');
+}
+window.geoGoogleEditForm = geoGoogleEditForm;
+
+function geoGoogleEditModal() {
+    const g = (id) => (document.getElementById(id)?.value || '').trim();
+    const st = document.getElementById('edit-modal-geo-status');
+    geoGoogleCore(
+        { street: g('edit-street'), postal_code: g('edit-postal'), city: g('edit-city'), country: g('edit-country') },
+        (lat, lon) => { document.getElementById('edit-latitude').value = lat; document.getElementById('edit-longitude').value = lon; },
+        (m) => { if (st) st.textContent = m; }, 'edit-modal-map');
+}
+window.geoGoogleEditModal = geoGoogleEditModal;
 
 function openGoogleMapsForProvider() {
     const form = document.getElementById('edit-provider-form');
@@ -6141,6 +6648,7 @@ async function importSelectedScrapingResults() {
     if (!confirm(`${selected.length} Betriebe importieren?`)) return;
 
     let imported = 0, errors = 0;
+    const importedIds = [];
 
     for (const p of selected) {
         const data = {
@@ -6163,19 +6671,24 @@ async function importSelectedScrapingResults() {
         };
 
         try {
-            const { error } = await supabaseClient.from('service_providers').insert([data]);
+            const { data: ins, error } = await supabaseClient
+                .from('service_providers').insert([data]).select('id').single();
             if (error) {
                 console.error(`Import-Fehler für ${p.name}:`, error);
                 errors++;
             } else {
                 imported++;
                 p.id = 'imported'; // Markiere als importiert
+                if (ins?.id) importedIds.push(ins.id);
             }
         } catch (e) {
             console.error(`Import-Fehler für ${p.name}:`, e);
             errors++;
         }
     }
+
+    // Neu eingepflegte Provider gesammelt an CleverReach durchreichen (best-effort).
+    if (importedIds.length > 0) autoPushProviderToCleverReach(importedIds);
 
     alert(`✅ ${imported} importiert` + (errors > 0 ? `\n❌ ${errors} Fehler` : ''));
     renderScrapingTable(); // Tabelle aktualisieren (Status-Spalte)
@@ -6272,6 +6785,7 @@ async function loadAllMapProviders() {
                 .from('service_providers')
                 .select('*')
                 .order('name')
+                .order('id', { ascending: true })   // eindeutiger Tiebreaker -> stabile Pagination
                 .range(from, from + batchSize - 1);
 
             if (error) throw error;
@@ -7918,41 +8432,78 @@ async function loadUsers() {
     const tbody = document.getElementById('users-body');
     if (!tbody || !supabaseClient) return;
 
-    tbody.innerHTML = '<tr><td colspan="8" style="padding:24px; text-align:center; color:#94a3b8;">Wird geladen…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="padding:24px; text-align:center; color:#94a3b8;">Wird geladen…</td></tr>';
 
     try {
         const { data, error } = await supabaseClient.rpc('admin_list_users');
         if (error) throw error;
 
         allUsers = data || [];
+
+        // Rollen-Trennung: welche User sind Provider (Betriebs-Owner ODER
+        // eingeladenes Mitglied)? Eigner = hat Boote. Ein User kann beides sein.
+        const providerUserIds = new Set();
+        try {
+            const { data: sp } = await supabaseClient
+                .from('service_providers').select('user_id').not('user_id', 'is', null);
+            (sp || []).forEach(r => r.user_id && providerUserIds.add(r.user_id));
+        } catch (e) { console.warn('service_providers (Rollen) nicht lesbar:', e?.message); }
+        try {
+            const { data: pm } = await supabaseClient
+                .from('provider_members').select('user_id').not('user_id', 'is', null);
+            (pm || []).forEach(r => r.user_id && providerUserIds.add(r.user_id));
+        } catch (e) { /* provider_members evtl. nicht admin-lesbar — egal */ }
+
+        allUsers.forEach(u => {
+            u.is_provider = providerUserIds.has(u.id);
+            u.is_owner = Number(u.boats_count) > 0;
+        });
+
         updateUsersStats(allUsers);
         renderUsers(allUsers);
     } catch (err) {
         console.error('loadUsers Fehler:', err);
-        tbody.innerHTML = `<tr><td colspan="8" style="padding:24px; text-align:center; color:#dc2626;">Fehler: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="padding:24px; text-align:center; color:#dc2626;">Fehler: ${err.message}</td></tr>`;
     }
 }
 
 function updateUsersStats(users) {
     const total = users.length;
     const admins = users.filter(u => u.role === 'admin').length;
-    const readonly = users.filter(u => u.role === 'admin_readonly').length;
-    const withBoats = users.filter(u => Number(u.boats_count) > 0).length;
+    const owners = users.filter(u => u.is_owner).length;
+    const providers = users.filter(u => u.is_provider).length;
 
     document.getElementById('users-total').textContent = total;
     document.getElementById('users-admins').textContent = admins;
-    document.getElementById('users-readonly').textContent = readonly;
-    document.getElementById('users-with-boats').textContent = withBoats;
+    // users-readonly-Karte wird als "Eigner" umgewidmet, users-with-boats als "Provider"
+    const roEl = document.getElementById('users-readonly');
+    if (roEl) roEl.textContent = owners;
+    const wbEl = document.getElementById('users-with-boats');
+    if (wbEl) wbEl.textContent = providers;
+}
+
+function typeBadges(u) {
+    const badge = (txt, color, bg) =>
+        `<span style="display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; color:${color}; background:${bg}; margin-right:4px;">${txt}</span>`;
+    const parts = [];
+    if (u.is_owner)    parts.push(badge('🚤 Eigner',   '#075985', '#e0f2fe'));
+    if (u.is_provider) parts.push(badge('🔧 Provider', '#166534', '#dcfce7'));
+    return parts.join('') || '<span style="color:#94a3b8; font-size:12px;">—</span>';
 }
 
 function searchUsers() {
     const q = (document.getElementById('users-search')?.value || '').trim().toLowerCase();
     const roleFilter = document.getElementById('users-role-filter')?.value || '';
+    const typeFilter = document.getElementById('users-type-filter')?.value || '';
     const filtered = allUsers.filter(u => {
         if (roleFilter && u.role !== roleFilter) return false;
+        if (typeFilter === 'owner'    && !u.is_owner) return false;
+        if (typeFilter === 'provider' && !u.is_provider) return false;
+        if (typeFilter === 'both'     && !(u.is_owner && u.is_provider)) return false;
         if (!q) return true;
         return (u.email || '').toLowerCase().includes(q) ||
-               (u.full_name || '').toLowerCase().includes(q);
+               (u.full_name || '').toLowerCase().includes(q) ||
+               String(u.customer_number ?? '').includes(q);
     });
     renderUsers(filtered);
 }
@@ -7983,7 +8534,7 @@ function renderUsers(users) {
     if (!tbody) return;
 
     if (users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="padding:24px; text-align:center; color:#94a3b8;">Keine Benutzer gefunden.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="padding:24px; text-align:center; color:#94a3b8;">Keine Benutzer gefunden.</td></tr>';
         return;
     }
 
@@ -7999,7 +8550,8 @@ function renderUsers(users) {
         return `
             <tr style="border-bottom:1px solid #f1f5f9;">
                 <td style="padding:10px 12px;"><code style="font-size:12px;">${escapeHtml(u.email || '—')}</code>${isSelf ? ' <span style="font-size:11px; color:#16a34a;">(Sie)</span>' : ''}</td>
-                <td style="padding:10px 12px;">${escapeHtml(u.full_name || '—')}</td>
+                <td style="padding:10px 12px;"><code style="font-size:12px; color:#0f172a;">${u.customer_number ?? '—'}</code></td>
+                <td style="padding:10px 12px;">${escapeHtml(u.full_name || '—')}<div style="margin-top:4px;">${typeBadges(u)}</div></td>
                 <td style="padding:10px 12px;">
                     ${isReadonly || isSelf
                         ? roleBadge(u.role)
@@ -8017,8 +8569,8 @@ function renderUsers(users) {
                     ${!isReadonly
                         ? `<button onclick="window.grantPlusPrompt('${u.id}', '${escapeHtml(u.email || '')}')"
                                    style="padding:6px 10px; background:#f3e8ff; color:#7e22ce; border:1px solid #e9d5ff; border-radius:6px; font-size:12px; cursor:pointer; margin-right:6px;"
-                                   title="Skipily Plus gewähren (z.B. Custom-Vertrag bei mehr als 10 Booten)">
-                            ⭐ Plus
+                                   title="Skipily-Abo gewähren: Basic oder Plus (z.B. Custom-Vertrag bei mehr als 10 Booten)">
+                            ⭐ Abo
                           </button>
                           <button onclick="window.revokePlusPrompt('${u.id}', '${escapeHtml(u.email || '')}')"
                                    style="padding:6px 10px; background:#fef3c7; color:#854d0e; border:1px solid #fde68a; border-radius:6px; font-size:12px; cursor:pointer; margin-right:6px;"
@@ -8109,17 +8661,19 @@ window.sendPasswordReset = sendPasswordReset;
 // ─── Skipily-Plus für User gewähren (Custom-Vertrag oder Test) ──────────
 async function grantPlusPrompt(userId, email) {
     const plan = prompt(
-        `Skipily-Plus für "${email}" gewähren.\n\n` +
+        `Skipily-Abo für "${email}" gewähren.\n\n` +
         `Welcher Plan?\n` +
-        `  1 = Individual (1 User, alle Boote)\n` +
-        `  2 = Family (1 Boot, bis 5 User)\n` +
-        `  3 = Fleet (1 User, bis 4 Boote)\n` +
-        `  4 = Enterprise (Custom, viele Boote)\n\n` +
-        `Bitte 1-4 eingeben:`,
+        `  0 = Basic (günstiger Tarif, 1 User/1 Boot)\n` +
+        `  1 = Plus Individual (1 User, alle Boote)\n` +
+        `  2 = Plus Family (1 Boot, bis 5 User)\n` +
+        `  3 = Plus Fleet (1 User, bis 4 Boote)\n` +
+        `  4 = Plus Enterprise (Custom, viele Boote)\n\n` +
+        `Bitte 0-4 eingeben:`,
         '1'
     );
     if (!plan) return;
     const planMap = {
+        '0': 'basic',
         '1': 'plus_individual',
         '2': 'plus_family',
         '3': 'plus_fleet',
@@ -8414,6 +8968,36 @@ async function loadMarketAnalysis() {
     }
 }
 window.loadMarketAnalysis = loadMarketAnalysis;
+
+// Öffnet die Marktanalyse und sorgt dafür, dass die Zahlen AKTUELL sind.
+// Die Ansicht liest Tages-Snapshots (market_snapshots) — ohne frischen
+// Snapshot „reagiert sie nicht auf Veränderungen". Deshalb erzeugen wir beim
+// Öffnen automatisch einen Snapshot für HEUTE, falls noch keiner existiert
+// (idempotent dank Dedup). Mit force=true (Button „Neu laden") wird immer
+// neu berechnet. Fehlt die Voll-Admin-Rolle (admin_readonly), wird der
+// Snapshot übersprungen und der letzte vorhandene Stand angezeigt.
+async function openMarketAnalysis({ force = false } = {}) {
+    const banner = document.getElementById('market-last-update');
+    try {
+        let needSnapshot = force;
+        if (!force) {
+            const rows  = await _fetchTrend('users_total', 2, 'all');
+            const latest = rows.reduce((m, r) => r.snapshot_date > m ? r.snapshot_date : m, '');
+            const today  = new Date().toISOString().slice(0, 10);
+            needSnapshot = latest !== today;
+        }
+        if (needSnapshot) {
+            if (banner) banner.textContent = '⏳ Aktualisiere Snapshot …';
+            const { error } = await supabaseClient.rpc('admin_run_market_snapshot');
+            if (error) throw error;
+        }
+    } catch (err) {
+        // Kein Voll-Admin oder Snapshot-Fehler → letzten Stand anzeigen.
+        console.warn('Marktanalyse Auto-Snapshot übersprungen:', err.message);
+    }
+    await loadMarketAnalysis();
+}
+window.openMarketAnalysis = openMarketAnalysis;
 
 async function runMarketSnapshot() {
     const btn = document.getElementById('snapshot-now-btn');
@@ -9217,6 +9801,7 @@ async function loadCustomers() {
                     stripe_charges_enabled, stripe_payouts_enabled
                 `)
                 .order('name', { ascending: true })
+                .order('id', { ascending: true })   // eindeutiger Tiebreaker -> stabile Pagination
                 .range(from, to);
             if (pageErr) throw pageErr;
             const batch = data || [];
@@ -9254,8 +9839,9 @@ async function loadProductCountsBackground() {
         for (let from = 0; ; from += PAGE) {
             const { data, error } = await supabaseClient
                 .from('metashop_products')
-                .select('provider_id')
+                .select('provider_id, id')
                 .eq('is_active', true)
+                .order('id', { ascending: true })   // stabile Pagination (sonst Counts falsch)
                 .range(from, from + PAGE - 1);
             if (error) { console.warn('Produkt-Counts:', error); return; }
             if (!data || data.length === 0) break;
@@ -9416,7 +10002,7 @@ async function openProviderModal(providerId) {
     try {
         const { data, error } = await supabaseClient
             .from('service_providers')
-            .select('description, street, postal_code, phone, email, website, brands, services')
+            .select('description, street, postal_code, phone, email, website, brands, services, latitude, longitude')
             .eq('id', providerId)
             .single();
         if (error) throw error;
@@ -9429,6 +10015,15 @@ async function openProviderModal(providerId) {
         document.getElementById('edit-website').value     = data.website || '';
         document.getElementById('edit-brands').value      = (data.brands   || []).join(', ');
         document.getElementById('edit-services').value    = (data.services || []).join(', ');
+        // Standort laden + Karte zurücksetzen (frisch beim nächsten Öffnen)
+        const _latEl = document.getElementById('edit-latitude');
+        const _lonEl = document.getElementById('edit-longitude');
+        if (_latEl) _latEl.value = data.latitude ?? '';
+        if (_lonEl) _lonEl.value = data.longitude ?? '';
+        const _mapEl = document.getElementById('edit-modal-map');
+        if (_mapEl) _mapEl.style.display = 'none';
+        const _geoStat = document.getElementById('edit-modal-geo-status');
+        if (_geoStat) _geoStat.textContent = '';
     } catch (err) {
         console.warn('Detail-Felder laden fehlgeschlagen:', err);
     }
@@ -10031,6 +10626,11 @@ async function saveProviderModal() {
             services:       parseCsv(document.getElementById('edit-services').value),
             is_shop_active: document.getElementById('edit-shop-active').checked,
         };
+        // Standort (manuell/Pin/Geocode) mitspeichern
+        const _latV = parseFloat(document.getElementById('edit-latitude')?.value);
+        const _lonV = parseFloat(document.getElementById('edit-longitude')?.value);
+        payload.latitude  = isNaN(_latV) ? null : _latV;
+        payload.longitude = isNaN(_lonV) ? null : _lonV;
         // Provision: leeres Feld = kein Override (Modell greift). Sonst Override.
         const _ovRaw = document.getElementById('edit-commission').value.trim();
         payload.commission_override = _ovRaw === '' ? null : (parseFloat(_ovRaw) || 0);
@@ -10045,6 +10645,9 @@ async function saveProviderModal() {
 
         // Effektiven Satz (commission_rate) nach dem Speichern neu berechnen
         await supabaseClient.rpc('recompute_commission_rate', { p_id: _editingProvider.id });
+
+        // Änderung automatisch an CleverReach durchreichen (best-effort).
+        autoPushProviderToCleverReach(_editingProvider.id);
 
         await reloadProviderInCache(_editingProvider.id);
         refreshCustomers();
@@ -10371,7 +10974,8 @@ function buildDatevCsv(buchungen) {
         origNav.apply(this, arguments);
         if (page === 'invite-admin')      loadAdminList();
         if (page === 'users')             loadUsers();
-        if (page === 'market-analysis')   loadMarketAnalysis();
+        if (page === 'market-analysis')   openMarketAnalysis();
+        if (page === 'registrations')     loadRegistrations();
         if (page === 'review-moderation') loadModerationQueue();
         if (page === 'subscriptions')     loadSubscriptions();
         if (page === 'customers')         loadCustomers();
@@ -10922,6 +11526,151 @@ function renderCleverReachResults(data) {
 
 window.startCleverReachSync = startCleverReachSync;
 window.loadCleverReachStats = loadCleverReachStats;
+
+// ════════════════════════════════════════════════════════════════
+// GEZIELTER PUSH + MANUELLE VERIFIZIERUNG einzelner Provider
+// ════════════════════════════════════════════════════════════════
+
+function crEsc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => (
+        { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]
+    ));
+}
+
+/** Kleiner Status-Badge für den E-Mail-Verifizierungsstatus. */
+function crVerifiedBadge(status) {
+    if (status === 'valid') return '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:10px;font-size:12px;">✓ verifiziert</span>';
+    if (!status)            return '<span style="background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:10px;font-size:12px;">– ungeprüft</span>';
+    return `<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;font-size:12px;">${crEsc(status)}</span>`;
+}
+
+/** Sucht Provider (Name/E-Mail) und rendert sie mit Verify-/Push-Buttons. */
+async function crSearchProviders() {
+    const box = document.getElementById('cr-target-results');
+    const q = (document.getElementById('cr-target-search')?.value || '').trim();
+    if (!box) return;
+    if (q.length < 2) { box.innerHTML = '<span style="color:#94a3b8;">Mindestens 2 Zeichen eingeben.</span>'; return; }
+
+    box.innerHTML = '<span style="color:#94a3b8;">Suche …</span>';
+    try {
+        const like = `%${q}%`;
+        const { data, error } = await supabaseClient
+            .from('service_providers')
+            .select('id,name,email,city,country,email_check_status,cleverreach_synced_at,cleverreach_status')
+            .or(`name.ilike.${like},email.ilike.${like}`)
+            .not('email', 'is', null)
+            .neq('email', '')
+            .order('name')
+            .limit(25);
+        if (error) throw error;
+        if (!data || data.length === 0) { box.innerHTML = '<span style="color:#94a3b8;">Keine Provider mit E-Mail gefunden.</span>'; return; }
+
+        box.innerHTML = data.map(p => {
+            const synced = p.cleverreach_synced_at
+                ? `<span style="color:#166534;font-size:12px;">✓ gepusht ${new Date(p.cleverreach_synced_at).toLocaleDateString('de-DE')}</span>`
+                : '<span style="color:#94a3b8;font-size:12px;">noch nicht gepusht</span>';
+            const isVerified = p.email_check_status === 'valid';
+            return `
+            <div style="border:1px solid #e9d5ff;border-radius:8px;padding:12px;margin-bottom:8px;background:#fff;">
+                <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;">
+                    <div style="min-width:200px;">
+                        <div style="font-weight:600;">${crEsc(p.name || '—')}</div>
+                        <div style="font-size:13px;color:#475569;">${crEsc(p.email)}${p.city ? ' · ' + crEsc(p.city) : ''}${p.country ? ' · ' + crEsc(p.country) : ''}</div>
+                        <div style="margin-top:4px;">${crVerifiedBadge(p.email_check_status)} &nbsp; ${synced}</div>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        ${isVerified ? '' : `<button class="btn-secondary" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:8px 12px;cursor:pointer;" onclick="window.crVerifyProvider('${p.id}')">✅ Verifizieren</button>`}
+                        <button class="btn-primary" style="background:#9333ea;color:#fff;border:none;border-radius:6px;padding:8px 12px;cursor:pointer;" onclick="window.crPushProvider('${p.id}', this)">📤 Jetzt pushen</button>
+                    </div>
+                </div>
+                <div id="cr-target-msg-${p.id}" style="margin-top:8px;font-size:13px;"></div>
+            </div>`;
+        }).join('');
+    } catch (err) {
+        box.innerHTML = `<span style="color:#b91c1c;">Fehler: ${crEsc(err.message || err)}</span>`;
+    }
+}
+
+/** Markiert einen Provider manuell als E-Mail-verifiziert (Status = valid). */
+async function crVerifyProvider(id) {
+    const msg = document.getElementById(`cr-target-msg-${id}`);
+    if (msg) msg.innerHTML = '<span style="color:#64748b;">Verifiziere …</span>';
+    try {
+        const { error } = await supabaseClient
+            .from('service_providers')
+            .update({
+                email_check_status: 'valid',
+                last_email_check_at: new Date().toISOString(),
+                email_check_note: 'Manuell im Admin verifiziert',
+            })
+            .eq('id', id);
+        if (error) throw error;
+        if (msg) msg.innerHTML = '<span style="color:#166534;">✓ Als verifiziert markiert.</span>';
+        // Liste aktualisieren, damit Badge/Buttons stimmen.
+        await crSearchProviders();
+    } catch (err) {
+        if (msg) msg.innerHTML = `<span style="color:#b91c1c;">Fehler: ${crEsc(err.message || err)}</span>`;
+    }
+}
+
+/** Auto-Push: reicht Provider nach dem Speichern/Import automatisch an
+ *  CleverReach durch (gezielt, ohne Verified-Zwang). Best-effort — blockiert
+ *  das Speichern NIE und wirft nicht (nur Log). Akzeptiert eine ID oder Array. */
+async function autoPushProviderToCleverReach(idOrIds) {
+    const ids = (Array.isArray(idOrIds) ? idOrIds : [idOrIds]).filter(Boolean);
+    if (ids.length === 0 || typeof SCRAPER_URL === 'undefined' || !SCRAPER_URL) return;
+    try {
+        const resp = await fetch(`${SCRAPER_URL}/api/cleverreach-sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ groupMode: 'language', providerIds: ids, onlyVerified: false, dryRun: false }),
+        });
+        if (!resp.ok) { console.warn('CleverReach Auto-Push HTTP', resp.status); return; }
+        const data = await resp.json().catch(() => ({}));
+        console.log(`CleverReach Auto-Push (${ids.length} Provider):`, data.counts || data);
+    } catch (err) {
+        console.warn('CleverReach Auto-Push fehlgeschlagen (unkritisch):', err?.message || err);
+    }
+}
+window.autoPushProviderToCleverReach = autoPushProviderToCleverReach;
+
+/** Pusht genau einen Provider sofort in seine CleverReach-Sprachgruppe. */
+async function crPushProvider(id, btn) {
+    const msg = document.getElementById(`cr-target-msg-${id}`);
+    if (btn) btn.disabled = true;
+    if (msg) msg.innerHTML = '<span style="color:#64748b;">Pushe zu CleverReach …</span>';
+    try {
+        const resp = await fetch(`${SCRAPER_URL}/api/cleverreach-sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            // Sprach-Gruppen-Modus (= der empfohlene Sync), gezielt, ohne
+            // Verified-Zwang (der Admin entscheidet bewusst), kein Trockenlauf.
+            body: JSON.stringify({ groupMode: 'language', providerIds: [id], onlyVerified: false, dryRun: false }),
+        });
+        if (!resp.ok) { const t = await resp.text(); throw new Error(`HTTP ${resp.status}: ${t.substring(0, 200)}`); }
+        const data = await resp.json();
+        const c = data.counts || {};
+        if ((c.synced || 0) > 0) {
+            if (msg) msg.innerHTML = '<span style="color:#166534;">✓ Erfolgreich in CleverReach gepusht.</span>';
+        } else if ((c.skipped || 0) > 0) {
+            if (msg) msg.innerHTML = '<span style="color:#92400e;">⏭ Übersprungen — vermutlich keine CleverReach-Gruppe für Sprache/Typ konfiguriert.</span>';
+        } else if ((c.errors || 0) > 0) {
+            const e = (data.results || []).find(r => r.status === 'error');
+            if (msg) msg.innerHTML = `<span style="color:#b91c1c;">❌ Fehler: ${crEsc(e?.error || 'unbekannt')}</span>`;
+        } else {
+            if (msg) msg.innerHTML = '<span style="color:#92400e;">Keine passende E-Mail/Adresse gefunden (evtl. E-Mail leer).</span>';
+        }
+        await crSearchProviders();
+    } catch (err) {
+        if (msg) msg.innerHTML = `<span style="color:#b91c1c;">Fehler: ${crEsc(err.message || err)}</span>`;
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+window.crSearchProviders = crSearchProviders;
+window.crVerifyProvider  = crVerifyProvider;
+window.crPushProvider    = crPushProvider;
 
 // ── NEU: Sprach-Sync in 12 Gruppen (6 Provider + 6 Shop) ──
 let _crLangPollTimer = null;
