@@ -1136,3 +1136,9 @@ Ausrüstung unter Boote ergänzen.";
 "order.deferred_desc" = "Deine Zahlungsdaten sind hinterlegt. Der Betrag wird erst abgebucht, wenn der Anbieter den Versand bestätigt. Danach erhältst du hier deine Rechnung inkl. Widerrufsbelehrung.";
 "order.invoice_title" = "Rechnung";
 "order.invoice_download" = "Rechnung herunterladen";
+
+/* Widerruf / Rueckerstattung */
+"order.withdraw_title" = "Widerruf / Rückerstattung";
+"order.withdraw_desc" = "Du kannst diesen Kauf innerhalb von 14 Tagen ab Erhalt der Ware widerrufen. Der Betrag wird dir vollständig erstattet.";
+"order.withdraw_action" = "Widerruf erklären";
+"order.withdraw_confirm" = "Möchtest du diesen Kauf wirklich widerrufen? Der Betrag wird zurückerstattet.";

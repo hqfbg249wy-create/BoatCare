@@ -1134,3 +1134,9 @@
 "order.deferred_desc" = "Je betaalgegevens zijn opgeslagen. Het bedrag wordt pas afgeschreven zodra de verkoper de verzending bevestigt. Daarna ontvang je hier je factuur, inclusief de informatie over het herroepingsrecht.";
 "order.invoice_title" = "Factuur";
 "order.invoice_download" = "Factuur downloaden";
+
+/* Herroeping / terugbetaling */
+"order.withdraw_title" = "Herroeping / terugbetaling";
+"order.withdraw_desc" = "Je kunt deze aankoop binnen 14 dagen na ontvangst van de goederen herroepen. Het volledige bedrag wordt aan je terugbetaald.";
+"order.withdraw_action" = "Herroeping indienen";
+"order.withdraw_confirm" = "Wil je deze aankoop echt herroepen? Het bedrag wordt terugbetaald.";

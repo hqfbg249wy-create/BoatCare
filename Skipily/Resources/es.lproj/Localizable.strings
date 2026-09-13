@@ -1134,3 +1134,9 @@
 "order.deferred_desc" = "Tus datos de pago están guardados. El importe solo se cobra cuando el vendedor confirma el envío. Después recibirás aquí tu factura, incluida la información sobre el derecho de desistimiento.";
 "order.invoice_title" = "Factura";
 "order.invoice_download" = "Descargar factura";
+
+/* Desistimiento / reembolso */
+"order.withdraw_title" = "Desistimiento / reembolso";
+"order.withdraw_desc" = "Puedes desistir de esta compra en un plazo de 14 días desde la recepción de la mercancía. Se te reembolsará el importe íntegro.";
+"order.withdraw_action" = "Declarar el desistimiento";
+"order.withdraw_confirm" = "¿Seguro que quieres desistir de esta compra? Se reembolsará el importe.";

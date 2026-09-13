@@ -1134,3 +1134,9 @@
 "order.deferred_desc" = "I tuoi dati di pagamento sono salvati. L'importo viene addebitato solo quando il venditore conferma la spedizione. Riceverai quindi qui la tua fattura, comprensiva delle istruzioni sul diritto di recesso.";
 "order.invoice_title" = "Fattura";
 "order.invoice_download" = "Scarica la fattura";
+
+/* Recesso / rimborso */
+"order.withdraw_title" = "Recesso / rimborso";
+"order.withdraw_desc" = "Puoi recedere da questo acquisto entro 14 giorni dal ricevimento della merce. L'intero importo ti verrà rimborsato.";
+"order.withdraw_action" = "Dichiara il recesso";
+"order.withdraw_confirm" = "Vuoi davvero recedere da questo acquisto? L'importo verrà rimborsato.";

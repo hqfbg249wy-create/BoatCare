@@ -1134,3 +1134,9 @@
 "order.deferred_desc" = "Vos données de paiement sont enregistrées. Le montant n'est débité que lorsque le vendeur confirme l'expédition. Vous recevrez alors votre facture ici, avec les informations sur le droit de rétractation.";
 "order.invoice_title" = "Facture";
 "order.invoice_download" = "Télécharger la facture";
+
+/* Rétractation / remboursement */
+"order.withdraw_title" = "Rétractation / remboursement";
+"order.withdraw_desc" = "Vous pouvez vous rétracter de cet achat dans un délai de 14 jours à compter de la réception des marchandises. Le montant total vous sera remboursé.";
+"order.withdraw_action" = "Déclarer la rétractation";
+"order.withdraw_confirm" = "Voulez-vous vraiment vous rétracter de cet achat ? Le montant sera remboursé.";

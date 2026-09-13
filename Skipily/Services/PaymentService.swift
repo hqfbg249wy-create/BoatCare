@@ -271,6 +271,20 @@ final class PaymentService {
         return (sheet, setupIntentId)
     }
 
+    /// Widerruf / Rückerstattung einer bezahlten Bestellung. Löst den Stripe-
+    /// Refund aus (inkl. Rückholung des Provider-Transfers).
+    func refundOrder(orderId: UUID, reason: String? = nil) async throws {
+        struct Body: Encodable { let order_id: String; let reason: String? }
+        struct Resp: Decodable { let ok: Bool?; let refund_id: String?; let error: String? }
+        let resp: Resp = try await client.functions.invoke(
+            "refund-order",
+            options: .init(body: Body(order_id: orderId.uuidString, reason: reason))
+        )
+        if resp.ok != true {
+            throw PaymentError.serverError(resp.error ?? "Rückerstattung fehlgeschlagen")
+        }
+    }
+
     /// Verknüpft die hinterlegte Karte (aus dem SetupIntent) mit den Bestellungen,
     /// sodass der Provider bei Versandbestätigung off-session abbuchen kann.
     func attachPaymentToOrders(orderIds: [UUID], setupIntentId: String) async throws {

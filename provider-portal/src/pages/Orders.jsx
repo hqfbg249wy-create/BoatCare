@@ -189,6 +189,25 @@ export default function Orders() {
   async function cancelOrder(orderId) {
     if (!confirm(t('orders.cancelConfirm'))) return
     try {
+      const order = orders.find((o) => o.id === orderId)
+      // Bereits bezahlt -> echte Rueckerstattung ueber refund-order (holt auch
+      // den Provider-Transfer zurueck). Ein reines Status-Update wuerde den
+      // Kaeufer belastet lassen.
+      if ((order?.payment_status || '').toLowerCase() === 'paid') {
+        const { data, error } = await supabase.functions.invoke('refund-order', {
+          body: { order_id: orderId, reason: 'Storno/Erstattung durch Anbieter' },
+        })
+        if (error) {
+          let msg = error.message
+          try { const b = await error.context?.json?.(); if (b?.error) msg = b.error } catch { /* ignore */ }
+          throw new Error(msg)
+        }
+        if (data?.error) throw new Error(data.error)
+        setMessage({ type: 'success', text: t('orders.cancelledMsg') })
+        loadOrders()
+        return
+      }
+
       const { error } = await supabase
         .from('orders')
         .update({ status: 'cancelled' })

@@ -27,6 +27,9 @@ struct OrderDetailView: View {
     // Storno-State
     @State private var showCancelConfirm = false
     @State private var isCancelling = false
+    // Widerruf-/Rueckerstattungs-State
+    @State private var showWithdrawConfirm = false
+    @State private var isRefunding = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -92,8 +95,72 @@ struct OrderDetailView: View {
                 if let provider = order.provider {
                     providerSection(provider)
                 }
+
+                // Widerruf / Rückerstattung (bei bezahlten Bestellungen)
+                if canWithdraw(order) {
+                    withdrawalSection(order)
+                }
             }
             .padding(16)
+        }
+    }
+
+    /// Widerruf moeglich: bezahlt, nicht storniert/erstattet.
+    private func canWithdraw(_ order: Order) -> Bool {
+        (order.paymentStatus ?? "").lowercased() == "paid"
+            && order.status != "refunded"
+            && order.status != "cancelled"
+    }
+
+    private func withdrawalSection(_ order: Order) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("order.withdraw_title".loc)
+                .font(.headline)
+            Text("order.withdraw_desc".loc)
+                .font(.subheadline)
+                .foregroundStyle(AppColors.gray700)
+                .fixedSize(horizontal: false, vertical: true)
+            Button {
+                showWithdrawConfirm = true
+            } label: {
+                HStack(spacing: 6) {
+                    if isRefunding { ProgressView() } else { Image(systemName: "arrow.uturn.left.circle") }
+                    Text("order.withdraw_action".loc).fontWeight(.medium)
+                }
+                .font(.subheadline)
+                .frame(maxWidth: .infinity)
+                .frame(height: 40)
+                .foregroundStyle(AppColors.error)
+            }
+            .disabled(isRefunding)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.gray100)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .confirmationDialog(
+            "order.withdraw_title".loc,
+            isPresented: $showWithdrawConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("order.withdraw_action".loc, role: .destructive) {
+                Task { await requestWithdrawal() }
+            }
+            Button("common.cancel".loc, role: .cancel) {}
+        } message: {
+            Text("order.withdraw_confirm".loc)
+        }
+    }
+
+    @MainActor
+    private func requestWithdrawal() async {
+        isRefunding = true
+        defer { isRefunding = false }
+        do {
+            try await PaymentService.shared.refundOrder(orderId: orderId)
+            await loadOrder()
+        } catch {
+            paymentMessage = "Widerruf fehlgeschlagen: \(error.localizedDescription)"
         }
     }
 
