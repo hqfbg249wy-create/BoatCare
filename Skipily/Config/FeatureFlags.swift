@@ -16,5 +16,9 @@ enum FeatureFlags {
     ///
     /// false = bisheriger Sofort-Zahlungs-Flow (Abbuchung bei Bestellung).
     /// Erst nach vollstaendigem Stripe-Test scharfschalten.
-    static let deferredShopPayment = false
+    ///
+    /// TEST: Auf dem Branch feat/deferred-shop-payment auf true, um den neuen
+    /// Ablauf im Stripe-TESTMODUS durchzuspielen. VOR einem Merge nach main
+    /// wieder auf false setzen (bis der Test vollstaendig bestanden ist).
+    static let deferredShopPayment = true
 }
