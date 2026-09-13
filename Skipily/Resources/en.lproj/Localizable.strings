@@ -1127,3 +1127,9 @@
 "plus.sheet.perYear" = "/ year";
 
 "plus.sheet.freeTrial" = "%@ free trial";
+
+/* Deferred payment / invoice */
+"order.deferred_title" = "Payment after shipping";
+"order.deferred_desc" = "Your payment details are saved. The amount is only charged once the seller confirms shipment. You will then receive your invoice here, including the right of withdrawal notice.";
+"order.invoice_title" = "Invoice";
+"order.invoice_download" = "Download invoice";

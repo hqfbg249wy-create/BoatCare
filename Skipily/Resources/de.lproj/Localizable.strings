@@ -1130,3 +1130,9 @@ Ausrüstung unter Boote ergänzen.";
 "plus.sheet.perYear" = "/ Jahr";
 
 "plus.sheet.freeTrial" = "%@ gratis testen";
+
+/* Deferred payment / Rechnung */
+"order.deferred_title" = "Zahlung erfolgt nach Versand";
+"order.deferred_desc" = "Deine Zahlungsdaten sind hinterlegt. Der Betrag wird erst abgebucht, wenn der Anbieter den Versand bestätigt. Danach erhältst du hier deine Rechnung inkl. Widerrufsbelehrung.";
+"order.invoice_title" = "Rechnung";
+"order.invoice_download" = "Rechnung herunterladen";

@@ -55,8 +55,18 @@ struct OrderDetailView: View {
                     pendingPaymentBanner(order)
                 }
 
+                // Aufgeschobener Flow: Info, dass erst bei Versand abgebucht wird.
+                if isDeferredAwaitingCharge(order) {
+                    deferredPaymentInfo
+                }
+
                 // Status timeline
                 statusTimeline(order)
+
+                // Rechnung (nach Versand verfügbar)
+                if let invoiceUrl = order.invoiceUrl, let url = URL(string: invoiceUrl) {
+                    invoiceSection(number: order.invoiceNumber, url: url)
+                }
 
                 // Tracking
                 if let tracking = order.trackingNumber {
@@ -343,14 +353,74 @@ struct OrderDetailView: View {
         isLoading = false
     }
 
+    // MARK: - Deferred-Zahlung / Rechnung
+
+    private var deferredPaymentInfo: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "clock.badge.checkmark")
+                    .foregroundStyle(AppColors.primary)
+                Text("order.deferred_title".loc)
+                    .font(.headline)
+            }
+            Text("order.deferred_desc".loc)
+                .font(.subheadline)
+                .foregroundStyle(AppColors.gray700)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.primary.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func invoiceSection(number: String?, url: URL) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("order.invoice_title".loc)
+                .font(.headline)
+            if let number {
+                Text(number)
+                    .font(.subheadline)
+                    .foregroundStyle(AppColors.gray700)
+            }
+            Link(destination: url) {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.down.doc.fill")
+                    Text("order.invoice_download".loc)
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(AppColors.primary)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.gray100)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
     // MARK: - Payment-Retry
 
     /// True wenn die Bestellung noch eine Zahlung braucht (Status pending +
     /// Payment-Status nicht "paid"). Storniert/erfolgreich-Bezahlt → false.
     private func needsPayment(_ order: Order) -> Bool {
+        // Beim aufgeschobenen Flow ("deferred") bucht der Anbieter erst bei
+        // Versand ab, die Karte ist bereits hinterlegt -> KEIN manuelles
+        // "Jetzt bezahlen".
+        if order.paymentFlow == "deferred" { return false }
         let isPending = order.status == "pending"
         let isUnpaid  = (order.paymentStatus ?? "pending").lowercased() != "paid"
         return isPending && isUnpaid
+    }
+
+    /// Deferred-Bestellung, die noch nicht abgebucht wurde -> Info statt Zahlbutton.
+    private func isDeferredAwaitingCharge(_ order: Order) -> Bool {
+        order.paymentFlow == "deferred"
+            && (order.paymentStatus ?? "pending").lowercased() != "paid"
+            && order.status != "cancelled"
     }
 
     private func pendingPaymentBanner(_ order: Order) -> some View {

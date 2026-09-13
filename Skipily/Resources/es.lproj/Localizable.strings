@@ -1128,3 +1128,9 @@
 "plus.sheet.perYear" = "/ año";
 
 "plus.sheet.freeTrial" = "%@ de prueba gratis";
+
+/* Deferred payment / factura */
+"order.deferred_title" = "Pago tras el envío";
+"order.deferred_desc" = "Tus datos de pago están guardados. El importe solo se cobra cuando el vendedor confirma el envío. Después recibirás aquí tu factura, incluida la información sobre el derecho de desistimiento.";
+"order.invoice_title" = "Factura";
+"order.invoice_download" = "Descargar factura";

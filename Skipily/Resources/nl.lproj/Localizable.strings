@@ -1128,3 +1128,9 @@
 "plus.sheet.perYear" = "/ jaar";
 
 "plus.sheet.freeTrial" = "%@ gratis proberen";
+
+/* Deferred payment / factuur */
+"order.deferred_title" = "Betaling na verzending";
+"order.deferred_desc" = "Je betaalgegevens zijn opgeslagen. Het bedrag wordt pas afgeschreven zodra de verkoper de verzending bevestigt. Daarna ontvang je hier je factuur, inclusief de informatie over het herroepingsrecht.";
+"order.invoice_title" = "Factuur";
+"order.invoice_download" = "Factuur downloaden";
