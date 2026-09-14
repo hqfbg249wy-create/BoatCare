@@ -40,6 +40,96 @@ export async function emailTo(to: string, subject: string, text: string): Promis
   }
 }
 
+/**
+ * Neue-Bestellung-Benachrichtigung (Shopify/WooCommerce-Standard):
+ * - Anbieter erhaelt eine E-Mail mit den Bestelldetails (wichtig fuer Betriebe,
+ *   deren Shop-System nicht angebunden ist, z.B. CSV/Excel-Upload).
+ * - Kaeufer erhaelt eine Bestellbestaetigung.
+ * Best-effort.
+ */
+export async function notifyNewOrder(svc: Svc, orderId: string): Promise<void> {
+  try {
+    const { data: order } = await svc
+      .from("orders")
+      .select(`
+        id, order_number, buyer_id, provider_id, payment_flow, currency,
+        subtotal, shipping_cost, total,
+        shipping_name, shipping_street, shipping_postal_code, shipping_city, shipping_country,
+        buyer_note,
+        order_items ( product_name, product_manufacturer, product_sku, quantity, unit_price, total )
+      `)
+      .eq("id", orderId)
+      .maybeSingle();
+    if (!order) return;
+
+    const { data: buyer } = await svc
+      .from("profiles").select("email, full_name").eq("id", order.buyer_id).maybeSingle();
+    const { data: provider } = await svc
+      .from("service_providers").select("name, email").eq("id", order.provider_id).maybeSingle();
+
+    const cur = (order.currency || "EUR").toUpperCase();
+    const money = (n: number) => Number(n || 0).toFixed(2).replace(".", ",") + " " + cur;
+    const ref = order.order_number ? `#${order.order_number}` : "";
+    const items = (order.order_items || []) as Array<{
+      product_name: string; product_manufacturer?: string | null; product_sku?: string | null;
+      quantity: number; unit_price: number; total: number;
+    }>;
+    const itemLines = items.map((it) =>
+      `- ${it.quantity} x ${it.product_name}` +
+      `${it.product_sku ? " (Art. " + it.product_sku + ")" : ""}` +
+      ` je ${money(it.unit_price)} = ${money(it.total)}`
+    ).join("\n");
+    const shipTo = [
+      order.shipping_name,
+      order.shipping_street,
+      [order.shipping_postal_code, order.shipping_city].filter(Boolean).join(" "),
+      order.shipping_country,
+    ].filter((z) => z && String(z).trim()).join("\n");
+    const deferred = order.payment_flow === "deferred";
+
+    // ── Anbieter: Neue Bestellung ──
+    if (provider?.email) {
+      await emailTo(
+        provider.email,
+        `Neue Bestellung ${ref}`,
+        `Du hast eine neue Bestellung erhalten.\n\n` +
+          `Bestellnummer: ${order.order_number ?? order.id}\n\n` +
+          `Artikel:\n${itemLines || "(keine Positionen)"}\n\n` +
+          `Zwischensumme: ${money(order.subtotal)}\n` +
+          `Versand: ${money(order.shipping_cost)}\n` +
+          `Gesamt: ${money(order.total)}\n\n` +
+          `Lieferadresse:\n${shipTo}\n\n` +
+          `${order.buyer_note ? "Hinweis des Kunden: " + order.buyer_note + "\n\n" : ""}` +
+          (deferred
+            ? `Bitte bestaetige die Bestellung im Anbieter-Portal und dann den Versand. ` +
+              `Die Zahlung wird bei deiner Versandbestaetigung automatisch abgebucht, ` +
+              `Rechnung und Widerrufsbelehrung werden dabei erzeugt.\n\n`
+            : `Bitte bearbeite die Bestellung im Anbieter-Portal.\n\n`) +
+          `Zum Anbieter-Portal: https://portal.skipily.app\n\nDein Skipily-Team`,
+      );
+    }
+
+    // ── Kaeufer: Bestellbestaetigung ──
+    if (buyer?.email) {
+      await emailTo(
+        buyer.email,
+        `Bestellbestaetigung ${ref}`,
+        `Hallo${buyer.full_name ? " " + buyer.full_name : ""},\n\n` +
+          `vielen Dank fuer deine Bestellung ${ref}.\n\n` +
+          `Artikel:\n${itemLines}\n\n` +
+          `Gesamt: ${money(order.total)}\n\n` +
+          (deferred
+            ? `Deine Zahlungsdaten sind hinterlegt. Abgebucht wird erst, wenn ${provider?.name ?? "der Anbieter"} ` +
+              `den Versand bestaetigt. Danach erhaeltst du deine Rechnung inkl. Widerrufsbelehrung.\n\n`
+            : `Der Anbieter bereitet deine Bestellung vor.\n\n`) +
+          `Du kannst deine Bestellung jederzeit in der App unter Bestellungen einsehen.\n\nDein Skipily-Team`,
+      );
+    }
+  } catch (e) {
+    console.error("notifyNewOrder failed:", (e as Error).message);
+  }
+}
+
 export type OrderEvent = "confirmed" | "shipped" | "refunded" | "cancelled";
 
 /**
