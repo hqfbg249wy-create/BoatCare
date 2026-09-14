@@ -109,15 +109,19 @@ export async function notifyNewOrder(svc: Svc, orderId: string): Promise<void> {
       );
     }
 
-    // ── Kaeufer: Bestellbestaetigung ──
+    // ── Kaeufer: Bestellbestaetigung mit vollstaendigen Bestelldaten ──
     if (buyer?.email) {
       await emailTo(
         buyer.email,
         `Bestellbestaetigung ${ref}`,
         `Hallo${buyer.full_name ? " " + buyer.full_name : ""},\n\n` +
-          `vielen Dank fuer deine Bestellung ${ref}.\n\n` +
-          `Artikel:\n${itemLines}\n\n` +
+          `vielen Dank fuer deine Bestellung ${ref} bei ${provider?.name ?? "dem Anbieter"}.\n\n` +
+          `Bestellnummer: ${order.order_number ?? order.id}\n\n` +
+          `Artikel:\n${itemLines || "(keine Positionen)"}\n\n` +
+          `Zwischensumme: ${money(order.subtotal)}\n` +
+          `Versand: ${money(order.shipping_cost)}\n` +
           `Gesamt: ${money(order.total)}\n\n` +
+          `Lieferadresse:\n${shipTo}\n\n` +
           (deferred
             ? `Deine Zahlungsdaten sind hinterlegt. Abgebucht wird erst, wenn ${provider?.name ?? "der Anbieter"} ` +
               `den Versand bestaetigt. Danach erhaeltst du deine Rechnung inkl. Widerrufsbelehrung.\n\n`
