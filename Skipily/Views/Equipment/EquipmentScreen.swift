@@ -1314,31 +1314,53 @@ struct AddEditEquipmentView: View {
                 }
                 Section("equipment.details".loc) {
                     TextField("boats.manufacturer".loc, text: $manufacturer)
-                    TextField("boats.model".loc, text: $model)
-                    TextField("equipment.serial".loc, text: $serialNumber)
+                    // Modell + Seriennummer entfallen bei Segel und Tauwerk.
+                    if !isSailCategoryInForm && !isRopeCategoryInForm {
+                        TextField("boats.model".loc, text: $model)
+                        TextField("equipment.serial".loc, text: $serialNumber)
+                    }
                     TextField("equipment.part_number".loc, text: $partNumber)
                     TextField("equipment.location".loc, text: $locationOnBoat)
                     TextField("equipment.dimensions".loc, text: $dimensions)
                 }
-                Section("equipment.description".loc) {
-                    TextField("equipment.description".loc, text: $itemDescription, axis: .vertical)
-                        .lineLimit(3...6)
+                // Beschreibung: bei Segel entfaellt sie hier (Notizen/Besonderheiten
+                // stehen im Messblatt; "was wurde gemacht" steht in der Reparatur-Sektion).
+                if !isSailCategoryInForm {
+                    Section("equipment.description".loc) {
+                        TextField("equipment.description".loc, text: $itemDescription, axis: .vertical)
+                            .lineLimit(3...6)
+                    }
                 }
                 Section("equipment.dates".loc) {
-                    Toggle("equipment.has_installation_date".loc, isOn: $hasInstallationDate)
+                    // Bei Segel: Herstelldatum statt Installationsdatum.
+                    Toggle(isSailCategoryInForm ? "equipment.has_manufacture_date".loc : "equipment.has_installation_date".loc, isOn: $hasInstallationDate)
                     if hasInstallationDate {
-                        DatePicker("equipment.installation_date".loc, selection: $installationDate, displayedComponents: .date)
+                        DatePicker(isSailCategoryInForm ? "equipment.manufacture_date".loc : "equipment.installation_date".loc, selection: $installationDate, displayedComponents: .date)
                     }
-                    Toggle("equipment.has_warranty".loc, isOn: $hasWarrantyExpiry)
-                    if hasWarrantyExpiry {
-                        DatePicker("equipment.warranty_expiry".loc, selection: $warrantyExpiry, displayedComponents: .date)
+                    // Garantie entfaellt bei Tauwerk.
+                    if !isRopeCategoryInForm {
+                        Toggle("equipment.has_warranty".loc, isOn: $hasWarrantyExpiry)
+                        if hasWarrantyExpiry {
+                            DatePicker("equipment.warranty_expiry".loc, selection: $warrantyExpiry, displayedComponents: .date)
+                        }
                     }
                 }
-                Section("equipment.maintenance".loc) {
-                    TextField("equipment.cycle".loc, text: $cycleText).keyboardType(.numberPad)
-                    Toggle("equipment.has_last_maintenance".loc, isOn: $hasLastMaintenance)
-                    if hasLastMaintenance {
-                        DatePicker("equipment.last_maintenance".loc, selection: $lastMaintenance, displayedComponents: .date)
+                // Wartung/Reparatur: bei Tauwerk komplett entfallen (kein
+                // Wartungsintervall, keine letzte Wartung). Bei Segel: keine
+                // Intervalle, sondern "letzte Reparatur" + "was wurde gemacht".
+                if !isRopeCategoryInForm {
+                    Section(isSailCategoryInForm ? "equipment.repair_section".loc : "equipment.maintenance".loc) {
+                        if !isSailCategoryInForm {
+                            TextField("equipment.cycle".loc, text: $cycleText).keyboardType(.numberPad)
+                        }
+                        Toggle(isSailCategoryInForm ? "equipment.has_last_repair".loc : "equipment.has_last_maintenance".loc, isOn: $hasLastMaintenance)
+                        if hasLastMaintenance {
+                            DatePicker(isSailCategoryInForm ? "equipment.last_repair".loc : "equipment.last_maintenance".loc, selection: $lastMaintenance, displayedComponents: .date)
+                        }
+                        if isSailCategoryInForm {
+                            TextField("equipment.repair_notes".loc, text: $itemDescription, axis: .vertical)
+                                .lineLimit(2...4)
+                        }
                     }
                 }
                 // Fotos (max 5)
@@ -1443,8 +1465,11 @@ struct AddEditEquipmentView: View {
                     }
                 }
 
-                Section("equipment.notes".loc) {
-                    TextField("equipment.notes".loc, text: $notes, axis: .vertical).lineLimit(3...6)
+                // Notizen: bei Segel entfallen (Notizen/Besonderheiten stehen im Messblatt).
+                if !isSailCategoryInForm {
+                    Section("equipment.notes".loc) {
+                        TextField("equipment.notes".loc, text: $notes, axis: .vertical).lineLimit(3...6)
+                    }
                 }
             }
             .navigationTitle(isRopeCategoryInForm ? "rope.title".loc : (item == nil ? "equipment.add".loc : "general.edit".loc))

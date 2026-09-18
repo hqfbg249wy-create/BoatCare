@@ -1146,3 +1146,11 @@
 "order.cancel_desc" = "Tant que la commande n'a pas été expédiée ni débitée, vous pouvez l'annuler gratuitement.";
 
 "order.withdraw_until" = "Rétractation possible jusqu'au %@";
+
+/* Segel/Tauwerk Formular-Anpassungen */
+"equipment.has_manufacture_date" = "Indiquer la date de fabrication";
+"equipment.manufacture_date" = "Date de fabrication";
+"equipment.repair_section" = "Réparation";
+"equipment.has_last_repair" = "Indiquer la dernière réparation";
+"equipment.last_repair" = "Dernière réparation";
+"equipment.repair_notes" = "Qu'est-ce qui a été fait ?";

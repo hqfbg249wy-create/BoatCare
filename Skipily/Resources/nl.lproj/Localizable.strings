@@ -1146,3 +1146,11 @@
 "order.cancel_desc" = "Zolang de bestelling niet is verzonden en niet is afgeschreven, kun je deze gratis annuleren.";
 
 "order.withdraw_until" = "Herroeping mogelijk tot %@";
+
+/* Segel/Tauwerk Formular-Anpassungen */
+"equipment.has_manufacture_date" = "Fabricagedatum opgeven";
+"equipment.manufacture_date" = "Fabricagedatum";
+"equipment.repair_section" = "Reparatie";
+"equipment.has_last_repair" = "Laatste reparatie opgeven";
+"equipment.last_repair" = "Laatste reparatie";
+"equipment.repair_notes" = "Wat is er gedaan?";

@@ -1145,3 +1145,11 @@
 "order.cancel_desc" = "As long as the order has not been shipped or charged, you can cancel it free of charge.";
 
 "order.withdraw_until" = "Withdrawal possible until %@";
+
+/* Segel/Tauwerk Formular-Anpassungen */
+"equipment.has_manufacture_date" = "Add manufacture date";
+"equipment.manufacture_date" = "Manufacture date";
+"equipment.repair_section" = "Repair";
+"equipment.has_last_repair" = "Add last repair";
+"equipment.last_repair" = "Last repair";
+"equipment.repair_notes" = "What was done?";

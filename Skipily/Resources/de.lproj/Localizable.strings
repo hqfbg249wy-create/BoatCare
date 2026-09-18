@@ -1148,3 +1148,11 @@ Ausrüstung unter Boote ergänzen.";
 "order.cancel_desc" = "Solange die Bestellung noch nicht versandt und nicht abgebucht wurde, kannst du sie kostenlos stornieren.";
 
 "order.withdraw_until" = "Widerruf möglich bis %@";
+
+/* Segel/Tauwerk Formular-Anpassungen */
+"equipment.has_manufacture_date" = "Herstelldatum angeben";
+"equipment.manufacture_date" = "Herstelldatum";
+"equipment.repair_section" = "Reparatur";
+"equipment.has_last_repair" = "Letzte Reparatur angeben";
+"equipment.last_repair" = "Letzte Reparatur";
+"equipment.repair_notes" = "Was wurde gemacht?";
