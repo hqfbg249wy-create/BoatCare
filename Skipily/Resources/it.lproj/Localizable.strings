@@ -1158,3 +1158,11 @@
 "sail.f.area" = "Superficie velica";
 
 "equipment.sail_type" = "Tipo di vela";
+
+/* Tauwerk-Angebotsanfrage */
+"rope.request_quote" = "Richiedi un preventivo ai fornitori di cime";
+"rope.request_quote_hint" = "La tua configurazione della cima viene inviata come richiesta a tutti i fornitori di cime. Le risposte compaiono in Richieste.";
+"rope.quote_subject" = "Richiesta preventivo cime – %@";
+"rope.quote_intro" = "Richiesta di preventivo per la seguente cima:";
+"rope.quote_sent" = "Richiesta inviata a %d fornitori.";
+"rope.quote_none" = "Al momento nessun fornitore di cime trovato.";

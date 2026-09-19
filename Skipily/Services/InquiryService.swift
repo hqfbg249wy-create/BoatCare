@@ -23,6 +23,22 @@ final class InquiryService {
         SupabaseManager.shared.client
     }
 
+    /// Tauwerk-Angebotsanfrage an ALLE Tauwerk-Anbieter (je Anbieter eine
+    /// Anfrage + E-Mail). Liefert die Anzahl kontaktierter Anbieter.
+    func requestRopeQuote(boatId: UUID?, subject: String, message: String) async throws -> Int {
+        struct Body: Encodable { let boat_id: String?; let subject: String; let message: String }
+        struct Resp: Decodable { let ok: Bool?; let count: Int?; let error: String? }
+        let resp: Resp = try await client.functions.invoke(
+            "request-rope-quote",
+            options: .init(body: Body(boat_id: boatId?.uuidString, subject: subject, message: message))
+        )
+        if resp.ok != true {
+            throw NSError(domain: "Skipily.Rope", code: 500,
+                          userInfo: [NSLocalizedDescriptionKey: resp.error ?? "Anfrage fehlgeschlagen"])
+        }
+        return resp.count ?? 0
+    }
+
     // MARK: - Load
 
     func loadInquiries(ownerId: UUID) async {
@@ -124,6 +140,24 @@ final class InquiryService {
             }
         }
         return urls
+    }
+
+    /// Lädt ein kurzes Problem-Video in den Bucket user-photos und liefert die
+    /// öffentliche URL. `fileExtension` z. B. "mov" oder "mp4".
+    func uploadInquiryVideo(_ data: Data, fileExtension: String, ownerId: UUID) async -> String? {
+        let stamp = Int(Date().timeIntervalSince1970)
+        let ext = fileExtension.lowercased().isEmpty ? "mov" : fileExtension.lowercased()
+        let mime = (ext == "mp4") ? "video/mp4" : "video/quicktime"
+        let path = "inquiries/\(ownerId.uuidString)/\(stamp)_video.\(ext)"
+        do {
+            try await client.storage.from("user-photos")
+                .upload(path, data: data, options: .init(contentType: mime, upsert: true))
+            let url = try client.storage.from("user-photos").getPublicURL(path: path)
+            return url.absoluteString
+        } catch {
+            AppLog.error("Inquiry video upload: \(error)")
+            return nil
+        }
     }
 
     // MARK: - Delete

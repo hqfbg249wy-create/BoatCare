@@ -1158,3 +1158,11 @@
 "sail.f.area" = "Zeiloppervlak";
 
 "equipment.sail_type" = "Zeiltype";
+
+/* Tauwerk-Angebotsanfrage */
+"rope.request_quote" = "Offerte aanvragen bij touwleveranciers";
+"rope.request_quote_hint" = "Je touwconfiguratie wordt als aanvraag naar alle touwleveranciers gestuurd. Antwoorden verschijnen onder Aanvragen.";
+"rope.quote_subject" = "Offerteaanvraag touw – %@";
+"rope.quote_intro" = "Verzoek om een offerte voor het volgende touw:";
+"rope.quote_sent" = "Aanvraag verzonden naar %d leveranciers.";
+"rope.quote_none" = "Momenteel geen touwleveranciers gevonden.";

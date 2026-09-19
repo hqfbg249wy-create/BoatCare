@@ -1238,6 +1238,9 @@ struct AddEditEquipmentView: View {
     @State private var ropeEnd2Eye = ""
     @State private var ropeAccessory = ""
     @State private var ropeLoaded = false
+    // Tauwerk-Angebotsanfrage
+    @State private var isRequestingQuote = false
+    @State private var quoteResult: String? = nil
 
     private var isRopeCategoryInForm: Bool {
         let cat = category.lowercased()
@@ -1504,6 +1507,31 @@ struct AddEditEquipmentView: View {
                         TextField("rope.f.accessory_article".loc, text: $ropeAccessory)
                             .autocorrectionDisabled()
                     }
+
+                    // Angebotsanfrage an alle Tauwerk-Anbieter (nur bei gespeichertem
+                    // Tauwerk, da die Konfiguration die Basis der Anfrage ist).
+                    if item != nil {
+                        Section {
+                            Button {
+                                Task { await requestRopeQuote() }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    if isRequestingQuote { ProgressView() }
+                                    else { Image(systemName: "paperplane.fill") }
+                                    Text("rope.request_quote".loc).fontWeight(.semibold)
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                            .disabled(isRequestingQuote)
+                            if let quoteResult {
+                                Text(quoteResult)
+                                    .font(.caption)
+                                    .foregroundStyle(AppColors.success)
+                            }
+                        } footer: {
+                            Text("rope.request_quote_hint".loc)
+                        }
+                    }
                 }
 
                 // Notizen: bei Segel entfallen (Notizen/Besonderheiten stehen im Messblatt).
@@ -1559,6 +1587,46 @@ struct AddEditEquipmentView: View {
             || n.contains("segel") || n.contains("genua") || n.contains("gennaker")
             || n.contains("code 0") || n.contains("code0") || n.contains("spinnaker")
             || n.contains("fock") || n.contains("großsegel") || n.contains("vorsegel")
+    }
+
+    /// Baut aus der Tauwerk-Konfiguration eine lesbare Anfrage und sendet sie an
+    /// alle Tauwerk-Anbieter (je Anbieter eine Anfrage + Mail).
+    @MainActor
+    private func requestRopeQuote() async {
+        isRequestingQuote = true
+        quoteResult = nil
+        defer { isRequestingQuote = false }
+
+        let title = name.trimmingCharacters(in: .whitespaces).isEmpty ? "Tauwerk" : name
+        let subject = String(format: "rope.quote_subject".loc, title)
+        var lines: [String] = ["rope.quote_intro".loc, ""]
+        func add(_ label: String, _ value: String) {
+            let v = value.trimmingCharacters(in: .whitespaces)
+            if !v.isEmpty { lines.append("\(label): \(v)") }
+        }
+        add("rope.f.article".loc, ropeArticle)
+        add("boats.manufacturer".loc, manufacturer)
+        add("rope.f.material".loc, ropeMaterial)
+        add("rope.f.diameter".loc, ropeDiameter.isEmpty ? "" : "\(ropeDiameter) mm")
+        add("rope.f.length".loc, ropeLength.isEmpty ? "" : "\(ropeLength) m")
+        add("rope.f.color".loc, ropeColor)
+        if !ropeEnd1.isEmpty, let l = RopeEndOption(rawValue: ropeEnd1)?.label {
+            add("rope.section_end1".loc, l + (ropeEnd1Eye.isEmpty ? "" : " (\("rope.f.eye_length".loc) \(ropeEnd1Eye) cm)"))
+        }
+        if !ropeEnd2.isEmpty, let l = RopeEndOption(rawValue: ropeEnd2)?.label {
+            add("rope.section_end2".loc, l + (ropeEnd2Eye.isEmpty ? "" : " (\("rope.f.eye_length".loc) \(ropeEnd2Eye) cm)"))
+        }
+        add("rope.f.accessory_article".loc, ropeAccessory)
+        let message = lines.joined(separator: "\n")
+
+        do {
+            let n = try await InquiryService.shared.requestRopeQuote(
+                boatId: boatId, subject: subject, message: message
+            )
+            quoteResult = n > 0 ? String(format: "rope.quote_sent".loc, n) : "rope.quote_none".loc
+        } catch {
+            quoteResult = "\("general.error".loc): \(error.localizedDescription)"
+        }
     }
 
     private func saveWithPhotos() async {

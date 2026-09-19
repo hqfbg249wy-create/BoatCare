@@ -1158,3 +1158,11 @@
 "sail.f.area" = "Surface de voile";
 
 "equipment.sail_type" = "Type de voile";
+
+/* Tauwerk-Angebotsanfrage */
+"rope.request_quote" = "Demander un devis aux fournisseurs de cordage";
+"rope.request_quote_hint" = "Votre configuration de cordage est envoyée comme demande à tous les fournisseurs de cordage. Les réponses apparaissent dans Demandes.";
+"rope.quote_subject" = "Demande de devis cordage – %@";
+"rope.quote_intro" = "Demande de devis pour le cordage suivant :";
+"rope.quote_sent" = "Demande envoyée à %d fournisseurs.";
+"rope.quote_none" = "Aucun fournisseur de cordage trouvé pour le moment.";

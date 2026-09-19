@@ -1158,3 +1158,11 @@
 "sail.f.area" = "Superficie vélica";
 
 "equipment.sail_type" = "Tipo de vela";
+
+/* Tauwerk-Angebotsanfrage */
+"rope.request_quote" = "Solicitar presupuesto a proveedores de cabo";
+"rope.request_quote_hint" = "Tu configuración de cabo se envía como solicitud a todos los proveedores de cabo. Las respuestas aparecen en Solicitudes.";
+"rope.quote_subject" = "Solicitud de presupuesto de cabo – %@";
+"rope.quote_intro" = "Solicito presupuesto para el siguiente cabo:";
+"rope.quote_sent" = "Solicitud enviada a %d proveedores.";
+"rope.quote_none" = "Por ahora no se han encontrado proveedores de cabo.";

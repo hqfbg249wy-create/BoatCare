@@ -1160,3 +1160,11 @@ Ausrüstung unter Boote ergänzen.";
 "sail.f.area" = "Segelfläche";
 
 "equipment.sail_type" = "Segeltyp";
+
+/* Tauwerk-Angebotsanfrage */
+"rope.request_quote" = "Angebot bei Tauwerk-Anbietern anfragen";
+"rope.request_quote_hint" = "Deine Tauwerk-Konfiguration wird als Anfrage an alle Tauwerk-Anbieter gesendet. Antworten erscheinen unter Anfragen.";
+"rope.quote_subject" = "Angebotsanfrage Tauwerk – %@";
+"rope.quote_intro" = "Bitte um ein Angebot für folgendes Tauwerk:";
+"rope.quote_sent" = "Anfrage an %d Anbieter gesendet.";
+"rope.quote_none" = "Aktuell keine Tauwerk-Anbieter gefunden.";

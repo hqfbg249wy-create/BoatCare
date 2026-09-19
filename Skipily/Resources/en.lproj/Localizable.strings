@@ -1157,3 +1157,11 @@
 "sail.f.area" = "Sail area";
 
 "equipment.sail_type" = "Sail type";
+
+/* Tauwerk-Angebotsanfrage */
+"rope.request_quote" = "Request a quote from rope suppliers";
+"rope.request_quote_hint" = "Your rope configuration is sent as a request to all rope suppliers. Replies appear under Inquiries.";
+"rope.quote_subject" = "Rope quote request – %@";
+"rope.quote_intro" = "Requesting a quote for the following rope:";
+"rope.quote_sent" = "Request sent to %d suppliers.";
+"rope.quote_none" = "No rope suppliers found at the moment.";
