@@ -1166,3 +1166,5 @@
 "rope.quote_intro" = "Verzoek om een offerte voor het volgende touw:";
 "rope.quote_sent" = "Aanvraag verzonden naar %d leveranciers.";
 "rope.quote_none" = "Momenteel geen touwleveranciers gevonden.";
+
+"rope.request_quote_confirm" = "Je aanvraag wordt naar alle passende touwleveranciers gestuurd. Doorgaan?";

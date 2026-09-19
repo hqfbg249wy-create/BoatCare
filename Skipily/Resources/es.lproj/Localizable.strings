@@ -1166,3 +1166,5 @@
 "rope.quote_intro" = "Solicito presupuesto para el siguiente cabo:";
 "rope.quote_sent" = "Solicitud enviada a %d proveedores.";
 "rope.quote_none" = "Por ahora no se han encontrado proveedores de cabo.";
+
+"rope.request_quote_confirm" = "Tu solicitud se enviará a todos los proveedores de cabo correspondientes. ¿Continuar?";

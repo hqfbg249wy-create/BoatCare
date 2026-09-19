@@ -1165,3 +1165,5 @@
 "rope.quote_intro" = "Requesting a quote for the following rope:";
 "rope.quote_sent" = "Request sent to %d suppliers.";
 "rope.quote_none" = "No rope suppliers found at the moment.";
+
+"rope.request_quote_confirm" = "Your request will be sent to all matching rope suppliers. Continue?";

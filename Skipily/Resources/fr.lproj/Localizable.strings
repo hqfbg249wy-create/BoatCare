@@ -1166,3 +1166,5 @@
 "rope.quote_intro" = "Demande de devis pour le cordage suivant :";
 "rope.quote_sent" = "Demande envoyée à %d fournisseurs.";
 "rope.quote_none" = "Aucun fournisseur de cordage trouvé pour le moment.";
+
+"rope.request_quote_confirm" = "Votre demande sera envoyée à tous les fournisseurs de cordage correspondants. Continuer ?";

@@ -1241,6 +1241,7 @@ struct AddEditEquipmentView: View {
     // Tauwerk-Angebotsanfrage
     @State private var isRequestingQuote = false
     @State private var quoteResult: String? = nil
+    @State private var showQuoteConfirm = false
 
     private var isRopeCategoryInForm: Bool {
         let cat = category.lowercased()
@@ -1513,7 +1514,7 @@ struct AddEditEquipmentView: View {
                     if item != nil {
                         Section {
                             Button {
-                                Task { await requestRopeQuote() }
+                                showQuoteConfirm = true
                             } label: {
                                 HStack(spacing: 8) {
                                     if isRequestingQuote { ProgressView() }
@@ -1523,6 +1524,13 @@ struct AddEditEquipmentView: View {
                                 .frame(maxWidth: .infinity)
                             }
                             .disabled(isRequestingQuote)
+                            .confirmationDialog("rope.request_quote".loc,
+                                                isPresented: $showQuoteConfirm, titleVisibility: .visible) {
+                                Button("rope.request_quote".loc) { Task { await requestRopeQuote() } }
+                                Button("general.cancel".loc, role: .cancel) {}
+                            } message: {
+                                Text("rope.request_quote_confirm".loc)
+                            }
                             if let quoteResult {
                                 Text(quoteResult)
                                     .font(.caption)

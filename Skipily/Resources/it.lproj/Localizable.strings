@@ -1166,3 +1166,5 @@
 "rope.quote_intro" = "Richiesta di preventivo per la seguente cima:";
 "rope.quote_sent" = "Richiesta inviata a %d fornitori.";
 "rope.quote_none" = "Al momento nessun fornitore di cime trovato.";
+
+"rope.request_quote_confirm" = "La tua richiesta verrà inviata a tutti i fornitori di cime pertinenti. Continuare?";

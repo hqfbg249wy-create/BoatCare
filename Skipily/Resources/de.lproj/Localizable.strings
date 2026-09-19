@@ -1168,3 +1168,5 @@ Ausrüstung unter Boote ergänzen.";
 "rope.quote_intro" = "Bitte um ein Angebot für folgendes Tauwerk:";
 "rope.quote_sent" = "Anfrage an %d Anbieter gesendet.";
 "rope.quote_none" = "Aktuell keine Tauwerk-Anbieter gefunden.";
+
+"rope.request_quote_confirm" = "Deine Anfrage wird an alle passenden Tauwerk-Anbieter gesendet. Fortfahren?";
