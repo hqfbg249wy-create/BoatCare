@@ -1168,3 +1168,13 @@
 "rope.quote_none" = "Aucun fournisseur de cordage trouvé pour le moment.";
 
 "rope.request_quote_confirm" = "Votre demande sera envoyée à tous les fournisseurs de cordage correspondants. Continuer ?";
+
+/* Angebot annehmen & bezahlen */
+"inq.offer_label" = "Offre";
+"inq.offer_total" = "Total : %@";
+"inq.offer_incl_shipping" = "livraison incl. %@";
+"inq.offer_accept_pay" = "Accepter et payer";
+"inq.offer_pay_hint" = "Votre carte est seulement enregistrée. Le débit intervient lorsque le prestataire confirme l'expédition.";
+"inq.offer_pay_canceled" = "Paiement annulé. Vous pouvez accepter l'offre à nouveau à tout moment.";
+"inq.offer_ordered_label" = "Commande créée";
+"inq.offer_ordered_text" = "Vous avez accepté cette offre. Vous trouverez la commande dans Commandes.";

@@ -1168,3 +1168,13 @@
 "rope.quote_none" = "Momenteel geen touwleveranciers gevonden.";
 
 "rope.request_quote_confirm" = "Je aanvraag wordt naar alle passende touwleveranciers gestuurd. Doorgaan?";
+
+/* Angebot annehmen & bezahlen */
+"inq.offer_label" = "Aanbod";
+"inq.offer_total" = "Totaal: %@";
+"inq.offer_incl_shipping" = "incl. verzending %@";
+"inq.offer_accept_pay" = "Accepteren en betalen";
+"inq.offer_pay_hint" = "Je kaart wordt alleen opgeslagen. Er wordt afgeschreven zodra de aanbieder de verzending bevestigt.";
+"inq.offer_pay_canceled" = "Betaling geannuleerd. Je kunt het aanbod altijd opnieuw accepteren.";
+"inq.offer_ordered_label" = "Bestelling aangemaakt";
+"inq.offer_ordered_text" = "Je hebt dit aanbod geaccepteerd. Je vindt de bestelling onder Bestellingen.";

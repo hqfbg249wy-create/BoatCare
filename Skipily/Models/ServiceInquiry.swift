@@ -23,9 +23,23 @@ struct ServiceInquiry: Identifiable, Codable, Sendable {
     let repliedAt: String?
     let providerReply: String?
 
+    // Angebot (Bruecke Anfrage -> bezahlte Bestellung via Stripe)
+    let offerAmount: Double?
+    let offerShipping: Double?
+    let offerCurrency: String?
+    let offerDescription: String?
+    let offerStatus: String?
+    let orderId: UUID?
+
     // Joined
     let provider: InquiryProvider?
     let boat: InquiryBoat?
+
+    /// Es liegt ein annehmbares Angebot vor (noch keine Bestellung erzeugt).
+    var hasOpenOffer: Bool {
+        (offerStatus == "offered") && ((offerAmount ?? 0) > 0) && orderId == nil
+    }
+    var offerTotal: Double { (offerAmount ?? 0) + (offerShipping ?? 0) }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -41,6 +55,12 @@ struct ServiceInquiry: Identifiable, Codable, Sendable {
         case sentAt       = "sent_at"
         case repliedAt    = "replied_at"
         case providerReply = "provider_reply"
+        case offerAmount      = "offer_amount"
+        case offerShipping    = "offer_shipping"
+        case offerCurrency    = "offer_currency"
+        case offerDescription = "offer_description"
+        case offerStatus      = "offer_status"
+        case orderId          = "order_id"
         case provider     = "service_providers"
         case boat         = "boats"
     }

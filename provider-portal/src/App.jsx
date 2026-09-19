@@ -13,6 +13,7 @@ import MfaSetup from './pages/MfaSetup'
 import Dashboard from './pages/Dashboard'
 import Products from './pages/Products'
 import Orders from './pages/Orders'
+import Inquiries from './pages/Inquiries'
 import Promotions from './pages/Promotions'
 import Messages from './pages/Messages'
 import MarketInsights from './pages/MarketInsights'
@@ -103,6 +104,7 @@ function ProtectedRoutes() {
         <Route index element={<Dashboard />} />
         <Route path="products" element={<Products />} />
         <Route path="orders" element={<Orders />} />
+        <Route path="inquiries" element={<Inquiries />} />
         <Route path="promotions" element={<Promotions />} />
         <Route path="messages" element={<Messages />} />
         <Route path="insights" element={<MarketInsights />} />

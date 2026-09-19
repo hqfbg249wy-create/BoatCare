@@ -23,6 +23,21 @@ final class InquiryService {
         SupabaseManager.shared.client
     }
 
+    /// Nimmt das Angebot eines Anbieters an → erzeugt eine Deferred-Bestellung
+    /// (Zahlung via Stripe) und liefert deren Order-ID.
+    func acceptOffer(inquiryId: UUID) async throws -> UUID {
+        struct Body: Encodable { let inquiry_id: String }
+        struct Resp: Decodable { let ok: Bool?; let order_id: UUID?; let error: String? }
+        let resp: Resp = try await client.functions.invoke(
+            "accept-offer", options: .init(body: Body(inquiry_id: inquiryId.uuidString))
+        )
+        guard resp.ok == true, let oid = resp.order_id else {
+            throw NSError(domain: "Skipily.Offer", code: 500,
+                          userInfo: [NSLocalizedDescriptionKey: resp.error ?? "Annahme fehlgeschlagen"])
+        }
+        return oid
+    }
+
     /// Tauwerk-Angebotsanfrage an ALLE Tauwerk-Anbieter (je Anbieter eine
     /// Anfrage + E-Mail). Liefert die Anzahl kontaktierter Anbieter.
     func requestRopeQuote(boatId: UUID?, subject: String, message: String) async throws -> Int {

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import StripePaymentSheet
 
 /// Standalone-Variante (z. B. als Sheet) — eigener NavigationStack mit Titel.
 struct InquiriesView: View {
@@ -28,6 +29,12 @@ struct InquiriesContent: View {
     @State private var showDeleteConfirm = false
     @State private var expandedId: UUID? = nil
     @State private var errorAlert: String? = nil
+    // Angebot annehmen & bezahlen (Deferred-Stripe-Flow)
+    @State private var acceptingId: UUID? = nil
+    @State private var paymentSheet: PaymentSheet? = nil
+    @State private var pendingOrderId: UUID? = nil
+    @State private var pendingSetupIntentId: String? = nil
+    @State private var acceptInfo: String? = nil
 
     private var filtered: [ServiceInquiry] {
         guard let f = filter else { return service.inquiries }
@@ -226,6 +233,13 @@ struct InquiriesContent: View {
                         infoBox(label: String(format: "inq.replyFrom".loc, inq.provider?.name ?? "inq.providerFallback".loc), text: reply, color: .green)
                     }
 
+                    // Angebot des Anbieters -> annehmen & bezahlen (via Stripe)
+                    if inq.hasOpenOffer {
+                        offerBox(inq)
+                    } else if inq.orderId != nil {
+                        infoBox(label: "inq.offer_ordered_label".loc, text: "inq.offer_ordered_text".loc, color: .blue)
+                    }
+
                     // Actions — kompakt und einzeilig
                     HStack(spacing: 6) {
                         if inq.status == .draft {
@@ -279,6 +293,99 @@ struct InquiriesContent: View {
                               inq.status == .draft   ? Color(UIColor.systemGray4)    : .clear,
                               lineWidth: 1.5)
         )
+    }
+
+    private func offerBox(_ inq: ServiceInquiry) -> some View {
+        let cur = (inq.offerCurrency ?? "EUR").uppercased()
+        func money(_ v: Double) -> String {
+            String(format: "%.2f", v).replacingOccurrences(of: ".", with: ",") + " " + cur
+        }
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("inq.offer_label".loc.uppercased())
+                .font(.caption2).fontWeight(.semibold).foregroundStyle(AppColors.primary)
+            if let d = inq.offerDescription, !d.isEmpty {
+                Text(d).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+            }
+            Text(String(format: "inq.offer_total".loc, money(inq.offerTotal)))
+                .font(.headline)
+            if (inq.offerShipping ?? 0) > 0 {
+                Text(String(format: "inq.offer_incl_shipping".loc, money(inq.offerShipping ?? 0)))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Button {
+                Task { await acceptAndPay(inq) }
+            } label: {
+                HStack(spacing: 8) {
+                    if acceptingId == inq.id { ProgressView().tint(.white) }
+                    else { Image(systemName: "checkmark.seal.fill") }
+                    Text("inq.offer_accept_pay".loc).fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.regular)
+            .tint(AppColors.success)
+            .disabled(acceptingId != nil)
+            if let acceptInfo, acceptingId == nil {
+                Text(acceptInfo).font(.caption).foregroundStyle(AppColors.error)
+            }
+            Text("inq.offer_pay_hint".loc).font(.caption2).foregroundStyle(.secondary)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.primary.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 14)
+    }
+
+    @MainActor
+    private func acceptAndPay(_ inq: ServiceInquiry) async {
+        acceptingId = inq.id
+        acceptInfo = nil
+        defer { acceptingId = nil }
+        do {
+            let orderId = try await InquiryService.shared.acceptOffer(inquiryId: inq.id)
+            pendingOrderId = orderId
+            // Deferred-Flow: Karte hinterlegen (SetupIntent), keine Sofort-Abbuchung.
+            let (sheet, setupIntentId) = try await PaymentService.shared.createDeferredSetupSheet()
+            pendingSetupIntentId = setupIntentId
+            paymentSheet = sheet
+            presentPaymentSheet()
+        } catch {
+            acceptInfo = error.localizedDescription
+        }
+    }
+
+    private func presentPaymentSheet() {
+        guard let sheet = paymentSheet,
+              let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let root = scene.windows.first?.rootViewController else { return }
+        var top = root
+        while let p = top.presentedViewController { top = p }
+        sheet.present(from: top) { result in
+            Task { @MainActor in await handlePaymentResult(result) }
+        }
+    }
+
+    @MainActor
+    private func handlePaymentResult(_ result: PaymentSheetResult) async {
+        switch result {
+        case .completed:
+            if let oid = pendingOrderId, let sid = pendingSetupIntentId {
+                do {
+                    try await PaymentService.shared.attachPaymentToOrders(orderIds: [oid], setupIntentId: sid)
+                    acceptInfo = nil
+                    await reload()
+                } catch {
+                    acceptInfo = "\("general.error".loc): \(error.localizedDescription)"
+                }
+            }
+        case .canceled:
+            acceptInfo = "inq.offer_pay_canceled".loc
+        case .failed(let err):
+            acceptInfo = "\("general.error".loc): \(err.localizedDescription)"
+        }
+        pendingOrderId = nil; pendingSetupIntentId = nil; paymentSheet = nil
     }
 
     private func infoBox(label: String, text: String, color: Color) -> some View {

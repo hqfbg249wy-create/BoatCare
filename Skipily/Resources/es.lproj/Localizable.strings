@@ -1168,3 +1168,13 @@
 "rope.quote_none" = "Por ahora no se han encontrado proveedores de cabo.";
 
 "rope.request_quote_confirm" = "Tu solicitud se enviará a todos los proveedores de cabo correspondientes. ¿Continuar?";
+
+/* Angebot annehmen & bezahlen */
+"inq.offer_label" = "Oferta";
+"inq.offer_total" = "Total: %@";
+"inq.offer_incl_shipping" = "envío incl. %@";
+"inq.offer_accept_pay" = "Aceptar y pagar";
+"inq.offer_pay_hint" = "Tu tarjeta solo se guarda. El cobro se realiza cuando el proveedor confirma el envío.";
+"inq.offer_pay_canceled" = "Pago cancelado. Puedes aceptar la oferta de nuevo en cualquier momento.";
+"inq.offer_ordered_label" = "Pedido creado";
+"inq.offer_ordered_text" = "Has aceptado esta oferta. Encontrarás el pedido en Pedidos.";

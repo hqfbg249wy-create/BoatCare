@@ -1168,3 +1168,13 @@
 "rope.quote_none" = "Al momento nessun fornitore di cime trovato.";
 
 "rope.request_quote_confirm" = "La tua richiesta verrà inviata a tutti i fornitori di cime pertinenti. Continuare?";
+
+/* Angebot annehmen & bezahlen */
+"inq.offer_label" = "Offerta";
+"inq.offer_total" = "Totale: %@";
+"inq.offer_incl_shipping" = "sped. incl. %@";
+"inq.offer_accept_pay" = "Accetta e paga";
+"inq.offer_pay_hint" = "La tua carta viene solo memorizzata. L'addebito avviene quando il fornitore conferma la spedizione.";
+"inq.offer_pay_canceled" = "Pagamento annullato. Puoi accettare di nuovo l'offerta in qualsiasi momento.";
+"inq.offer_ordered_label" = "Ordine creato";
+"inq.offer_ordered_text" = "Hai accettato questa offerta. Trovi l'ordine in Ordini.";

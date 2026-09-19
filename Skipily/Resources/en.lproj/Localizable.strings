@@ -1167,3 +1167,13 @@
 "rope.quote_none" = "No rope suppliers found at the moment.";
 
 "rope.request_quote_confirm" = "Your request will be sent to all matching rope suppliers. Continue?";
+
+/* Angebot annehmen & bezahlen */
+"inq.offer_label" = "Offer";
+"inq.offer_total" = "Total: %@";
+"inq.offer_incl_shipping" = "incl. shipping %@";
+"inq.offer_accept_pay" = "Accept & pay";
+"inq.offer_pay_hint" = "Your card is only saved. You are charged once the provider confirms shipment.";
+"inq.offer_pay_canceled" = "Payment cancelled. You can accept the offer again anytime.";
+"inq.offer_ordered_label" = "Order created";
+"inq.offer_ordered_text" = "You accepted this offer. You can find the order under Orders.";

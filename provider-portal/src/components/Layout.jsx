@@ -5,7 +5,7 @@ import { useT } from '../i18n'
 import LanguageSwitcher from './LanguageSwitcher'
 import {
   LayoutDashboard, Package, FileText, Tag,
-  MessageSquare, BarChart3, User, LogOut, Menu, X, HelpCircle
+  MessageSquare, BarChart3, User, LogOut, Menu, X, HelpCircle, Inbox
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -13,6 +13,7 @@ const navItems = [
   { to: '/', icon: LayoutDashboard, key: 'nav.dashboard' },
   { to: '/products', icon: Package, key: 'nav.products' },
   { to: '/orders', icon: FileText, key: 'nav.orders' },
+  { to: '/inquiries', icon: Inbox, key: 'nav.inquiries' },
   { to: '/promotions', icon: Tag, key: 'nav.promotions' },
   { to: '/messages', icon: MessageSquare, key: 'nav.messages' },
   { to: '/insights', icon: BarChart3, key: 'nav.insights' },

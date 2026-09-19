@@ -1170,3 +1170,13 @@ Ausrüstung unter Boote ergänzen.";
 "rope.quote_none" = "Aktuell keine Tauwerk-Anbieter gefunden.";
 
 "rope.request_quote_confirm" = "Deine Anfrage wird an alle passenden Tauwerk-Anbieter gesendet. Fortfahren?";
+
+/* Angebot annehmen & bezahlen */
+"inq.offer_label" = "Angebot";
+"inq.offer_total" = "Gesamt: %@";
+"inq.offer_incl_shipping" = "inkl. Versand %@";
+"inq.offer_accept_pay" = "Annehmen & bezahlen";
+"inq.offer_pay_hint" = "Deine Karte wird nur hinterlegt. Abgebucht wird erst, wenn der Anbieter den Versand bestätigt.";
+"inq.offer_pay_canceled" = "Zahlung abgebrochen. Du kannst das Angebot jederzeit erneut annehmen.";
+"inq.offer_ordered_label" = "Bestellung erstellt";
+"inq.offer_ordered_text" = "Du hast dieses Angebot angenommen. Die Bestellung findest du unter Bestellungen.";
