@@ -1155,3 +1155,5 @@
 "equipment.repair_notes" = "What was done?";
 
 "sail.f.area" = "Sail area";
+
+"equipment.sail_type" = "Sail type";

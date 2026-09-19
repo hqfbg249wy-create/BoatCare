@@ -1156,3 +1156,5 @@
 "equipment.repair_notes" = "¿Qué se hizo?";
 
 "sail.f.area" = "Superficie vélica";
+
+"equipment.sail_type" = "Tipo de vela";

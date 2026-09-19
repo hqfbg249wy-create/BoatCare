@@ -1156,3 +1156,5 @@
 "equipment.repair_notes" = "Wat is er gedaan?";
 
 "sail.f.area" = "Zeiloppervlak";
+
+"equipment.sail_type" = "Zeiltype";

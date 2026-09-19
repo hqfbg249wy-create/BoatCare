@@ -1156,3 +1156,5 @@
 "equipment.repair_notes" = "Qu'est-ce qui a été fait ?";
 
 "sail.f.area" = "Surface de voile";
+
+"equipment.sail_type" = "Type de voile";

@@ -1158,3 +1158,5 @@ Ausrüstung unter Boote ergänzen.";
 "equipment.repair_notes" = "Was wurde gemacht?";
 
 "sail.f.area" = "Segelfläche";
+
+"equipment.sail_type" = "Segeltyp";

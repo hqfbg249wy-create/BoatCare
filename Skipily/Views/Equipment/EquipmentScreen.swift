@@ -48,6 +48,9 @@ struct EquipmentItem: Identifiable, Codable {
     /// Transient: Tauwerk-Konfig aus dem Formular (nicht in CodingKeys → wird
     /// weder in die equipment-Tabelle kodiert noch von dort dekodiert).
     var ropeDraft: RopeConfigDraft? = nil
+    /// Transient: Segelmessblatt aus dem Formular (analog ropeDraft) — wird nach
+    /// dem Persistieren der Ausruestung in sail_measurements gespeichert.
+    var sailDraft: SailMeasurement? = nil
 
     init(id: UUID = UUID(), boatId: UUID, name: String = "", category: String = "other",
          manufacturer: String = "", model: String = "", serialNumber: String = "",
@@ -205,6 +208,7 @@ private let equipmentCategories = [
 struct AddSheetTrigger: Identifiable {
     let id: String      // == category, eindeutig pro gewählter Kategorie
     let category: String
+    var sailType: SailType? = nil   // beim Segel: vorgewaehlter Typ fuers Messblatt
 }
 
 // MARK: - Equipment Navigation Target
@@ -432,22 +436,25 @@ struct EquipmentScreen: View {
             .presentationDetents([.medium, .large])
         }
         .sheet(item: $addTrigger) { trigger in
-            AddEditEquipmentView(boatId: boatId, item: nil, initialCategory: trigger.category) { newItem in
+            AddEditEquipmentView(boatId: boatId, item: nil, initialCategory: trigger.category,
+                                 initialSailType: trigger.sailType) { newItem in
                 Task { await addItem(newItem) }
             }
         }
         .sheet(isPresented: $showingNewSailFlow) {
             NewSailEquipmentFlow(
-                boatId: boatId,
                 boatName: boatName,
+                onPickType: { type in
+                    // Bekannter Segeltyp → generisches Formular mit Messblatt inline.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        addTrigger = AddSheetTrigger(id: "sails", category: "sails", sailType: type)
+                    }
+                },
                 onPickOther: {
                     // Anderes Segel → generischer Equipment-Flow mit Kategorie sails
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                         addTrigger = AddSheetTrigger(id: "sails", category: "sails")
                     }
-                },
-                onCreated: {
-                    Task { await loadItems() }
                 }
             )
         }
@@ -532,6 +539,7 @@ struct EquipmentScreen: View {
         do {
             try await authService.supabase.from("equipment").insert(ins).execute()
             await saveRopeDraftIfNeeded(item)
+            await saveSailDraftIfNeeded(item)
             await loadItems()
         } catch { AppLog.error("Equipment hinzufügen: \(error)") }
     }
@@ -553,6 +561,7 @@ struct EquipmentScreen: View {
             try await authService.supabase.from("equipment")
                 .update(upd).eq("id", value: item.id.uuidString).execute()
             await saveRopeDraftIfNeeded(item)
+            await saveSailDraftIfNeeded(item)
             await loadItems()
         } catch { AppLog.error("Equipment aktualisieren: \(error)") }
     }
@@ -560,6 +569,34 @@ struct EquipmentScreen: View {
     /// Persistiert die Tauwerk-Konfiguration (falls im Formular ausgefüllt)
     /// nachdem die Ausrüstung gespeichert wurde. Matcht die Artikelnummer gegen
     /// den Shop und verankert die Tauwerk-Art als equipment.rope_type.
+    /// Persistiert das inline erfasste Segelmessblatt in sail_measurements
+    /// (Upsert je Ausruestung), nachdem die Ausruestung angelegt/aktualisiert wurde.
+    private func saveSailDraftIfNeeded(_ item: EquipmentItem) async {
+        let cat = item.category.lowercased()
+        guard cat.contains("sail") || cat.contains("segel") || cat.contains("rigg"),
+              var m = item.sailDraft else { return }
+        m.equipmentId = item.id
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        m.date = df.string(from: Date())
+        do {
+            let existing: [SailMeasurement] = try await SupabaseManager.shared.client
+                .from("sail_measurements").select()
+                .eq("equipment_id", value: item.id.uuidString)
+                .execute().value
+            if let ex = existing.first {
+                m.id = ex.id
+                try await SupabaseManager.shared.client
+                    .from("sail_measurements").update(m)
+                    .eq("id", value: ex.id.uuidString).execute()
+            } else {
+                try await SupabaseManager.shared.client
+                    .from("sail_measurements").insert(m).execute()
+            }
+        } catch {
+            AppLog.error("saveSailDraftIfNeeded: \(error)")
+        }
+    }
+
     private func saveRopeDraftIfNeeded(_ item: EquipmentItem) async {
         let cat = item.category.lowercased()
         guard cat.contains("rope") || cat.contains("tauwerk"), let d = item.ropeDraft else { return }
@@ -1132,20 +1169,24 @@ struct AddEditEquipmentView: View {
     /// Beim Anlegen: schon hochgeladene Foto-URLs (z.B. aus einer
     /// Foto-Diagnose im KI-Chat) als bestehende Bilder vorbefüllen.
     let initialPhotoUrls: [String]?
+    /// Beim Anlegen eines Segels: vorgewaehlter Segeltyp fuer das inline-Messblatt.
+    let initialSailType: SailType?
     let onSave: (EquipmentItem) -> Void
     @Environment(\.dismiss) var dismiss
 
     init(boatId: UUID, item: EquipmentItem?, initialCategory: String? = nil,
-         initialPhotoUrls: [String]? = nil,
+         initialPhotoUrls: [String]? = nil, initialSailType: SailType? = nil,
          onSave: @escaping (EquipmentItem) -> Void) {
         self.boatId = boatId
         self.item = item
         self.initialCategory = initialCategory
         self.initialPhotoUrls = initialPhotoUrls
+        self.initialSailType = initialSailType
         self.onSave = onSave
         // initiale Kategorie für @State setzen — Reihenfolge: bestehendes Item ▸ Picker ▸ "other"
         let cat = item?.category ?? initialCategory ?? "other"
         self._category = State(initialValue: cat)
+        self._sailType = State(initialValue: initialSailType ?? .grosssegel)
         // Vorbelegte Foto-URLs (nur beim Anlegen sinnvoll, beim Edit kommen
         // sie aus item.photoUrl)
         if item == nil, let urls = initialPhotoUrls, !urls.isEmpty {
@@ -1179,8 +1220,10 @@ struct AddEditEquipmentView: View {
     @State private var existingPhotoUrls: [String] = []
     @State private var isUploadingPhotos = false
 
-    // Sail measurement
-    @State private var showingSailForm = false
+    // Sail measurement (inline im Formular, wie Tauwerk)
+    @State private var sailType: SailType
+    @State private var sailMeasurement = SailMeasurement(equipmentId: UUID(), sailType: "grosssegel")
+    @State private var sailLoaded = false
     @State private var headerPhotoIndex = 0
 
     // Tauwerk-Konfiguration (integriert, Kategorie Tauwerk)
@@ -1404,25 +1447,16 @@ struct AddEditEquipmentView: View {
                             .font(.caption)
                     }
                 }
-                // Maßblatt für Segel (nicht für Tauwerk)
+                // Segelmessblatt inline (wie Tauwerk-Konfiguration) — nicht fuer Tauwerk.
                 if isSailCategoryInForm && !isRopeCategoryInForm {
-                    Section("equipment.sail_form_section".loc) {
-                        if let existingItem = item {
-                            Button {
-                                showingSailForm = true
-                            } label: {
-                                Label("equipment.sail_form_edit".loc, systemImage: "doc.text.fill")
-                                    .foregroundStyle(.teal)
+                    Section("equipment.sail_type".loc) {
+                        Picker("equipment.sail_type".loc, selection: $sailType) {
+                            ForEach(SailType.allCases.filter { $0 != .other }) { t in
+                                Text(t.displayName).tag(t)
                             }
-                            .sheet(isPresented: $showingSailForm) {
-                                SailMeasurementGateway(equipmentId: existingItem.id, boatName: existingItem.name)
-                            }
-                        } else {
-                            Text("equipment.sail_form_save_first".loc)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
                         }
                     }
+                    SailMeasurementFields(measurement: $sailMeasurement, sailType: sailType)
                 }
 
                 // Tauwerk-Konfiguration (Kategorie Tauwerk) — integriert
@@ -1489,6 +1523,7 @@ struct AddEditEquipmentView: View {
             }
         }
         .task { await loadRopeConfig() }
+        .task { await loadSailMeasurement() }
         .onAppear {
             guard let e = item else { return }
             let df = EquipmentItem.dateFormatter
@@ -1585,6 +1620,14 @@ struct AddEditEquipmentView: View {
             let ropeDims = dimParts.joined(separator: " · ")
             if !ropeDims.isEmpty { saved.dimensions = ropeDims }
         }
+        // Segelmessblatt mitgeben → addItem/updateItem persistiert es in
+        // sail_measurements (nach dem Anlegen/Aktualisieren der Ausruestung).
+        if isSailCategoryInForm && !isRopeCategoryInForm {
+            var m = sailMeasurement
+            m.equipmentId = equipId
+            m.sailType = sailType.dbValue
+            saved.sailDraft = m
+        }
         isUploadingPhotos = false
         onSave(saved)
         dismiss()
@@ -1633,6 +1676,22 @@ struct AddEditEquipmentView: View {
         ropeEnd2 = r.end2 ?? ""
         ropeEnd2Eye = fmt(r.end2_eye_length_cm)
         ropeAccessory = r.accessory_article_number ?? ""
+    }
+
+    /// Lädt ein bestehendes Segelmessblatt beim Bearbeiten ins inline-Formular.
+    private func loadSailMeasurement() async {
+        guard !sailLoaded, let it = item else { return }
+        let cat = it.category.lowercased()
+        guard cat.contains("sail") || cat.contains("segel") || cat.contains("rigg") else { return }
+        sailLoaded = true
+        let rows: [SailMeasurement] = (try? await SupabaseManager.shared.client
+            .from("sail_measurements").select()
+            .eq("equipment_id", value: it.id.uuidString)
+            .order("created_at", ascending: false).limit(1)
+            .execute().value) ?? []
+        guard let m = rows.first else { return }
+        sailMeasurement = m
+        sailType = SailType.fromDBValue(m.sailType)
     }
 }
 
