@@ -1363,16 +1363,19 @@ struct AddEditEquipmentView: View {
                         TextField("equipment.serial".loc, text: $serialNumber)
                     }
                     // Beim Segel entfallen Teilenummer, Position am Boot und
-                    // Abmessungen (Gesamt-QM gehoert ins Segelmessblatt).
-                    if !isSailCategoryInForm {
+                    // Abmessungen (Gesamt-QM gehoert ins Segelmessblatt). Beim
+                    // Tauwerk ebenfalls, da es unten in der Konfiguration passende
+                    // Felder (Artikelnummer, Laenge/Durchmesser) gibt.
+                    if !isSailCategoryInForm && !isRopeCategoryInForm {
                         TextField("equipment.part_number".loc, text: $partNumber)
                         TextField("equipment.location".loc, text: $locationOnBoat)
                         TextField("equipment.dimensions".loc, text: $dimensions)
                     }
                 }
                 // Beschreibung: bei Segel entfaellt sie hier (Notizen/Besonderheiten
-                // stehen im Messblatt; "was wurde gemacht" steht in der Reparatur-Sektion).
-                if !isSailCategoryInForm {
+                // stehen im Messblatt); bei Tauwerk ebenfalls (Konfiguration + Notizen
+                // decken es ab).
+                if !isSailCategoryInForm && !isRopeCategoryInForm {
                     Section("equipment.description".loc) {
                         TextField("equipment.description".loc, text: $itemDescription, axis: .vertical)
                             .lineLimit(3...6)
