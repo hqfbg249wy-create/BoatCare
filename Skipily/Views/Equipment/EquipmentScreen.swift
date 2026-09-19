@@ -947,7 +947,25 @@ struct EquipmentDetailView: View {
     @State private var showingDeleteConfirm = false
     @State private var showingBriefing = false
     @State private var showingSpareParts = false
+    @State private var showQuoteSheet = false
     @State private var selectedPhotoIndex = 0
+
+    /// Vorbefuellte Nachricht fuer die Service-/Angebotsanfrage aus der Ausruestung.
+    private var equipmentQuoteMessage: String {
+        var lines: [String] = ["quote.equipment_intro".loc, ""]
+        func add(_ label: String, _ value: String?) {
+            let v = (value ?? "").trimmingCharacters(in: .whitespaces)
+            if !v.isEmpty { lines.append("\(label): \(v)") }
+        }
+        add("equipment.name".loc, item.name)
+        add("equipment.category".loc, "equipment.cat.\(item.category)".loc)
+        add("boats.manufacturer".loc, item.manufacturer)
+        add("boats.model".loc, item.model)
+        add("equipment.serial".loc, item.serialNumber)
+        add("equipment.part_number".loc, item.partNumber)
+        add("equipment.dimensions".loc, item.dimensions)
+        return lines.joined(separator: "\n")
+    }
 
     private var photoURLs: [URL] {
         let raw = item.photoUrl ?? item.imageUrl ?? ""
@@ -1090,6 +1108,13 @@ struct EquipmentDetailView: View {
                     Label("equipment.spare_parts_ai".loc, systemImage: "sparkles")
                         .foregroundStyle(.orange)
                 }
+                // Angebot/Service bei passenden Betrieben anfragen (Auswahl + Laender-Filter).
+                Button {
+                    showQuoteSheet = true
+                } label: {
+                    Label("quote.request_action".loc, systemImage: "paperplane")
+                        .foregroundStyle(.green)
+                }
                 if item.category.lowercased().contains("rope") || item.category.lowercased().contains("tauwerk") {
                     Button {
                         showingEdit = true
@@ -1142,6 +1167,14 @@ struct EquipmentDetailView: View {
                 boatName: boatName,
                 focusItem: item,
                 onAdded: {}
+            )
+        }
+        .sheet(isPresented: $showQuoteSheet) {
+            ServiceQuoteSheet(
+                keywords: ServiceKeywords.forEquipment(category: item.category, name: item.name),
+                subject: String(format: "quote.equipment_subject".loc, item.name),
+                message: equipmentQuoteMessage,
+                boatId: item.boatId
             )
         }
         .confirmationDialog("equipment.delete_confirm".loc, isPresented: $showingDeleteConfirm, titleVisibility: .visible) {
@@ -1238,10 +1271,8 @@ struct AddEditEquipmentView: View {
     @State private var ropeEnd2Eye = ""
     @State private var ropeAccessory = ""
     @State private var ropeLoaded = false
-    // Tauwerk-Angebotsanfrage
-    @State private var isRequestingQuote = false
-    @State private var quoteResult: String? = nil
-    @State private var showQuoteConfirm = false
+    // Tauwerk-Angebotsanfrage (Betriebe auswaehlen via Sheet)
+    @State private var showQuoteSheet = false
 
     private var isRopeCategoryInForm: Bool {
         let cat = category.lowercased()
@@ -1509,32 +1540,18 @@ struct AddEditEquipmentView: View {
                             .autocorrectionDisabled()
                     }
 
-                    // Angebotsanfrage an alle Tauwerk-Anbieter (nur bei gespeichertem
-                    // Tauwerk, da die Konfiguration die Basis der Anfrage ist).
+                    // Angebot bei Tauwerk-Anbietern anfragen (Betriebe auswaehlen,
+                    // Laender filtern). Nur bei gespeichertem Tauwerk.
                     if item != nil {
                         Section {
                             Button {
-                                showQuoteConfirm = true
+                                showQuoteSheet = true
                             } label: {
                                 HStack(spacing: 8) {
-                                    if isRequestingQuote { ProgressView() }
-                                    else { Image(systemName: "paperplane.fill") }
+                                    Image(systemName: "paperplane.fill")
                                     Text("rope.request_quote".loc).fontWeight(.semibold)
                                 }
                                 .frame(maxWidth: .infinity)
-                            }
-                            .disabled(isRequestingQuote)
-                            .confirmationDialog("rope.request_quote".loc,
-                                                isPresented: $showQuoteConfirm, titleVisibility: .visible) {
-                                Button("rope.request_quote".loc) { Task { await requestRopeQuote() } }
-                                Button("general.cancel".loc, role: .cancel) {}
-                            } message: {
-                                Text("rope.request_quote_confirm".loc)
-                            }
-                            if let quoteResult {
-                                Text(quoteResult)
-                                    .font(.caption)
-                                    .foregroundStyle(AppColors.success)
                             }
                         } footer: {
                             Text("rope.request_quote_hint".loc)
@@ -1563,6 +1580,14 @@ struct AddEditEquipmentView: View {
         }
         .task { await loadRopeConfig() }
         .task { await loadSailMeasurement() }
+        .sheet(isPresented: $showQuoteSheet) {
+            ServiceQuoteSheet(
+                keywords: ServiceKeywords.forEquipment(category: category, name: name),
+                subject: ropeQuoteSubject,
+                message: ropeQuoteMessage,
+                boatId: boatId
+            )
+        }
         .onAppear {
             guard let e = item else { return }
             let df = EquipmentItem.dateFormatter
@@ -1599,14 +1624,11 @@ struct AddEditEquipmentView: View {
 
     /// Baut aus der Tauwerk-Konfiguration eine lesbare Anfrage und sendet sie an
     /// alle Tauwerk-Anbieter (je Anbieter eine Anfrage + Mail).
-    @MainActor
-    private func requestRopeQuote() async {
-        isRequestingQuote = true
-        quoteResult = nil
-        defer { isRequestingQuote = false }
-
+    private var ropeQuoteSubject: String {
         let title = name.trimmingCharacters(in: .whitespaces).isEmpty ? "Tauwerk" : name
-        let subject = String(format: "rope.quote_subject".loc, title)
+        return String(format: "rope.quote_subject".loc, title)
+    }
+    private var ropeQuoteMessage: String {
         var lines: [String] = ["rope.quote_intro".loc, ""]
         func add(_ label: String, _ value: String) {
             let v = value.trimmingCharacters(in: .whitespaces)
@@ -1625,16 +1647,7 @@ struct AddEditEquipmentView: View {
             add("rope.section_end2".loc, l + (ropeEnd2Eye.isEmpty ? "" : " (\("rope.f.eye_length".loc) \(ropeEnd2Eye) cm)"))
         }
         add("rope.f.accessory_article".loc, ropeAccessory)
-        let message = lines.joined(separator: "\n")
-
-        do {
-            let n = try await InquiryService.shared.requestRopeQuote(
-                boatId: boatId, subject: subject, message: message
-            )
-            quoteResult = n > 0 ? String(format: "rope.quote_sent".loc, n) : "rope.quote_none".loc
-        } catch {
-            quoteResult = "\("general.error".loc): \(error.localizedDescription)"
-        }
+        return lines.joined(separator: "\n")
     }
 
     private func saveWithPhotos() async {

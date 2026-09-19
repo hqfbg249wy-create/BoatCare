@@ -8,6 +8,27 @@
 import Foundation
 import SwiftUI
 
+/// Betrieb als Auswahl-Kandidat fuer eine Angebots-/Service-Anfrage.
+struct QuoteProvider: Identifiable, Decodable, Sendable, Hashable {
+    let id: UUID
+    let name: String
+    let city: String?
+    let country: String?
+    let category: String?
+    let hasEmail: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, city, country, category
+        case hasEmail = "has_email"
+    }
+}
+
+/// Land + Trefferanzahl fuer den Länder-Filter.
+struct QuoteCountry: Decodable, Sendable, Hashable {
+    let country: String
+    let count: Int
+}
+
 struct ServiceInquiry: Identifiable, Codable, Sendable {
     let id: UUID
     let ownerId: UUID

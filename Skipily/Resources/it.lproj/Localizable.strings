@@ -1178,3 +1178,20 @@
 "inq.offer_pay_canceled" = "Pagamento annullato. Puoi accettare di nuovo l'offerta in qualsiasi momento.";
 "inq.offer_ordered_label" = "Ordine creato";
 "inq.offer_ordered_text" = "Hai accettato questa offerta. Trovi l'ordine in Ordini.";
+
+/* Service-/Angebotsanfrage (Auswahl) */
+"quote.title" = "Richiedi un preventivo";
+"quote.message_section" = "Richiesta";
+"quote.subject" = "Oggetto";
+"quote.message" = "Messaggio";
+"quote.countries" = "Paesi";
+"quote.providers_count" = "Aziende (%d)";
+"quote.select_all" = "Seleziona tutti";
+"quote.deselect_all" = "Deseleziona tutti";
+"quote.no_providers" = "Nessuna azienda corrispondente trovata.";
+"quote.footer_hint" = "Seleziona le aziende a cui inviare la richiesta. Le risposte compaiono in Richieste.";
+"quote.send_n" = "Invia (%d)";
+"quote.sent" = "Richiesta inviata a %d aziende.";
+"quote.request_action" = "Richiedi preventivo / servizio";
+"quote.equipment_subject" = "Richiesta – %@";
+"quote.equipment_intro" = "Richiedo un preventivo / un servizio per la seguente attrezzatura:";

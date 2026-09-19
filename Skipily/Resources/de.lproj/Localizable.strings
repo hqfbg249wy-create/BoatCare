@@ -1180,3 +1180,22 @@ Ausrüstung unter Boote ergänzen.";
 "inq.offer_pay_canceled" = "Zahlung abgebrochen. Du kannst das Angebot jederzeit erneut annehmen.";
 "inq.offer_ordered_label" = "Bestellung erstellt";
 "inq.offer_ordered_text" = "Du hast dieses Angebot angenommen. Die Bestellung findest du unter Bestellungen.";
+
+/* Service-/Angebotsanfrage (Auswahl) */
+
+/* Service-/Angebotsanfrage (Auswahl) */
+"quote.title" = "Angebot anfragen";
+"quote.message_section" = "Anfrage";
+"quote.subject" = "Betreff";
+"quote.message" = "Nachricht";
+"quote.countries" = "Länder";
+"quote.providers_count" = "Betriebe (%d)";
+"quote.select_all" = "Alle auswählen";
+"quote.deselect_all" = "Auswahl aufheben";
+"quote.no_providers" = "Keine passenden Betriebe gefunden.";
+"quote.footer_hint" = "Wähle die Betriebe aus, an die die Anfrage gehen soll. Antworten erscheinen unter Anfragen.";
+"quote.send_n" = "Senden (%d)";
+"quote.sent" = "Anfrage an %d Betriebe gesendet.";
+"quote.request_action" = "Angebot / Service anfragen";
+"quote.equipment_subject" = "Anfrage – %@";
+"quote.equipment_intro" = "Ich bitte um ein Angebot / eine Serviceleistung für folgende Ausrüstung:";

@@ -1178,3 +1178,20 @@
 "inq.offer_pay_canceled" = "Betaling geannuleerd. Je kunt het aanbod altijd opnieuw accepteren.";
 "inq.offer_ordered_label" = "Bestelling aangemaakt";
 "inq.offer_ordered_text" = "Je hebt dit aanbod geaccepteerd. Je vindt de bestelling onder Bestellingen.";
+
+/* Service-/Angebotsanfrage (Auswahl) */
+"quote.title" = "Offerte aanvragen";
+"quote.message_section" = "Aanvraag";
+"quote.subject" = "Onderwerp";
+"quote.message" = "Bericht";
+"quote.countries" = "Landen";
+"quote.providers_count" = "Bedrijven (%d)";
+"quote.select_all" = "Alles selecteren";
+"quote.deselect_all" = "Selectie opheffen";
+"quote.no_providers" = "Geen passende bedrijven gevonden.";
+"quote.footer_hint" = "Selecteer de bedrijven waaraan de aanvraag wordt gestuurd. Antwoorden verschijnen onder Aanvragen.";
+"quote.send_n" = "Versturen (%d)";
+"quote.sent" = "Aanvraag verzonden naar %d bedrijven.";
+"quote.request_action" = "Offerte / service aanvragen";
+"quote.equipment_subject" = "Aanvraag – %@";
+"quote.equipment_intro" = "Ik vraag een offerte / service aan voor de volgende uitrusting:";

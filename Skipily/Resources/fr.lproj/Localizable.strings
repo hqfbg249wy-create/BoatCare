@@ -1178,3 +1178,20 @@
 "inq.offer_pay_canceled" = "Paiement annulé. Vous pouvez accepter l'offre à nouveau à tout moment.";
 "inq.offer_ordered_label" = "Commande créée";
 "inq.offer_ordered_text" = "Vous avez accepté cette offre. Vous trouverez la commande dans Commandes.";
+
+/* Service-/Angebotsanfrage (Auswahl) */
+"quote.title" = "Demander un devis";
+"quote.message_section" = "Demande";
+"quote.subject" = "Objet";
+"quote.message" = "Message";
+"quote.countries" = "Pays";
+"quote.providers_count" = "Entreprises (%d)";
+"quote.select_all" = "Tout sélectionner";
+"quote.deselect_all" = "Tout désélectionner";
+"quote.no_providers" = "Aucune entreprise correspondante trouvée.";
+"quote.footer_hint" = "Sélectionnez les entreprises destinataires de la demande. Les réponses apparaissent dans Demandes.";
+"quote.send_n" = "Envoyer (%d)";
+"quote.sent" = "Demande envoyée à %d entreprises.";
+"quote.request_action" = "Demander un devis / service";
+"quote.equipment_subject" = "Demande – %@";
+"quote.equipment_intro" = "Je demande un devis / une prestation pour l'équipement suivant :";

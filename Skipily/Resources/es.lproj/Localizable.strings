@@ -1178,3 +1178,20 @@
 "inq.offer_pay_canceled" = "Pago cancelado. Puedes aceptar la oferta de nuevo en cualquier momento.";
 "inq.offer_ordered_label" = "Pedido creado";
 "inq.offer_ordered_text" = "Has aceptado esta oferta. Encontrarás el pedido en Pedidos.";
+
+/* Service-/Angebotsanfrage (Auswahl) */
+"quote.title" = "Solicitar presupuesto";
+"quote.message_section" = "Solicitud";
+"quote.subject" = "Asunto";
+"quote.message" = "Mensaje";
+"quote.countries" = "Países";
+"quote.providers_count" = "Empresas (%d)";
+"quote.select_all" = "Seleccionar todo";
+"quote.deselect_all" = "Quitar selección";
+"quote.no_providers" = "No se han encontrado empresas coincidentes.";
+"quote.footer_hint" = "Selecciona las empresas a las que enviar la solicitud. Las respuestas aparecen en Solicitudes.";
+"quote.send_n" = "Enviar (%d)";
+"quote.sent" = "Solicitud enviada a %d empresas.";
+"quote.request_action" = "Solicitar presupuesto / servicio";
+"quote.equipment_subject" = "Solicitud – %@";
+"quote.equipment_intro" = "Solicito un presupuesto / servicio para el siguiente equipo:";

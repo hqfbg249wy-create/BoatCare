@@ -1177,3 +1177,20 @@
 "inq.offer_pay_canceled" = "Payment cancelled. You can accept the offer again anytime.";
 "inq.offer_ordered_label" = "Order created";
 "inq.offer_ordered_text" = "You accepted this offer. You can find the order under Orders.";
+
+/* Service-/Angebotsanfrage (Auswahl) */
+"quote.title" = "Request a quote";
+"quote.message_section" = "Request";
+"quote.subject" = "Subject";
+"quote.message" = "Message";
+"quote.countries" = "Countries";
+"quote.providers_count" = "Businesses (%d)";
+"quote.select_all" = "Select all";
+"quote.deselect_all" = "Deselect all";
+"quote.no_providers" = "No matching businesses found.";
+"quote.footer_hint" = "Select the businesses to send the request to. Replies appear under Inquiries.";
+"quote.send_n" = "Send (%d)";
+"quote.sent" = "Request sent to %d businesses.";
+"quote.request_action" = "Request quote / service";
+"quote.equipment_subject" = "Request – %@";
+"quote.equipment_intro" = "I am requesting a quote / service for the following equipment:";

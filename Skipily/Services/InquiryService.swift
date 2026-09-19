@@ -23,6 +23,43 @@ final class InquiryService {
         SupabaseManager.shared.client
     }
 
+    /// Findet Betriebe zur Auswahl (nach Stichworten + optional Ländern).
+    func findProviders(keywords: [String], countries: [String]) async throws
+        -> (providers: [QuoteProvider], countries: [QuoteCountry], total: Int) {
+        struct Body: Encodable { let keywords: [String]; let countries: [String] }
+        struct Resp: Decodable {
+            let ok: Bool?; let total: Int?
+            let countries: [QuoteCountry]?; let providers: [QuoteProvider]?; let error: String?
+        }
+        let resp: Resp = try await client.functions.invoke(
+            "find-service-providers", options: .init(body: Body(keywords: keywords, countries: countries))
+        )
+        guard resp.ok == true else {
+            throw NSError(domain: "Skipily.Quote", code: 500,
+                          userInfo: [NSLocalizedDescriptionKey: resp.error ?? "Suche fehlgeschlagen"])
+        }
+        return (resp.providers ?? [], resp.countries ?? [], resp.total ?? 0)
+    }
+
+    /// Sendet eine Anfrage an die AUSGEWÄHLTEN Betriebe. Liefert die Anzahl.
+    func requestQuote(providerIds: [UUID], boatId: UUID?, subject: String, message: String) async throws -> Int {
+        struct Body: Encodable {
+            let provider_ids: [String]; let boat_id: String?; let subject: String; let message: String
+        }
+        struct Resp: Decodable { let ok: Bool?; let count: Int?; let error: String? }
+        let resp: Resp = try await client.functions.invoke(
+            "request-quote",
+            options: .init(body: Body(
+                provider_ids: providerIds.map { $0.uuidString }, boat_id: boatId?.uuidString,
+                subject: subject, message: message))
+        )
+        guard resp.ok == true else {
+            throw NSError(domain: "Skipily.Quote", code: 500,
+                          userInfo: [NSLocalizedDescriptionKey: resp.error ?? "Anfrage fehlgeschlagen"])
+        }
+        return resp.count ?? 0
+    }
+
     /// Nimmt das Angebot eines Anbieters an → erzeugt eine Deferred-Bestellung
     /// (Zahlung via Stripe) und liefert deren Order-ID.
     func acceptOffer(inquiryId: UUID) async throws -> UUID {
