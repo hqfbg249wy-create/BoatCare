@@ -1153,3 +1153,5 @@
 "equipment.has_last_repair" = "Add last repair";
 "equipment.last_repair" = "Last repair";
 "equipment.repair_notes" = "What was done?";
+
+"sail.f.area" = "Sail area";

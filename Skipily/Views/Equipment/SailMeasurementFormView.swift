@@ -59,6 +59,10 @@ struct SailMeasurement: Codable, Identifiable {
     // Common fields
     var sailNumber: String = ""
     var notes: String = ""
+    // Segelflaeche + Einheit (m2 oder sqft) — in anderen Laendern wird die
+    // Flaeche in Quadratfuss angegeben.
+    var area: String = ""
+    var areaUnit: String = "m2"   // "m2" | "sqft"
 
     // Großsegel Rigg
     var gs_P: String = ""          // Vorliek
@@ -135,6 +139,8 @@ struct SailMeasurement: Codable, Identifiable {
         case date
         case sailNumber = "sail_number"
         case notes
+        case area
+        case areaUnit = "area_unit"
         // Großsegel
         case gs_P = "gs_p"
         case gs_E = "gs_e"
@@ -199,7 +205,8 @@ struct SailMeasurement: Codable, Identifiable {
         .vs_VL, .vs_AL1, .vs_AL2, .vs_T1, .vs_T2,
         .vs_W, .vs_Q, .vs_K, .vs_H,
         .gk_luffLength, .gk_leechLength, .gk_footLength,
-        .gk_midWidth, .gk_tackHeight
+        .gk_midWidth, .gk_tackHeight,
+        .area
     ]
 
     init() {
@@ -221,6 +228,7 @@ struct SailMeasurement: Codable, Identifiable {
         self.date = try? c.decode(String.self, forKey: .date)
         self.sailNumber = (try? c.decode(String.self, forKey: .sailNumber)) ?? ""
         self.notes = (try? c.decode(String.self, forKey: .notes)) ?? ""
+        self.areaUnit = (try? c.decode(String.self, forKey: .areaUnit)) ?? "m2"
 
         // Numeric fields: Double|null → String
         func num(_ k: CodingKeys) -> String {
@@ -262,6 +270,8 @@ struct SailMeasurement: Codable, Identifiable {
         self.gk_material        = (try? c.decode(String.self, forKey: .gk_material)) ?? ""
         self.gk_farbe           = (try? c.decode(String.self, forKey: .gk_farbe)) ?? ""
 
+        self.area = num(.area)
+
         // Bool flags
         self.gs_einleinenreff   = (try? c.decode(Bool.self, forKey: .gs_einleinenreff)) ?? false
         self.gs_weicherFussteil = (try? c.decode(Bool.self, forKey: .gs_weicherFussteil)) ?? false
@@ -281,6 +291,7 @@ struct SailMeasurement: Codable, Identifiable {
         try c.encodeIfPresent(date, forKey: .date)
         try c.encode(sailNumber, forKey: .sailNumber)
         try c.encode(notes, forKey: .notes)
+        try c.encode(areaUnit, forKey: .areaUnit)
 
         // Numeric: leerer String → null, sonst als Double
         func putNum(_ s: String, _ k: CodingKeys) throws {
@@ -308,6 +319,7 @@ struct SailMeasurement: Codable, Identifiable {
         try putNum(gk_footLength, .gk_footLength)
         try putNum(gk_midWidth, .gk_midWidth)
         try putNum(gk_tackHeight, .gk_tackHeight)
+        try putNum(area, .area)
 
         // Strings
         try c.encode(gs_unterliekstau, forKey: .gs_unterliekstau)
@@ -381,6 +393,17 @@ struct SailMeasurementFormView: View {
                 // Common
                 Section("sail.section_general".loc) {
                     TextField("sail.f.sail_number".loc, text: $measurement.sailNumber)
+                    // Segelflaeche mit Einheiten-Wahl (m2 / Quadratfuss).
+                    HStack {
+                        TextField("sail.f.area".loc, text: $measurement.area)
+                            .keyboardType(.decimalPad)
+                        Picker("", selection: $measurement.areaUnit) {
+                            Text("m²").tag("m2")
+                            Text("sq ft").tag("sqft")
+                        }
+                        .pickerStyle(.segmented)
+                        .fixedSize()
+                    }
                     TextField("sail.f.notes".loc, text: $measurement.notes, axis: .vertical)
                         .lineLimit(3...6)
                 }

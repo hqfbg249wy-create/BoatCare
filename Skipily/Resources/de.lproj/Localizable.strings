@@ -1156,3 +1156,5 @@ Ausrüstung unter Boote ergänzen.";
 "equipment.has_last_repair" = "Letzte Reparatur angeben";
 "equipment.last_repair" = "Letzte Reparatur";
 "equipment.repair_notes" = "Was wurde gemacht?";
+
+"sail.f.area" = "Segelfläche";

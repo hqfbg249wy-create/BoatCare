@@ -1154,3 +1154,5 @@
 "equipment.has_last_repair" = "Laatste reparatie opgeven";
 "equipment.last_repair" = "Laatste reparatie";
 "equipment.repair_notes" = "Wat is er gedaan?";
+
+"sail.f.area" = "Zeiloppervlak";

@@ -1154,3 +1154,5 @@
 "equipment.has_last_repair" = "Indicar última reparación";
 "equipment.last_repair" = "Última reparación";
 "equipment.repair_notes" = "¿Qué se hizo?";
+
+"sail.f.area" = "Superficie vélica";

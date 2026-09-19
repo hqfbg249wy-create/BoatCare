@@ -1154,3 +1154,5 @@
 "equipment.has_last_repair" = "Indiquer la dernière réparation";
 "equipment.last_repair" = "Dernière réparation";
 "equipment.repair_notes" = "Qu'est-ce qui a été fait ?";
+
+"sail.f.area" = "Surface de voile";
