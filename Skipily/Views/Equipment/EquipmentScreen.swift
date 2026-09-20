@@ -1823,8 +1823,25 @@ struct ServiceSearchFromEquipment: View {
     @State private var selectedRadius: Double = 50
     @State private var useCurrentLocation = true
     @State private var hasSearched = false
+    @State private var showQuoteSheet = false
+    @State private var quoteMode: QuoteMode = .quote
 
     private let radiusOptions: [Double] = [10, 25, 50, 100, 200]
+
+    /// Vorbefuellte Nachricht fuer die Angebotsanfrage aus dieser Ausruestung.
+    private var quoteMessage: String {
+        var lines: [String] = ["quote.equipment_intro".loc, ""]
+        func add(_ label: String, _ value: String?) {
+            let v = (value ?? "").trimmingCharacters(in: .whitespaces)
+            if !v.isEmpty { lines.append("\(label): \(v)") }
+        }
+        add("equipment.name".loc, item.name)
+        add("boats.manufacturer".loc, item.manufacturer)
+        add("boats.model".loc, item.model)
+        add("equipment.part_number".loc, item.partNumber)
+        add("equipment.dimensions".loc, item.dimensions)
+        return lines.joined(separator: "\n")
+    }
 
     // Mapping: Equipment-Kategorie → Suchbegriffe für DB-Kategorie (sprachunabhängig, contains-Match)
     private let categoryMatchTerms: [String: [String]] = [
@@ -1832,6 +1849,13 @@ struct ServiceSearchFromEquipment: View {
         "motor":         ["werkstatt", "motor", "repair", "werft", "atelier", "cantiere", "taller", "werkplaats"],
         "rigging":       ["rigg", "gréement", "attrezzatura", "aparejo", "tuigage", "tauwerk"],
         "rigg":          ["rigg", "gréement", "attrezzatura", "aparejo", "tuigage", "tauwerk"],
+        "rope":          ["rigg", "tauwerk", "laufend", "segelmach", "rigging", "gréement", "tuigage", "sailmaker"],
+        "tauwerk":       ["rigg", "tauwerk", "laufend", "segelmach", "rigging", "gréement", "tuigage", "sailmaker"],
+        "sails":         ["segelmach", "segel", "sail", "voile", "vela", "zeilmak", "sailmaker"],
+        "sail":          ["segelmach", "segel", "sail", "voile", "vela", "zeilmak", "sailmaker"],
+        "hull":          ["werft", "lackier", "osmose", "antifouling", "gelcoat", "bootsbau", "rumpf", "hull", "paint"],
+        "rumpf":         ["werft", "lackier", "osmose", "antifouling", "gelcoat", "bootsbau", "rumpf", "hull", "paint"],
+        "deck":          ["zubehör", "beschläge", "werft", "supplies", "accastillage"],
         "electrical":    ["instrument", "elektron", "navigation", "électronique", "elettronica", "electrónica"],
         "elektrik":      ["instrument", "elektron", "navigation", "électronique", "elettronica", "electrónica"],
         "navigation":    ["instrument", "elektron", "navigation", "électronique", "elettronica", "electrónica"],
@@ -1869,6 +1893,27 @@ struct ServiceSearchFromEquipment: View {
             }
             .padding(.horizontal).padding(.vertical, 8)
             .background(Color(.systemGray6))
+
+            // Direkt aus der Service-Ansicht ein Angebot zu genau diesem
+            // Ausruestungsgegenstand anfragen (gefilterte Betriebe, zwei Arten).
+            Menu {
+                Button {
+                    quoteMode = .inquiry; showQuoteSheet = true
+                } label: { Label("quote.mode_inquiry".loc, systemImage: "bubble.left") }
+                Button {
+                    quoteMode = .quote; showQuoteSheet = true
+                } label: { Label("quote.mode_quote".loc, systemImage: "tag") }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "paperplane.fill")
+                    Text("quote.request_action".loc).fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity).padding(.vertical, 11)
+                .background(AppColors.primary.opacity(0.12))
+                .foregroundStyle(AppColors.primary)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .padding(.horizontal).padding(.vertical, 8)
 
             // Standort + Radius
             VStack(spacing: 8) {
@@ -2001,6 +2046,15 @@ struct ServiceSearchFromEquipment: View {
             }
         }
         .navigationTitle("equipment.find_service".loc)
+        .sheet(isPresented: $showQuoteSheet) {
+            ServiceQuoteSheet(
+                keywords: ServiceKeywords.forEquipment(category: item.category, name: item.name),
+                subject: String(format: "quote.equipment_subject".loc, item.name),
+                message: quoteMessage,
+                boatId: item.boatId,
+                mode: quoteMode
+            )
+        }
         .task {
             // Wait briefly for location fix before first search
             for _ in 0..<20 {
