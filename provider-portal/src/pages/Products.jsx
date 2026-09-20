@@ -776,7 +776,7 @@ export default function Products() {
           >
             {csvImporting
               ? <><Loader size={16} className="spin" /> {t('products.importing')}</>
-              : <><FileSpreadsheet size={16} /> Import CSV/Excel</>}
+              : <><FileSpreadsheet size={16} /> {t('products.importCsvExcel')}</>}
           </button>
           <input
             type="file"

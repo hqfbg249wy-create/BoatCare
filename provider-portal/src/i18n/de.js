@@ -328,6 +328,7 @@ export default {
   'products.csvTemplateTitle': 'CSV-Vorlage herunterladen',
   'products.csvTemplate': 'CSV-Vorlage',
   'products.xlsxTemplate': 'Excel-Vorlage',
+  'products.importCsvExcel': 'CSV/Excel importieren',
   'products.xlsxTemplateTitle': 'Excel-Vorlage mit Kategorie-Dropdown herunterladen – ausfüllen und direkt hochladen',
   'products.csvCategoriesTitle': '📂 Gültige Kategorien für den Import anzeigen',
   'products.csvCategoriesHint': 'Trage in die Spalte „category" einen dieser englischen Namen ein (Groß-/Kleinschreibung egal; der deutsche Name funktioniert auch). Unbekannte Werte werden importiert, aber keiner Kategorie zugeordnet.',
