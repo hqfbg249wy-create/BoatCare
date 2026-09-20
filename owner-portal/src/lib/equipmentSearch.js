@@ -3,7 +3,27 @@
 const categoryLabels = {
   engine: 'Motor & Antrieb', electrical: 'Elektrik & Batterie', navigation: 'Navigation & Elektronik',
   safety: 'Sicherheit', communication: 'Kommunikation', rigging: 'Rigg & Takelage',
+  sails: 'Segel', rope: 'Tauwerk',
   hull: 'Rumpf & Unterwasser', deck: 'Deck & Beschläge', anchor: 'Anker & Kette', other: 'Sonstiges'
+}
+
+// Stichworte, mit denen die Provider-Textsuche die PASSENDEN Betriebe findet
+// (nicht der Geräte-Name!). Spiegelt die Zuordnung der iOS-App.
+// Bewusst je Domäne dedizierte Begriffe: bei Tauwerk NUR Rigger/Laufendes Gut,
+// damit nicht alle Segelmacher/Werften getroffen werden.
+const serviceKeywords = {
+  engine: 'Motor Antrieb Diesel',
+  electrical: 'Elektrik Batterie Elektronik',
+  navigation: 'Navigation Elektronik Instrumente',
+  safety: 'Sicherheit Rettung',
+  communication: 'Elektronik Funk Navigation',
+  rigging: 'Rigg Takelage Laufendes',
+  sails: 'Segelmacher Segel',
+  rope: 'Tauwerk Rigg Laufendes',
+  hull: 'Lackierer Osmose Antifouling Bootsbau',
+  deck: 'Beschläge Deck',
+  anchor: 'Anker Kette',
+  other: '',
 }
 
 // Build shop search query: name + manufacturer + model + dimensions
@@ -15,10 +35,15 @@ export function buildShopQuery(item) {
   return parts.filter(Boolean).join(' ')
 }
 
-// Build service search query: name + category + manufacturer
+// Build service search query: liefert Stichworte, mit denen die Provider-Suche
+// die PASSENDEN Betriebe findet. Bei Tauwerk/Segel/Rigg bewusst OHNE Gerätename
+// (z. B. "Genuaschot"), der sonst gar nichts oder das Falsche trifft.
 export function buildServiceQuery(item) {
-  const parts = [item.name?.trim()]
-  if (item.category) parts.push(categoryLabels[item.category] || '')
+  const kw = serviceKeywords[item.category] ?? (categoryLabels[item.category] || '')
+  if (item.category === 'rope' || item.category === 'sails' || item.category === 'rigging') {
+    return kw
+  }
+  const parts = [item.name?.trim(), kw]
   if (item.manufacturer) parts.push(item.manufacturer.trim())
   return parts.filter(Boolean).join(' ')
 }
