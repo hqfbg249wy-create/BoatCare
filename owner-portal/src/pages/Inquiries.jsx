@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import {
   MessageSquarePlus, Send, Clock, CheckCheck, Mail,
   MailOpen, XCircle, ChevronRight, Pencil, Trash2,
-  AlertCircle, RefreshCw, X, Ship
+  AlertCircle, RefreshCw, X, Ship, Check, Tag
 } from 'lucide-react'
 import { useT } from '../i18n'
 
@@ -51,6 +51,9 @@ export default function Inquiries() {
   const [deleteConfirm, setDeleteConfirm] = useState(null) // id to confirm delete
   const [expanded, setExpanded] = useState(null)       // expanded reply
   const [justRead, setJustRead] = useState(() => new Set()) // in dieser Sitzung gelesen
+  const [questionFor, setQuestionFor] = useState(null) // inquiry.id für offene Rückfrage
+  const [questionText, setQuestionText] = useState('')
+  const [offerBusy, setOfferBusy] = useState(null) // inquiry.id während einer Aktion
 
   useEffect(() => {
     if (user) { loadInquiries(); loadBoats() }
@@ -149,6 +152,46 @@ export default function Inquiries() {
       if (error) console.error('markRead error:', error)
     }
   }
+
+  // ── Angebot: Aktionen des Käufers (wie iOS) ────────────────────────────────
+  async function offerDecline(inq) {
+    if (!confirm('Angebot ablehnen? Der Anbieter wird informiert.')) return
+    setOfferBusy(inq.id)
+    const { data, error } = await supabase.functions.invoke('respond-offer', {
+      body: { inquiry_id: inq.id, action: 'decline' },
+    })
+    setOfferBusy(null)
+    if (error || data?.ok !== true) { alert(error?.message || data?.error || 'Ablehnen fehlgeschlagen'); return }
+    loadInquiries()
+  }
+
+  async function offerSendQuestion(inq) {
+    const text = questionText.trim()
+    if (!text) return
+    setOfferBusy(inq.id)
+    const { data, error } = await supabase.functions.invoke('respond-offer', {
+      body: { inquiry_id: inq.id, action: 'question', text },
+    })
+    setOfferBusy(null)
+    if (error || data?.ok !== true) { alert(error?.message || data?.error || 'Senden fehlgeschlagen'); return }
+    setQuestionFor(null); setQuestionText('')
+    loadInquiries()
+  }
+
+  async function offerAccept(inq) {
+    setOfferBusy(inq.id)
+    const { data, error } = await supabase.functions.invoke('accept-offer', {
+      body: { inquiry_id: inq.id },
+    })
+    setOfferBusy(null)
+    if (error || data?.ok !== true || !data?.order_id) {
+      alert(error?.message || data?.error || 'Annahme fehlgeschlagen'); return
+    }
+    // Bestellung angelegt (Deferred). Zahlung/Details in Bestellungen.
+    navigate('/orders')
+  }
+
+  const money = (a, c) => `${Number(a || 0).toFixed(2).replace('.', ',')} ${(c || 'EUR').toUpperCase()}`
 
   // ── Render ─────────────────────────────────────────────────────────────────
   if (loading) return (
@@ -264,8 +307,59 @@ export default function Inquiries() {
                   </div>
                 )}
 
+                {/* Bepreistes Angebot */}
+                {inq.offer_status === 'offered' && Number(inq.offer_amount) > 0 && !inq.order_id && (
+                  <div className="inq-offer-box">
+                    <div className="inq-offer-head"><Tag size={15} /> Angebot</div>
+                    <div className="inq-offer-total">{money((Number(inq.offer_amount) || 0) + (Number(inq.offer_shipping) || 0), inq.offer_currency)}</div>
+                    {inq.offer_description && <p className="inq-offer-desc">{inq.offer_description}</p>}
+                  </div>
+                )}
+                {inq.offer_status === 'declined' && (
+                  <div className="inq-notes-box"><p>Angebot abgelehnt.</p></div>
+                )}
+                {inq.order_id && (
+                  <div className="inq-notes-box"><p>Angenommen — Details unter Bestellungen.</p></div>
+                )}
+
+                {/* Rückfrage-Eingabe */}
+                {questionFor === inq.id && (
+                  <div className="inq-notes-box">
+                    <div className="inq-message-label">Rückfrage an {inq.provider?.name}</div>
+                    <textarea rows={3} value={questionText} onChange={e => setQuestionText(e.target.value)}
+                      placeholder="z. B. Frage zu Varianten, Lieferzeit …" />
+                    <div className="inq-card-actions" style={{ marginTop: 8 }}>
+                      <button className="btn-primary btn-sm" disabled={offerBusy === inq.id || !questionText.trim()}
+                        onClick={() => offerSendQuestion(inq)}>
+                        <Send size={14} /> Senden
+                      </button>
+                      <button className="btn-ghost btn-sm" onClick={() => { setQuestionFor(null); setQuestionText('') }}>
+                        Abbrechen
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div className="inq-card-actions">
+                  {/* Käufer-Aktionen auf ein Angebot */}
+                  {inq.offer_status === 'offered' && Number(inq.offer_amount) > 0 && !inq.order_id && (
+                    <button className="btn-success btn-sm" disabled={offerBusy === inq.id}
+                      onClick={() => offerAccept(inq)}>
+                      <Check size={14} /> Annehmen &amp; bezahlen
+                    </button>
+                  )}
+                  {['replied', 'read'].includes(inq.status) && inq.offer_status !== 'declined' && !inq.order_id && questionFor !== inq.id && (
+                    <button className="btn-secondary btn-sm" onClick={() => { setQuestionFor(inq.id); setQuestionText('') }}>
+                      <MessageSquarePlus size={14} /> Rückfrage
+                    </button>
+                  )}
+                  {inq.offer_status === 'offered' && !inq.order_id && (
+                    <button className="btn-danger btn-sm" disabled={offerBusy === inq.id}
+                      onClick={() => offerDecline(inq)}>
+                      <XCircle size={14} /> Ablehnen
+                    </button>
+                  )}
                   {inq.status === 'draft' && (
                     <>
                       <button className="btn-primary btn-sm" onClick={() => setEditing({ ...inq })}>

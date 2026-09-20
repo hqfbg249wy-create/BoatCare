@@ -1495,3 +1495,9 @@ button.pd-tag-btn { cursor: pointer; background: none; font-family: inherit; }
 .sq-err { color: #ef4444; font-size: 0.9rem; }
 .btn-link { background: none; border: none; color: var(--primary); cursor: pointer; padding: 0; font-weight: 600; }
 .hint { font-size: 0.85rem; color: var(--gray-500); }
+
+/* ── Käufer-Angebot in Anfragen ── */
+.inq-offer-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px 14px; }
+.inq-offer-head { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; color: #16a34a; }
+.inq-offer-total { font-size: 1.3rem; font-weight: 700; color: var(--gray-800); margin-top: 2px; }
+.inq-offer-desc { font-size: 0.9rem; color: var(--gray-600); margin-top: 6px; white-space: pre-wrap; }
