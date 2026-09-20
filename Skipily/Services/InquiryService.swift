@@ -296,10 +296,16 @@ final class InquiryService {
         }
     }
 
-    // MARK: - Unread count (replied inquiries)
+    // MARK: - Badge: neue Antworten UND offene Angebote (die auf eine
+    // Entscheidung warten). Ein offenes Angebot bleibt gezaehlt, bis es
+    // angenommen (order_id) oder abgelehnt wurde – auch nachdem die Nachricht
+    // gelesen wurde. Archivierte zaehlen nicht.
 
     var unreadCount: Int {
-        inquiries.filter { $0.status == .replied }.count
+        inquiries.filter {
+            !$0.isArchived &&
+            (($0.offerStatus == "offered" && $0.orderId == nil) || $0.status == .replied)
+        }.count
     }
 
     var draftCount: Int {

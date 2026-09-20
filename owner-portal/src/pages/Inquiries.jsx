@@ -82,7 +82,10 @@ export default function Inquiries() {
     : inquiries.filter(i => i.status === filterStatus || (filterStatus === 'replied' && justRead.has(i.id)))
 
   const draftCount  = inquiries.filter(i => i.status === 'draft').length
-  const unreadCount = inquiries.filter(i => i.status === 'replied').length
+  // Badge: neue Antworten UND offene Angebote (bis angenommen/abgelehnt).
+  const unreadCount = inquiries.filter(i =>
+    (i.offer_status === 'offered' && !i.order_id) || i.status === 'replied'
+  ).length
 
   // ── Edit / Save draft ─────────────────────────────────────────────────────
   async function saveDraft() {
