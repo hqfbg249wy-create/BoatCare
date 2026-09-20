@@ -1065,6 +1065,10 @@
 "inq.delete" = "Elimina";
 "inq.cancel" = "Annulla";
 "inq.deleteDesc" = "Questa richiesta verrà eliminata definitivamente.";
+"inq.archive" = "Archivia";
+"inq.unarchive" = "Ripristina";
+"inq.reorder" = "Richiedi di nuovo";
+"inq.archivedFilter" = "Archivio (%d)";
 "inq.error" = "Errore";
 "inq.filterAll" = "Tutte";
 "inq.providerFallback" = "Fornitore";

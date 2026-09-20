@@ -1064,6 +1064,10 @@
 "inq.delete" = "Delete";
 "inq.cancel" = "Cancel";
 "inq.deleteDesc" = "This request will be permanently deleted.";
+"inq.archive" = "Archive";
+"inq.unarchive" = "Restore";
+"inq.reorder" = "Request again";
+"inq.archivedFilter" = "Archive (%d)";
 "inq.error" = "Error";
 "inq.filterAll" = "All";
 "inq.providerFallback" = "Provider";

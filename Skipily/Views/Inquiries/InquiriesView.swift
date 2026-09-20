@@ -24,6 +24,7 @@ struct InquiriesContent: View {
     @EnvironmentObject var authService: AuthService
     @State private var service = InquiryService.shared
     @State private var filter: InquiryStatus? = nil   // nil = alle
+    @State private var showArchived = false           // Archiv-Ansicht
     @State private var editingInquiry: ServiceInquiry? = nil
     @State private var deletingId: UUID? = nil
     @State private var showDeleteConfirm = false
@@ -40,8 +41,16 @@ struct InquiriesContent: View {
     @State private var questionDrafts: [UUID: String] = [:]
 
     private var filtered: [ServiceInquiry] {
-        guard let f = filter else { return service.inquiries }
-        return service.inquiries.filter { $0.status == f }
+        if showArchived {
+            return service.inquiries.filter { $0.isArchived }
+        }
+        let active = service.inquiries.filter { !$0.isArchived }
+        guard let f = filter else { return active }
+        return active.filter { $0.status == f }
+    }
+
+    private var archivedCount: Int {
+        service.inquiries.filter { $0.isArchived }.count
     }
 
     var body: some View {
@@ -104,6 +113,9 @@ struct InquiriesContent: View {
                 ForEach([InquiryStatus.draft, .sent, .read, .replied, .closed], id: \.self) { s in
                     filterChip(label: s.label, status: s)
                 }
+                if archivedCount > 0 || showArchived {
+                    archivedChip
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -111,10 +123,26 @@ struct InquiriesContent: View {
         .background(.ultraThinMaterial)
     }
 
+    private var archivedChip: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.15)) { showArchived.toggle() }
+        } label: {
+            Label(String(format: "inq.archivedFilter".loc, archivedCount), systemImage: "archivebox")
+                .font(.subheadline)
+                .fontWeight(showArchived ? .semibold : .regular)
+                .foregroundStyle(showArchived ? .white : .secondary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background(showArchived ? Color.orange : Color(UIColor.secondarySystemBackground))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
     private func filterChip(label: String, status: InquiryStatus?) -> some View {
-        let isActive = filter == status
+        let isActive = filter == status && !showArchived
         return Button {
-            withAnimation(.easeInOut(duration: 0.15)) { filter = status }
+            withAnimation(.easeInOut(duration: 0.15)) { filter = status; showArchived = false }
         } label: {
             Text(label)
                 .font(.subheadline)
@@ -137,6 +165,35 @@ struct InquiriesContent: View {
                     .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
+                    // Nach links wischen = loeschen (benachrichtigt den Anbieter,
+                    // falls noch nicht abgelehnt wurde).
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            deletingId = inq.id
+                            showDeleteConfirm = true
+                        } label: {
+                            Label("inq.delete".loc, systemImage: "trash")
+                        }
+                    }
+                    // Nach rechts wischen = archivieren / wiederherstellen und
+                    // ggf. erneut anfragen.
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        Button {
+                            Task { await setArchived(inq, archived: !inq.isArchived) }
+                        } label: {
+                            Label(inq.isArchived ? "inq.unarchive".loc : "inq.archive".loc,
+                                  systemImage: inq.isArchived ? "tray.and.arrow.up" : "archivebox")
+                        }
+                        .tint(.orange)
+                        if canReorder(inq) {
+                            Button {
+                                Task { await reorder(inq) }
+                            } label: {
+                                Label("inq.reorder".loc, systemImage: "arrow.clockwise")
+                            }
+                            .tint(AppColors.info)
+                        }
+                    }
             }
         }
         .listStyle(.plain)
@@ -519,6 +576,38 @@ struct InquiriesContent: View {
     private func sendDraft(_ inq: ServiceInquiry) async {
         do {
             try await InquiryService.shared.sendInquiry(id: inq.id)
+            await reload()
+        } catch {
+            errorAlert = error.localizedDescription
+        }
+    }
+
+    /// Erneut anfragen ist sinnvoll, sobald die Anfrage abgeschlossen/beantwortet
+    /// ist oder daraus schon eine Bestellung wurde.
+    private func canReorder(_ inq: ServiceInquiry) -> Bool {
+        inq.status == .closed || inq.status == .replied || inq.offerStatus == "ordered"
+    }
+
+    private func setArchived(_ inq: ServiceInquiry, archived: Bool) async {
+        do {
+            try await InquiryService.shared.setArchived(id: inq.id, archived: archived)
+            if expandedId == inq.id { expandedId = nil }
+            await reload()
+        } catch {
+            errorAlert = error.localizedDescription
+        }
+    }
+
+    /// Sendet dieselbe Anfrage erneut an denselben Anbieter (neue Anfrage +
+    /// Spiegelung + Anbieter-Mail ueber request-quote).
+    private func reorder(_ inq: ServiceInquiry) async {
+        do {
+            _ = try await InquiryService.shared.requestQuote(
+                providerIds: [inq.providerId],
+                boatId: inq.boatId,
+                subject: inq.subject,
+                message: inq.message,
+                requestType: "quote")
             await reload()
         } catch {
             errorAlert = error.localizedDescription

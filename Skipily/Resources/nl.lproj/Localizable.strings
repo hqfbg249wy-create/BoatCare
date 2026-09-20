@@ -1065,6 +1065,10 @@
 "inq.delete" = "Verwijderen";
 "inq.cancel" = "Annuleren";
 "inq.deleteDesc" = "Deze aanvraag wordt definitief verwijderd.";
+"inq.archive" = "Archiveren";
+"inq.unarchive" = "Herstellen";
+"inq.reorder" = "Opnieuw aanvragen";
+"inq.archivedFilter" = "Archief (%d)";
 "inq.error" = "Fout";
 "inq.filterAll" = "Alle";
 "inq.providerFallback" = "Aanbieder";

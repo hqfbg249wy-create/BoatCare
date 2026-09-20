@@ -51,10 +51,13 @@ struct ServiceInquiry: Identifiable, Codable, Sendable {
     let offerDescription: String?
     let offerStatus: String?
     let orderId: UUID?
+    let ownerArchived: Bool?
 
     // Joined
     let provider: InquiryProvider?
     let boat: InquiryBoat?
+
+    var isArchived: Bool { ownerArchived == true }
 
     /// Es liegt ein annehmbares Angebot vor (noch keine Bestellung erzeugt).
     var hasOpenOffer: Bool {
@@ -82,6 +85,7 @@ struct ServiceInquiry: Identifiable, Codable, Sendable {
         case offerDescription = "offer_description"
         case offerStatus      = "offer_status"
         case orderId          = "order_id"
+        case ownerArchived    = "owner_archived"
         case provider     = "service_providers"
         case boat         = "boats"
     }

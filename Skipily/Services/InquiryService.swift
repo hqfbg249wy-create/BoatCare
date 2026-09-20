@@ -255,6 +255,16 @@ final class InquiryService {
         }
     }
 
+    // MARK: - Archivieren (Eigner-Seite)
+
+    func setArchived(id: UUID, archived: Bool) async throws {
+        try await client
+            .from("service_inquiries")
+            .update(["owner_archived": archived])
+            .eq("id", value: id.uuidString)
+            .execute()
+    }
+
     // MARK: - Delete
 
     func deleteInquiry(id: UUID) async throws {
