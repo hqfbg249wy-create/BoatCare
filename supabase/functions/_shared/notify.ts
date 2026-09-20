@@ -26,15 +26,22 @@ export async function pushToUser(userId: string, title: string, body: string): P
   }
 }
 
-/** E-Mail via Resend (best-effort). */
+/** E-Mail via Resend (best-effort, aber mit Fehler-Logging). */
 export async function emailTo(to: string, subject: string, text: string): Promise<void> {
-  if (!to || !resendKey) return;
+  if (!to) { console.warn("emailTo: keine Empfaengeradresse"); return; }
+  if (!resendKey) { console.warn("emailTo: RESEND_API_KEY fehlt"); return; }
   try {
-    await fetch("https://api.resend.com/emails", {
+    const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({ from: FROM_EMAIL, to: [to], subject, text }),
     });
+    const body = await res.text();
+    if (!res.ok) {
+      console.error(`emailTo Resend-Fehler ${res.status} an ${to}: ${body}`);
+    } else {
+      console.log(`emailTo ok an ${to}: ${body}`);
+    }
   } catch (e) {
     console.error("emailTo failed:", (e as Error).message);
   }
