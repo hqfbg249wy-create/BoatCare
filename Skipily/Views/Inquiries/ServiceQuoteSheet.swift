@@ -10,9 +10,17 @@
 
 import SwiftUI
 
+/// Zwei Anfrage-Arten: unverbindliche Anfrage (nur Rueckfrage/Kontakt) oder
+/// explizite Bitte um ein (verbindliches, bepreistes) Angebot.
+enum QuoteMode: String {
+    case inquiry   // Unverbindliche Anfrage
+    case quote     // Bitte um ein Angebot
+}
+
 struct ServiceQuoteSheet: View {
     let keywords: [String]
     let boatId: UUID?
+    let mode: QuoteMode
 
     @State private var subject: String
     @State private var message: String
@@ -27,9 +35,10 @@ struct ServiceQuoteSheet: View {
     @State private var loadError: String?
     @State private var resultMessage: String?
 
-    init(keywords: [String], subject: String, message: String, boatId: UUID?) {
+    init(keywords: [String], subject: String, message: String, boatId: UUID?, mode: QuoteMode = .quote) {
         self.keywords = keywords
         self.boatId = boatId
+        self.mode = mode
         _subject = State(initialValue: subject)
         _message = State(initialValue: message)
     }
@@ -121,11 +130,11 @@ struct ServiceQuoteSheet: View {
                     if let resultMessage {
                         Text(resultMessage).foregroundStyle(AppColors.success)
                     } else {
-                        Text("quote.footer_hint".loc)
+                        Text(mode == .inquiry ? "quote.footer_hint_inquiry".loc : "quote.footer_hint".loc)
                     }
                 }
             }
-            .navigationTitle("quote.title".loc)
+            .navigationTitle(mode == .inquiry ? "quote.mode_inquiry".loc : "quote.mode_quote".loc)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("general.cancel".loc) { dismiss() } }
@@ -164,7 +173,8 @@ struct ServiceQuoteSheet: View {
         defer { isSending = false }
         do {
             let n = try await InquiryService.shared.requestQuote(
-                providerIds: Array(selected), boatId: boatId, subject: subject, message: message)
+                providerIds: Array(selected), boatId: boatId, subject: subject, message: message,
+                requestType: mode.rawValue)
             resultMessage = String(format: "quote.sent".loc, n)
             try? await Task.sleep(nanoseconds: 900_000_000)
             dismiss()

@@ -10,7 +10,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { corsHeaders } from "../_shared/cors.ts";
-import { emailTo } from "../_shared/notify.ts";
+import { emailTo, emailShell } from "../_shared/notify.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -44,15 +44,6 @@ async function claimUrlFor(svc: Svc, providerId: string): Promise<string | null>
   }
 }
 
-const ONBOARDING_NOTE = (claimUrl: string | null) =>
-  "\n\n----------------------------------------\n" +
-  "Diese Anfrage kommt ueber die Skipily-App. Wenn Sie ueber diese Plattform ein " +
-  "Angebot abgeben, wird die Zahlung sicher ueber Skipily (Stripe) abgewickelt.\n" +
-  "Wenn Sie teilnehmen moechten, registrieren Sie sich bitte ueber Ihren " +
-  "persoenlichen Link und hinterlegen Sie in den Stammdaten Ihre Unternehmens- " +
-  "und Zahlungsdaten:\n" +
-  (claimUrl ?? PROVIDER_PORTAL_BASE);
-
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -73,12 +64,15 @@ Deno.serve(async (req) => {
     );
     if (authErr || !user) return json({ error: "Invalid token" }, 401);
 
-    const { provider_ids, boat_id, subject, message } = await req.json();
+    const { provider_ids, boat_id, subject, message, request_type } = await req.json();
     const ids: string[] = Array.isArray(provider_ids)
       ? provider_ids.map((x) => String(x)).filter(Boolean) : [];
     if (ids.length === 0 || !subject || !message) {
       return json({ error: "provider_ids, subject und message erforderlich" }, 400);
     }
+    // 'quote' = Bitte um ein (bepreistes) Angebot, 'inquiry' = unverbindliche Anfrage.
+    const reqType = request_type === "inquiry" ? "inquiry" : "quote";
+    const isQuote = reqType === "quote";
     if (ids.length > 500) return json({ error: "Zu viele Betriebe auf einmal (max 500)" }, 400);
 
     let safeBoatId: string | null = null;
@@ -107,6 +101,7 @@ Deno.serve(async (req) => {
           boat_id: safeBoatId,
           subject: subj,
           message: msg,
+          request_type: reqType,
           status: "sent",
           sent_at: new Date().toISOString(),
         });
@@ -136,14 +131,37 @@ Deno.serve(async (req) => {
         }
         if (p.email) {
           const ready = isPlatformReady(p);
-          const tail = ready
-            ? `\n\nBitte antworte direkt auf diese Anfrage in deinem Anbieter-Portal ` +
-              `(Bereich Anfragen) und gib bei Bedarf ein Angebot mit Preis ab.`
-            : ONBOARDING_NOTE(await claimUrlFor(svc, p.id));
+          const kind = isQuote ? "eine Bitte um ein Angebot" : "eine unverbindliche Anfrage";
+          const claimUrl = ready ? null : await claimUrlFor(svc, p.id);
+          const ctaUrl = ready ? PROVIDER_PORTAL_BASE : (claimUrl ?? PROVIDER_PORTAL_BASE);
+          const ctaLabel = ready ? "Im Anbieter-Portal antworten" : "Jetzt registrieren & antworten";
+
+          const intro = `${buyerName ? buyerName + " " : "Ein Kunde "}sendet dir ueber Skipily ${kind}` +
+            `${safeBoatId ? " (mit Bootsbezug)" : ""}.`;
+          const actionText = ready
+            ? (isQuote
+              ? `Bitte antworte im Anbieter-Portal (Bereich Anfragen) und gib ein Angebot mit Preis ab. ` +
+                `Nimmt der Kunde an, wird die Zahlung sicher ueber Skipily (Stripe) abgewickelt.`
+              : `Bitte antworte im Anbieter-Portal (Bereich Anfragen).`)
+            : `Diese Anfrage kommt ueber die Skipily-App. Wenn du teilnehmen moechtest, ` +
+              `registriere dich ueber deinen persoenlichen Link und hinterlege in den ` +
+              `Stammdaten deine Unternehmens- und Zahlungsdaten. Danach kannst du direkt ` +
+              `ein Angebot abgeben, das der Kunde sicher ueber Skipily (Stripe) bezahlt.`;
+
+          const bodyText = `${intro}\n\nBetreff: ${subj}\n\n${msg}\n\n${actionText}` +
+            (ready ? "" : `\n\nDein persoenlicher Link:\n${ctaUrl}`);
           await emailTo(
             p.email,
-            subj + (buyerName ? " von " + buyerName : ""),
-            `${msg}${tail}\n\nDein Skipily-Team`,
+            (isQuote ? "Angebotsanfrage: " : "Anfrage: ") + subj + (buyerName ? " von " + buyerName : ""),
+            `${bodyText}\n\nDein Skipily-Team`,
+            emailShell({
+              heading: isQuote ? "Neue Angebotsanfrage" : "Neue Anfrage",
+              bodyText,
+              ctaLabel,
+              ctaUrl,
+              footnote: ready ? undefined
+                : "Du erhaeltst diese Nachricht, weil ein Skipily-Nutzer einen Betrieb wie deinen sucht.",
+            }),
           );
         }
       } catch (e) {

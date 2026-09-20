@@ -42,16 +42,18 @@ final class InquiryService {
     }
 
     /// Sendet eine Anfrage an die AUSGEWÄHLTEN Betriebe. Liefert die Anzahl.
-    func requestQuote(providerIds: [UUID], boatId: UUID?, subject: String, message: String) async throws -> Int {
+    func requestQuote(providerIds: [UUID], boatId: UUID?, subject: String, message: String,
+                      requestType: String = "quote") async throws -> Int {
         struct Body: Encodable {
             let provider_ids: [String]; let boat_id: String?; let subject: String; let message: String
+            let request_type: String
         }
         struct Resp: Decodable { let ok: Bool?; let count: Int?; let error: String? }
         let resp: Resp = try await client.functions.invoke(
             "request-quote",
             options: .init(body: Body(
                 provider_ids: providerIds.map { $0.uuidString }, boat_id: boatId?.uuidString,
-                subject: subject, message: message))
+                subject: subject, message: message, request_type: requestType))
         )
         guard resp.ok == true else {
             throw NSError(domain: "Skipily.Quote", code: 500,
@@ -84,6 +86,20 @@ final class InquiryService {
         if resp.ok != true {
             throw NSError(domain: "Skipily.Offer", code: 500,
                           userInfo: [NSLocalizedDescriptionKey: resp.error ?? "Senden fehlgeschlagen"])
+        }
+    }
+
+    /// Loescht eine Anfrage. Ohne vorheriges Ablehnen wird der Anbieter wie bei
+    /// einer Ablehnung benachrichtigt; nach dem Ablehnen ist das Loeschen intern.
+    func deleteInquiryWithNotify(inquiryId: UUID) async throws {
+        struct Body: Encodable { let inquiry_id: String; let action: String }
+        struct Resp: Decodable { let ok: Bool?; let error: String? }
+        let resp: Resp = try await client.functions.invoke(
+            "respond-offer", options: .init(body: Body(inquiry_id: inquiryId.uuidString, action: "delete"))
+        )
+        if resp.ok != true {
+            throw NSError(domain: "Skipily.Offer", code: 500,
+                          userInfo: [NSLocalizedDescriptionKey: resp.error ?? "Loeschen fehlgeschlagen"])
         }
     }
 

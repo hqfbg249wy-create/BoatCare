@@ -3,6 +3,8 @@
 // zur Laufzeit automatisch auf Deutsch zurück.
 export default {
   "en": {
+    "inquiries.typeQuote": "Request a quote",
+    "inquiries.typeInquiry": "Non-binding inquiry",
     "msg.deleteConv": "Delete conversation",
     "msg.deleteConfirm": "Really delete this conversation and all messages?",
     "profile.grpTeam": "Team",
@@ -814,6 +816,8 @@ export default {
     "team.seatsFull": "Seat limit reached ({n}). Upgrade to Enterprise for additional seats (e.g. IT administrator)."
   },
   "fr": {
+    "inquiries.typeQuote": "Demander un devis",
+    "inquiries.typeInquiry": "Demande sans engagement",
     "msg.deleteConv": "Supprimer la conversation",
     "msg.deleteConfirm": "Supprimer vraiment cette conversation et tous les messages ?",
     "profile.grpTeam": "Équipe",
@@ -1625,6 +1629,8 @@ export default {
     "team.seatsFull": "Limite de sièges atteinte ({n}). Pour des accès supplémentaires (p. ex. administrateur IT), passez à Enterprise."
   },
   "it": {
+    "inquiries.typeQuote": "Richiedi un preventivo",
+    "inquiries.typeInquiry": "Richiesta senza impegno",
     "msg.deleteConv": "Elimina conversazione",
     "msg.deleteConfirm": "Eliminare davvero questa conversazione e tutti i messaggi?",
     "profile.grpTeam": "Team",
@@ -2436,6 +2442,8 @@ export default {
     "team.seatsFull": "Limite di posti raggiunto ({n}). Per ulteriori accessi (es. amministratore IT) passa a Enterprise."
   },
   "es": {
+    "inquiries.typeQuote": "Solicitar presupuesto",
+    "inquiries.typeInquiry": "Consulta sin compromiso",
     "msg.deleteConv": "Eliminar conversación",
     "msg.deleteConfirm": "¿Eliminar esta conversación y todos los mensajes?",
     "profile.grpTeam": "Equipo",
@@ -3247,6 +3255,8 @@ export default {
     "team.seatsFull": "Límite de asientos alcanzado ({n}). Para más accesos (p. ej., administrador de TI), actualiza a Enterprise."
   },
   "nl": {
+    "inquiries.typeQuote": "Offerte aanvragen",
+    "inquiries.typeInquiry": "Vrijblijvende aanvraag",
     "msg.deleteConv": "Gesprek verwijderen",
     "msg.deleteConfirm": "Dit gesprek en alle berichten echt verwijderen?",
     "profile.grpTeam": "Team",

@@ -1190,6 +1190,9 @@
 "quote.deselect_all" = "Deseleziona tutti";
 "quote.no_providers" = "Nessuna azienda corrispondente trovata.";
 "quote.footer_hint" = "Seleziona le aziende a cui inviare la richiesta. Le risposte compaiono in Richieste.";
+"quote.footer_hint_inquiry" = "Seleziona le aziende a cui inviare la richiesta senza impegno. Le risposte compaiono in Richieste.";
+"quote.mode_inquiry" = "Richiesta senza impegno";
+"quote.mode_quote" = "Richiedi un preventivo";
 "quote.send_n" = "Invia (%d)";
 "quote.sent" = "Richiesta inviata a %d aziende.";
 "quote.request_action" = "Richiedi preventivo / servizio";

@@ -1189,6 +1189,9 @@
 "quote.deselect_all" = "Deselect all";
 "quote.no_providers" = "No matching businesses found.";
 "quote.footer_hint" = "Select the businesses to send the request to. Replies appear under Inquiries.";
+"quote.footer_hint_inquiry" = "Select the businesses to send your non-binding inquiry to. Replies appear under Inquiries.";
+"quote.mode_inquiry" = "Non-binding inquiry";
+"quote.mode_quote" = "Request a quote";
 "quote.send_n" = "Send (%d)";
 "quote.sent" = "Request sent to %d businesses.";
 "quote.request_action" = "Request quote / service";

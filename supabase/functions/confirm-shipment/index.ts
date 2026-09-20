@@ -15,7 +15,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { stripe } from "../_shared/stripe.ts";
 import { corsHeaders } from "../_shared/cors.ts";
-import { buildInvoicePdf, type InvoiceItem } from "../_shared/invoice.ts";
+import { buildInvoicePdf, type InvoiceItem, type InvoiceData } from "../_shared/invoice.ts";
+import { buildEInvoiceXml } from "../_shared/erechnung.ts";
 import { notifyOrderEvent, pushToUser } from "../_shared/notify.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -213,7 +214,7 @@ Deno.serve(async (req) => {
       lineTotal: Number(it.total),
     }));
 
-    const pdfBytes = await buildInvoicePdf({
+    const invoiceData: InvoiceData = {
       invoiceNumber: invNo as string,
       invoiceDate: new Date(),
       currency: order.currency || "EUR",
@@ -238,10 +239,14 @@ Deno.serve(async (req) => {
       shippingCost: Number(order.shipping_cost || 0),
       total: Number(order.total),
       orderNumber: order.order_number,
-    });
+    };
+    const pdfBytes = await buildInvoicePdf(invoiceData);
+    // E-Rechnung (EN 16931 / CII, Kern von ZUGFeRD/XRechnung).
+    const eInvoiceXml = buildEInvoiceXml(invoiceData);
 
-    // ── 3) PDF in privaten Storage-Bucket, signierte URL ──
+    // ── 3) PDF + E-Rechnung in privaten Storage-Bucket, signierte URLs ──
     let invoiceUrl: string | null = null;
+    let invoiceXmlUrl: string | null = null;
     try {
       // Bucket idempotent anlegen (privat).
       await svc.storage.createBucket("invoices", { public: false }).catch(() => {});
@@ -255,6 +260,18 @@ Deno.serve(async (req) => {
         60 * 60 * 24 * 365, // 1 Jahr
       );
       invoiceUrl = signed?.signedUrl ?? null;
+
+      const xmlPath = `${order.id}/${invNo}.xml`;
+      await svc.storage.from("invoices").upload(
+        xmlPath,
+        new TextEncoder().encode(eInvoiceXml),
+        { contentType: "application/xml", upsert: true },
+      );
+      const { data: signedXml } = await svc.storage.from("invoices").createSignedUrl(
+        xmlPath,
+        60 * 60 * 24 * 365,
+      );
+      invoiceXmlUrl = signedXml?.signedUrl ?? null;
     } catch (e) {
       console.error("Invoice upload failed:", (e as Error).message);
       // Zahlung + Versand trotzdem finalisieren; Rechnung ist erzeugt, URL fehlt.
@@ -272,6 +289,7 @@ Deno.serve(async (req) => {
       tracking_url: tracking_url ?? null,
       invoice_number: invNo,
       invoice_url: invoiceUrl,
+      invoice_xml_url: invoiceXmlUrl,
       invoice_issued_at: nowIso,
       // Provisorische Widerrufsfrist ab Versand (14 Tage + ~2 Tage Transit).
       // Wird bei Zustellung auf delivered_at + 14 Tage praezisiert.
@@ -287,6 +305,7 @@ Deno.serve(async (req) => {
       ok: true,
       invoice_number: invNo,
       invoice_url: invoiceUrl,
+      invoice_xml_url: invoiceXmlUrl,
       payment_intent: paymentIntentId,
     });
   } catch (err) {

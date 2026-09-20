@@ -1,10 +1,14 @@
 // Edge Function: respond-offer
 //
-// Kunden-Aktionen auf ein Angebot: 'decline' (ablehnen) oder 'question'
-// (Nachfrage/Rueckfrage an den Anbieter, z.B. zu Varianten). Annehmen laeuft
-// ueber accept-offer.
+// Kunden-Aktionen auf ein Angebot: 'decline' (ablehnen), 'question'
+// (Nachfrage/Rueckfrage an den Anbieter, z.B. zu Varianten) oder 'delete'
+// (Anfrage entfernen). Annehmen laeuft ueber accept-offer.
 //
-// Body: { inquiry_id, action: 'decline' | 'question', text? }
+// Loesch-Regel: Loeschen OHNE vorheriges Ablehnen benachrichtigt den Anbieter
+// ("Angebot abgelehnt"), genau wie das Ablehnen. Wurde bereits abgelehnt, ist
+// das Loeschen nur intern (keine erneute Nachricht).
+//
+// Body: { inquiry_id, action: 'decline' | 'question' | 'delete', text? }
 // Auth: Bearer <user-jwt> des Kaeufers (Eigner der Anfrage).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
@@ -35,8 +39,8 @@ Deno.serve(async (req) => {
     if (authErr || !user) return json({ error: "Invalid token" }, 401);
 
     const { inquiry_id, action, text } = await req.json();
-    if (!inquiry_id || !["decline", "question"].includes(action)) {
-      return json({ error: "inquiry_id und action ('decline'|'question') erforderlich" }, 400);
+    if (!inquiry_id || !["decline", "question", "delete"].includes(action)) {
+      return json({ error: "inquiry_id und action ('decline'|'question'|'delete') erforderlich" }, 400);
     }
 
     const { data: inq } = await svc
@@ -52,12 +56,26 @@ Deno.serve(async (req) => {
     const buyerName = buyer?.full_name ?? "Ein Kunde";
     const ref = inq.subject ? `„${inq.subject}"` : "deine Anfrage";
 
-    if (action === "decline") {
-      await svc.from("service_inquiries").update({ offer_status: "declined" }).eq("id", inquiry_id);
+    const notifyDeclined = async () => {
       if (provider?.email) {
         await emailTo(provider.email, "Angebot abgelehnt",
           `${buyerName} hat dein Angebot zu ${ref} abgelehnt.\n\nDein Skipily-Team`);
       }
+    };
+
+    if (action === "decline") {
+      await svc.from("service_inquiries").update({ offer_status: "declined" }).eq("id", inquiry_id);
+      await notifyDeclined();
+      return json({ ok: true });
+    }
+
+    if (action === "delete") {
+      // Loeschen OHNE vorheriges Ablehnen -> Anbieter wie bei Ablehnung
+      // benachrichtigen. Nach bereits erfolgtem Ablehnen: nur intern loeschen.
+      if (inq.offer_status !== "declined") {
+        await notifyDeclined();
+      }
+      await svc.from("service_inquiries").delete().eq("id", inquiry_id);
       return json({ ok: true });
     }
 

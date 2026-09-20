@@ -26,15 +26,19 @@ export async function pushToUser(userId: string, title: string, body: string): P
   }
 }
 
-/** E-Mail via Resend (best-effort, aber mit Fehler-Logging). */
-export async function emailTo(to: string, subject: string, text: string): Promise<void> {
+/** E-Mail via Resend (best-effort, aber mit Fehler-Logging).
+ *  `html` optional: wird zusaetzlich zum Text mitgeschickt (bessere Darstellung
+ *  + Buttons). Der Text bleibt Fallback fuer Clients ohne HTML. */
+export async function emailTo(to: string, subject: string, text: string, html?: string): Promise<void> {
   if (!to) { console.warn("emailTo: keine Empfaengeradresse"); return; }
   if (!resendKey) { console.warn("emailTo: RESEND_API_KEY fehlt"); return; }
   try {
+    const payload: Record<string, unknown> = { from: FROM_EMAIL, to: [to], subject, text };
+    if (html) payload.html = html;
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: FROM_EMAIL, to: [to], subject, text }),
+      body: JSON.stringify(payload),
     });
     const body = await res.text();
     if (!res.ok) {
@@ -45,6 +49,52 @@ export async function emailTo(to: string, subject: string, text: string): Promis
   } catch (e) {
     console.error("emailTo failed:", (e as Error).message);
   }
+}
+
+const escapeHtml = (s: string) =>
+  String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+/** Baut eine schlichte, markenkonforme HTML-Mail mit optionalem CTA-Button.
+ *  `bodyText` wird als Absaetze gerendert (Zeilenumbrueche bleiben erhalten). */
+export function emailShell(opts: {
+  heading: string;
+  bodyText: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+  footnote?: string;
+}): string {
+  const paragraphs = opts.bodyText.split(/\n{2,}/).map((p) =>
+    `<p style="margin:0 0 14px;font-size:15px;line-height:1.55;color:#1f2933;">` +
+    escapeHtml(p).replace(/\n/g, "<br>") + `</p>`
+  ).join("");
+  const cta = (opts.ctaUrl && opts.ctaLabel)
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px 0;">
+         <tr><td style="border-radius:10px;background:#0a6cff;">
+           <a href="${escapeHtml(opts.ctaUrl)}" target="_blank"
+              style="display:inline-block;padding:13px 26px;font-size:15px;font-weight:600;
+                     color:#ffffff;text-decoration:none;border-radius:10px;">
+             ${escapeHtml(opts.ctaLabel)}</a>
+         </td></tr></table>`
+    : "";
+  const foot = opts.footnote
+    ? `<p style="margin:18px 0 0;font-size:12px;line-height:1.5;color:#8895a7;">${escapeHtml(opts.footnote)}</p>`
+    : "";
+  return `<!doctype html><html><body style="margin:0;background:#f2f5f9;padding:24px 12px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+             style="max-width:520px;background:#ffffff;border-radius:14px;padding:28px 26px;">
+        <tr><td>
+          <div style="font-size:20px;font-weight:700;color:#0a6cff;margin-bottom:18px;">Skipily</div>
+          <h1 style="margin:0 0 16px;font-size:19px;line-height:1.35;color:#0b1622;">${escapeHtml(opts.heading)}</h1>
+          ${paragraphs}
+          ${cta}
+          ${foot}
+          <p style="margin:22px 0 0;font-size:13px;color:#5b6b7c;">Dein Skipily-Team</p>
+        </td></tr>
+      </table>
+    </td></tr></table>
+  </body></html>`;
 }
 
 /**

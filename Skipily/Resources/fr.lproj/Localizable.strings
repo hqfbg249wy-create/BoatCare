@@ -1190,6 +1190,9 @@
 "quote.deselect_all" = "Tout désélectionner";
 "quote.no_providers" = "Aucune entreprise correspondante trouvée.";
 "quote.footer_hint" = "Sélectionnez les entreprises destinataires de la demande. Les réponses apparaissent dans Demandes.";
+"quote.footer_hint_inquiry" = "Sélectionnez les entreprises destinataires de votre demande sans engagement. Les réponses apparaissent dans Demandes.";
+"quote.mode_inquiry" = "Demande sans engagement";
+"quote.mode_quote" = "Demander un devis";
 "quote.send_n" = "Envoyer (%d)";
 "quote.sent" = "Demande envoyée à %d entreprises.";
 "quote.request_action" = "Demander un devis / service";

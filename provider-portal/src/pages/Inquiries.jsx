@@ -141,6 +141,7 @@ export default function Inquiries() {
             const ordered = inq.offer_status === 'ordered'
             const offered = inq.offer_status === 'offered'
             const declined = inq.offer_status === 'declined'
+            const isInquiry = inq.request_type === 'inquiry'
             const busy = actioningId === inq.id
             return (
               <div key={inq.id} className="card inquiry-card">
@@ -149,6 +150,10 @@ export default function Inquiries() {
                     <div className="inquiry-subject">{inq.subject || t('inquiries.noSubject')}</div>
                     <div className="inquiry-meta">
                       {buyer}{inq.boats?.name ? ' · ' + inq.boats.name : ''}
+                      {' · '}
+                      <span className="inquiry-type">
+                        {isInquiry ? t('inquiries.typeInquiry') : t('inquiries.typeQuote')}
+                      </span>
                     </div>
                   </div>
                   {ordered && (

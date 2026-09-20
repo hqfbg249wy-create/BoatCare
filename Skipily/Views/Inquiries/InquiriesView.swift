@@ -527,7 +527,9 @@ struct InquiriesContent: View {
 
     private func deleteInquiry(id: UUID) async {
         do {
-            try await InquiryService.shared.deleteInquiry(id: id)
+            // Ueber respond-offer: benachrichtigt den Anbieter, falls noch nicht
+            // abgelehnt wurde (sonst nur internes Loeschen).
+            try await InquiryService.shared.deleteInquiryWithNotify(inquiryId: id)
             if expandedId == id { expandedId = nil }
             await reload()
         } catch {

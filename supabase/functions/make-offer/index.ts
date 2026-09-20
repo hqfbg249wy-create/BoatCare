@@ -9,11 +9,14 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { corsHeaders } from "../_shared/cors.ts";
-import { pushToUser, emailTo } from "../_shared/notify.ts";
+import { pushToUser, emailTo, emailShell } from "../_shared/notify.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+// Smart-Link: auf dem iPhone oeffnet der Universal Link die Skipily-App,
+// auf dem Rechner die Web-App. Ueber Env ueberschreibbar.
+const APP_SMARTLINK = Deno.env.get("APP_SMARTLINK_URL") ?? "https://skipily.app/app";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -72,10 +75,22 @@ Deno.serve(async (req) => {
       `Du hast ein Angebot ueber ${total} erhalten. Jetzt in der App ansehen und annehmen.`);
     const { data: buyer } = await svc.from("profiles").select("email, full_name").eq("id", inq.owner_id).maybeSingle();
     if (buyer?.email) {
-      await emailTo(buyer.email, "Neues Angebot zu deiner Anfrage",
+      const bodyText =
         `Hallo${buyer.full_name ? " " + buyer.full_name : ""},\n\n` +
-          `du hast ein Angebot ueber ${total} erhalten:\n\n${description}\n\n` +
-          `Oeffne die App (Bereich Anfragen), um das Angebot anzunehmen und sicher ueber Skipily zu bezahlen.\n\nDein Skipily-Team`);
+        `du hast ein Angebot ueber ${total} erhalten:\n\n${description}\n\n` +
+        `Oeffne Skipily (Bereich Anfragen), um das Angebot anzunehmen und sicher ueber Skipily zu bezahlen.`;
+      await emailTo(
+        buyer.email,
+        "Neues Angebot zu deiner Anfrage",
+        bodyText,
+        emailShell({
+          heading: `Neues Angebot: ${total}`,
+          bodyText,
+          ctaLabel: "Angebot in Skipily ansehen",
+          ctaUrl: APP_SMARTLINK,
+          footnote: "Auf dem iPhone oeffnet der Button die Skipily-App, auf dem Rechner die Web-App.",
+        }),
+      );
     }
 
     return json({ ok: true });
