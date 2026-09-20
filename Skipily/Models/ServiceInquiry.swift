@@ -36,7 +36,7 @@ struct ServiceInquiry: Identifiable, Codable, Sendable {
     let boatId: UUID?
     let subject: String
     let message: String
-    let status: InquiryStatus
+    var status: InquiryStatus
     let ownerNotes: String?
     let createdAt: String?
     let updatedAt: String?

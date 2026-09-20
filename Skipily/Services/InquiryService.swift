@@ -275,6 +275,27 @@ final class InquiryService {
             .execute()
     }
 
+    // MARK: - Gelesen markieren (Anbieter-Antwort gesehen)
+
+    /// Markiert eine beantwortete Anfrage als gelesen, sobald der Eigner sie
+    /// oeffnet. Aktualisiert sofort lokal (Badge geht runter) und persistiert
+    /// best-effort. Antwortet der Anbieter erneut (-> replied), erscheint der
+    /// Hinweis wieder.
+    func markReplyRead(id: UUID) async {
+        guard let idx = inquiries.firstIndex(where: { $0.id == id }),
+              inquiries[idx].status == .replied else { return }
+        inquiries[idx].status = .read
+        do {
+            try await client
+                .from("service_inquiries")
+                .update(["status": "read"])
+                .eq("id", value: id.uuidString)
+                .execute()
+        } catch {
+            AppLog.error("InquiryService.markReplyRead: \(error)")
+        }
+    }
+
     // MARK: - Unread count (replied inquiries)
 
     var unreadCount: Int {

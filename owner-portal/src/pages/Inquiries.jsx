@@ -50,6 +50,7 @@ export default function Inquiries() {
   const [saving, setSaving] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(null) // id to confirm delete
   const [expanded, setExpanded] = useState(null)       // expanded reply
+  const [justRead, setJustRead] = useState(() => new Set()) // in dieser Sitzung gelesen
 
   useEffect(() => {
     if (user) { loadInquiries(); loadBoats() }
@@ -74,7 +75,8 @@ export default function Inquiries() {
 
   const filtered = filterStatus === 'all'
     ? inquiries
-    : inquiries.filter(i => i.status === filterStatus)
+    // Gerade gelesene bleiben unter "Beantwortet" sichtbar, bis neu geladen wird.
+    : inquiries.filter(i => i.status === filterStatus || (filterStatus === 'replied' && justRead.has(i.id)))
 
   const draftCount  = inquiries.filter(i => i.status === 'draft').length
   const unreadCount = inquiries.filter(i => i.status === 'replied').length
@@ -122,6 +124,22 @@ export default function Inquiries() {
     if (error) { alert('Fehler beim Löschen: ' + error.message); return }
     setDeleteConfirm(null)
     loadInquiries()
+  }
+
+  // Auf-/Zuklappen; beim Öffnen einer beantworteten Anfrage wird sie als
+  // gelesen markiert, damit der "neue Antwort"-Hinweis/Badge verschwindet.
+  async function toggleExpand(inq) {
+    const willExpand = expanded !== inq.id
+    setExpanded(willExpand ? inq.id : null)
+    if (willExpand && inq.status === 'replied') {
+      setJustRead(prev => new Set(prev).add(inq.id))
+      setInquiries(prev => prev.map(i => i.id === inq.id ? { ...i, status: 'read' } : i))
+      const { error } = await supabase
+        .from('service_inquiries')
+        .update({ status: 'read' })
+        .eq('id', inq.id)
+      if (error) console.error('markRead error:', error)
+    }
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -208,7 +226,7 @@ export default function Inquiries() {
                   )}
                 </div>
               </div>
-              <button className="inq-chevron" onClick={() => setExpanded(expanded === inq.id ? null : inq.id)}>
+              <button className="inq-chevron" onClick={() => toggleExpand(inq)}>
                 <ChevronRight size={18} style={{ transform: expanded === inq.id ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }} />
               </button>
             </div>

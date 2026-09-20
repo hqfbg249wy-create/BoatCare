@@ -25,6 +25,7 @@ struct InquiriesContent: View {
     @State private var service = InquiryService.shared
     @State private var filter: InquiryStatus? = nil   // nil = alle
     @State private var showArchived = false           // Archiv-Ansicht
+    @State private var justReadIds: Set<UUID> = []     // in dieser Sitzung gelesen
     @State private var editingInquiry: ServiceInquiry? = nil
     @State private var deletingId: UUID? = nil
     @State private var showDeleteConfirm = false
@@ -46,7 +47,8 @@ struct InquiriesContent: View {
         }
         let active = service.inquiries.filter { !$0.isArchived }
         guard let f = filter else { return active }
-        return active.filter { $0.status == f }
+        // Gerade gelesene bleiben unter "Beantwortet" sichtbar, bis neu geladen.
+        return active.filter { $0.status == f || (f == .replied && justReadIds.contains($0.id)) }
     }
 
     private var archivedCount: Int {
@@ -206,8 +208,15 @@ struct InquiriesContent: View {
         return VStack(alignment: .leading, spacing: 0) {
             // Header row
             Button {
+                let willExpand = !isExpanded
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    expandedId = isExpanded ? nil : inq.id
+                    expandedId = willExpand ? inq.id : nil
+                }
+                // Beim Oeffnen einer beantworteten Anfrage als gelesen markieren,
+                // damit der "neue Antwort"-Hinweis/Badge verschwindet.
+                if willExpand && inq.status == .replied {
+                    justReadIds.insert(inq.id)
+                    Task { await InquiryService.shared.markReplyRead(id: inq.id) }
                 }
             } label: {
                 HStack(alignment: .top, spacing: 12) {
