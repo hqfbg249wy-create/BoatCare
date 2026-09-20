@@ -184,7 +184,11 @@ enum ServiceKeywords {
             return ["segelmacher", "segel", "großsegel", "genua", "laufendes gut", "takelage", "rigg", "sailmaker"]
         }
         if any(["rope", "tauwerk", "leine", "festmacher", "schot", "fall"]) {
-            return ["tauwerk", "laufendes gut", "takelage", "rigg", "spleiss", "spleiß", "leine", "festmacher"]
+            // Nur DEZIDIERTE Tauwerk-Anbieter: Rigger (Kategorie "Rigg") oder
+            // Betriebe, die explizit den Service "Laufendes Gut" bzw. "Tauwerk"
+            // fuehren. Bewusst OHNE "Takelage komplett" (haben auch allgemeine
+            // Werften) und ohne generische Begriffe wie leine/festmacher/schot.
+            return ["rigg", "laufendes gut", "tauwerk"]
         }
         if any(["engine", "motor", "diesel", "propeller", "welle", "getriebe", "außenborder", "innenborder"]) {
             return ["motorservice", "motor", "diesel", "außenborder", "innenborder", "mechanik", "propeller", "welle"]
