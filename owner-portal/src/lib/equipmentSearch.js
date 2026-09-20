@@ -35,6 +35,28 @@ export function buildShopQuery(item) {
   return parts.filter(Boolean).join(' ')
 }
 
+// Keyword-ARRAY für die Edge Function find-service-providers (dedizierte
+// Anbieter je Ausrüstungs-Kategorie, gespiegelt aus iOS ServiceKeywords).
+// Leeres Array = keine Einschränkung (alle Betriebe).
+const providerKeywordsByCategory = {
+  engine: ['motorservice', 'motor', 'diesel', 'außenborder', 'innenborder', 'mechanik', 'propeller', 'welle'],
+  electrical: ['instrumente', 'elektronik', 'elektrik', 'navigation'],
+  navigation: ['instrumente', 'elektronik', 'elektrik', 'navigation'],
+  communication: ['instrumente', 'elektronik', 'elektrik', 'navigation'],
+  rigging: ['rigg', 'laufendes gut', 'takelage', 'segelmacher'],
+  sails: ['segelmacher', 'segel', 'großsegel', 'genua', 'laufendes gut', 'takelage', 'rigg', 'sailmaker'],
+  rope: ['rigg', 'laufendes gut', 'tauwerk'],
+  hull: ['lackier', 'osmose', 'antifouling', 'gelcoat', 'bootsbau', 'taucher', 'unterwasser', 'rumpfreinigung'],
+  deck: ['beschläge', 'zubehör', 'werft'],
+  anchor: ['anker', 'kette', 'zubehör'],
+  safety: [],
+  other: [],
+}
+
+export function providerKeywordsForItem(item) {
+  return providerKeywordsByCategory[item?.category] ?? []
+}
+
 // Build service search query: liefert Stichworte, mit denen die Provider-Suche
 // die PASSENDEN Betriebe findet. Bei Tauwerk/Segel/Rigg bewusst OHNE Gerätename
 // (z. B. "Genuaschot"), der sonst gar nichts oder das Falsche trifft.

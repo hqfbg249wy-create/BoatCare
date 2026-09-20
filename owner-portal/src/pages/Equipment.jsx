@@ -7,9 +7,10 @@ import RopeConfigFields, { emptyRope } from '../components/RopeConfigFields'
 import { ROPE_EYE_ENDS } from '../lib/ropeOptions'
 import { useT } from '../i18n'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { buildShopQuery, buildServiceQuery, buildAIQuestion, buildInquirySubject, buildInquiryMessage } from '../lib/equipmentSearch'
+import { buildShopQuery, buildServiceQuery, buildAIQuestion } from '../lib/equipmentSearch'
 import { buildSparePartsParams } from '../lib/sparePartsSearch'
 import SailMeasurementForm, { emptySailForm, sailFormToPayload } from '../components/SailMeasurementForm'
+import ServiceQuoteModal from '../components/ServiceQuoteModal'
 import { useHasPlus } from '../hooks/useHasPlus'
 
 const categories = ['engine', 'electrical', 'navigation', 'safety', 'communication', 'rigging', 'sails', 'rope', 'hull', 'deck', 'anchor', 'other']
@@ -46,6 +47,7 @@ export default function Equipment() {
   const [filterCat, setFilterCat] = useState('')
   const [loading, setLoading] = useState(true)
   const [showImport, setShowImport] = useState(false)
+  const [quoteItem, setQuoteItem] = useState(null) // Ausrüstung für die Angebotsanfrage
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyItem)
   const [saving, setSaving] = useState(false)
@@ -431,6 +433,14 @@ export default function Equipment() {
         />
       )}
 
+      {quoteItem && (
+        <ServiceQuoteModal
+          item={quoteItem}
+          boatName={quoteItem._boatName}
+          onClose={() => setQuoteItem(null)}
+        />
+      )}
+
       {boats.length === 0 ? (
         <div className="empty-state">
           <Package size={64} color="#cbd5e1" />
@@ -614,16 +624,7 @@ export default function Equipment() {
                         <MapPin size={13} /> {t('eq.k23')}
                       </button>
                       <button className="eq-action-btn eq-action-inquiry" title={t('eq.k29')}
-                        onClick={() => {
-                          // Inquiry-Kontext in sessionStorage, damit ProviderDetail die Anfrage vorausfüllt.
-                          sessionStorage.setItem('pending_inquiry', JSON.stringify({
-                            subject: buildInquirySubject(item),
-                            message: buildInquiryMessage(item, boatName(item.boat_id)),
-                            boat_id: item.boat_id,
-                            equipment_id: item.id,
-                          }))
-                          navigate(`/services?inquiry=1&search=${encodeURIComponent(buildServiceQuery(item))}`)
-                        }}>
+                        onClick={() => setQuoteItem({ ...item, _boatName: boatName(item.boat_id) })}>
                         <Mail size={13} /> {t('eq.k24')}
                       </button>
                       <button className="eq-action-btn eq-action-ai" title={t('eq.k30')}
