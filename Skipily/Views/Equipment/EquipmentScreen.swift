@@ -1095,7 +1095,9 @@ struct EquipmentDetailView: View {
                         manufacturer: item.manufacturer,
                         model: item.model,
                         partNumber: item.partNumber,
-                        dimensions: item.dimensions
+                        dimensions: item.dimensions,
+                        category: item.category,
+                        boatId: item.boatId
                     )
                     .environmentObject(authService)
                 } label: {
@@ -2529,7 +2531,10 @@ struct EquipmentPartsSearchView: View {
     let model: String
     let partNumber: String
     let dimensions: String
+    var category: String = ""
+    var boatId: UUID? = nil
     @EnvironmentObject var authService: AuthService
+    @State private var showQuoteSheet = false
 
     @State private var originals: [MatchedProduct] = []     // Score 100 (Artikelnummer-Match)
     @State private var derivates: [MatchedProduct] = []     // Score 60–99 (Hersteller+Modell)
@@ -2567,6 +2572,22 @@ struct EquipmentPartsSearchView: View {
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color(.systemGray6))
+
+            // Zweite Option: statt (oder zusaetzlich zum) Kaufen ein Angebot bei
+            // passenden Betrieben anfragen.
+            Button {
+                showQuoteSheet = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "paperplane.fill")
+                    Text("quote.request_action".loc).fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                .background(AppColors.primary.opacity(0.12))
+                .foregroundStyle(AppColors.primary)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .padding(.horizontal).padding(.vertical, 10)
 
             Divider()
 
@@ -2630,6 +2651,29 @@ struct EquipmentPartsSearchView: View {
         }
         .navigationTitle("equipment.spare_parts_title".loc)
         .task { await searchProducts() }
+        .sheet(isPresented: $showQuoteSheet) {
+            ServiceQuoteSheet(
+                keywords: ServiceKeywords.forEquipment(category: category, name: name),
+                subject: String(format: "quote.equipment_subject".loc, name.isEmpty ? "Ersatzteil" : name),
+                message: partsQuoteMessage,
+                boatId: boatId
+            )
+        }
+    }
+
+    /// Vorbefuellte Nachricht fuer die Angebotsanfrage aus der Ersatzteilsuche.
+    private var partsQuoteMessage: String {
+        var lines: [String] = ["quote.equipment_intro".loc, ""]
+        func add(_ label: String, _ value: String) {
+            let v = value.trimmingCharacters(in: .whitespaces)
+            if !v.isEmpty { lines.append("\(label): \(v)") }
+        }
+        add("equipment.name".loc, name)
+        add("boats.manufacturer".loc, manufacturer)
+        add("boats.model".loc, model)
+        add("equipment.part_number".loc, partNumber)
+        add("equipment.dimensions".loc, dimensions)
+        return lines.joined(separator: "\n")
     }
 
     @ViewBuilder
