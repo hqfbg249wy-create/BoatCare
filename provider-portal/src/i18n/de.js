@@ -876,4 +876,13 @@ export default {
   'inquiries.offerSent': 'Angebot gesendet. Der Kunde kann es jetzt in der App annehmen und bezahlen.',
   'inquiries.offerNeedsFields': 'Bitte Preis (> 0) und Beschreibung angeben.',
   'inquiries.offerResendHint': 'Ein Angebot besteht bereits. Erneutes Senden aktualisiert es.',
+  'inquiries.changeOffer': 'Angebot ändern',
+  'inquiries.updateOffer': 'Angebot aktualisieren',
+  'inquiries.decline': 'Ablehnen',
+  'inquiries.declineConfirm': 'Diese Anfrage wirklich ablehnen? Der Kunde wird informiert.',
+  'inquiries.declined': 'Anfrage abgelehnt.',
+  'inquiries.declinedBadge': 'Abgelehnt',
+  'inquiries.remove': 'Löschen',
+  'inquiries.removeConfirm': 'Anfrage aus deiner Liste entfernen?',
+  'inquiries.removed': 'Aus der Liste entfernt.',
 }

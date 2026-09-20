@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Inbox, Send, CheckCircle, Package } from 'lucide-react'
+import { Inbox, Send, CheckCircle, Package, XCircle, Trash2 } from 'lucide-react'
 import { useT } from '../i18n'
 
 // Anfragen der Kunden an diesen Betrieb + strukturiertes Angebot (Preis) abgeben.
@@ -13,6 +13,7 @@ export default function Inquiries() {
   const [loading, setLoading] = useState(true)
   const [forms, setForms] = useState({})     // inquiryId -> { amount, shipping, description, reply }
   const [sendingId, setSendingId] = useState(null)
+  const [actioningId, setActioningId] = useState(null)
   const [message, setMessage] = useState(null)
 
   const load = useCallback(async () => {
@@ -25,9 +26,26 @@ export default function Inquiries() {
         .from('service_inquiries')
         .select('*, boats(id, name)')
         .eq('provider_id', provider.id)
+        .eq('provider_archived', false)
         .order('created_at', { ascending: false })
       if (error) throw error
-      setInquiries(data || [])
+      const list = data || []
+      setInquiries(list)
+      // Bestehende Angebote ins Formular vorbelegen (fuer "Angebot aendern").
+      setForms(prev => {
+        const next = { ...prev }
+        for (const inq of list) {
+          if (inq.offer_amount != null && !next[inq.id]) {
+            next[inq.id] = {
+              amount: String(inq.offer_amount).replace('.', ','),
+              shipping: inq.offer_shipping ? String(inq.offer_shipping).replace('.', ',') : '',
+              description: inq.offer_description || '',
+              reply: inq.provider_reply || '',
+            }
+          }
+        }
+        return next
+      })
     } catch (err) {
       console.error('Inquiries load error:', err)
       setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
@@ -76,6 +94,28 @@ export default function Inquiries() {
     }
   }
 
+  async function doAction(inq, action, confirmText) {
+    if (confirmText && !confirm(confirmText)) return
+    setActioningId(inq.id)
+    try {
+      const { data, error } = await supabase.functions.invoke('provider-inquiry-action', {
+        body: { inquiry_id: inq.id, action },
+      })
+      if (error) {
+        let msg = error.message
+        try { const b = await error.context?.json?.(); if (b?.error) msg = b.error } catch { /* ignore */ }
+        throw new Error(msg)
+      }
+      if (data?.error) throw new Error(data.error)
+      setMessage({ type: 'success', text: action === 'decline' ? t('inquiries.declined') : t('inquiries.removed') })
+      await load()
+    } catch (err) {
+      setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
+    } finally {
+      setActioningId(null)
+    }
+  }
+
   const money = (v) => (Number(v) || 0).toFixed(2).replace('.', ',') + ' EUR'
 
   return (
@@ -100,6 +140,8 @@ export default function Inquiries() {
             const buyer = t('inquiries.customer')
             const ordered = inq.offer_status === 'ordered'
             const offered = inq.offer_status === 'offered'
+            const declined = inq.offer_status === 'declined'
+            const busy = actioningId === inq.id
             return (
               <div key={inq.id} className="card" style={{ marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
@@ -119,6 +161,11 @@ export default function Inquiries() {
                       <CheckCircle size={13} /> {t('inquiries.offered')} {money(inq.offer_amount)}
                     </span>
                   )}
+                  {declined && (
+                    <span className="badge" style={{ background: '#fee2e2', color: '#991b1b', whiteSpace: 'nowrap' }}>
+                      <XCircle size={13} /> {t('inquiries.declinedBadge')}
+                    </span>
+                  )}
                 </div>
 
                 {inq.message && (
@@ -127,7 +174,9 @@ export default function Inquiries() {
 
                 {!ordered && (
                   <div style={{ marginTop: 12, borderTop: '1px solid var(--gray-200)', paddingTop: 12 }}>
-                    <div style={{ fontWeight: 600, marginBottom: 8 }}>{t('inquiries.makeOffer')}</div>
+                    <div style={{ fontWeight: 600, marginBottom: 8 }}>
+                      {(offered || declined) ? t('inquiries.changeOffer') : t('inquiries.makeOffer')}
+                    </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                       <label>{t('inquiries.price')}
                         <input type="text" inputMode="decimal" value={f.amount || ''}
@@ -149,7 +198,8 @@ export default function Inquiries() {
                     </label>
                     <button className="btn btn-primary" disabled={sendingId === inq.id}
                       onClick={() => sendOffer(inq)} style={{ marginTop: 8 }}>
-                      <Send size={15} /> {sendingId === inq.id ? t('common.sending') : t('inquiries.sendOffer')}
+                      <Send size={15} /> {sendingId === inq.id ? t('common.sending')
+                        : ((offered || declined) ? t('inquiries.updateOffer') : t('inquiries.sendOffer'))}
                     </button>
                     {offered && (
                       <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 6 }}>
@@ -158,6 +208,21 @@ export default function Inquiries() {
                     )}
                   </div>
                 )}
+
+                {/* Ablehnen / Loeschen */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                  {!ordered && !declined && (
+                    <button className="btn btn-secondary" disabled={busy}
+                      onClick={() => doAction(inq, 'decline', t('inquiries.declineConfirm'))}>
+                      <XCircle size={15} /> {t('inquiries.decline')}
+                    </button>
+                  )}
+                  <button className="btn btn-secondary" disabled={busy}
+                    onClick={() => doAction(inq, 'archive', t('inquiries.removeConfirm'))}
+                    style={{ color: '#991b1b' }}>
+                    <Trash2 size={15} /> {t('inquiries.remove')}
+                  </button>
+                </div>
               </div>
             )
           })}
