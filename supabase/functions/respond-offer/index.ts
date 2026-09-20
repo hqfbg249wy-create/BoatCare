@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
 
     const { data: inq } = await svc
       .from("service_inquiries")
-      .select("id, owner_id, provider_id, subject, offer_status, order_id")
+      .select("id, owner_id, provider_id, subject, status, offer_status, order_id")
       .eq("id", inquiry_id).maybeSingle();
     if (!inq) return json({ error: "Anfrage nicht gefunden" }, 404);
     if (inq.owner_id !== user.id) return json({ error: "Keine Berechtigung" }, 403);
@@ -72,7 +72,8 @@ Deno.serve(async (req) => {
     if (action === "delete") {
       // Loeschen OHNE vorheriges Ablehnen -> Anbieter wie bei Ablehnung
       // benachrichtigen. Nach bereits erfolgtem Ablehnen: nur intern loeschen.
-      if (inq.offer_status !== "declined") {
+      // Entwuerfe (nie gesendet) NIE melden -> der Anbieter kennt sie nicht.
+      if (inq.status !== "draft" && inq.offer_status !== "declined") {
         await notifyDeclined();
       }
       await svc.from("service_inquiries").delete().eq("id", inquiry_id);

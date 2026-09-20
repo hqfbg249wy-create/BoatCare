@@ -120,8 +120,16 @@ export default function Inquiries() {
   }
 
   async function deleteInquiry(id) {
-    const { error } = await supabase.from('service_inquiries').delete().eq('id', id)
-    if (error) { alert('Fehler beim Löschen: ' + error.message); return }
+    // Ueber respond-offer loeschen: benachrichtigt den Anbieter, falls die
+    // Anfrage gesendet und noch nicht abgelehnt war (Entwuerfe werden still
+    // geloescht) - gleiche Logik wie in der iOS-App.
+    const { data, error } = await supabase.functions.invoke('respond-offer', {
+      body: { inquiry_id: id, action: 'delete' },
+    })
+    if (error || data?.ok !== true) {
+      alert('Fehler beim Löschen: ' + (error?.message || data?.error || 'unbekannt'))
+      return
+    }
     setDeleteConfirm(null)
     loadInquiries()
   }
