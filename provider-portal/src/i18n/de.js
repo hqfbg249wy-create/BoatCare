@@ -885,4 +885,6 @@ export default {
   'inquiries.remove': 'Löschen',
   'inquiries.removeConfirm': 'Anfrage aus deiner Liste entfernen?',
   'inquiries.removed': 'Aus der Liste entfernt.',
+  'inquiries.customerRequest': 'Anfrage des Kunden',
+  'inquiries.replyPlaceholder': 'Optionale Nachricht, die der Kunde zusammen mit dem Angebot sieht',
 }

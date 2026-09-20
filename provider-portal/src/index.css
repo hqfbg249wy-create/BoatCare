@@ -369,3 +369,21 @@ a { color: var(--blue); text-decoration: none; }
   .chat-layout { grid-template-columns: 1fr; height: auto; }
   .chat-sidebar { max-height: 200px; }
 }
+
+/* ── Anfragen (Inquiries) ─────────────────────────────────────────── */
+.inquiry-list { display: flex; flex-direction: column; gap: 16px; }
+.inquiry-card { padding: 20px; margin-bottom: 0; }
+.inquiry-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.inquiry-subject { font-weight: 700; font-size: 1.02rem; color: var(--gray-900); }
+.inquiry-meta { font-size: 0.82rem; color: var(--gray-500); margin-top: 2px; }
+.inquiry-message { margin-top: 12px; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 10px; padding: 12px 14px; font-size: 0.88rem; color: var(--gray-800); white-space: pre-wrap; line-height: 1.55; }
+.inquiry-message-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-400); margin-bottom: 6px; }
+.offer-form { margin-top: 16px; border-top: 1px solid var(--gray-200); padding-top: 16px; }
+.offer-form-title { font-weight: 700; font-size: 0.95rem; color: var(--gray-800); margin-bottom: 12px; }
+.offer-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.btn-danger { color: #b91c1c; border-color: #fecaca; background: white; }
+.btn-danger:hover { background: #fee2e2; }
+.badge-blue, .badge-green, .badge-red { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.badge-blue { background: #dbeafe; color: #1e40af; }
+.badge-green { background: #dcfce7; color: #166534; }
+.badge-red { background: #fee2e2; color: #991b1b; }

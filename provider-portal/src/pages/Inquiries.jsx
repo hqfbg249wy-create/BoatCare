@@ -120,9 +120,9 @@ export default function Inquiries() {
 
   return (
     <div className="page">
-      <div className="page-header">
+      <div className="page-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
         <h1><Inbox size={22} style={{ verticalAlign: '-4px', marginRight: 8 }} />{t('inquiries.title')}</h1>
-        <p className="page-subtitle">{t('inquiries.subtitle')}</p>
+        <p className="subtitle" style={{ marginBottom: 0 }}>{t('inquiries.subtitle')}</p>
       </div>
 
       {message && (
@@ -130,11 +130,11 @@ export default function Inquiries() {
       )}
 
       {loading ? (
-        <p>{t('common.loading')}</p>
+        <p className="loading">{t('common.loading')}</p>
       ) : inquiries.length === 0 ? (
         <div className="empty-state"><Inbox size={40} /><p>{t('inquiries.empty')}</p></div>
       ) : (
-        <div className="card-list">
+        <div className="inquiry-list">
           {inquiries.map(inq => {
             const f = forms[inq.id] || {}
             const buyer = t('inquiries.customer')
@@ -143,86 +143,90 @@ export default function Inquiries() {
             const declined = inq.offer_status === 'declined'
             const busy = actioningId === inq.id
             return (
-              <div key={inq.id} className="card" style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+              <div key={inq.id} className="card inquiry-card">
+                <div className="inquiry-head">
                   <div>
-                    <strong>{inq.subject || t('inquiries.noSubject')}</strong>
-                    <div style={{ fontSize: 13, color: 'var(--gray-500)' }}>
+                    <div className="inquiry-subject">{inq.subject || t('inquiries.noSubject')}</div>
+                    <div className="inquiry-meta">
                       {buyer}{inq.boats?.name ? ' · ' + inq.boats.name : ''}
                     </div>
                   </div>
                   {ordered && (
-                    <span className="badge" style={{ background: '#dbeafe', color: '#1e40af', whiteSpace: 'nowrap' }}>
-                      <Package size={13} /> {t('inquiries.ordered')}
-                    </span>
+                    <span className="badge badge-blue"><Package size={13} /> {t('inquiries.ordered')}</span>
                   )}
                   {offered && (
-                    <span className="badge" style={{ background: '#dcfce7', color: '#166534', whiteSpace: 'nowrap' }}>
-                      <CheckCircle size={13} /> {t('inquiries.offered')} {money(inq.offer_amount)}
-                    </span>
+                    <span className="badge badge-green"><CheckCircle size={13} /> {t('inquiries.offered')} {money(inq.offer_amount)}</span>
                   )}
                   {declined && (
-                    <span className="badge" style={{ background: '#fee2e2', color: '#991b1b', whiteSpace: 'nowrap' }}>
-                      <XCircle size={13} /> {t('inquiries.declinedBadge')}
-                    </span>
+                    <span className="badge badge-red"><XCircle size={13} /> {t('inquiries.declinedBadge')}</span>
                   )}
                 </div>
 
                 {inq.message && (
-                  <p style={{ marginTop: 8, whiteSpace: 'pre-wrap', fontSize: 14 }}>{inq.message}</p>
-                )}
-
-                {!ordered && (
-                  <div style={{ marginTop: 12, borderTop: '1px solid var(--gray-200)', paddingTop: 12 }}>
-                    <div style={{ fontWeight: 600, marginBottom: 8 }}>
-                      {(offered || declined) ? t('inquiries.changeOffer') : t('inquiries.makeOffer')}
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                      <label>{t('inquiries.price')}
-                        <input type="text" inputMode="decimal" value={f.amount || ''}
-                          onChange={e => setField(inq.id, 'amount', e.target.value)} placeholder="0,00" />
-                      </label>
-                      <label>{t('inquiries.shipping')}
-                        <input type="text" inputMode="decimal" value={f.shipping || ''}
-                          onChange={e => setField(inq.id, 'shipping', e.target.value)} placeholder="0,00" />
-                      </label>
-                    </div>
-                    <label>{t('inquiries.offerDescription')}
-                      <textarea rows={2} value={f.description || ''}
-                        onChange={e => setField(inq.id, 'description', e.target.value)}
-                        placeholder={t('inquiries.offerDescriptionPlaceholder')} />
-                    </label>
-                    <label>{t('inquiries.replyOptional')}
-                      <textarea rows={2} value={f.reply || ''}
-                        onChange={e => setField(inq.id, 'reply', e.target.value)} />
-                    </label>
-                    <button className="btn btn-primary" disabled={sendingId === inq.id}
-                      onClick={() => sendOffer(inq)} style={{ marginTop: 8 }}>
-                      <Send size={15} /> {sendingId === inq.id ? t('common.sending')
-                        : ((offered || declined) ? t('inquiries.updateOffer') : t('inquiries.sendOffer'))}
-                    </button>
-                    {offered && (
-                      <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 6 }}>
-                        {t('inquiries.offerResendHint')}
-                      </div>
-                    )}
+                  <div className="inquiry-message">
+                    <div className="inquiry-message-label">{t('inquiries.customerRequest')}</div>
+                    {inq.message}
                   </div>
                 )}
 
-                {/* Ablehnen / Loeschen */}
-                <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-                  {!ordered && !declined && (
-                    <button className="btn btn-secondary" disabled={busy}
-                      onClick={() => doAction(inq, 'decline', t('inquiries.declineConfirm'))}>
-                      <XCircle size={15} /> {t('inquiries.decline')}
+                {!ordered && (
+                  <div className="offer-form">
+                    <div className="offer-form-title">
+                      {(offered || declined) ? t('inquiries.changeOffer') : t('inquiries.makeOffer')}
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>{t('inquiries.price')}</label>
+                        <input type="text" inputMode="decimal" value={f.amount || ''}
+                          onChange={e => setField(inq.id, 'amount', e.target.value)} placeholder="0,00" />
+                      </div>
+                      <div className="form-group">
+                        <label>{t('inquiries.shipping')}</label>
+                        <input type="text" inputMode="decimal" value={f.shipping || ''}
+                          onChange={e => setField(inq.id, 'shipping', e.target.value)} placeholder="0,00" />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>{t('inquiries.offerDescription')}</label>
+                      <textarea rows={4} value={f.description || ''}
+                        onChange={e => setField(inq.id, 'description', e.target.value)}
+                        placeholder={t('inquiries.offerDescriptionPlaceholder')} />
+                    </div>
+                    <div className="form-group">
+                      <label>{t('inquiries.replyOptional')}</label>
+                      <textarea rows={3} value={f.reply || ''}
+                        onChange={e => setField(inq.id, 'reply', e.target.value)}
+                        placeholder={t('inquiries.replyPlaceholder')} />
+                    </div>
+                    <div className="offer-actions">
+                      <button className="btn-primary" disabled={sendingId === inq.id}
+                        onClick={() => sendOffer(inq)}>
+                        <Send size={15} /> {sendingId === inq.id ? t('common.sending')
+                          : ((offered || declined) ? t('inquiries.updateOffer') : t('inquiries.sendOffer'))}
+                      </button>
+                      {!ordered && !declined && (
+                        <button className="btn-secondary" disabled={busy}
+                          onClick={() => doAction(inq, 'decline', t('inquiries.declineConfirm'))}>
+                          <XCircle size={15} /> {t('inquiries.decline')}
+                        </button>
+                      )}
+                      <button className="btn-secondary btn-danger" disabled={busy}
+                        onClick={() => doAction(inq, 'archive', t('inquiries.removeConfirm'))}>
+                        <Trash2 size={15} /> {t('inquiries.remove')}
+                      </button>
+                    </div>
+                    {offered && <div className="hint" style={{ marginTop: 8, marginBottom: 0 }}>{t('inquiries.offerResendHint')}</div>}
+                  </div>
+                )}
+
+                {ordered && (
+                  <div className="offer-actions" style={{ marginTop: 12 }}>
+                    <button className="btn-secondary btn-danger" disabled={busy}
+                      onClick={() => doAction(inq, 'archive', t('inquiries.removeConfirm'))}>
+                      <Trash2 size={15} /> {t('inquiries.remove')}
                     </button>
-                  )}
-                  <button className="btn btn-secondary" disabled={busy}
-                    onClick={() => doAction(inq, 'archive', t('inquiries.removeConfirm'))}
-                    style={{ color: '#991b1b' }}>
-                    <Trash2 size={15} /> {t('inquiries.remove')}
-                  </button>
-                </div>
+                  </div>
+                )}
               </div>
             )
           })}
