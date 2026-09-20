@@ -1197,6 +1197,10 @@
 "quote.footer_hint_inquiry" = "Sélectionnez les entreprises destinataires de votre demande sans engagement. Les réponses apparaissent dans Demandes.";
 "quote.mode_inquiry" = "Demande sans engagement";
 "quote.mode_quote" = "Demander un devis";
+"quote.confirm_title" = "Envoyer à %d entreprises ?";
+"quote.confirm_send" = "Envoyer à %d";
+"quote.confirm_msg" = "Chaque entreprise sélectionnée recevra votre demande.";
+"quote.confirm_many" = "%d entreprises recevront votre demande. N'envoyez que si vous voulez vraiment une offre de toutes.";
 "quote.send_n" = "Envoyer (%d)";
 "quote.sent" = "Demande envoyée à %d entreprises.";
 "quote.request_action" = "Demander un devis / service";

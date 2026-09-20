@@ -1197,6 +1197,10 @@
 "quote.footer_hint_inquiry" = "Selecciona las empresas a las que enviar tu consulta sin compromiso. Las respuestas aparecen en Solicitudes.";
 "quote.mode_inquiry" = "Consulta sin compromiso";
 "quote.mode_quote" = "Solicitar presupuesto";
+"quote.confirm_title" = "¿Enviar a %d empresas?";
+"quote.confirm_send" = "Enviar a %d";
+"quote.confirm_msg" = "Cada empresa seleccionada recibirá tu solicitud.";
+"quote.confirm_many" = "%d empresas recibirán tu solicitud. Envía solo si de verdad quieres una oferta de todas.";
 "quote.send_n" = "Enviar (%d)";
 "quote.sent" = "Solicitud enviada a %d empresas.";
 "quote.request_action" = "Solicitar presupuesto / servicio";

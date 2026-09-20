@@ -1197,6 +1197,10 @@
 "quote.footer_hint_inquiry" = "Selecteer de bedrijven waaraan de vrijblijvende aanvraag wordt gestuurd. Antwoorden verschijnen onder Aanvragen.";
 "quote.mode_inquiry" = "Vrijblijvende aanvraag";
 "quote.mode_quote" = "Offerte aanvragen";
+"quote.confirm_title" = "Naar %d bedrijven sturen?";
+"quote.confirm_send" = "Naar %d sturen";
+"quote.confirm_msg" = "Elk geselecteerd bedrijf ontvangt je aanvraag.";
+"quote.confirm_many" = "%d bedrijven ontvangen je aanvraag. Verstuur alleen als je echt van allemaal een offerte wilt.";
 "quote.send_n" = "Versturen (%d)";
 "quote.sent" = "Aanvraag verzonden naar %d bedrijven.";
 "quote.request_action" = "Offerte / service aanvragen";

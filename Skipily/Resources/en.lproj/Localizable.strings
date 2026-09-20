@@ -1196,6 +1196,10 @@
 "quote.footer_hint_inquiry" = "Select the businesses to send your non-binding inquiry to. Replies appear under Inquiries.";
 "quote.mode_inquiry" = "Non-binding inquiry";
 "quote.mode_quote" = "Request a quote";
+"quote.confirm_title" = "Send to %d businesses?";
+"quote.confirm_send" = "Send to %d";
+"quote.confirm_msg" = "Each selected business will receive your request.";
+"quote.confirm_many" = "%d businesses will receive your request. Only send if you really want an offer from all of them.";
 "quote.send_n" = "Send (%d)";
 "quote.sent" = "Request sent to %d businesses.";
 "quote.request_action" = "Request quote / service";

@@ -32,6 +32,7 @@ struct ServiceQuoteSheet: View {
     @State private var selected: Set<UUID> = []
     @State private var isLoading = true
     @State private var isSending = false
+    @State private var showSendConfirm = false
     @State private var loadError: String?
     @State private var resultMessage: String?
 
@@ -140,13 +141,29 @@ struct ServiceQuoteSheet: View {
                 ToolbarItem(placement: .topBarLeading) { Button("general.cancel".loc) { dismiss() } }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        Task { await send() }
+                        showSendConfirm = true
                     } label: {
                         if isSending { ProgressView() }
                         else { Text(String(format: "quote.send_n".loc, selected.count)).fontWeight(.semibold) }
                     }
                     .disabled(isSending || selected.isEmpty || subject.isEmpty || message.isEmpty)
                 }
+            }
+            // Sicherheits-Rueckfrage vor dem Senden – verhindert versehentliches
+            // Massen-Versenden an viele (oder alle) Betriebe.
+            .confirmationDialog(
+                String(format: "quote.confirm_title".loc, selected.count),
+                isPresented: $showSendConfirm,
+                titleVisibility: .visible
+            ) {
+                Button(String(format: "quote.confirm_send".loc, selected.count)) {
+                    Task { await send() }
+                }
+                Button("general.cancel".loc, role: .cancel) {}
+            } message: {
+                Text(selected.count >= 10
+                     ? String(format: "quote.confirm_many".loc, selected.count)
+                     : "quote.confirm_msg".loc)
             }
         }
         .task { await load() }
