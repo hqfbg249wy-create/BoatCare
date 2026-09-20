@@ -14,6 +14,44 @@ import { emailTo } from "../_shared/notify.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const PROVIDER_PORTAL_BASE = Deno.env.get("PROVIDER_PORTAL_URL") ?? "https://provider.skipily.app";
+
+// deno-lint-ignore no-explicit-any
+type Svc = any;
+
+// Ein Betrieb ist "plattformbereit", wenn er registriert ist (user_id) UND
+// Zahlungsdaten hinterlegt hat (Stripe-Connect aktiv). Nur dann laeuft die
+// Abrechnung ueber Skipily -> Onboarding-Hinweis entfaellt.
+function isPlatformReady(p: { user_id?: string | null; stripe_charges_enabled?: boolean | null }): boolean {
+  return !!p.user_id && p.stripe_charges_enabled === true;
+}
+
+// Persoenlichen Claim-Link holen/erzeugen (Token liegt in provider_secrets).
+async function claimUrlFor(svc: Svc, providerId: string): Promise<string | null> {
+  try {
+    const { data: sec } = await svc.from("provider_secrets")
+      .select("claim_token").eq("provider_id", providerId).maybeSingle();
+    let token: string | null = sec?.claim_token ?? null;
+    if (!token) {
+      const { data: created } = await svc.from("provider_secrets")
+        .upsert({ provider_id: providerId, claim_token: crypto.randomUUID() }, { onConflict: "provider_id" })
+        .select("claim_token").single();
+      token = created?.claim_token ?? null;
+    }
+    return token ? `${PROVIDER_PORTAL_BASE}/claim/${token}` : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+const ONBOARDING_NOTE = (claimUrl: string | null) =>
+  "\n\n----------------------------------------\n" +
+  "Diese Anfrage kommt ueber die Skipily-App. Wenn Sie ueber diese Plattform ein " +
+  "Angebot abgeben, wird die Zahlung sicher ueber Skipily (Stripe) abgewickelt.\n" +
+  "Wenn Sie teilnehmen moechten, registrieren Sie sich bitte ueber Ihren " +
+  "persoenlichen Link und hinterlegen Sie in den Stammdaten Ihre Unternehmens- " +
+  "und Zahlungsdaten:\n" +
+  (claimUrl ?? PROVIDER_PORTAL_BASE);
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -51,7 +89,8 @@ Deno.serve(async (req) => {
     }
 
     const { data: providers } = await svc
-      .from("service_providers").select("id, name, email").in("id", ids);
+      .from("service_providers")
+      .select("id, name, email, user_id, stripe_charges_enabled").in("id", ids);
 
     const buyerName = (await svc.from("profiles").select("full_name").eq("id", user.id).maybeSingle())
       .data?.full_name ?? "";
@@ -96,11 +135,15 @@ Deno.serve(async (req) => {
           console.error("mirror to conversation failed for", p.id, (mErr as Error).message);
         }
         if (p.email) {
+          const ready = isPlatformReady(p);
+          const tail = ready
+            ? `\n\nBitte antworte direkt auf diese Anfrage in deinem Anbieter-Portal ` +
+              `(Bereich Anfragen) und gib bei Bedarf ein Angebot mit Preis ab.`
+            : ONBOARDING_NOTE(await claimUrlFor(svc, p.id));
           await emailTo(
             p.email,
             subj + (buyerName ? " von " + buyerName : ""),
-            `${msg}\n\nBitte antworte direkt auf diese Anfrage in deinem Anbieter-Portal ` +
-              `(Bereich Anfragen) und gib bei Bedarf ein Angebot mit Preis ab.\n\nDein Skipily-Team`,
+            `${msg}${tail}\n\nDein Skipily-Team`,
           );
         }
       } catch (e) {
