@@ -29,6 +29,7 @@ struct ServiceQuoteSheet: View {
     @State private var allProviders: [QuoteProvider] = []
     @State private var countries: [QuoteCountry] = []
     @State private var selectedCountries: Set<String> = []
+    @State private var locationFilter: String = ""   // Ort/Name eingrenzen
     @State private var selected: Set<UUID> = []
     @State private var isLoading = true
     @State private var isSending = false
@@ -45,8 +46,17 @@ struct ServiceQuoteSheet: View {
     }
 
     private var visibleProviders: [QuoteProvider] {
-        guard !selectedCountries.isEmpty else { return allProviders }
-        return allProviders.filter { selectedCountries.contains($0.country ?? "") }
+        var list = allProviders
+        if !selectedCountries.isEmpty {
+            list = list.filter { selectedCountries.contains($0.country ?? "") }
+        }
+        let q = locationFilter.trimmingCharacters(in: .whitespaces).lowercased()
+        if !q.isEmpty {
+            list = list.filter {
+                ($0.city ?? "").lowercased().contains(q) || $0.name.lowercased().contains(q)
+            }
+        }
+        return list
     }
     private var allVisibleSelected: Bool {
         !visibleProviders.isEmpty && visibleProviders.allSatisfy { selected.contains($0.id) }
@@ -82,6 +92,24 @@ struct ServiceQuoteSheet: View {
                             .padding(.vertical, 2)
                         }
                         .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 8))
+                    }
+                }
+
+                // Ort/Name eingrenzen (zusaetzlich zum Land), um einen passenden
+                // lokalen Betrieb zu finden.
+                if !allProviders.isEmpty {
+                    Section {
+                        HStack(spacing: 8) {
+                            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                            TextField("quote.location_filter".loc, text: $locationFilter)
+                                .autocorrectionDisabled()
+                            if !locationFilter.isEmpty {
+                                Button { locationFilter = "" } label: {
+                                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
                     }
                 }
 
@@ -226,8 +254,10 @@ enum ServiceKeywords {
         if any(["electr", "elektr", "instrument", "navigation", "vhf", "radar", "battery", "batterie", "solar"]) {
             return ["instrumente", "elektronik", "elektrik", "navigation"]
         }
-        if any(["hull", "rumpf", "gelcoat", "osmose", "antifouling", "lack", "paint"]) {
-            return ["lackier", "osmose", "antifouling", "gelcoat", "bootsbau"]
+        if any(["hull", "rumpf", "gelcoat", "osmose", "antifouling", "lack", "paint",
+                "unterwasser", "taucher", "reinig", "diver", "cleaning"]) {
+            return ["lackier", "osmose", "antifouling", "gelcoat", "bootsbau",
+                    "taucher", "unterwasser", "rumpfreinigung", "diver"]
         }
         if any(["heiz", "klima", "heating"]) { return ["heizung", "klima"] }
         return []   // keine spezifische Zuordnung -> alle Betriebe

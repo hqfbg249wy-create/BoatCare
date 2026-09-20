@@ -1197,6 +1197,7 @@
 "quote.footer_hint_inquiry" = "Selecciona las empresas a las que enviar tu consulta sin compromiso. Las respuestas aparecen en Solicitudes.";
 "quote.mode_inquiry" = "Consulta sin compromiso";
 "quote.mode_quote" = "Solicitar presupuesto";
+"quote.location_filter" = "Filtrar por localidad o nombre";
 "quote.confirm_title" = "¿Enviar a %d empresas?";
 "quote.confirm_send" = "Enviar a %d";
 "quote.confirm_msg" = "Cada empresa seleccionada recibirá tu solicitud.";

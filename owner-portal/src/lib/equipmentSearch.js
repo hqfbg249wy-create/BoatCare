@@ -20,7 +20,7 @@ const serviceKeywords = {
   rigging: 'Rigg Takelage Laufendes',
   sails: 'Segelmacher Segel',
   rope: 'Tauwerk Rigg Laufendes',
-  hull: 'Lackierer Osmose Antifouling Bootsbau',
+  hull: 'Lackierer Osmose Antifouling Bootsbau Taucher Unterwasser',
   deck: 'Beschläge Deck',
   anchor: 'Anker Kette',
   other: '',

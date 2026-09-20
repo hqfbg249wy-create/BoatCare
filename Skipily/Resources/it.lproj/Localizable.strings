@@ -1197,6 +1197,7 @@
 "quote.footer_hint_inquiry" = "Seleziona le aziende a cui inviare la richiesta senza impegno. Le risposte compaiono in Richieste.";
 "quote.mode_inquiry" = "Richiesta senza impegno";
 "quote.mode_quote" = "Richiedi un preventivo";
+"quote.location_filter" = "Filtra per città o nome";
 "quote.confirm_title" = "Inviare a %d aziende?";
 "quote.confirm_send" = "Invia a %d";
 "quote.confirm_msg" = "Ogni azienda selezionata riceverà la tua richiesta.";

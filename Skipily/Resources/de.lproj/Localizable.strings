@@ -1201,6 +1201,7 @@ Ausrüstung unter Boote ergänzen.";
 "quote.footer_hint_inquiry" = "Wähle die Betriebe aus, an die die unverbindliche Anfrage gehen soll. Antworten erscheinen unter Anfragen.";
 "quote.mode_inquiry" = "Unverbindliche Anfrage";
 "quote.mode_quote" = "Bitte um ein Angebot";
+"quote.location_filter" = "Nach Ort oder Name filtern";
 "quote.confirm_title" = "An %d Betriebe senden?";
 "quote.confirm_send" = "An %d senden";
 "quote.confirm_msg" = "Jeder ausgewählte Betrieb erhält deine Anfrage.";

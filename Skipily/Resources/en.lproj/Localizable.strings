@@ -1196,6 +1196,7 @@
 "quote.footer_hint_inquiry" = "Select the businesses to send your non-binding inquiry to. Replies appear under Inquiries.";
 "quote.mode_inquiry" = "Non-binding inquiry";
 "quote.mode_quote" = "Request a quote";
+"quote.location_filter" = "Filter by town or name";
 "quote.confirm_title" = "Send to %d businesses?";
 "quote.confirm_send" = "Send to %d";
 "quote.confirm_msg" = "Each selected business will receive your request.";
