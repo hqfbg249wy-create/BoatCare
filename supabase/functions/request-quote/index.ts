@@ -72,6 +72,29 @@ Deno.serve(async (req) => {
           sent_at: new Date().toISOString(),
         });
         count++;
+
+        // Zusaetzlich in Nachrichten spiegeln, damit der Anbieter die Anfrage
+        // auch im gewohnten Nachrichten-Bereich (mit Badge) sieht.
+        try {
+          const { data: convRows } = await svc.from("conversations")
+            .select("id").eq("user_id", user.id).eq("provider_id", p.id).limit(1);
+          let convId = convRows?.[0]?.id as string | undefined;
+          if (!convId) {
+            const { data: newConv } = await svc.from("conversations")
+              .insert({ user_id: user.id, provider_id: p.id }).select("id").single();
+            convId = newConv?.id;
+          }
+          if (convId) {
+            await svc.from("messages").insert({
+              conversation_id: convId,
+              sender_id: user.id,
+              sender_type: "user",
+              content: subj + "\n\n" + msg,
+            });
+          }
+        } catch (mErr) {
+          console.error("mirror to conversation failed for", p.id, (mErr as Error).message);
+        }
         if (p.email) {
           await emailTo(
             p.email,

@@ -19,9 +19,11 @@ export default function Inquiries() {
     if (!provider) return
     setLoading(true)
     try {
+      // Kein profiles-Join: owner_id hat keinen FK auf profiles und der Kunde
+      // ist per RLS ohnehin nicht lesbar. Boot-Name reicht als Kontext.
       const { data, error } = await supabase
         .from('service_inquiries')
-        .select('*, boats(id, name), profiles:owner_id(full_name)')
+        .select('*, boats(id, name)')
         .eq('provider_id', provider.id)
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -95,7 +97,7 @@ export default function Inquiries() {
         <div className="card-list">
           {inquiries.map(inq => {
             const f = forms[inq.id] || {}
-            const buyer = inq.profiles?.full_name || t('inquiries.customer')
+            const buyer = t('inquiries.customer')
             const ordered = inq.offer_status === 'ordered'
             const offered = inq.offer_status === 'offered'
             return (
