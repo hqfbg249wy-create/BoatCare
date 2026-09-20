@@ -207,15 +207,18 @@ enum ServiceKeywords {
     static func forEquipment(category: String, name: String = "") -> [String] {
         let c = (category + " " + name).lowercased()
         func any(_ ks: [String]) -> Bool { ks.contains { c.contains($0) } }
-        if any(["sail", "segel", "rigg", "genua", "gennaker", "spinnaker", "fock", "code 0"]) {
-            return ["segelmacher", "segel", "großsegel", "genua", "laufendes gut", "takelage", "rigg", "sailmaker"]
-        }
-        if any(["rope", "tauwerk", "leine", "festmacher", "schot", "fall"]) {
+        // WICHTIG: Tauwerk ZUERST pruefen. Ein Tauwerk-Teil kann "genua"
+        // enthalten (Genuaschot, Genuafall) und wuerde sonst faelschlich den
+        // breiten Segelmacher-Zweig treffen -> Massenversand an alle Segelmacher.
+        if any(["rope", "tauwerk", "leine", "festmacher", "schot", "fall", "spleiß", "spleiss"]) {
             // Nur DEZIDIERTE Tauwerk-Anbieter: Rigger (Kategorie "Rigg") oder
             // Betriebe, die explizit den Service "Laufendes Gut" bzw. "Tauwerk"
             // fuehren. Bewusst OHNE "Takelage komplett" (haben auch allgemeine
             // Werften) und ohne generische Begriffe wie leine/festmacher/schot.
             return ["rigg", "laufendes gut", "tauwerk"]
+        }
+        if any(["sail", "segel", "rigg", "genua", "gennaker", "spinnaker", "fock", "code 0"]) {
+            return ["segelmacher", "segel", "großsegel", "genua", "laufendes gut", "takelage", "rigg", "sailmaker"]
         }
         if any(["engine", "motor", "diesel", "propeller", "welle", "getriebe", "außenborder", "innenborder"]) {
             return ["motorservice", "motor", "diesel", "außenborder", "innenborder", "mechanik", "propeller", "welle"]
