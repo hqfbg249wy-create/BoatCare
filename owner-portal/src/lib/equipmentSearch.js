@@ -43,9 +43,11 @@ const providerKeywordsByCategory = {
   electrical: ['instrumente', 'elektronik', 'elektrik', 'navigation'],
   navigation: ['instrumente', 'elektronik', 'elektrik', 'navigation'],
   communication: ['instrumente', 'elektronik', 'elektrik', 'navigation'],
-  rigging: ['rigg', 'laufendes gut', 'takelage', 'segelmacher'],
-  sails: ['segelmacher', 'segel', 'großsegel', 'genua', 'laufendes gut', 'takelage', 'rigg', 'sailmaker'],
-  rope: ['rigg', 'laufendes gut', 'tauwerk'],
+  // Achtung: NICHT gegen die Kategorie "Rigg" matchen (Daten verunreinigt) —
+  // nur kuratierte Service-Tags wie "Laufendes Gut"/"Tauwerk".
+  rigging: ['laufendes gut', 'takelage komplett', 'bäume & masten', 'segelmacher'],
+  sails: ['segelmacher', 'segel', 'großsegel', 'genua', 'laufendes gut', 'sailmaker'],
+  rope: ['laufendes gut', 'tauwerk'],
   hull: ['lackier', 'osmose', 'antifouling', 'gelcoat', 'bootsbau', 'taucher', 'unterwasser', 'rumpfreinigung'],
   deck: ['beschläge', 'zubehör', 'werft'],
   anchor: ['anker', 'kette', 'zubehör'],

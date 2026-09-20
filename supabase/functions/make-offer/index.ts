@@ -14,9 +14,11 @@ import { pushToUser, emailTo, emailShell } from "../_shared/notify.ts";
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-// Smart-Link: auf dem iPhone oeffnet der Universal Link die Skipily-App,
-// auf dem Rechner die Web-App. Ueber Env ueberschreibbar.
-const APP_SMARTLINK = Deno.env.get("APP_SMARTLINK_URL") ?? "https://skipily.app/app";
+// Ziel-Link der Kaeufer-Mail: die Owner-Web-App (funktioniert auf Rechner und
+// iPhone im Browser). Ueber Env ueberschreibbar. Hinweis: fuer "oeffnet die
+// native iOS-App" braeuchte es zusaetzlich eine Universal-Link-Verknuepfung
+// (applinks:app.skipily.app + AASA) - offen.
+const APP_SMARTLINK = Deno.env.get("APP_SMARTLINK_URL") ?? "https://app.skipily.app/inquiries";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -86,9 +88,9 @@ Deno.serve(async (req) => {
         emailShell({
           heading: `Neues Angebot: ${total}`,
           bodyText,
-          ctaLabel: "Angebot in Skipily ansehen",
+          ctaLabel: "Angebot ansehen",
           ctaUrl: APP_SMARTLINK,
-          footnote: "Auf dem iPhone oeffnet der Button die Skipily-App, auf dem Rechner die Web-App.",
+          footnote: "Der Button oeffnet deine Anfragen in Skipily. In der iPhone-App findest du das Angebot ebenfalls unter Anfragen.",
         }),
       );
     }

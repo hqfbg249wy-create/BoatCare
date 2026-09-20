@@ -239,14 +239,15 @@ enum ServiceKeywords {
         // enthalten (Genuaschot, Genuafall) und wuerde sonst faelschlich den
         // breiten Segelmacher-Zweig treffen -> Massenversand an alle Segelmacher.
         if any(["rope", "tauwerk", "leine", "festmacher", "schot", "fall", "spleiß", "spleiss"]) {
-            // Nur DEZIDIERTE Tauwerk-Anbieter: Rigger (Kategorie "Rigg") oder
-            // Betriebe, die explizit den Service "Laufendes Gut" bzw. "Tauwerk"
-            // fuehren. Bewusst OHNE "Takelage komplett" (haben auch allgemeine
-            // Werften) und ohne generische Begriffe wie leine/festmacher/schot.
-            return ["rigg", "laufendes gut", "tauwerk"]
+            // WICHTIG: NICHT gegen die Kategorie "Rigg" matchen — die ist in den
+            // Daten stark verunreinigt (Autowerkstatt, Kurse, Taucher sind
+            // faelschlich "Rigg"). Nur die kuratierten Service-Tags nutzen, die
+            // dediziertes Tauwerk/Laufendes Gut bedeuten.
+            return ["laufendes gut", "tauwerk"]
         }
         if any(["sail", "segel", "rigg", "genua", "gennaker", "spinnaker", "fock", "code 0"]) {
-            return ["segelmacher", "segel", "großsegel", "genua", "laufendes gut", "takelage", "rigg", "sailmaker"]
+            // Ohne bare "rigg"/"takelage" (nur in der verunreinigten Kategorie).
+            return ["segelmacher", "segel", "großsegel", "genua", "laufendes gut", "sailmaker"]
         }
         if any(["engine", "motor", "diesel", "propeller", "welle", "getriebe", "außenborder", "innenborder"]) {
             return ["motorservice", "motor", "diesel", "außenborder", "innenborder", "mechanik", "propeller", "welle"]
