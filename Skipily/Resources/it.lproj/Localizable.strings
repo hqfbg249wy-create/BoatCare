@@ -1195,3 +1195,10 @@
 "quote.request_action" = "Richiedi preventivo / servizio";
 "quote.equipment_subject" = "Richiesta – %@";
 "quote.equipment_intro" = "Richiedo un preventivo / un servizio per la seguente attrezzatura:";
+
+/* Angebot: ablehnen / Nachfrage */
+"inq.offer_decline" = "Rifiuta";
+"inq.offer_question" = "Domanda";
+"inq.offer_question_placeholder" = "La tua domanda al fornitore (varianti, dettagli …)";
+"inq.offer_question_send" = "Invia domanda";
+"inq.offer_declined" = "Offerta rifiutata";

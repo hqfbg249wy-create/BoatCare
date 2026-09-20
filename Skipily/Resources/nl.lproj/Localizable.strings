@@ -1195,3 +1195,10 @@
 "quote.request_action" = "Offerte / service aanvragen";
 "quote.equipment_subject" = "Aanvraag – %@";
 "quote.equipment_intro" = "Ik vraag een offerte / service aan voor de volgende uitrusting:";
+
+/* Angebot: ablehnen / Nachfrage */
+"inq.offer_decline" = "Afwijzen";
+"inq.offer_question" = "Vraag stellen";
+"inq.offer_question_placeholder" = "Je vraag aan de aanbieder (varianten, details …)";
+"inq.offer_question_send" = "Vraag versturen";
+"inq.offer_declined" = "Aanbod afgewezen";

@@ -1199,3 +1199,10 @@ Ausrüstung unter Boote ergänzen.";
 "quote.request_action" = "Angebot / Service anfragen";
 "quote.equipment_subject" = "Anfrage – %@";
 "quote.equipment_intro" = "Ich bitte um ein Angebot / eine Serviceleistung für folgende Ausrüstung:";
+
+/* Angebot: ablehnen / Nachfrage */
+"inq.offer_decline" = "Ablehnen";
+"inq.offer_question" = "Nachfrage";
+"inq.offer_question_placeholder" = "Deine Rückfrage an den Anbieter (z. B. zu Varianten oder Details) …";
+"inq.offer_question_send" = "Nachfrage senden";
+"inq.offer_declined" = "Angebot abgelehnt";

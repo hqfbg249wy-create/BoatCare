@@ -1194,3 +1194,10 @@
 "quote.request_action" = "Request quote / service";
 "quote.equipment_subject" = "Request – %@";
 "quote.equipment_intro" = "I am requesting a quote / service for the following equipment:";
+
+/* Angebot: ablehnen / Nachfrage */
+"inq.offer_decline" = "Decline";
+"inq.offer_question" = "Ask a question";
+"inq.offer_question_placeholder" = "Your question to the provider (e.g. about variants or details) …";
+"inq.offer_question_send" = "Send question";
+"inq.offer_declined" = "Offer declined";

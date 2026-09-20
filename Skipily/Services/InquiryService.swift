@@ -60,6 +60,33 @@ final class InquiryService {
         return resp.count ?? 0
     }
 
+    /// Kunde lehnt ein Angebot ab.
+    func declineOffer(inquiryId: UUID) async throws {
+        struct Body: Encodable { let inquiry_id: String; let action: String }
+        struct Resp: Decodable { let ok: Bool?; let error: String? }
+        let resp: Resp = try await client.functions.invoke(
+            "respond-offer", options: .init(body: Body(inquiry_id: inquiryId.uuidString, action: "decline"))
+        )
+        if resp.ok != true {
+            throw NSError(domain: "Skipily.Offer", code: 500,
+                          userInfo: [NSLocalizedDescriptionKey: resp.error ?? "Ablehnen fehlgeschlagen"])
+        }
+    }
+
+    /// Kunde sendet eine Rückfrage zum Angebot an den Anbieter.
+    func askOfferQuestion(inquiryId: UUID, text: String) async throws {
+        struct Body: Encodable { let inquiry_id: String; let action: String; let text: String }
+        struct Resp: Decodable { let ok: Bool?; let error: String? }
+        let resp: Resp = try await client.functions.invoke(
+            "respond-offer",
+            options: .init(body: Body(inquiry_id: inquiryId.uuidString, action: "question", text: text))
+        )
+        if resp.ok != true {
+            throw NSError(domain: "Skipily.Offer", code: 500,
+                          userInfo: [NSLocalizedDescriptionKey: resp.error ?? "Senden fehlgeschlagen"])
+        }
+    }
+
     /// Nimmt das Angebot eines Anbieters an → erzeugt eine Deferred-Bestellung
     /// (Zahlung via Stripe) und liefert deren Order-ID.
     func acceptOffer(inquiryId: UUID) async throws -> UUID {

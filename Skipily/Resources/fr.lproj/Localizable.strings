@@ -1195,3 +1195,10 @@
 "quote.request_action" = "Demander un devis / service";
 "quote.equipment_subject" = "Demande – %@";
 "quote.equipment_intro" = "Je demande un devis / une prestation pour l'équipement suivant :";
+
+/* Angebot: ablehnen / Nachfrage */
+"inq.offer_decline" = "Refuser";
+"inq.offer_question" = "Question";
+"inq.offer_question_placeholder" = "Votre question au prestataire (variantes, détails …)";
+"inq.offer_question_send" = "Envoyer la question";
+"inq.offer_declined" = "Offre refusée";

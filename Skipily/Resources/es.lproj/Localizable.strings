@@ -1195,3 +1195,10 @@
 "quote.request_action" = "Solicitar presupuesto / servicio";
 "quote.equipment_subject" = "Solicitud – %@";
 "quote.equipment_intro" = "Solicito un presupuesto / servicio para el siguiente equipo:";
+
+/* Angebot: ablehnen / Nachfrage */
+"inq.offer_decline" = "Rechazar";
+"inq.offer_question" = "Consulta";
+"inq.offer_question_placeholder" = "Tu consulta al proveedor (variantes, detalles …)";
+"inq.offer_question_send" = "Enviar consulta";
+"inq.offer_declined" = "Oferta rechazada";

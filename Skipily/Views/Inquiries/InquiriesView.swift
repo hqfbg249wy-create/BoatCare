@@ -35,6 +35,9 @@ struct InquiriesContent: View {
     @State private var pendingOrderId: UUID? = nil
     @State private var pendingSetupIntentId: String? = nil
     @State private var acceptInfo: String? = nil
+    @State private var offerActioningId: UUID? = nil
+    @State private var showQuestionFor: UUID? = nil
+    @State private var questionDrafts: [UUID: String] = [:]
 
     private var filtered: [ServiceInquiry] {
         guard let f = filter else { return service.inquiries }
@@ -238,6 +241,8 @@ struct InquiriesContent: View {
                         offerBox(inq)
                     } else if inq.orderId != nil {
                         infoBox(label: "inq.offer_ordered_label".loc, text: "inq.offer_ordered_text".loc, color: .blue)
+                    } else if inq.offerStatus == "declined" {
+                        infoBox(label: "inq.offer_declined".loc, text: "inq.offer_declined".loc, color: .red)
                     }
 
                     // Actions — kompakt und einzeilig
@@ -325,7 +330,53 @@ struct InquiriesContent: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.regular)
             .tint(AppColors.success)
-            .disabled(acceptingId != nil)
+            .disabled(acceptingId != nil || offerActioningId != nil)
+
+            // Ablehnen + Nachfrage
+            HStack(spacing: 10) {
+                Button(role: .destructive) {
+                    Task { await declineOffer(inq) }
+                } label: {
+                    Label("inq.offer_decline".loc, systemImage: "xmark.circle")
+                        .font(.subheadline)
+                }
+                .disabled(offerActioningId != nil || acceptingId != nil)
+                Spacer(minLength: 0)
+                Button {
+                    withAnimation {
+                        showQuestionFor = (showQuestionFor == inq.id) ? nil : inq.id
+                    }
+                } label: {
+                    Label("inq.offer_question".loc, systemImage: "questionmark.bubble")
+                        .font(.subheadline)
+                }
+                .disabled(offerActioningId != nil)
+            }
+
+            if showQuestionFor == inq.id {
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("inq.offer_question_placeholder".loc,
+                              text: Binding(
+                                get: { questionDrafts[inq.id] ?? "" },
+                                set: { questionDrafts[inq.id] = $0 }),
+                              axis: .vertical)
+                        .lineLimit(2...5)
+                        .textFieldStyle(.roundedBorder)
+                    Button {
+                        Task { await sendQuestion(inq) }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if offerActioningId == inq.id { ProgressView() }
+                            else { Image(systemName: "paperplane.fill") }
+                            Text("inq.offer_question_send".loc).fontWeight(.medium)
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled((questionDrafts[inq.id] ?? "").trimmingCharacters(in: .whitespaces).isEmpty || offerActioningId != nil)
+                }
+                .padding(.top, 4)
+            }
+
             if let acceptInfo, acceptingId == nil {
                 Text(acceptInfo).font(.caption).foregroundStyle(AppColors.error)
             }
@@ -336,6 +387,36 @@ struct InquiriesContent: View {
         .background(AppColors.primary.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 14)
+    }
+
+    @MainActor
+    private func declineOffer(_ inq: ServiceInquiry) async {
+        offerActioningId = inq.id
+        acceptInfo = nil
+        defer { offerActioningId = nil }
+        do {
+            try await InquiryService.shared.declineOffer(inquiryId: inq.id)
+            await reload()
+        } catch {
+            acceptInfo = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func sendQuestion(_ inq: ServiceInquiry) async {
+        let text = (questionDrafts[inq.id] ?? "").trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { return }
+        offerActioningId = inq.id
+        acceptInfo = nil
+        defer { offerActioningId = nil }
+        do {
+            try await InquiryService.shared.askOfferQuestion(inquiryId: inq.id, text: text)
+            questionDrafts[inq.id] = ""
+            withAnimation { showQuestionFor = nil }
+            await reload()
+        } catch {
+            acceptInfo = error.localizedDescription
+        }
     }
 
     @MainActor
