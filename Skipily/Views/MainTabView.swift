@@ -29,6 +29,10 @@ struct MainTabView: View {
 
     @State private var selectedTab: AppTab = .map
 
+    // Geführte Tour (Coach-Marks/Karten): beim ersten Start + jederzeit erneut.
+    @AppStorage("skipily_tour_done_v1") private var tourDone = false
+    @State private var showTour = false
+
     // NavigationPaths for tabs with controlled navigation
     @State private var shopNavigationPath = NavigationPath()
     @State private var favoritesNavigationPath = NavigationPath()
@@ -125,6 +129,25 @@ struct MainTabView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: offlineService.isOnline)
+        // Schwebender Hilfe-Button: Tour jederzeit erneut starten.
+        .overlay(alignment: .bottomTrailing) {
+            Button {
+                showTour = true
+            } label: {
+                Image(systemName: "questionmark.circle.fill")
+                    .font(.system(size: 30))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, AppColors.primary)
+                    .background(Circle().fill(.white).padding(4))
+                    .shadow(color: .black.opacity(0.2), radius: 5, y: 2)
+            }
+            .padding(.trailing, 16)
+            .padding(.bottom, 70)
+            .accessibilityLabel("Tour starten")
+        }
+        .fullScreenCover(isPresented: $showTour) {
+            AppTourView(onFinish: { tourDone = true; showTour = false })
+        }
         .task {
             // Start network monitoring + initial sync
             offlineService.start()
@@ -135,6 +158,8 @@ struct MainTabView: View {
                 await messagingService.loadConversations(userId: uid)
                 await inquiryService.loadInquiries(ownerId: uid)
             }
+            // Tour beim allerersten Start automatisch zeigen.
+            if !tourDone { try? await Task.sleep(nanoseconds: 700_000_000); showTour = true }
         }
         .onChange(of: locationManagerForOffline.location) { _, newLocation in
             if let loc = newLocation {
