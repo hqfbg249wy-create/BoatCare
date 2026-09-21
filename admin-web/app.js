@@ -492,8 +492,8 @@ async function loadDashboard() {
         document.getElementById('new-providers-count').textContent = newCount;
         document.getElementById('new-providers-badge').textContent = newCount;
 
-        // Lade letzte Aktivitäten
-        await loadRecentActivity();
+        // Nutzerverhalten & Handlungsempfehlungen (ersetzt "Letzte Aktivitäten")
+        loadBehaviorInsights();
         // Feature 3: Nutzerentwicklung & Aktivität (best-effort, blockiert das
         // Dashboard nicht bei fehlenden Rechten).
         loadUserGrowth();
@@ -9097,6 +9097,58 @@ function _renderLiveMetrics(live, error, grid) {
     if (live.users_by_country) {
         _renderLiveBar('chart-users-country', live.users_by_country, 'country', 'count', '#7c3aed', 12);
     }
+}
+
+// ── Dashboard: Nutzerverhalten & Handlungsempfehlungen ───────────────────
+async function loadBehaviorInsights() {
+    const funnelEl = document.getElementById('behavior-funnel');
+    const hintsEl  = document.getElementById('behavior-hints');
+    try {
+        const { data: b, error } = await supabaseClient.rpc('admin_user_behavior_stats', { p_days: 30 });
+        if (error) throw error;
+        if (!b) return;
+        const conv = b.total_users ? (b.active_subscribers / b.total_users * 100) : 0;
+        if (funnelEl) funnelEl.innerHTML = `
+            <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value">${b.total_users}</div><div class="stat-label">Nutzer gesamt</div></div>
+            <div class="stat-card"><div class="stat-icon">🤖</div><div class="stat-value">${b.users_with_ai}</div><div class="stat-label">nutzen KI</div></div>
+            <div class="stat-card"><div class="stat-icon">⛔</div><div class="stat-value" style="color:#f97316;">${b.free_exhausted}</div><div class="stat-label">Free aufgebraucht</div></div>
+            <div class="stat-card"><div class="stat-icon">💳</div><div class="stat-value" style="color:#16a34a;">${b.active_subscribers}</div><div class="stat-label">Abonnenten</div></div>
+            <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-value">${conv.toFixed(1)}%</div><div class="stat-label">Conversion</div></div>`;
+        _renderLiveBar('behavior-features', b.app_by_feature || [], 'key', 'minutes', '#0891b2');
+        const ai = (b.ai_by_feature || []).map(f => ({ key: (_KI_FEATURES[f.key]?.label || f.key), calls: f.calls }));
+        _renderLiveBar('behavior-ai', ai, 'key', 'calls', '#7c3aed');
+        if (hintsEl) hintsEl.innerHTML = _behaviorHints(b, conv);
+    } catch (e) {
+        if (hintsEl) hintsEl.innerHTML = `<span style="color:#dc2626;">Konnte nicht laden: ${escapeHtml(e.message)} (Migration 144 eingespielt?)</span>`;
+    }
+}
+window.loadBehaviorInsights = loadBehaviorInsights;
+
+function _behaviorHints(b, conv) {
+    const tips = [];
+    const topApp = (b.app_by_feature || [])[0];
+    const topAi  = (b.ai_by_feature || [])[0];
+    if ((b.free_exhausted_no_sub || 0) > 0) {
+        tips.push(`<b>${b.free_exhausted_no_sub} Nutzer</b> haben ihr kostenloses KI-Kontingent aufgebraucht, aber <b>kein Abo</b> abgeschlossen → gezielt mit Upgrade-Angebot ansprechen (In-App-Prompt direkt nach dem letzten Free-Call + Erinnerungs-Mail). Das ist die heißeste Conversion-Zielgruppe.`);
+    }
+    if (b.total_users > 0 && b.users_with_ai / b.total_users < 0.4) {
+        tips.push(`Nur <b>${Math.round(b.users_with_ai / b.total_users * 100)}%</b> der Nutzer haben die KI überhaupt getestet → KI-Einstieg im Onboarding sichtbarer machen (z. B. erste Frage vorschlagen).`);
+    }
+    if (conv < 3 && b.free_exhausted > 0) {
+        tips.push(`Conversion bei <b>${conv.toFixed(1)}%</b> trotz aufgebrauchtem Free-Kontingent → Preis/Nutzen-Kommunikation an der Paywall prüfen, konkreten Mehrwert der stärkeren KI (Plus) zeigen.`);
+    }
+    if (topAi) {
+        tips.push(`Beliebtestes KI-Feature: <b>${escapeHtml(_KI_FEATURES[topAi.key]?.label || topAi.key)}</b> (${topAi.calls} Calls) → als Aufhänger für das Abo und in Marketing nutzen.`);
+    }
+    if (topApp) {
+        tips.push(`Meistgenutzter Bereich: <b>${escapeHtml(topApp.key)}</b> → dort Premium-Funktionen und Upgrade-Hinweise platzieren.`);
+    } else {
+        tips.push(`Noch keine App-Nutzungsdaten — das Verhaltens-Tracking läuft gerade an und füllt sich mit der Nutzung.`);
+    }
+    if (b.active_subscribers === 0) {
+        tips.push(`<b>Noch kein aktives Abo.</b> Vor breitem Marketing: den Free→Plus-Übergang an einer kleinen Nutzergruppe testen (Prompt-Timing, Preis, Nutzenversprechen).`);
+    }
+    return `<ul style="margin:0; padding-left:18px; line-height:1.7;">${tips.map(t => `<li>${t}</li>`).join('')}</ul>`;
 }
 
 // Öffnet die Marktanalyse und sorgt dafür, dass die Zahlen AKTUELL sind.

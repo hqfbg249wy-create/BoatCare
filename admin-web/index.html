@@ -230,9 +230,28 @@
                     <div id="user-activity-table"></div>
                 </div>
 
-                <h2 style="margin-top:28px;">Letzte Aktivitäten</h2>
-                <div id="recent-activity-list" class="activity-list">
-                    <p>Keine Aktivitäten</p>
+                <!-- Nutzerverhalten & Handlungshinweise -->
+                <h2 style="margin-top:28px;">🧭 Nutzerverhalten &amp; Handlungsempfehlungen</h2>
+                <p class="subtitle" style="margin-top:2px;">Woraus Nutzung entsteht, wo Abos hängen bleiben und wo wir ansetzen sollten.</p>
+
+                <!-- Abo-Funnel-Kacheln -->
+                <div class="stats-grid" id="behavior-funnel" style="margin:12px 0 18px;"></div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:16px;">
+                    <div class="card">
+                        <h3 style="margin-top:0;">👆 Genutzte Bereiche (Klicks/Verweildauer)</h3>
+                        <canvas id="behavior-features" height="200"></canvas>
+                        <p style="font-size:12px; color:#94a3b8; margin-top:8px;">Aus den App-Events (füllt sich mit der Nutzung).</p>
+                    </div>
+                    <div class="card">
+                        <h3 style="margin-top:0;">🤖 KI-Nutzung nach Zweck</h3>
+                        <canvas id="behavior-ai" height="200"></canvas>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:16px;">
+                    <h3 style="margin-top:0;">💡 Empfehlungen: worauf wir uns konzentrieren sollten</h3>
+                    <div id="behavior-hints" style="font-size:14px; color:#334155;">Wird geladen…</div>
                 </div>
             </div>
 
@@ -2355,7 +2374,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260921-live-charts"></script>
+    <script src="app.js?v=20260921-behavior"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;
