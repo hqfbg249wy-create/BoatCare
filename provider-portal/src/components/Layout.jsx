@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useUnreadMessages } from '../hooks/useUnreadMessages'
+import { useOpenInquiries } from '../hooks/useOpenInquiries'
 import { useT } from '../i18n'
 import LanguageSwitcher from './LanguageSwitcher'
 import {
@@ -26,6 +27,7 @@ export default function Layout() {
   const { t } = useT()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const unreadMessages = useUnreadMessages()
+  const openInquiries = useOpenInquiries()
 
   const membershipLabel = (m) =>
     m === 'owner' ? t('layout.roleOwner') : m === 'admin' ? t('layout.roleAdmin') : t('layout.roleMember')
@@ -54,6 +56,9 @@ export default function Layout() {
                 <item.icon size={18} />
                 {item.to === '/messages' && unreadMessages > 0 && (
                   <span style={{ position: 'absolute', top: -6, right: -8, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{unreadMessages}</span>
+                )}
+                {item.to === '/inquiries' && openInquiries > 0 && (
+                  <span style={{ position: 'absolute', top: -6, right: -8, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{openInquiries}</span>
                 )}
               </span>
               <span>{t(item.key)}</span>
