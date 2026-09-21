@@ -1182,7 +1182,7 @@ struct EquipmentDetailView: View {
         }
         .sheet(isPresented: $showQuoteSheet) {
             ServiceQuoteSheet(
-                keywords: ServiceKeywords.forEquipment(category: item.category, name: item.name),
+                query: ServiceKeywords.forEquipment(category: item.category, name: item.name),
                 subject: String(format: "quote.equipment_subject".loc, item.name),
                 message: equipmentQuoteMessage,
                 boatId: item.boatId,
@@ -1604,7 +1604,7 @@ struct AddEditEquipmentView: View {
         .task { await loadSailMeasurement() }
         .sheet(isPresented: $showQuoteSheet) {
             ServiceQuoteSheet(
-                keywords: ServiceKeywords.forEquipment(category: category, name: name),
+                query: ServiceKeywords.forEquipment(category: category, name: name),
                 subject: ropeQuoteSubject,
                 message: ropeQuoteMessage,
                 boatId: boatId,
@@ -2048,7 +2048,7 @@ struct ServiceSearchFromEquipment: View {
         .navigationTitle("equipment.find_service".loc)
         .sheet(isPresented: $showQuoteSheet) {
             ServiceQuoteSheet(
-                keywords: ServiceKeywords.forEquipment(category: item.category, name: item.name),
+                query: ServiceKeywords.forEquipment(category: item.category, name: item.name),
                 subject: String(format: "quote.equipment_subject".loc, item.name),
                 message: quoteMessage,
                 boatId: item.boatId,

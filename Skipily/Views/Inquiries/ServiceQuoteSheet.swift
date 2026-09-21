@@ -18,7 +18,7 @@ enum QuoteMode: String {
 }
 
 struct ServiceQuoteSheet: View {
-    let keywords: [String]
+    let query: ProviderQuery
     let boatId: UUID?
     let mode: QuoteMode
 
@@ -37,8 +37,8 @@ struct ServiceQuoteSheet: View {
     @State private var loadError: String?
     @State private var resultMessage: String?
 
-    init(keywords: [String], subject: String, message: String, boatId: UUID?, mode: QuoteMode = .quote) {
-        self.keywords = keywords
+    init(query: ProviderQuery, subject: String, message: String, boatId: UUID?, mode: QuoteMode = .quote) {
+        self.query = query
         self.boatId = boatId
         self.mode = mode
         _subject = State(initialValue: subject)
@@ -202,7 +202,7 @@ struct ServiceQuoteSheet: View {
         isLoading = true
         loadError = nil
         do {
-            let res = try await InquiryService.shared.findProviders(keywords: keywords, countries: [])
+            let res = try await InquiryService.shared.findProviders(query: query, countries: [])
             allProviders = res.providers
             countries = res.countries
         } catch {
@@ -229,38 +229,76 @@ struct ServiceQuoteSheet: View {
     }
 }
 
-/// Ableitung passender Provider-Stichworte aus einer Ausruestungs-Kategorie/-Name.
-/// Leeres Ergebnis -> alle Betriebe werden gezeigt (Nutzer filtert/waehlt selbst).
+/// Passende Betriebe zu einer Ausruestung: primaere Geschaefts-Kategorie
+/// (category_allow, exakt) ODER kuratierter Service-Tag (service_terms,
+/// Teilstring). So werden fuer Tauwerk Rigger, Segelmacher UND Zubehoerhaendler
+/// (Chandler) getroffen, ohne die verunreinigte Kategorie greedy zu matchen.
+struct ProviderQuery: Sendable {
+    let categoryAllow: [String]
+    let serviceTerms: [String]
+}
+
+/// Ableitung der Domaene aus Kategorie/Name. Bewusst MEHRSPRACHIG in der
+/// Erkennung (Tauwerk = rope = cordage = touw ...), damit die Zuordnung
+/// unabhaengig von der Sprache des Nutzers/Namens funktioniert.
 enum ServiceKeywords {
-    static func forEquipment(category: String, name: String = "") -> [String] {
+    static func forEquipment(category: String, name: String = "") -> ProviderQuery {
         let c = (category + " " + name).lowercased()
         func any(_ ks: [String]) -> Bool { ks.contains { c.contains($0) } }
-        // WICHTIG: Tauwerk ZUERST pruefen. Ein Tauwerk-Teil kann "genua"
-        // enthalten (Genuaschot, Genuafall) und wuerde sonst faelschlich den
-        // breiten Segelmacher-Zweig treffen -> Massenversand an alle Segelmacher.
-        if any(["rope", "tauwerk", "leine", "festmacher", "schot", "fall", "spleiß", "spleiss"]) {
-            // WICHTIG: NICHT gegen die Kategorie "Rigg" matchen — die ist in den
-            // Daten stark verunreinigt (Autowerkstatt, Kurse, Taucher sind
-            // faelschlich "Rigg"). Nur die kuratierten Service-Tags nutzen, die
-            // dediziertes Tauwerk/Laufendes Gut bedeuten.
-            return ["laufendes gut", "tauwerk"]
+
+        // Tauwerk / laufendes Gut (ZUERST, da "genua..." sonst Segel triggert)
+        if any(["rope", "tauwerk", "tauw", "leine", "festmacher", "schot", "fall",
+                "spleiß", "spleiss", "cordage", "cordame", "cabo", "touw", "gréement", "line"]) {
+            return ProviderQuery(
+                categoryAllow: ["rigg", "rigger", "segelmacher", "sailmaker", "zubehör", "takelage"],
+                serviceTerms: ["laufendes gut", "tauwerk", "takelage", "rigg"])
         }
-        if any(["sail", "segel", "rigg", "genua", "gennaker", "spinnaker", "fock", "code 0"]) {
-            // Ohne bare "rigg"/"takelage" (nur in der verunreinigten Kategorie).
-            return ["segelmacher", "segel", "großsegel", "genua", "laufendes gut", "sailmaker"]
+        // Segel
+        if any(["sail", "segel", "voile", "vela", "zeil", "genua", "gennaker", "spinnaker", "fock", "code 0"]) {
+            return ProviderQuery(
+                categoryAllow: ["segelmacher", "sailmaker", "zubehör"],
+                serviceTerms: ["segel", "großsegel", "genua", "fock", "persenning"])
         }
-        if any(["engine", "motor", "diesel", "propeller", "welle", "getriebe", "außenborder", "innenborder"]) {
-            return ["motorservice", "motor", "diesel", "außenborder", "innenborder", "mechanik", "propeller", "welle"]
+        // Rigg / Mast / stehendes Gut
+        if any(["rigg", "rigging", "mast", "spar", "stag", "want", "shroud", "takel"]) {
+            return ProviderQuery(
+                categoryAllow: ["rigg", "rigger", "segelmacher", "takelage"],
+                serviceTerms: ["laufendes gut", "takelage", "bäume & masten", "rigg"])
         }
-        if any(["electr", "elektr", "instrument", "navigation", "vhf", "radar", "battery", "batterie", "solar"]) {
-            return ["instrumente", "elektronik", "elektrik", "navigation"]
+        // Motor / Antrieb
+        if any(["engine", "motor", "moteur", "motore", "diesel", "propeller", "welle",
+                "getriebe", "außenborder", "innenborder", "outboard", "inboard", "antrieb"]) {
+            return ProviderQuery(
+                categoryAllow: ["motorservice", "werkstatt", "zubehör"],
+                serviceTerms: ["motor", "diesel", "antrieb", "getriebe", "welle", "propeller",
+                               "außenbord", "innenbord", "e-antrieb"])
         }
+        // Elektronik / Navigation / Elektrik
+        if any(["electr", "elektr", "instrument", "navigation", "vhf", "radar", "gps",
+                "battery", "batterie", "solar", "electronic", "plotter"]) {
+            return ProviderQuery(
+                categoryAllow: ["instrumente", "elektronik", "elektrik", "zubehör"],
+                serviceTerms: ["elektr", "navigation", "instrument", "chartplotter", "bordnetz", "radar"])
+        }
+        // Rumpf / Unterwasser / Taucher / Lack
         if any(["hull", "rumpf", "gelcoat", "osmose", "antifouling", "lack", "paint",
                 "unterwasser", "taucher", "reinig", "diver", "cleaning"]) {
-            return ["lackier", "osmose", "antifouling", "gelcoat", "bootsbau",
-                    "taucher", "unterwasser", "rumpfreinigung", "diver"]
+            return ProviderQuery(
+                categoryAllow: ["lackiererei", "bootsbauer", "werft"],
+                serviceTerms: ["osmose", "antifouling", "gelcoat", "lack", "gfk", "teak",
+                               "rumpf", "taucher", "unterwasser"])
         }
-        if any(["heiz", "klima", "heating"]) { return ["heizung", "klima"] }
-        return []   // keine spezifische Zuordnung -> alle Betriebe
+        // Anker / Kette
+        if any(["anchor", "anker", "kette", "chain"]) {
+            return ProviderQuery(categoryAllow: ["zubehör"], serviceTerms: ["anker", "kette"])
+        }
+        // Heizung / Klima
+        if any(["heiz", "klima", "heating"]) {
+            return ProviderQuery(categoryAllow: ["heizung/klima", "zubehör"], serviceTerms: ["heizung", "klima"])
+        }
+        // Fallback: Zubehoerhandel / Chandler statt ALLER Betriebe.
+        return ProviderQuery(
+            categoryAllow: ["zubehör"],
+            serviceTerms: ["schiffszubehör", "decksausrüstung"])
     }
 }

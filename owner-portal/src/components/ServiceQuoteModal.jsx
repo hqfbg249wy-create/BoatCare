@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { X, Search, Send, Check } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { providerKeywordsForItem, buildInquirySubject, buildInquiryMessage } from '../lib/equipmentSearch'
+import { providerQueryForItem, buildInquirySubject, buildInquiryMessage } from '../lib/equipmentSearch'
 
 // Strukturierte Angebots-/Serviceanfrage aus einem Ausrüstungsgegenstand.
 // Spiegelt die iOS-Logik: keyword-gefilterte Betriebe (find-service-providers),
@@ -25,9 +25,9 @@ export default function ServiceQuoteModal({ item, boatName, onClose }) {
     let alive = true
     ;(async () => {
       setLoading(true); setLoadError(null)
-      const keywords = providerKeywordsForItem(item)
+      const q = providerQueryForItem(item)
       const { data, error } = await supabase.functions.invoke('find-service-providers', {
-        body: { keywords, countries: [] },
+        body: { category_allow: q.category_allow, service_terms: q.service_terms, countries: [] },
       })
       if (!alive) return
       if (error || data?.ok !== true) {

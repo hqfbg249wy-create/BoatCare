@@ -35,28 +35,37 @@ export function buildShopQuery(item) {
   return parts.filter(Boolean).join(' ')
 }
 
-// Keyword-ARRAY für die Edge Function find-service-providers (dedizierte
-// Anbieter je Ausrüstungs-Kategorie, gespiegelt aus iOS ServiceKeywords).
-// Leeres Array = keine Einschränkung (alle Betriebe).
-const providerKeywordsByCategory = {
-  engine: ['motorservice', 'motor', 'diesel', 'außenborder', 'innenborder', 'mechanik', 'propeller', 'welle'],
-  electrical: ['instrumente', 'elektronik', 'elektrik', 'navigation'],
-  navigation: ['instrumente', 'elektronik', 'elektrik', 'navigation'],
-  communication: ['instrumente', 'elektronik', 'elektrik', 'navigation'],
-  // Achtung: NICHT gegen die Kategorie "Rigg" matchen (Daten verunreinigt) —
-  // nur kuratierte Service-Tags wie "Laufendes Gut"/"Tauwerk".
-  rigging: ['laufendes gut', 'takelage komplett', 'bäume & masten', 'segelmacher'],
-  sails: ['segelmacher', 'segel', 'großsegel', 'genua', 'laufendes gut', 'sailmaker'],
-  rope: ['laufendes gut', 'tauwerk'],
-  hull: ['lackier', 'osmose', 'antifouling', 'gelcoat', 'bootsbau', 'taucher', 'unterwasser', 'rumpfreinigung'],
-  deck: ['beschläge', 'zubehör', 'werft'],
-  anchor: ['anker', 'kette', 'zubehör'],
-  safety: [],
-  other: [],
-}
+// Betriebe zu einer Ausrüstung: primäre Kategorie (category_allow, exakt) ODER
+// kuratierter Service-Tag (service_terms, Teilstring). Deckt für Tauwerk Rigger,
+// Segelmacher UND Zubehörhändler (Chandler) ab, ohne greedy Teilstring-Treffer.
+// Mehrsprachige Erkennung (Tauwerk = rope = cordage …). Gespiegelt aus iOS.
+export function providerQueryForItem(item) {
+  const c = `${item?.category || ''} ${item?.name || ''}`.toLowerCase()
+  const any = (ks) => ks.some(k => c.includes(k))
 
-export function providerKeywordsForItem(item) {
-  return providerKeywordsByCategory[item?.category] ?? []
+  if (any(['rope', 'tauwerk', 'tauw', 'leine', 'festmacher', 'schot', 'fall', 'spleiß', 'spleiss', 'cordage', 'cordame', 'cabo', 'touw', 'gréement', 'line']))
+    return { category_allow: ['rigg', 'rigger', 'segelmacher', 'sailmaker', 'zubehör', 'takelage'],
+             service_terms: ['laufendes gut', 'tauwerk', 'takelage', 'rigg'] }
+  if (any(['sail', 'segel', 'voile', 'vela', 'zeil', 'genua', 'gennaker', 'spinnaker', 'fock', 'code 0']))
+    return { category_allow: ['segelmacher', 'sailmaker', 'zubehör'],
+             service_terms: ['segel', 'großsegel', 'genua', 'fock', 'persenning'] }
+  if (any(['rigg', 'rigging', 'mast', 'spar', 'stag', 'want', 'shroud', 'takel']))
+    return { category_allow: ['rigg', 'rigger', 'segelmacher', 'takelage'],
+             service_terms: ['laufendes gut', 'takelage', 'bäume & masten', 'rigg'] }
+  if (any(['engine', 'motor', 'moteur', 'motore', 'diesel', 'propeller', 'welle', 'getriebe', 'außenborder', 'innenborder', 'outboard', 'inboard', 'antrieb']))
+    return { category_allow: ['motorservice', 'werkstatt', 'zubehör'],
+             service_terms: ['motor', 'diesel', 'antrieb', 'getriebe', 'welle', 'propeller', 'außenbord', 'innenbord', 'e-antrieb'] }
+  if (any(['electr', 'elektr', 'instrument', 'navigation', 'vhf', 'radar', 'gps', 'battery', 'batterie', 'solar', 'electronic', 'plotter']))
+    return { category_allow: ['instrumente', 'elektronik', 'elektrik', 'zubehör'],
+             service_terms: ['elektr', 'navigation', 'instrument', 'chartplotter', 'bordnetz', 'radar'] }
+  if (any(['hull', 'rumpf', 'gelcoat', 'osmose', 'antifouling', 'lack', 'paint', 'unterwasser', 'taucher', 'reinig', 'diver', 'cleaning']))
+    return { category_allow: ['lackiererei', 'bootsbauer', 'werft'],
+             service_terms: ['osmose', 'antifouling', 'gelcoat', 'lack', 'gfk', 'teak', 'rumpf', 'taucher', 'unterwasser'] }
+  if (any(['anchor', 'anker', 'kette', 'chain']))
+    return { category_allow: ['zubehör'], service_terms: ['anker', 'kette'] }
+  if (any(['heiz', 'klima', 'heating']))
+    return { category_allow: ['heizung/klima', 'zubehör'], service_terms: ['heizung', 'klima'] }
+  return { category_allow: ['zubehör'], service_terms: ['schiffszubehör', 'decksausrüstung'] }
 }
 
 // Build service search query: liefert Stichworte, mit denen die Provider-Suche

@@ -34,33 +34,56 @@ Deno.serve(async (req) => {
     );
     if (authErr || !user) return json({ error: "Invalid token" }, 401);
 
-    const { keywords, countries, limit } = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({}));
+    const { keywords, countries, limit, category_allow, service_terms } = body;
+    // Strukturiertes Matching (bevorzugt): Betrieb passt, wenn seine PRIMAER-
+    // Kategorie in category_allow liegt (exakt) ODER ein Service-Tag einen der
+    // service_terms enthaelt. Das trifft z.B. bei Tauwerk Rigger, Segelmacher
+    // UND Chandler, ohne die greedy Teilstring-Treffer der Kategorie "Rigg".
+    const catAllow = new Set(
+      (Array.isArray(category_allow) ? category_allow : []).map((c) => String(c).trim().toLowerCase()),
+    );
+    const svcTerms: string[] = (Array.isArray(service_terms) ? service_terms : [])
+      .map((s) => String(s).toLowerCase()).filter(Boolean);
+    const structured = catAllow.size > 0 || svcTerms.length > 0;
+
+    // Legacy: freies Keyword-Matching ueber alle Felder (fuer aeltere Clients).
     const kws: string[] = Array.isArray(keywords)
       ? keywords.map((k) => String(k).toLowerCase()).filter(Boolean) : [];
     const cts: string[] = Array.isArray(countries)
       ? countries.map((c) => String(c)) : [];
-    const cap = Math.max(1, Math.min(1000, Number(limit) || 500));
+    const cap = Math.max(1, Math.min(1000, Number(limit) || 800));
 
     const { data: rows } = await svc
       .from("service_providers")
       .select("id, name, city, country, email, category, categories, category2, category3, services")
       .limit(10000);
 
-    const hay = (p: Record<string, unknown>): string => {
-      const parts: string[] = [];
+    const provCats = (p: Record<string, unknown>): string[] => {
+      const out: string[] = [];
       for (const f of ["category", "category2", "category3"]) {
-        if (p[f]) parts.push(String(p[f]));
+        if (p[f]) out.push(String(p[f]).trim().toLowerCase());
       }
-      for (const f of ["categories", "services"]) {
-        const v = p[f];
-        if (Array.isArray(v)) parts.push(...v.map((x) => String(x)));
-        else if (v) parts.push(String(v));
-      }
-      return parts.join(" ").toLowerCase();
+      const v = p["categories"];
+      if (Array.isArray(v)) out.push(...v.map((x) => String(x).trim().toLowerCase()));
+      return out;
     };
+    const provServices = (p: Record<string, unknown>): string[] => {
+      const v = p["services"];
+      if (Array.isArray(v)) return v.map((x) => String(x).toLowerCase());
+      return v ? [String(v).toLowerCase()] : [];
+    };
+    const hay = (p: Record<string, unknown>): string =>
+      [...provCats(p), ...provServices(p)].join(" ");
 
     let list = (rows || []).filter((p) => {
       if (cts.length && !cts.includes(String(p.country ?? ""))) return false;
+      if (structured) {
+        const inCat = catAllow.size > 0 && provCats(p).some((c) => catAllow.has(c));
+        const inSvc = svcTerms.length > 0 &&
+          provServices(p).some((s) => svcTerms.some((t) => s.includes(t)));
+        return inCat || inSvc;
+      }
       if (kws.length) {
         const h = hay(p);
         if (!kws.some((k) => h.includes(k))) return false;

@@ -23,16 +23,21 @@ final class InquiryService {
         SupabaseManager.shared.client
     }
 
-    /// Findet Betriebe zur Auswahl (nach Stichworten + optional Ländern).
-    func findProviders(keywords: [String], countries: [String]) async throws
+    /// Findet Betriebe zur Auswahl: primaere Kategorie (category_allow) ODER
+    /// Service-Tag (service_terms), optional nach Land gefiltert.
+    func findProviders(query: ProviderQuery, countries: [String]) async throws
         -> (providers: [QuoteProvider], countries: [QuoteCountry], total: Int) {
-        struct Body: Encodable { let keywords: [String]; let countries: [String] }
+        struct Body: Encodable {
+            let category_allow: [String]; let service_terms: [String]; let countries: [String]
+        }
         struct Resp: Decodable {
             let ok: Bool?; let total: Int?
             let countries: [QuoteCountry]?; let providers: [QuoteProvider]?; let error: String?
         }
         let resp: Resp = try await client.functions.invoke(
-            "find-service-providers", options: .init(body: Body(keywords: keywords, countries: countries))
+            "find-service-providers",
+            options: .init(body: Body(
+                category_allow: query.categoryAllow, service_terms: query.serviceTerms, countries: countries))
         )
         guard resp.ok == true else {
             throw NSError(domain: "Skipily.Quote", code: 500,
