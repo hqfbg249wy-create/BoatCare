@@ -244,6 +244,7 @@ Stay realistic for the boat type.`;
     const usedTokens =
       (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0);
     recordAiUsage({
+      platform: req.headers.get("x-skipily-platform"),
       userId,
       providerId: providerId || null,
       feature:    "suggest_equipment",

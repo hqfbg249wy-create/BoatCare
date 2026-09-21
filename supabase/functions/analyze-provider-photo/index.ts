@@ -185,6 +185,7 @@ STRICT RULES (credibility matters):
     const usedTokens =
       (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0);
     recordAiUsage({
+      platform: req.headers.get("x-skipily-platform"),
       userId, providerId: null, feature: "photo_analysis",
       source: quota.source!, costTokens: usedTokens,
       metadata: { model: MODEL, lang: userLang },

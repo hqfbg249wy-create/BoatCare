@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
         const { data: { user } } = await sb.auth.getUser();
         if (user) {
           recordAiUsage({
+      platform: req.headers.get("x-skipily-platform"),
             userId: user.id,
             feature: "translate_text",
             source: "free",  // System-getriggert, kein Plus-Verbrauch

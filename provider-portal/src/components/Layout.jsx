@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useUnreadMessages } from '../hooks/useUnreadMessages'
 import { useOpenInquiries } from '../hooks/useOpenInquiries'
+import { useUsageTracker } from '../hooks/useUsageTracker'
 import { useT } from '../i18n'
 import LanguageSwitcher from './LanguageSwitcher'
 import {
@@ -28,6 +29,7 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const unreadMessages = useUnreadMessages()
   const openInquiries = useOpenInquiries()
+  useUsageTracker('provider') // fortlaufende App-Nutzung (Provider-Portal)
 
   const membershipLabel = (m) =>
     m === 'owner' ? t('layout.roleOwner') : m === 'admin' ? t('layout.roleAdmin') : t('layout.roleMember')

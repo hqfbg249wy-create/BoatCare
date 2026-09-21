@@ -8,6 +8,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useUnreadInquiries } from '../hooks/useUnreadInquiries'
 import { useUnreadMessages } from '../hooks/useUnreadMessages'
+import { useUsageTracker } from '../hooks/useUsageTracker'
 import { useT } from '../i18n'
 import LanguageSwitcher from './LanguageSwitcher'
 import {
@@ -127,6 +128,7 @@ function LayoutDesktop() {
 }
 
 export default function Layout() {
+  useUsageTracker('web') // fortlaufende App-Nutzung (Owner-Web-App)
   // Native Plattform (Capacitor Android) → iOS-Style-Layout
   // Web/Browser → klassisches Sidebar-Layout
   if (Capacitor.isNativePlatform()) {

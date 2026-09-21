@@ -2313,6 +2313,27 @@
                     <div id="market-top-manufacturers" style="font-size:13px; color:#64748b;">Wird geladen…</div>
                 </div>
 
+                <!-- Live-Kennzahlen (immer aktueller Stand) -->
+                <div class="card" style="margin-top:16px;">
+                    <h3 style="margin-top:0;">🔴 Live (aktueller Stand)</h3>
+                    <p style="font-size:12px; color:#94a3b8; margin-top:0;">Bootstyp normalisiert, Provider nach Land und überfällige Wartungen — jeweils in Echtzeit, unabhängig vom Snapshot.</p>
+                    <div id="market-live" style="font-size:13px; color:#64748b;">Wird geladen…</div>
+                </div>
+
+                <!-- KI-Nutzung -->
+                <div class="card" style="margin-top:16px;">
+                    <h3 style="margin-top:0;">🤖 KI-Nutzung nach Zweck &amp; Plattform</h3>
+                    <p style="font-size:12px; color:#94a3b8; margin-top:0;">Umfang und Zweck der KI-Nutzung in iOS, Web-App und Provider-Portal. Zeitraum wie oben.</p>
+                    <div id="market-ki-usage" style="font-size:13px; color:#64748b;">Wird geladen…</div>
+                </div>
+
+                <!-- App-Nutzung -->
+                <div class="card" style="margin-top:16px;">
+                    <h3 style="margin-top:0;">⏱️ App-Nutzung (welcher Bereich wie lange)</h3>
+                    <p style="font-size:12px; color:#94a3b8; margin-top:0;">Fortlaufende Auswertung der Nutzungsdauer je Bereich und Plattform (füllt sich, sobald die Clients Events senden).</p>
+                    <div id="market-app-usage" style="font-size:13px; color:#64748b;">Wird geladen…</div>
+                </div>
+
             </div>
         </main>
     </div>
@@ -2335,7 +2356,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260912-pagination-stable"></script>
+    <script src="app.js?v=20260921-ai-app-usage"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;

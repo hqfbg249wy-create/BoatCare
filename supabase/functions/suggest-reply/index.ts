@@ -190,6 +190,7 @@ Bitte formuliere unsere Antwort auf die letzte Kundennachricht.`;
     // Quota verbuchen
     const usedTokens = (result.usage?.input_tokens ?? 0) + (result.usage?.output_tokens ?? 0);
     recordAiUsage({
+      platform: req.headers.get("x-skipily-platform"),
       userId:     user.id,
       providerId: conv.provider_id,
       feature:    "chat",

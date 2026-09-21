@@ -168,8 +168,12 @@ export async function recordAiUsage(args: {
   source: "free" | "basic" | "plus" | "provider_quota";
   costTokens?: number;
   metadata?: Record<string, unknown>;
+  platform?: string | null; // 'ios' | 'web' | 'provider' (aus x-skipily-platform)
 }): Promise<void> {
   const sb = adminClient();
+  const plat = (args.platform && ["ios", "web", "provider"].includes(args.platform))
+    ? args.platform : undefined;
+  const meta = plat ? { ...(args.metadata ?? {}), platform: plat } : (args.metadata ?? null);
   try {
     await sb.rpc("increment_ai_usage", {
       p_user_id:      args.userId,
@@ -177,7 +181,7 @@ export async function recordAiUsage(args: {
       p_feature:      args.feature,
       p_source:       args.source,
       p_cost_tokens:  args.costTokens ?? 0,
-      p_metadata:     args.metadata ?? null,
+      p_metadata:     meta,
     });
   } catch (err) {
     console.error("recordAiUsage failed:", err);

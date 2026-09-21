@@ -15,9 +15,13 @@ final class SupabaseManager {
     let client: SupabaseClient
 
     private init() {
+        // x-skipily-platform: markiert alle Requests als iOS (KI-/App-Nutzungs-Analytics).
         client = SupabaseClient(
             supabaseURL: SupabaseConfig.url,
-            supabaseKey: SupabaseConfig.anonKey
+            supabaseKey: SupabaseConfig.anonKey,
+            options: .init(
+                global: .init(headers: ["x-skipily-platform": "ios"])
+            )
         )
     }
 }

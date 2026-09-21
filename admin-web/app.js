@@ -8956,6 +8956,20 @@ async function loadMarketAnalysis() {
             `;
         }
 
+        // KI-Nutzung + App-Nutzung + Live-Kennzahlen (unabhaengig vom Snapshot)
+        try {
+            const [aiRes, appRes, liveRes] = await Promise.all([
+                supabaseClient.rpc('admin_ai_usage_stats', { p_days: days }),
+                supabaseClient.rpc('admin_app_usage_stats', { p_days: days }),
+                supabaseClient.rpc('admin_market_live'),
+            ]);
+            _renderKiUsage(aiRes.data, aiRes.error);
+            _renderAppUsage(appRes.data, appRes.error);
+            _renderLiveMetrics(liveRes.data, liveRes.error, grid);
+        } catch (e) {
+            console.warn('KI-/App-Nutzung konnte nicht geladen werden:', e.message);
+        }
+
         if (lastUpdate) {
             const allRows = [...users, ...boats, ...equipment, ...overdue];
             const latest = allRows.reduce((m,r) => r.snapshot_date > m ? r.snapshot_date : m, '');
@@ -8968,6 +8982,94 @@ async function loadMarketAnalysis() {
     }
 }
 window.loadMarketAnalysis = loadMarketAnalysis;
+
+// ── KI-Nutzung / App-Nutzung / Live-Kennzahlen ───────────────────────────
+const _KI_FEATURES = {
+    chat:               { label: 'KI-Chat / Bootsberatung',            platforms: 'iOS, Web-App' },
+    photo_analysis:     { label: 'Foto-Analyse (Betrieb/Ausrüstung)',  platforms: 'iOS, Web-App, Provider-Portal' },
+    suggest_equipment:  { label: 'Ausrüstungs-Vorschläge',             platforms: 'iOS, Web-App' },
+    translate_text:     { label: 'Textübersetzung',                    platforms: 'alle' },
+    translate_product:  { label: 'Produkt-Übersetzung',                platforms: 'Provider-Portal' },
+    translate_provider: { label: 'Betriebsprofil-Übersetzung',         platforms: 'Provider-Portal, Web-App' },
+};
+const _PLATFORM_LABEL = { ios: 'iOS-App', web: 'Web-App', provider: 'Provider-Portal', unbekannt: 'unbekannt (Alt-Daten)' };
+
+function _barTable(rows, keyLabelFn, valField, valSuffix) {
+    if (!rows || !rows.length) return '<div style="color:#94a3b8;">Noch keine Daten.</div>';
+    const max = Math.max(...rows.map(r => Number(r[valField] || 0)), 1);
+    return `<table style="width:100%; border-collapse:collapse;">${rows.map(r => {
+        const v = Number(r[valField] || 0);
+        const pct = Math.round(v / max * 100);
+        return `<tr>
+            <td style="padding:5px 8px 5px 0; white-space:nowrap;">${escapeHtml(keyLabelFn(r))}</td>
+            <td style="padding:5px 0; width:100%;">
+              <div style="background:#eef2f7;border-radius:5px;overflow:hidden;height:16px;">
+                <div style="width:${pct}%;height:16px;background:#2563eb;"></div></div></td>
+            <td style="padding:5px 0 5px 10px; text-align:right; white-space:nowrap; color:#475569;">${v}${valSuffix || ''}</td>
+        </tr>`;
+    }).join('')}</table>`;
+}
+
+function _renderKiUsage(stats, error) {
+    const el = document.getElementById('market-ki-usage');
+    if (!el) return;
+    if (error) { el.innerHTML = `<span style="color:#dc2626;">Fehler: ${escapeHtml(error.message)} (Migration 142 eingespielt?)</span>`; return; }
+    if (!stats) { el.innerHTML = '<span style="color:#94a3b8;">Keine Daten.</span>'; return; }
+    const byFeature = (stats.by_feature || []).map(f => ({ ...f, _l: (_KI_FEATURES[f.key]?.label || f.key) }));
+    el.innerHTML = `
+        <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:12px;">
+            <div><div style="font-size:22px; font-weight:700;">${stats.total ?? 0}</div><div style="color:#94a3b8;">KI-Calls (${stats.days} T.)</div></div>
+            <div><div style="font-size:22px; font-weight:700;">${stats.users ?? 0}</div><div style="color:#94a3b8;">aktive Nutzer</div></div>
+            <div><div style="font-size:22px; font-weight:700;">${stats.tokens ?? 0}</div><div style="color:#94a3b8;">Tokens</div></div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px;">
+            <div><h4 style="margin:0 0 6px;">Nach Zweck</h4>${_barTable(byFeature, r => r._l, 'calls')}
+                 <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Verfügbar auf: ${byFeature.map(f => `${escapeHtml(f._l)} — ${_KI_FEATURES[f.key]?.platforms || '–'}`).join(' · ')}</div></div>
+            <div><h4 style="margin:0 0 6px;">Nach Plattform</h4>${_barTable(stats.by_platform, r => _PLATFORM_LABEL[r.key] || r.key, 'calls')}</div>
+            <div><h4 style="margin:0 0 6px;">Nach Kostenquelle</h4>${_barTable(stats.by_source, r => r.key, 'calls')}</div>
+        </div>`;
+}
+
+function _renderAppUsage(stats, error) {
+    const el = document.getElementById('market-app-usage');
+    if (!el) return;
+    if (error) { el.innerHTML = `<span style="color:#dc2626;">Fehler: ${escapeHtml(error.message)}</span>`; return; }
+    if (!stats || !(stats.sessions > 0)) {
+        el.innerHTML = '<span style="color:#94a3b8;">Noch keine App-Events. Wird gefüllt, sobald die Clients Nutzungs-Events senden (Web-Apps bereits verdrahtet; iOS folgt).</span>';
+        return;
+    }
+    el.innerHTML = `
+        <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:12px;">
+            <div><div style="font-size:22px; font-weight:700;">${stats.total_minutes ?? 0} min</div><div style="color:#94a3b8;">Nutzungsdauer (${stats.days} T.)</div></div>
+            <div><div style="font-size:22px; font-weight:700;">${stats.sessions ?? 0}</div><div style="color:#94a3b8;">Aufrufe</div></div>
+            <div><div style="font-size:22px; font-weight:700;">${stats.users ?? 0}</div><div style="color:#94a3b8;">Nutzer</div></div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px;">
+            <div><h4 style="margin:0 0 6px;">Nach Bereich (Minuten)</h4>${_barTable(stats.by_feature, r => r.key, 'minutes', ' min')}</div>
+            <div><h4 style="margin:0 0 6px;">Nach Plattform (Minuten)</h4>${_barTable(stats.by_platform, r => _PLATFORM_LABEL[r.key] || r.key, 'minutes', ' min')}</div>
+        </div>`;
+}
+
+function _renderLiveMetrics(live, error, grid) {
+    const el = document.getElementById('market-live');
+    if (!el) return;
+    if (error) { el.innerHTML = `<span style="color:#dc2626;">Fehler: ${escapeHtml(error.message)}</span>`; return; }
+    if (!live) { el.innerHTML = '<span style="color:#94a3b8;">Keine Daten.</span>'; return; }
+    const boatTotal = (live.boats_by_type || []).reduce((s, r) => s + Number(r.count || 0), 0);
+    // Kacheln auf Live-Werte setzen (Boote = 2., Wartungen überfällig = 6.)
+    if (grid) {
+        const boatTile = grid.querySelector('.stat-card:nth-child(2) .stat-value');
+        if (boatTile) boatTile.textContent = boatTotal;
+        const overdueTile = grid.querySelector('.stat-card:nth-child(6) .stat-value');
+        if (overdueTile) overdueTile.textContent = live.overdue_total ?? 0;
+    }
+    el.innerHTML = `
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px;">
+            <div><h4 style="margin:0 0 6px;">Bootstyp (normalisiert)</h4>${_barTable(live.boats_by_type, r => r.type, 'count')}</div>
+            <div><h4 style="margin:0 0 6px;">Provider nach Land</h4>${_barTable(live.providers_by_country, r => r.country, 'count')}</div>
+            <div><h4 style="margin:0 0 6px;">Wartung überfällig (${live.overdue_total ?? 0})</h4>${_barTable(live.overdue_by_category, r => r.category, 'count')}</div>
+        </div>`;
+}
 
 // Öffnet die Marktanalyse und sorgt dafür, dass die Zahlen AKTUELL sind.
 // Die Ansicht liest Tages-Snapshots (market_snapshots) — ohne frischen

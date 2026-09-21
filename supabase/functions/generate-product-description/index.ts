@@ -141,6 +141,7 @@ Antworte NUR mit dem reinen Beschreibungstext, kein Vorwort, kein Markdown, kein
 
     const usedTokens = (result.usage?.input_tokens ?? 0) + (result.usage?.output_tokens ?? 0);
     recordAiUsage({
+      platform: req.headers.get("x-skipily-platform"),
       userId:     user.id,
       providerId,
       feature:    "chat",
