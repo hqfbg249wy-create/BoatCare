@@ -426,7 +426,10 @@ struct BoatDataScreen: View {
                 .execute().value
             boats = result
             await migrateLocalBoatsIfNeeded(userId: userId)
+        } catch is CancellationError {
+            // Ladevorgang wurde abgebrochen (Tab-Wechsel/View-Reset) — kein Fehler.
         } catch {
+            if (error as? URLError)?.code == .cancelled { return }
             AppLog.error("Error loading boats: \(error)")
             errorMessage = error.localizedDescription
         }
