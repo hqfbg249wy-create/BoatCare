@@ -9,6 +9,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useUnreadInquiries } from '../hooks/useUnreadInquiries'
 import { useUnreadMessages } from '../hooks/useUnreadMessages'
 import { useUsageTracker } from '../hooks/useUsageTracker'
+import Tour from './Tour'
 import { useT } from '../i18n'
 import LanguageSwitcher from './LanguageSwitcher'
 import {
@@ -67,6 +68,7 @@ function LayoutDesktop() {
             <NavLink
               key={item.to}
               to={item.to}
+              data-tour={item.to}
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
               onClick={() => setSidebarOpen(false)}
             >
@@ -131,8 +133,6 @@ export default function Layout() {
   useUsageTracker('web') // fortlaufende App-Nutzung (Owner-Web-App)
   // Native Plattform (Capacitor Android) → iOS-Style-Layout
   // Web/Browser → klassisches Sidebar-Layout
-  if (Capacitor.isNativePlatform()) {
-    return <LayoutMobile />
-  }
-  return <LayoutDesktop />
+  const inner = Capacitor.isNativePlatform() ? <LayoutMobile /> : <LayoutDesktop />
+  return (<>{inner}<Tour /></>)
 }
