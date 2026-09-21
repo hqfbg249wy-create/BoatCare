@@ -39,6 +39,7 @@ export default function ServiceSearch() {
   const [providerProducts, setProviderProducts] = useState({}) // providerId -> product count
   const [allProducts, setAllProducts] = useState([]) // all products for provider-level search
   const [searchMode, setSearchMode] = useState('providers') // 'providers' or 'products'
+  const [visibleCount, setVisibleCount] = useState(60) // wie viele Zeilen gerendert werden
   const [productResults, setProductResults] = useState([])
 
   useEffect(() => {
@@ -67,28 +68,40 @@ export default function ServiceSearch() {
     }
   }, [providers, lang])
 
+  // Alle Betriebe seitenweise laden (Suche muss den GESAMTEN Bestand sehen,
+  // nicht nur die ersten 500/1000). Stabiler Sekundär-Sort nach id gegen
+  // Doppel-/Lücken bei Range-Pagination. translations bewusst NICHT im
+  // Bulk-Load (zu groß); Übersetzungen werden bei Bedarf nachgeladen.
+  async function loadAllProviders() {
+    const cols = 'id, name, category, categories, services, brands, latitude, longitude, street, postal_code, city, country, phone, email, website, rating, review_count, logo_url'
+    const pageSize = 1000
+    let all = []
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await supabase.from('service_providers')
+        .select(cols)
+        .order('rating', { ascending: false, nullsFirst: false })
+        .order('id', { ascending: true })
+        .range(from, from + pageSize - 1)
+      if (error || !data || data.length === 0) break
+      all = all.concat(data)
+      if (data.length < pageSize) break
+      if (all.length >= 10000) break // Sicherheitsgrenze
+    }
+    return all
+  }
+
   async function loadData() {
     setLoading(true)
-    // Schritt 1: Parallel die wichtigsten Datenquellen anfragen.
-    // - Provider-Liste mit reduziertem Spalten-Set (keine large fields wie
-    //   description) und Limit 500 — reicht für Anzeige + spätere Suche.
-    // - Favoriten-IDs
-    // - Produkt-Counts via Group/Aggregation statt komplette Produkt-Liste
-    //   (das war der Hauptgrund für die langen Ladezeiten).
-    const [providersRes, favsRes, productCountsRes] = await Promise.all([
-      supabase.from('service_providers')
-        .select('id, name, category, services, brands, latitude, longitude, street, postal_code, city, country, phone, email, website, rating, review_count, logo_url, translations')
-        .order('rating', { ascending: false, nullsFirst: false })
-        .limit(1000),
+    const [providersAll, favsRes, productCountsRes] = await Promise.all([
+      loadAllProviders(),
       supabase.from('user_favorites').select('provider_id').eq('user_id', user.id),
-      // Counts via Postgres-Funktion (group by provider_id)
       supabase.from('metashop_products')
         .select('provider_id', { count: 'exact', head: false })
         .eq('is_active', true)
         .limit(2000),
     ])
 
-    setProviders(providersRes.data || [])
+    setProviders(providersAll)
     setFavorites(new Set((favsRes.data || []).map(f => f.provider_id)))
 
     // Counts client-seitig aggregieren (nur provider_ids im Speicher)
@@ -145,6 +158,9 @@ export default function ServiceSearch() {
 
   // Domänen-Query aus dem Suchbegriff (Synonyme/Mehrsprachigkeit).
   const searchQuery = search ? providerQueryForText(search) : null
+
+  // Bei geänderter Suche/Kategorie wieder oben anfangen.
+  useEffect(() => { setVisibleCount(60) }, [search, filterCat])
 
   // Filter and sort providers
   let filtered = providers.filter(p => {
@@ -286,7 +302,7 @@ export default function ServiceSearch() {
             </div>
           ) : (
             <div className="service-list">
-              {filtered.map(p => {
+              {filtered.slice(0, visibleCount).map(p => {
                 const catKey = (p.category || '').toLowerCase().replace(/[/ ]/g, '_')
                 const catIcons = { werkstatt: '🔧', motor_service: '⚙️', segelmacher: '⛵', elektronik: '📡', marina: '🌊', werft: '🚢', tankstelle: '⛽', winterlager: '❄️', lackiererei: '🎨', gutachter: '📋', versorgung: '🛒', marine_supplies: '🛒' }
                 const icon = catIcons[catKey] || '⚓'
@@ -335,6 +351,12 @@ export default function ServiceSearch() {
                   </Link>
                 )
               })}
+              {filtered.length > visibleCount && (
+                <button className="btn-secondary" style={{ margin: '12px auto', display: 'block' }}
+                  onClick={() => setVisibleCount(v => v + 100)}>
+                  Mehr anzeigen ({filtered.length - visibleCount} weitere)
+                </button>
+              )}
             </div>
           )}
         </>
