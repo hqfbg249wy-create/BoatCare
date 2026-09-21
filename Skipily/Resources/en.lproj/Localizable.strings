@@ -802,6 +802,14 @@
 "tour.step5.body" = "Order equipment directly from matching shops — with smart suggestions for your boat.";
 "tour.step6.title" = "Briefing in one tap";
 "tour.step6.body" = "Send your service provider all relevant equipment data with a single tap — no retyping.";
+"tour.step7.title" = "Inquiries & offers";
+"tour.step7.body" = "Send a non-binding inquiry or a request for a quote to businesses. Accept offers and pay securely — right in the app.";
+"tour.step8.title" = "AI chat: ask anything";
+"tour.step8.body" = "Ask the AI anything about your boat: maintenance, tech, buying advice. It knows your boat and equipment data and answers specifically. First questions free.";
+"tour.step9.title" = "Your advantage with AI";
+"tour.step9.body" = "The AI saves you the search: explains tech clearly, recommends maintenance, finds the right part and business — in seconds. AI is in the chat, the equipment suggestions and the spare-parts search.";
+"tour.step10.title" = "More power with Skipily Plus";
+"tour.step10.body" = "You start free with a few AI questions. Skipily Plus gives you many more per day and the stronger AI model — more precise answers for trickier boat questions. Activate under Profile.";
 "profile.show_tour" = "Restart app tour";
 
 // Location search (MKLocalSearch) on map

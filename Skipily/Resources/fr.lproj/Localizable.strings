@@ -803,6 +803,14 @@
 "tour.step5.body" = "Commande directement chez les boutiques compatibles — avec des suggestions adaptées à ton bateau.";
 "tour.step6.title" = "Briefing en un clic";
 "tour.step6.body" = "Envoie à ton prestataire toutes les données pertinentes de l'équipement en un seul tap.";
+"tour.step7.title" = "Demandes & offres";
+"tour.step7.body" = "Envoie une demande sans engagement ou une demande de devis aux entreprises. Accepte les offres et paie en toute sécurité, directement dans l'app.";
+"tour.step8.title" = "Chat IA : demande tout";
+"tour.step8.body" = "Pose à l'IA toutes tes questions sur ton bateau : entretien, technique, conseils d'achat. Elle connaît tes données et répond concrètement. Premières questions gratuites.";
+"tour.step9.title" = "Ton avantage avec l'IA";
+"tour.step9.body" = "L'IA t'évite de chercher : explique la technique, recommande l'entretien, trouve la pièce et l'entreprise — en quelques secondes. L'IA est dans le chat, les suggestions d'équipement et la recherche de pièces.";
+"tour.step10.title" = "Plus de puissance avec Skipily Plus";
+"tour.step10.body" = "Tu commences gratuitement avec quelques questions IA. Skipily Plus t'en offre bien plus par jour et le modèle IA plus puissant — des réponses plus précises. Activable dans Profil.";
 "profile.show_tour" = "Relancer la visite";
 
 // Recherche de lieu sur la carte

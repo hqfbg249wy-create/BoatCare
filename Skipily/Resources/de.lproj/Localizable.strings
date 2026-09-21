@@ -805,6 +805,14 @@ Ausrüstung unter Boote ergänzen.";
 "tour.step5.body" = "Bestelle Equipment direkt aus passenden Shops — mit automatisch passenden Vorschlägen für dein Boot.";
 "tour.step6.title" = "Briefing per Klick";
 "tour.step6.body" = "Schick deinem Dienstleister mit einem Tippen alle relevanten Daten zur Ausrüstung — kein Tippen mehr nötig.";
+"tour.step7.title" = "Anfragen & Angebote";
+"tour.step7.body" = "Sende eine unverbindliche Anfrage oder eine Bitte um ein Angebot an Betriebe. Angebote nimmst du an und bezahlst sicher — direkt in der App.";
+"tour.step8.title" = "KI-Chat: frag alles";
+"tour.step8.body" = "Frag die KI alles rund um dein Boot: Wartung, Technik, Kaufberatung. Sie kennt deine Boots- und Ausrüstungsdaten und antwortet konkret. Erste Fragen gratis.";
+"tour.step9.title" = "Dein Vorteil mit der KI";
+"tour.step9.body" = "Die KI spart dir das Suchen: erklärt Technik verständlich, empfiehlt Wartung, findet Ersatzteil und Betrieb — in Sekunden. KI steckt im Chat, in den Ausrüstungs-Vorschlägen und in der Ersatzteil-Suche.";
+"tour.step10.title" = "Mehr Power mit Skipily Plus";
+"tour.step10.body" = "Kostenlos startest du mit ein paar KI-Fragen. Mit Skipily Plus bekommst du deutlich mehr Fragen pro Tag und das stärkere KI-Modell — präzisere Antworten für kniffligere Bootsfragen. Unter Profil aktivierbar.";
 "profile.show_tour" = "App-Tour erneut starten";
 
 // Ortssuche (MKLocalSearch) auf der Map

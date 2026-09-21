@@ -803,6 +803,14 @@
 "tour.step5.body" = "Ordina attrezzatura direttamente dai negozi compatibili — con suggerimenti su misura.";
 "tour.step6.title" = "Briefing con un tocco";
 "tour.step6.body" = "Invia al tuo fornitore tutti i dati rilevanti dell'attrezzatura con un singolo tocco.";
+"tour.step7.title" = "Richieste & offerte";
+"tour.step7.body" = "Invia una richiesta senza impegno o una richiesta di preventivo alle aziende. Accetta le offerte e paga in sicurezza, direttamente nell'app.";
+"tour.step8.title" = "Chat IA: chiedi tutto";
+"tour.step8.body" = "Chiedi all'IA tutto sulla tua barca: manutenzione, tecnica, consigli d'acquisto. Conosce i tuoi dati e risponde in modo concreto. Prime domande gratis.";
+"tour.step9.title" = "Il tuo vantaggio con l'IA";
+"tour.step9.body" = "L'IA ti evita la ricerca: spiega la tecnica, consiglia la manutenzione, trova il ricambio e l'azienda — in secondi. L'IA è nella chat, nei suggerimenti attrezzatura e nella ricerca ricambi.";
+"tour.step10.title" = "Più potenza con Skipily Plus";
+"tour.step10.body" = "Inizi gratis con alcune domande IA. Skipily Plus te ne offre molte di più al giorno e il modello IA più potente — risposte più precise. Attivabile nel Profilo.";
 "profile.show_tour" = "Riavvia il tour dell'app";
 
 // Ricerca località sulla mappa

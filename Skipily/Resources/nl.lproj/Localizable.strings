@@ -803,6 +803,14 @@
 "tour.step5.body" = "Bestel direct bij passende shops — met slimme suggesties voor jouw boot.";
 "tour.step6.title" = "Briefing in één tap";
 "tour.step6.body" = "Stuur je dienstverlener alle relevante uitrustingsgegevens met één tap — geen overtypen.";
+"tour.step7.title" = "Aanvragen & offertes";
+"tour.step7.body" = "Stuur een vrijblijvende aanvraag of een offerteaanvraag naar bedrijven. Accepteer offertes en betaal veilig — direct in de app.";
+"tour.step8.title" = "AI-chat: vraag alles";
+"tour.step8.body" = "Vraag de AI alles over je boot: onderhoud, techniek, koopadvies. Hij kent je boot- en uitrustingsgegevens en antwoordt concreet. Eerste vragen gratis.";
+"tour.step9.title" = "Jouw voordeel met AI";
+"tour.step9.body" = "De AI bespaart je het zoeken: legt techniek uit, adviseert onderhoud, vindt het juiste onderdeel en bedrijf — in seconden. AI zit in de chat, de uitrustingssuggesties en het onderdelen zoeken.";
+"tour.step10.title" = "Meer kracht met Skipily Plus";
+"tour.step10.body" = "Je begint gratis met een paar AI-vragen. Skipily Plus geeft je veel meer per dag en het sterkere AI-model — preciezere antwoorden. Activeer onder Profiel.";
 "profile.show_tour" = "Rondleiding opnieuw starten";
 
 // Locatie zoeken op de kaart

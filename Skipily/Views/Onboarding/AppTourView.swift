@@ -29,6 +29,10 @@ struct AppTourView: View {
         .init(icon: "bell.badge.fill",          titleKey: "tour.step4.title", bodyKey: "tour.step4.body", tint: .red),
         .init(icon: "cart.fill",                titleKey: "tour.step5.title", bodyKey: "tour.step5.body", tint: .purple),
         .init(icon: "sparkles",                 titleKey: "tour.step6.title", bodyKey: "tour.step6.body", tint: .indigo),
+        .init(icon: "paperplane.fill",          titleKey: "tour.step7.title", bodyKey: "tour.step7.body", tint: .green),
+        .init(icon: "bubble.left.and.bubble.right.fill", titleKey: "tour.step8.title", bodyKey: "tour.step8.body", tint: .blue),
+        .init(icon: "wand.and.stars",           titleKey: "tour.step9.title", bodyKey: "tour.step9.body", tint: .pink),
+        .init(icon: "crown.fill",               titleKey: "tour.step10.title", bodyKey: "tour.step10.body", tint: .yellow),
     ]
 
     var body: some View {
@@ -139,7 +143,7 @@ struct AppTourView: View {
         dismiss()
     }
 
-    static let seenKey = "appTourSeen_v1"
+    static let seenKey = "appTourSeen_v2"
 
     static var hasSeen: Bool {
         UserDefaults.standard.bool(forKey: seenKey)
