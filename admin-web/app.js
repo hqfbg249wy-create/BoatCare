@@ -8917,13 +8917,11 @@ async function loadMarketAnalysis() {
             `;
         }
 
-        // Charts
+        // Charts — funktionierende Snapshot-Trends bleiben; Boote/Land/Wartung
+        // werden weiter unten aus den LIVE-Daten gezeichnet (nicht mehr Snapshot).
         _renderTotalLine('chart-users',             users,     'User',           '#2563eb');
-        _renderMultiLine('chart-boats',             boats,     'Bootstyp');
-        _renderMultiLine('chart-providers-country', providersCountry, 'Land');
         _renderTotalLine('chart-shops',             shops,     'Aktive Shops',   '#16a34a');
         _renderMultiLine('chart-equipment',         equipment, 'Kategorie');
-        _renderLatestBar('chart-overdue',           overdue,   '#dc2626');
 
         // Top-Hersteller je Kategorie (Tabelle, letzter Snapshot)
         const tbl = document.getElementById('market-top-manufacturers');
@@ -9050,11 +9048,39 @@ function _renderAppUsage(stats, error) {
         </div>`;
 }
 
+// Horizontaler Balken-Chart (Chart.js) fuer Live-Ranglisten. Zeigt Top-N.
+function _renderLiveBar(canvasId, rows, keyField, valField, color, topN) {
+    _destroyChart(canvasId);
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    const data = (rows || []).slice(0, topN || 10);
+    _marketCharts[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.map(r => String(r[keyField] ?? '–')),
+            datasets: [{
+                data: data.map(r => Number(r[valField] || 0)),
+                backgroundColor: color + 'cc', borderColor: color, borderWidth: 0,
+                borderRadius: 6, barThickness: 'flex', maxBarThickness: 26,
+            }],
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true, maintainAspectRatio: true,
+            plugins: { legend: { display: false }, tooltip: { enabled: true } },
+            scales: {
+                x: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { precision: 0 } },
+                y: { grid: { display: false } },
+            },
+        },
+    });
+}
+
 function _renderLiveMetrics(live, error, grid) {
-    const el = document.getElementById('market-live');
-    if (!el) return;
-    if (error) { el.innerHTML = `<span style="color:#dc2626;">Fehler: ${escapeHtml(error.message)}</span>`; return; }
-    if (!live) { el.innerHTML = '<span style="color:#94a3b8;">Keine Daten.</span>'; return; }
+    if (error || !live) {
+        console.warn('admin_market_live:', error?.message || 'keine Daten');
+        return;
+    }
     const boatTotal = (live.boats_by_type || []).reduce((s, r) => s + Number(r.count || 0), 0);
     // Kacheln auf Live-Werte setzen (Boote = 2., Wartungen überfällig = 6.)
     if (grid) {
@@ -9063,12 +9089,14 @@ function _renderLiveMetrics(live, error, grid) {
         const overdueTile = grid.querySelector('.stat-card:nth-child(6) .stat-value');
         if (overdueTile) overdueTile.textContent = live.overdue_total ?? 0;
     }
-    el.innerHTML = `
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px;">
-            <div><h4 style="margin:0 0 6px;">Bootstyp (normalisiert)</h4>${_barTable(live.boats_by_type, r => r.type, 'count')}</div>
-            <div><h4 style="margin:0 0 6px;">Provider nach Land</h4>${_barTable(live.providers_by_country, r => r.country, 'count')}</div>
-            <div><h4 style="margin:0 0 6px;">Wartung überfällig (${live.overdue_total ?? 0})</h4>${_barTable(live.overdue_by_category, r => r.category, 'count')}</div>
-        </div>`;
+    // Live-Balken an die Stelle der frueheren (kaputten) Snapshot-Charts.
+    _renderLiveBar('chart-boats',             live.boats_by_type,       'type',     'count', '#0891b2');
+    _renderLiveBar('chart-providers-country', live.providers_by_country, 'country', 'count', '#2563eb', 12);
+    _renderLiveBar('chart-overdue',           live.overdue_by_category,  'category', 'count', '#dc2626');
+    // Nutzer nach Land (falls die RPC es liefert; sonst still).
+    if (live.users_by_country) {
+        _renderLiveBar('chart-users-country', live.users_by_country, 'country', 'count', '#7c3aed', 12);
+    }
 }
 
 // Öffnet die Marktanalyse und sorgt dafür, dass die Zahlen AKTUELL sind.
