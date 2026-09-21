@@ -6,6 +6,7 @@ import { Search, X, MapPin, Star, Phone, Mail, Globe, Navigation, Wrench, Heart,
 import { getCurrentLocation, calcDistance as geoCalcDistance, formatDistance } from '../lib/geo'
 import { useT } from '../i18n'
 import { translateProviders, isTranslatableLang } from '../lib/dbTranslate'
+import { providerQueryForText, providerMatchesQuery } from '../lib/equipmentSearch'
 
 const serviceCategories = [
   { key: '', tkey: 'ssvc.all', icon: '🔍' },
@@ -78,7 +79,7 @@ export default function ServiceSearch() {
       supabase.from('service_providers')
         .select('id, name, category, services, brands, latitude, longitude, street, postal_code, city, country, phone, email, website, rating, review_count, logo_url, translations')
         .order('rating', { ascending: false, nullsFirst: false })
-        .limit(500),
+        .limit(1000),
       supabase.from('user_favorites').select('provider_id').eq('user_id', user.id),
       // Counts via Postgres-Funktion (group by provider_id)
       supabase.from('metashop_products')
@@ -142,6 +143,9 @@ export default function ServiceSearch() {
     }
   }
 
+  // Domänen-Query aus dem Suchbegriff (Synonyme/Mehrsprachigkeit).
+  const searchQuery = search ? providerQueryForText(search) : null
+
   // Filter and sort providers
   let filtered = providers.filter(p => {
     if (filterCat) {
@@ -162,6 +166,9 @@ export default function ServiceSearch() {
       const allText = fields.join(' ').toLowerCase()
       // Match if ANY search word is found in provider fields
       if (words.some(w => allText.includes(w))) return true
+      // Synonym-/mehrsprachiger Treffer: "tauwerk" findet auch "Laufendes Gut",
+      // Rigger, Segelmacher, Chandler usw. (gleiche Taxonomie wie die Anfrage).
+      if (searchQuery && providerMatchesQuery(p, searchQuery)) return true
       // Also match if any of this provider's products match any search word
       const provProducts = allProducts.filter(prod => prod.provider_id === p.id)
       return provProducts.some(prod => {

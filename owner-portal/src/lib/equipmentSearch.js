@@ -39,8 +39,10 @@ export function buildShopQuery(item) {
 // kuratierter Service-Tag (service_terms, Teilstring). Deckt für Tauwerk Rigger,
 // Segelmacher UND Zubehörhändler (Chandler) ab, ohne greedy Teilstring-Treffer.
 // Mehrsprachige Erkennung (Tauwerk = rope = cordage …). Gespiegelt aus iOS.
-export function providerQueryForItem(item) {
-  const c = `${item?.category || ''} ${item?.name || ''}`.toLowerCase()
+// Domänen-Auflösung aus freiem Text (Kategorie+Name ODER Suchbegriff).
+// Gibt null zurück, wenn kein Domänen-Treffer -> Aufrufer entscheidet Fallback.
+export function resolveProviderQuery(text) {
+  const c = (text || '').toLowerCase()
   const any = (ks) => ks.some(k => c.includes(k))
 
   if (any(['rope', 'tauwerk', 'tauw', 'leine', 'festmacher', 'schot', 'fall', 'spleiß', 'spleiss', 'cordage', 'cordame', 'cabo', 'touw', 'gréement', 'line']))
@@ -58,14 +60,35 @@ export function providerQueryForItem(item) {
   if (any(['electr', 'elektr', 'instrument', 'navigation', 'vhf', 'radar', 'gps', 'battery', 'batterie', 'solar', 'electronic', 'plotter']))
     return { category_allow: ['instrumente', 'elektronik', 'elektrik', 'zubehör'],
              service_terms: ['elektr', 'navigation', 'instrument', 'chartplotter', 'bordnetz', 'radar'] }
-  if (any(['hull', 'rumpf', 'gelcoat', 'osmose', 'antifouling', 'lack', 'paint', 'unterwasser', 'taucher', 'reinig', 'diver', 'cleaning']))
+  if (any(['hull', 'rumpf', 'gelcoat', 'osmose', 'antifouling', 'lack', 'paint', 'unterwasser', 'taucher', 'reinig', 'diver', 'cleaning', 'lackier']))
     return { category_allow: ['lackiererei', 'bootsbauer', 'werft'],
              service_terms: ['osmose', 'antifouling', 'gelcoat', 'lack', 'gfk', 'teak', 'rumpf', 'taucher', 'unterwasser'] }
   if (any(['anchor', 'anker', 'kette', 'chain']))
     return { category_allow: ['zubehör'], service_terms: ['anker', 'kette'] }
   if (any(['heiz', 'klima', 'heating']))
     return { category_allow: ['heizung/klima', 'zubehör'], service_terms: ['heizung', 'klima'] }
-  return { category_allow: ['zubehör'], service_terms: ['schiffszubehör', 'decksausrüstung'] }
+  return null
+}
+
+// Freitext-Suche: Domäne oder null (dann literale Suche).
+export function providerQueryForText(text) {
+  return resolveProviderQuery(text)
+}
+
+// Prüft, ob ein Betrieb zu einer Domänen-Query passt (Kategorie ODER Service-Tag).
+export function providerMatchesQuery(p, q) {
+  if (!q) return false
+  const cats = new Set([p.category, ...(Array.isArray(p.categories) ? p.categories : [])]
+    .filter(Boolean).map(s => String(s).trim().toLowerCase()))
+  const svcs = (Array.isArray(p.services) ? p.services : []).map(s => String(s).toLowerCase())
+  const inCat = q.category_allow.some(c => cats.has(c))
+  const inSvc = q.service_terms.some(t => svcs.some(s => s.includes(t)))
+  return inCat || inSvc
+}
+
+export function providerQueryForItem(item) {
+  return resolveProviderQuery(`${item?.category || ''} ${item?.name || ''}`)
+    ?? { category_allow: ['zubehör'], service_terms: ['schiffszubehör', 'decksausrüstung'] }
 }
 
 // Build service search query: liefert Stichworte, mit denen die Provider-Suche
