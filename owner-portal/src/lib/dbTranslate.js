@@ -20,7 +20,7 @@ function pickMissing(type, lang, ids) {
   return ids.filter(id => !have[id])
 }
 
-async function invokeChunked(fnName, key, ids, lang, chunk) {
+async function invokeChunked(fnName, key, ids, lang, chunk, onPartial) {
   const out = {}
   for (let i = 0; i < ids.length; i += chunk) {
     try {
@@ -28,7 +28,9 @@ async function invokeChunked(fnName, key, ids, lang, chunk) {
         body: { [key]: ids.slice(i, i + chunk), target_lang: lang },
       })
       if (error) { console.warn(fnName, error.message); continue }
-      Object.assign(out, data?.translations || {})
+      const part = data?.translations || {}
+      Object.assign(out, part)
+      if (onPartial && Object.keys(part).length) onPartial(part)
     } catch (e) {
       console.warn(fnName, e?.message || e)
     }
@@ -37,11 +39,16 @@ async function invokeChunked(fnName, key, ids, lang, chunk) {
 }
 
 // Liefert Map id -> { name, description } für Produkte.
-export async function translateProducts(ids, lang) {
+export async function translateProducts(ids, lang, onPartial) {
   if (!SUPPORTED.includes(lang) || !ids?.length) return {}
   const missing = pickMissing('product', lang, ids)
   if (missing.length) {
-    const res = await invokeChunked('translate-product', 'product_ids', missing, lang, 50)
+    // Kleine Batches: Claude (mit Thinking) ist langsamer als DeepL; grosse
+    // Batches liefen in Timeouts. 8 Produkte/Call bleiben schnell & robust.
+    const res = await invokeChunked('translate-product', 'product_ids', missing, lang, 8, (part) => {
+      memo.product[lang] = { ...(memo.product[lang] || {}), ...part }
+      if (onPartial) onPartial(part)
+    })
     memo.product[lang] = { ...(memo.product[lang] || {}), ...res }
   }
   return memo.product[lang] || {}

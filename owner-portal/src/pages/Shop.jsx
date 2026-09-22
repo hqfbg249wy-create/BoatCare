@@ -69,7 +69,10 @@ export default function Shop() {
     for (const p of all) { const c = p.translations?.[lang]; if (c?.name) seed[p.id] = c }
     setProdTr(prev => ({ ...prev, ...seed }))
     let cancelled = false
-    translateProducts(all.map(p => p.id), lang).then(map => {
+    // Fortschritt: Uebersetzungen erscheinen chunkweise, statt erst am Ende.
+    translateProducts(all.map(p => p.id), lang, (part) => {
+      if (!cancelled && part && Object.keys(part).length) setProdTr(prev => ({ ...prev, ...part }))
+    }).then(map => {
       if (!cancelled && map && Object.keys(map).length) setProdTr(prev => ({ ...prev, ...map }))
     })
     return () => { cancelled = true }

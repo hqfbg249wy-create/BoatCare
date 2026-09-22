@@ -179,13 +179,22 @@ Deno.serve(async (req) => {
       {};
     const toTranslate: ProductRow[] = [];
 
-    // Cache-Hits sammeln, Misses für Translation merken
+    // Cache-Hits sammeln, Misses für Translation merken.
+    // Selbstheilend: ein Eintrag gilt nur als gueltiger Cache-Treffer, wenn er
+    // mit dem aktuellen Uebersetzungs-Marker (v:2) gespeichert wurde. Alte oder
+    // fehlerhafte Eintraege (kein v, oder Name == Original) werden neu uebersetzt.
     for (const p of (products ?? []) as ProductRow[]) {
-      const cached = p.translations?.[lang];
-      if (!force && cached?.name) {
+      const cached = p.translations?.[lang] as
+        | { name?: string; description?: string | null; v?: number }
+        | undefined;
+      // Gueltig, wenn mit aktuellem Marker gespeichert (v:2) ODER der Name klar
+      // vom Original abweicht (echte Uebersetzung). Alt-Muell (kein v UND Name ==
+      // Original) wird neu uebersetzt.
+      const validHit = !!cached?.name && (cached.v === 2 || cached.name !== p.name);
+      if (!force && validHit) {
         result[p.id] = {
-          name: cached.name,
-          description: cached.description ?? p.description,
+          name: cached!.name!,
+          description: cached!.description ?? p.description,
         };
       } else {
         toTranslate.push(p);
@@ -205,7 +214,7 @@ Deno.serve(async (req) => {
 
           const newTranslations = {
             ...(p.translations ?? {}),
-            [lang]: { name: t.name, description: t.description },
+            [lang]: { name: t.name, description: t.description, v: 2 },
           };
           await admin
             .from("metashop_products")
