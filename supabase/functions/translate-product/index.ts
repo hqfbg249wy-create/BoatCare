@@ -44,6 +44,9 @@ const LANG_NAME: Record<Lang, string> = {
   de: "German", en: "English", es: "Spanish", fr: "French", it: "Italian", nl: "Dutch",
 };
 
+// Debug: letzte Claude-Rohausgabe (nur fuer force-Tests im Response sichtbar).
+let lastClaudeRaw = "";
+
 // Claude-Fallback: uebersetzt ein String-Array in die Zielsprache, gleiche
 // Reihenfolge/Laenge. Genutzt, wenn DeepL fehlt oder ausfaellt (z.B. Quota).
 async function claudeTranslateAll(texts: string[], lang: Lang): Promise<string[]> {
@@ -64,15 +67,24 @@ async function claudeTranslateAll(texts: string[], lang: Lang): Promise<string[]
         model: "claude-sonnet-5",
         max_tokens: 4000,
         system:
-          `You translate product texts for a marine/boating marketplace into ${LANG_NAME[lang]}. ` +
-          `Keep brand names, model names, part numbers, SKUs and units unchanged. ` +
-          `Return ONLY a JSON array of strings, same length and order as the input, no commentary.`,
+          `You are a professional translator for a marine/boating e-commerce shop. ` +
+          `The inputs are PRODUCT TITLES that mix an article code, a brand, and descriptive words in Italian or English. ` +
+          `Translate EVERY descriptive word into ${LANG_NAME[lang]} — including a foreign product-type noun even when it stands at the start of an otherwise English title. ` +
+          `Keep UNCHANGED only: the article/SKU code (e.g. "19.0016.11", "DBBPL0602", "01.0065.04"), brand names (e.g. KONG, Osculati), and measurements with units (e.g. "60MM", "1''1/4", "Ø 6mm", "AISI 316"). ` +
+          `Italian->German glossary (apply the same idea for other target languages): MOSCHETTONE=Karabiner, LUCCHETTO=Vorhaengeschloss, MANICOTTO=Muffe, NIPLES=Nippel, TERMINALE=Anschluss, RACCORDO=Fitting, OTTONE=Messing, INOX/ACCIAIO=Edelstahl, GIORNALE NAUTICO=Logbuch, "Presa d'aria"=Lueftung, RIDOTTO=reduziert, DIRITTO=gerade, MASCHIO=Aussengewinde, FEMMINA=Innengewinde. ` +
+          `Never leave an Italian word untranslated. Return ONLY a JSON array of strings, same length and order as the input, no commentary.`,
         messages: [{ role: "user", content: JSON.stringify(chunk) }],
       }),
     });
     if (!resp.ok) throw new Error(`Claude ${resp.status}: ${await resp.text()}`);
     const data = await resp.json();
-    const txt = (data.content?.[0]?.text ?? "[]").trim();
+    // WICHTIG: den TEXT-Block nehmen — das Modell liefert ggf. zuerst einen
+    // "thinking"-Block, dann den "text"-Block.
+    const textBlock = Array.isArray(data.content)
+      ? data.content.find((c: { type?: string; text?: string }) => c?.type === "text" && typeof c.text === "string")
+      : null;
+    const txt = (textBlock?.text ?? "[]").trim();
+    lastClaudeRaw = txt.slice(0, 400);
     let arr: string[] = [];
     try { arr = JSON.parse(txt); }
     catch {
@@ -134,7 +146,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { product_ids, target_lang } = body ?? {};
+    const { product_ids, target_lang, force } = body ?? {};
 
     if (!Array.isArray(product_ids) || product_ids.length === 0) {
       return json({ error: "product_ids[] ist Pflicht" }, 400);
@@ -170,7 +182,7 @@ Deno.serve(async (req) => {
     // Cache-Hits sammeln, Misses für Translation merken
     for (const p of (products ?? []) as ProductRow[]) {
       const cached = p.translations?.[lang];
-      if (cached?.name) {
+      if (!force && cached?.name) {
         result[p.id] = {
           name: cached.name,
           description: cached.description ?? p.description,
@@ -224,6 +236,7 @@ Deno.serve(async (req) => {
         requested: product_ids.length,
         cached: product_ids.length - toTranslate.length,
         newly_translated: toTranslate.length,
+        ...(force ? { claude_raw: lastClaudeRaw } : {}),
       },
     });
   } catch (err) {
@@ -255,14 +268,16 @@ async function translateBatch(
     }
   }
 
-  // DeepL zuerst (wenn Key vorhanden); bei Fehler/Quota -> Claude-Fallback.
+  // Produkttitel mischen Artikelcode + Marke + IT/EN-Woerter. DeepL erkennt nur
+  // EINE Quellsprache und laesst einzelne Fremdwoerter stehen -> Claude ZUERST
+  // (Glossar, gemischte Sprachen), DeepL nur als Fallback wenn Claude ausfaellt.
   let translated: string[];
   try {
-    if (!apiKey) throw new Error("kein DeepL-Key");
-    translated = await deeplTranslateAll(strings, lang, apiKey);
-  } catch (e) {
-    console.warn("DeepL nicht verfuegbar, Fallback Claude:", (e as Error).message);
     translated = await claudeTranslateAll(strings, lang);
+  } catch (e) {
+    console.warn("Claude nicht verfuegbar, Fallback DeepL:", (e as Error).message);
+    if (!apiKey) throw e;
+    translated = await deeplTranslateAll(strings, lang, apiKey);
   }
 
   // Default = Original, dann mit Übersetzungen überschreiben

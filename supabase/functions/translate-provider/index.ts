@@ -54,14 +54,19 @@ async function claudeTranslateAll(texts: string[], lang: Lang): Promise<string[]
       body: JSON.stringify({
         model: "claude-sonnet-5",
         max_tokens: 3000,
-        system: `You translate short business/service texts for a marine marketplace into ${LANG_NAME[lang]}. ` +
-          `Keep brand and company names unchanged. Return ONLY a JSON array of strings, same length and order.`,
+        system: `You are a professional translator for a marine marketplace. Translate EACH input string fully into ${LANG_NAME[lang]}. ` +
+          `Translate all descriptive service/product words; keep UNCHANGED only company/brand names. ` +
+          `Do NOT leave foreign words untranslated. Return ONLY a JSON array of strings, same length and order.`,
         messages: [{ role: "user", content: JSON.stringify(chunk) }],
       }),
     });
     if (!resp.ok) throw new Error(`Claude ${resp.status}: ${await resp.text()}`);
     const data = await resp.json();
-    const txt = (data.content?.[0]?.text ?? "[]").trim();
+    // TEXT-Block nehmen (Modell liefert ggf. zuerst einen thinking-Block).
+    const textBlock = Array.isArray(data.content)
+      ? data.content.find((c: { type?: string; text?: string }) => c?.type === "text" && typeof c.text === "string")
+      : null;
+    const txt = (textBlock?.text ?? "[]").trim();
     let arr: string[] = [];
     try { arr = JSON.parse(txt); } catch { const m = txt.match(/\[[\s\S]*\]/); arr = m ? JSON.parse(m[0]) : []; }
     for (let j = 0; j < chunk.length; j++) out.push(typeof arr[j] === "string" ? arr[j] : chunk[j]);
