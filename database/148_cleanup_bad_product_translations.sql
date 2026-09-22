@@ -5,12 +5,13 @@
 -- korrekt (via DeepL/Claude) neu uebersetzt werden. Korrekte Eintraege bleiben.
 
 UPDATE public.metashop_products p
-SET translations = NULLIF((
+SET translations = COALESCE((
       SELECT jsonb_object_agg(k, v)
       FROM jsonb_each(p.translations) AS e(k, v)
       WHERE COALESCE(v->>'name', '') <> COALESCE(p.name, '')
     ), '{}'::jsonb)
 WHERE p.translations IS NOT NULL
+  AND p.translations <> '{}'::jsonb
   AND EXISTS (
     SELECT 1 FROM jsonb_each(p.translations) AS e(k, v)
     WHERE COALESCE(v->>'name', '') = COALESCE(p.name, '')
