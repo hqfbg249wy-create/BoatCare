@@ -319,7 +319,7 @@ export default function Inquiries() {
                   </div>
                 )}
                 {inq.offer_status === 'declined' && (
-                  <div className="inq-notes-box"><p>Angebot abgelehnt.</p></div>
+                  <div className="inq-notes-box"><p>{inq.status === 'closed' ? 'Vom Anbieter abgelehnt — der Betrieb kann diese Anfrage nicht anbieten.' : 'Angebot abgelehnt.'}</p></div>
                 )}
                 {inq.order_id && (
                   <div className="inq-notes-box"><p>Angenommen — Details unter Bestellungen.</p></div>

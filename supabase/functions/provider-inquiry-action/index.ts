@@ -66,10 +66,35 @@ Deno.serve(async (req) => {
       replied_at: new Date().toISOString(),
     }).eq("id", inquiry_id);
 
-    // Kunde informieren (best-effort).
+    const { data: prov } = await svc.from("service_providers").select("name").eq("id", inq.provider_id).maybeSingle();
+    const providerName = prov?.name ?? "Der Anbieter";
     const ref = inq.subject ? `„${inq.subject}"` : "deine Anfrage";
+
+    // In-App zuverlaessig sichtbar: Ablehnung in den Nachrichten-Thread spiegeln
+    // (loest auch den Ungelesen-Badge aus) — unabhaengig von der E-Mail.
+    try {
+      const { data: convRows } = await svc.from("conversations")
+        .select("id").eq("user_id", inq.owner_id).eq("provider_id", inq.provider_id).limit(1);
+      let convId = convRows?.[0]?.id as string | undefined;
+      if (!convId) {
+        const { data: newConv } = await svc.from("conversations")
+          .insert({ user_id: inq.owner_id, provider_id: inq.provider_id }).select("id").single();
+        convId = newConv?.id;
+      }
+      if (convId) {
+        await svc.from("messages").insert({
+          conversation_id: convId, sender_id: inq.provider_id, sender_type: "provider",
+          content: `${providerName} kann ${ref} leider nicht anbieten.`,
+        });
+        await svc.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", convId);
+      }
+    } catch (e) {
+      console.error("decline mirror to conversation failed:", (e as Error).message);
+    }
+
+    // Kunde informieren (best-effort).
     await pushToUser(inq.owner_id, "Anfrage abgelehnt",
-      `Der Anbieter kann ${ref} leider nicht anbieten.`);
+      `${providerName} kann ${ref} leider nicht anbieten.`);
     const { data: buyer } = await svc.from("profiles").select("email, full_name").eq("id", inq.owner_id).maybeSingle();
     if (buyer?.email) {
       await emailTo(buyer.email, "Antwort auf deine Anfrage",

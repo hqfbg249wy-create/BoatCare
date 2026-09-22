@@ -1222,3 +1222,4 @@
 "inq.offer_question_placeholder" = "Je vraag aan de aanbieder (varianten, details …)";
 "inq.offer_question_send" = "Vraag versturen";
 "inq.offer_declined" = "Aanbod afgewezen";
+"inq.declined_by_provider" = "Afgewezen door de aanbieder — het bedrijf kan deze aanvraag niet aanbieden.";

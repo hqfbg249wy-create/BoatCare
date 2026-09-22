@@ -1221,3 +1221,4 @@
 "inq.offer_question_placeholder" = "Your question to the provider (e.g. about variants or details) …";
 "inq.offer_question_send" = "Send question";
 "inq.offer_declined" = "Offer declined";
+"inq.declined_by_provider" = "Declined by the provider — the business can't offer this request.";

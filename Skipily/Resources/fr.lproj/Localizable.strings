@@ -1222,3 +1222,4 @@
 "inq.offer_question_placeholder" = "Votre question au prestataire (variantes, détails …)";
 "inq.offer_question_send" = "Envoyer la question";
 "inq.offer_declined" = "Offre refusée";
+"inq.declined_by_provider" = "Refusée par le prestataire — l'entreprise ne peut pas répondre à cette demande.";

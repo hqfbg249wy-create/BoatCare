@@ -1226,3 +1226,4 @@ Ausrüstung unter Boote ergänzen.";
 "inq.offer_question_placeholder" = "Deine Rückfrage an den Anbieter (z. B. zu Varianten oder Details) …";
 "inq.offer_question_send" = "Nachfrage senden";
 "inq.offer_declined" = "Angebot abgelehnt";
+"inq.declined_by_provider" = "Vom Anbieter abgelehnt — der Betrieb kann diese Anfrage nicht anbieten.";

@@ -308,7 +308,9 @@ struct InquiriesContent: View {
                     } else if inq.orderId != nil {
                         infoBox(label: "inq.offer_ordered_label".loc, text: "inq.offer_ordered_text".loc, color: .blue)
                     } else if inq.offerStatus == "declined" {
-                        infoBox(label: "inq.offer_declined".loc, text: "inq.offer_declined".loc, color: .red)
+                        // status == .closed => vom ANBIETER abgelehnt; sonst vom Kunden.
+                        let declinedText = inq.status == .closed ? "inq.declined_by_provider".loc : "inq.offer_declined".loc
+                        infoBox(label: "inq.offer_declined".loc, text: declinedText, color: .red)
                     }
 
                     // Actions — kompakt und einzeilig

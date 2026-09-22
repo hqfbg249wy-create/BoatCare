@@ -1222,3 +1222,4 @@
 "inq.offer_question_placeholder" = "Tu consulta al proveedor (variantes, detalles …)";
 "inq.offer_question_send" = "Enviar consulta";
 "inq.offer_declined" = "Oferta rechazada";
+"inq.declined_by_provider" = "Rechazada por el proveedor — la empresa no puede ofrecer esta solicitud.";
