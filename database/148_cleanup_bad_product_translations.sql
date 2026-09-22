@@ -16,16 +16,16 @@ WHERE p.translations IS NOT NULL
     WHERE COALESCE(v->>'name', '') = COALESCE(p.name, '')
   );
 
--- Analog fuer Betriebe: services-Uebersetzung identisch zum Original -> raus.
--- (service_providers.translations[lang] = { services, description, slogan })
--- Hier konservativ nur komplett leere/nutzlose Eintraege entfernen: wenn weder
--- description noch slogan noch services gesetzt sind.
+-- Analog fuer Betriebe: nutzlose Eintraege entfernen (weder services-Array noch
+-- description noch slogan). service_providers.translations ist NOT NULL, daher
+-- auf '{}' statt NULL setzen.
 UPDATE public.service_providers p
-SET translations = NULLIF((
+SET translations = COALESCE((
       SELECT jsonb_object_agg(k, v)
       FROM jsonb_each(p.translations) AS e(k, v)
       WHERE jsonb_typeof(v->'services') = 'array'
          OR COALESCE(v->>'description','') <> ''
          OR COALESCE(v->>'slogan','') <> ''
     ), '{}'::jsonb)
-WHERE p.translations IS NOT NULL;
+WHERE p.translations IS NOT NULL
+  AND p.translations <> '{}'::jsonb;
