@@ -155,10 +155,9 @@ Deno.serve(async (req) => {
     //     nach 6 Monaten automatisch auf Standard zurueck — keine
     //     ungewollte Verlaengerung).
     //
-    // 4b) 7 % Provision fuer die ersten 100 angebundenen Shops:
-    //     Wir zaehlen wieviele Provider bereits claimed_at IS NOT NULL
-    //     UND commission_rate <= 7 haben. Sind das weniger als 100,
-    //     bekommt dieser Provider auch 7 %. Sonst bleibt 10 % (Default).
+    // 4b) Provision: grundsaetzlich gilt der Standard von 10 %. Abweichungen
+    //     NUR bei individueller Absprache (dann manuell gesetzt). Kein
+    //     automatischer Pauschal-Rabatt mehr beim Claim.
     const sixMonths = new Date();
     sixMonths.setMonth(sixMonths.getMonth() + 6);
 
@@ -170,22 +169,6 @@ Deno.serve(async (req) => {
       // kennzeichnen (Badge im Eigner-Portal / öffentlichem Profil).
       is_verified: true,
     };
-
-    try {
-      const { count: earlyMoverCount } = await admin
-        .from("service_providers")
-        .select("id", { count: "exact", head: true })
-        .not("claimed_at", "is", null)
-        .lte("commission_rate", 7);
-
-      if ((earlyMoverCount ?? 0) < 100) {
-        updateFields.commission_rate = 7;
-      }
-    } catch (e) {
-      // Wenn der Count fehlschlaegt, lieber kein 7 % vergeben als
-      // versehentlich allen. Standard 10 % bleibt.
-      console.warn("early-mover-count failed:", (e as Error).message);
-    }
 
     // ── 5) Provider verknuepfen + Fruehstarter-Felder setzen ──
     const { error: uErr } = await admin
