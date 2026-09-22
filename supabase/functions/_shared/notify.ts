@@ -201,7 +201,7 @@ export async function notifyOrderEvent(svc: Svc, orderId: string, event: OrderEv
   try {
     const { data: order } = await svc
       .from("orders")
-      .select("id, order_number, buyer_id, provider_id, total, currency, invoice_url")
+      .select("id, order_number, buyer_id, provider_id, total, currency, invoice_url, invoice_xml_url")
       .eq("id", orderId)
       .maybeSingle();
     if (!order) return;
@@ -242,8 +242,9 @@ export async function notifyOrderEvent(svc: Svc, orderId: string, event: OrderEv
           `Deine Bestellung ${orderRef} wurde versandt`,
           `Hallo${buyer.full_name ? " " + buyer.full_name : ""},\n\n` +
             `${sellerName} hat deine Bestellung ${orderRef} versandt und den Betrag von ${amount} abgebucht.\n\n` +
-            `${order.invoice_url ? "Deine Rechnung inkl. Widerrufsbelehrung: " + order.invoice_url + "\n\n" : ""}` +
-            `Du findest die Rechnung auch jederzeit in der App unter Bestellungen.\n\nDein Skipily-Team`,
+            `${order.invoice_url ? "Deine Rechnung (PDF) inkl. Widerrufsbelehrung: " + order.invoice_url + "\n\n" : ""}` +
+            `${order.invoice_xml_url ? "Deine E-Rechnung (XML, EN 16931 / ZUGFeRD): " + order.invoice_xml_url + "\n\n" : ""}` +
+            `Du findest Rechnung und E-Rechnung auch jederzeit in der App unter Bestellungen.\n\nDein Skipily-Team`,
         );
       }
     } else if (event === "refunded") {

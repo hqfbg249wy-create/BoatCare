@@ -203,6 +203,20 @@ export default function Inquiries() {
                         onChange={e => setField(inq.id, 'reply', e.target.value)}
                         placeholder={t('inquiries.replyPlaceholder')} />
                     </div>
+                    {(() => {
+                      const rate = Number(provider?.commission_rate ?? 10)
+                      const amt = parseFloat(String(f.amount || '0').replace(',', '.')) || 0
+                      const ship = parseFloat(String(f.shipping || '0').replace(',', '.')) || 0
+                      const gross = amt + ship
+                      const fee = gross * rate / 100
+                      const money = n => n.toFixed(2).replace('.', ',') + ' €'
+                      return (
+                        <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:10, padding:'12px 14px', fontSize:13, color:'#475569', margin:'4px 0 12px' }}>
+                          <div style={{ fontWeight:600, color:'#334155', marginBottom:4 }}>Transaktionsgebühr {rate.toString().replace('.', ',')} %{gross > 0 ? ` = ${money(fee)}` : ''}</div>
+                          Nimmt der Kunde dein Angebot an, wickelt Skipily die Zahlung über Stripe ab. Wir behalten diese Transaktionsgebühr; darin enthalten sind die komplette Zahlungsabwicklung (Stripe), die Rechnungsstellung und die gesetzeskonforme E‑Rechnung. {gross > 0 ? `Dir werden ${money(gross - fee)} ausgezahlt.` : ''}
+                        </div>
+                      )
+                    })()}
                     <div className="offer-actions">
                       <button className="btn-primary" disabled={sendingId === inq.id}
                         onClick={() => sendOffer(inq)}>

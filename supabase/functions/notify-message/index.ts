@@ -51,7 +51,8 @@ serve(async (req: Request) => {
     if (!conv) return json({ error: "Konversation nicht gefunden" }, 404);
 
     const [{ data: provider }, { data: owner }] = await Promise.all([
-      supabase.from("service_providers").select("name, email").eq("id", conv.provider_id).single(),
+      supabase.from("service_providers")
+        .select("id, name, email, user_id, stripe_charges_enabled").eq("id", conv.provider_id).single(),
       supabase.from("profiles").select("full_name, email").eq("id", conv.user_id).single(),
     ]);
 
@@ -70,8 +71,36 @@ serve(async (req: Request) => {
     const senderName = ownerSent
       ? (owner?.full_name || "Ein Bootseigner")
       : (provider?.name || "Ein Anbieter");
-    const portalUrl = ownerSent ? "https://provider.skipily.app/" : "https://app.skipily.app/messages";
-    const portalLabel = ownerSent ? "Im Provider-Portal antworten" : "In der App antworten";
+    // Ist der Empfaenger ein NOCH NICHT registrierter Anbieter? Dann persoenlichen
+    // Claim-Link mitschicken, damit er sich einrichten und antworten kann.
+    const providerReady = ownerSent
+      ? (!!provider?.user_id && provider?.stripe_charges_enabled === true)
+      : true;
+    let claimUrl: string | null = null;
+    if (ownerSent && !providerReady && provider?.id) {
+      try {
+        const { data: sec } = await supabase.from("provider_secrets")
+          .select("claim_token").eq("provider_id", provider.id).maybeSingle();
+        let token = sec?.claim_token as string | undefined;
+        if (!token) {
+          const { data: created } = await supabase.from("provider_secrets")
+            .upsert({ provider_id: provider.id, claim_token: crypto.randomUUID() }, { onConflict: "provider_id" })
+            .select("claim_token").single();
+          token = created?.claim_token;
+        }
+        if (token) claimUrl = `https://provider.skipily.app/claim/${token}`;
+      } catch (_e) { /* best-effort */ }
+    }
+
+    const portalUrl = ownerSent
+      ? (claimUrl ?? "https://provider.skipily.app/")
+      : "https://app.skipily.app/messages";
+    const portalLabel = ownerSent
+      ? (claimUrl ? "Jetzt registrieren & antworten" : "Im Provider-Portal antworten")
+      : "In der App antworten";
+    const onboardingNote = claimUrl
+      ? "Diese Anfrage kommt ueber Skipily. Registriere dich ueber deinen persoenlichen Link, hinterlege deine Unternehmens- und Zahlungsdaten und antworte direkt – so wird eine spaetere Bestellung sicher ueber Skipily (Stripe) abgewickelt."
+      : "";
 
     // Push an den Eigner (App-Nutzer), wenn ein PROVIDER geschrieben hat.
     // Fire-and-forget: darf den Mail-Versand nicht blockieren/fehlschlagen lassen.
@@ -101,14 +130,15 @@ serve(async (req: Request) => {
     const hint = "Bitte antworte idealerweise direkt im Skipily-Portal – so bleibt der gesamte Nachrichten-Verlauf an einem Ort und nachvollziehbar.";
     const subject = `Neue Nachricht von ${senderName} · Skipily`;
     const textBody =
-      `Du hast eine neue Nachricht auf Skipily:\n\nVon: ${senderName}\n\n${msg.content}\n\n${hint}\n\n${portalLabel}: ${portalUrl}`;
+      `Du hast eine neue Nachricht auf Skipily:\n\nVon: ${senderName}\n\n${msg.content}\n\n` +
+      `${onboardingNote ? onboardingNote + "\n\n" : hint + "\n\n"}${portalLabel}: ${portalUrl}`;
     const htmlBody = `<!doctype html><html><body style="font-family:-apple-system,Segoe UI,Arial,sans-serif;background:#f8fafc;padding:24px">
       <div style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
         <div style="background:#0b1929;color:#fff;padding:16px 20px;font-weight:700">Skipily · Neue Nachricht</div>
         <div style="padding:20px">
           <p style="margin:0 0 6px;color:#64748b;font-size:13px">Von ${esc(senderName)}</p>
           <div style="white-space:pre-wrap;font-size:15px;color:#0f172a;line-height:1.5;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px">${esc(msg.content)}</div>
-          <p style="margin:14px 0 0;font-size:13px;color:#64748b">${esc(hint)}</p>
+          <p style="margin:14px 0 0;font-size:13px;color:#64748b">${esc(onboardingNote || hint)}</p>
           <a href="${portalUrl}" style="display:inline-block;margin-top:14px;background:#f97316;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600">${portalLabel}</a>
         </div>
       </div></body></html>`;
