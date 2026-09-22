@@ -40,6 +40,50 @@ const DEEPL_TARGET: Record<Lang, string> = {
   nl: "NL",
 };
 
+const LANG_NAME: Record<Lang, string> = {
+  de: "German", en: "English", es: "Spanish", fr: "French", it: "Italian", nl: "Dutch",
+};
+
+// Claude-Fallback: uebersetzt ein String-Array in die Zielsprache, gleiche
+// Reihenfolge/Laenge. Genutzt, wenn DeepL fehlt oder ausfaellt (z.B. Quota).
+async function claudeTranslateAll(texts: string[], lang: Lang): Promise<string[]> {
+  const key = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!key) throw new Error("kein ANTHROPIC_API_KEY fuer Fallback");
+  const out: string[] = [];
+  const BATCH = 15;
+  for (let i = 0; i < texts.length; i += BATCH) {
+    const chunk = texts.slice(i, i + BATCH);
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-5",
+        max_tokens: 4000,
+        system:
+          `You translate product texts for a marine/boating marketplace into ${LANG_NAME[lang]}. ` +
+          `Keep brand names, model names, part numbers, SKUs and units unchanged. ` +
+          `Return ONLY a JSON array of strings, same length and order as the input, no commentary.`,
+        messages: [{ role: "user", content: JSON.stringify(chunk) }],
+      }),
+    });
+    if (!resp.ok) throw new Error(`Claude ${resp.status}: ${await resp.text()}`);
+    const data = await resp.json();
+    const txt = (data.content?.[0]?.text ?? "[]").trim();
+    let arr: string[] = [];
+    try { arr = JSON.parse(txt); }
+    catch {
+      const m = txt.match(/\[[\s\S]*\]/);
+      arr = m ? JSON.parse(m[0]) : [];
+    }
+    for (let j = 0; j < chunk.length; j++) out.push(typeof arr[j] === "string" ? arr[j] : chunk[j]);
+  }
+  return out;
+}
+
 // Übersetzt ein beliebiges String-Array in Chunks (≤50), behält die Reihenfolge.
 // Quelle wird von DeepL automatisch erkannt (source==target → unverändert).
 async function deeplTranslateAll(
@@ -80,11 +124,13 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get("DEEPL_API_KEY");
+    const apiKey = Deno.env.get("DEEPL_API_KEY") ?? "";
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!apiKey || !supabaseUrl || !serviceKey) {
-      return json({ error: "Server-Konfiguration fehlt (DEEPL_API_KEY?)" }, 500);
+    // DeepL ist optional: faellt es aus (Quota) oder fehlt der Key, wird
+    // ueber Claude uebersetzt. Nur Supabase-Config ist zwingend.
+    if (!supabaseUrl || !serviceKey) {
+      return json({ error: "Server-Konfiguration fehlt" }, 500);
     }
 
     const body = await req.json().catch(() => ({}));
@@ -158,6 +204,18 @@ Deno.serve(async (req) => {
 
       const failed = updates.filter((u) => u.status === "rejected").length;
       if (failed > 0) console.error(`translate-product: ${failed} DB-Updates fehlgeschlagen`);
+
+      // Kosten-Transparenz: neu erzeugte Uebersetzungen als ai_usage buchen
+      // (translate_product zaehlt NICHT gegen die Free-Quota des Nutzers).
+      try {
+        const chars = toTranslate.reduce((s, p) => s + (p.name?.length ?? 0) + (p.description?.length ?? 0), 0);
+        await admin.from("ai_usage").insert({
+          feature: "translate_product",
+          source: "provider_quota",
+          cost_tokens: Math.ceil(chars / 4),
+          metadata: { kind: "translation", target_lang: lang, products: toTranslate.length, chars },
+        });
+      } catch (_e) { /* best-effort */ }
     }
 
     return json({
@@ -197,7 +255,15 @@ async function translateBatch(
     }
   }
 
-  const translated = await deeplTranslateAll(strings, lang, apiKey);
+  // DeepL zuerst (wenn Key vorhanden); bei Fehler/Quota -> Claude-Fallback.
+  let translated: string[];
+  try {
+    if (!apiKey) throw new Error("kein DeepL-Key");
+    translated = await deeplTranslateAll(strings, lang, apiKey);
+  } catch (e) {
+    console.warn("DeepL nicht verfuegbar, Fallback Claude:", (e as Error).message);
+    translated = await claudeTranslateAll(strings, lang);
+  }
 
   // Default = Original, dann mit Übersetzungen überschreiben
   const out: Record<string, { name: string; description: string | null }> = {};
