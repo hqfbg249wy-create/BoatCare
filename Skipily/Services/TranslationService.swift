@@ -42,7 +42,10 @@ final class TranslationService: ObservableObject {
 
     private var client: SupabaseClient { SupabaseManager.shared.client }
 
-    private static let supportedLangs: Set<String> = ["en", "es", "fr", "it", "nl"]
+    // 'de' inklusive: Produkte/Betriebe koennen in anderen Sprachen vorliegen
+    // (z.B. italienische Anbieter) und muessen auch fuer deutsche Nutzer
+    // uebersetzt werden. DeepL laesst de->de unveraendert.
+    private static let supportedLangs: Set<String> = ["de", "en", "es", "fr", "it", "nl"]
 
     private init() {}
 

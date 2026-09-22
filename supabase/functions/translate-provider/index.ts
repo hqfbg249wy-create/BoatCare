@@ -23,10 +23,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const DEEPL_API_URL = "https://api-free.deepl.com/v2/translate";
 const DEEPL_MAX_BATCH = 50;
 
-const SUPPORTED_LANGS = ["en", "es", "fr", "it", "nl"] as const;
+// 'de' als Ziel ergaenzt (auslaendische Betriebe -> deutsche Nutzer).
+const SUPPORTED_LANGS = ["de", "en", "es", "fr", "it", "nl"] as const;
 type Lang = typeof SUPPORTED_LANGS[number];
 
 const DEEPL_TARGET: Record<Lang, string> = {
+  de: "DE",
   en: "EN-GB",
   es: "ES",
   fr: "FR",

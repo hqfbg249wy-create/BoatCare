@@ -9,7 +9,10 @@
 // Quell-/Default-Sprache ist Deutsch → bei lang === 'de' nichts tun.
 import { supabase } from './supabase'
 
-const SUPPORTED = ['en', 'es', 'fr', 'it', 'nl']
+// 'de' inklusive: Produkte/Betriebe koennen in anderen Sprachen vorliegen
+// (z.B. italienische Anbieter) und muessen auch fuer deutsche Nutzer uebersetzt
+// werden. DeepL laesst de->de unveraendert.
+const SUPPORTED = ['de', 'en', 'es', 'fr', 'it', 'nl']
 const memo = { product: {}, provider: {} } // memo[type][lang][id] = translation
 
 function pickMissing(type, lang, ids) {
