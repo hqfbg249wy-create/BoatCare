@@ -35,17 +35,19 @@ Deno.serve(async (req) => {
     if (authErr || !user) return json({ error: "Invalid token" }, 401);
 
     const body = await req.json().catch(() => ({}));
-    const { keywords, countries, limit, category_allow, service_terms } = body;
-    // Strukturiertes Matching (bevorzugt): Betrieb passt, wenn seine PRIMAER-
-    // Kategorie in category_allow liegt (exakt) ODER ein Service-Tag einen der
-    // service_terms enthaelt. Das trifft z.B. bei Tauwerk Rigger, Segelmacher
-    // UND Chandler, ohne die greedy Teilstring-Treffer der Kategorie "Rigg".
+    const { keywords, countries, limit, category_allow, service_terms, name_terms } = body;
+    // Strukturiertes Matching (bevorzugt): Betrieb passt, wenn sein NAME einen
+    // starken Begriff enthaelt (z.B. "tauwerk"/"ropes"), ODER ein Service-Tag
+    // einen der service_terms, ODER die PRIMAER-Kategorie in category_allow liegt.
+    // Ranking danach: Name-Treffer zuerst, dann Service, dann Kategorie.
     const catAllow = new Set(
       (Array.isArray(category_allow) ? category_allow : []).map((c) => String(c).trim().toLowerCase()),
     );
     const svcTerms: string[] = (Array.isArray(service_terms) ? service_terms : [])
       .map((s) => String(s).toLowerCase()).filter(Boolean);
-    const structured = catAllow.size > 0 || svcTerms.length > 0;
+    const nameTerms: string[] = (Array.isArray(name_terms) ? name_terms : [])
+      .map((s) => String(s).toLowerCase()).filter(Boolean);
+    const structured = catAllow.size > 0 || svcTerms.length > 0 || nameTerms.length > 0;
 
     // Legacy: freies Keyword-Matching ueber alle Felder (fuer aeltere Clients).
     const kws: string[] = Array.isArray(keywords)
@@ -56,7 +58,7 @@ Deno.serve(async (req) => {
 
     const { data: rows } = await svc
       .from("service_providers")
-      .select("id, name, city, country, email, category, categories, category2, category3, services")
+      .select("id, name, city, country, email, category, categories, category2, category3, services, rating")
       .limit(10000);
 
     const provCats = (p: Record<string, unknown>): string[] => {
@@ -76,27 +78,30 @@ Deno.serve(async (req) => {
     const hay = (p: Record<string, unknown>): string =>
       [...provCats(p), ...provServices(p)].join(" ");
 
-    let list = (rows || []).filter((p) => {
-      if (cts.length && !cts.includes(String(p.country ?? ""))) return false;
-      if (structured) {
-        const inCat = catAllow.size > 0 && provCats(p).some((c) => catAllow.has(c));
-        const inSvc = svcTerms.length > 0 &&
-          provServices(p).some((s) => svcTerms.some((t) => s.includes(t)));
-        return inCat || inSvc;
-      }
-      if (kws.length) {
-        const h = hay(p);
-        if (!kws.some((k) => h.includes(k))) return false;
-      }
-      return true;
-    });
+    // Relevanz-Score: Name-Treffer (starkes Signal fuer dedizierte Betriebe,
+    // z.B. "Tauwerk-Discount", "Premiumropes") ganz oben, dann Service-Tag,
+    // dann Kategorie. 0 = kein Treffer (fliegt raus).
+    const scoreOf = (p: Record<string, unknown>): number => {
+      let s = 0;
+      const nm = String(p.name ?? "").toLowerCase();
+      if (nameTerms.length && nameTerms.some((t) => nm.includes(t))) s += 100;
+      if (svcTerms.length && provServices(p).some((sv) => svcTerms.some((t) => sv.includes(t)))) s += 50;
+      if (catAllow.size && provCats(p).some((c) => catAllow.has(c))) s += 10;
+      return s;
+    };
 
-    // Nach Land, dann Name sortieren; auf cap begrenzen.
-    list.sort((a, b) =>
-      String(a.country ?? "").localeCompare(String(b.country ?? "")) ||
-      String(a.name ?? "").localeCompare(String(b.name ?? "")));
-    const total = list.length;
-    list = list.slice(0, cap);
+    let scored = (rows || [])
+      .filter((p) => !(cts.length && !cts.includes(String(p.country ?? ""))))
+      .map((p) => ({ p, score: structured ? scoreOf(p) : (kws.length ? (kws.some((k) => hay(p).includes(k)) ? 10 : 0) : 1) }))
+      .filter((x) => x.score > 0);
+
+    // Sortierung: Score desc, dann Bewertung desc, dann Name.
+    scored.sort((a, b) =>
+      b.score - a.score ||
+      (Number(b.p.rating ?? 0) - Number(a.p.rating ?? 0)) ||
+      String(a.p.name ?? "").localeCompare(String(b.p.name ?? "")));
+    const total = scored.length;
+    let list = scored.slice(0, cap).map((x) => x.p);
 
     // Verfuegbare Laender (fuer den Filter im UI) aus dem Keyword-Treffer-Set.
     const countryCounts: Record<string, number> = {};

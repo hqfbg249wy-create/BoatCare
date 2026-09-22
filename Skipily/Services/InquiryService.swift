@@ -28,7 +28,8 @@ final class InquiryService {
     func findProviders(query: ProviderQuery, countries: [String]) async throws
         -> (providers: [QuoteProvider], countries: [QuoteCountry], total: Int) {
         struct Body: Encodable {
-            let category_allow: [String]; let service_terms: [String]; let countries: [String]
+            let category_allow: [String]; let service_terms: [String]
+            let name_terms: [String]; let countries: [String]
         }
         struct Resp: Decodable {
             let ok: Bool?; let total: Int?
@@ -37,7 +38,8 @@ final class InquiryService {
         let resp: Resp = try await client.functions.invoke(
             "find-service-providers",
             options: .init(body: Body(
-                category_allow: query.categoryAllow, service_terms: query.serviceTerms, countries: countries))
+                category_allow: query.categoryAllow, service_terms: query.serviceTerms,
+                name_terms: query.nameTerms, countries: countries))
         )
         guard resp.ok == true else {
             throw NSError(domain: "Skipily.Quote", code: 500,

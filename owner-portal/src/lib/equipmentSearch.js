@@ -47,16 +47,19 @@ export function resolveProviderQuery(text) {
 
   if (any(['rope', 'tauwerk', 'tauw', 'leine', 'festmacher', 'schot', 'fall', 'spleiß', 'spleiss', 'cordage', 'cordame', 'cabo', 'touw', 'gréement', 'line']))
     return { category_allow: ['rigg', 'rigger', 'segelmacher', 'sailmaker', 'zubehör', 'takelage'],
-             service_terms: ['laufendes gut', 'tauwerk', 'takelage', 'rigg'] }
+             service_terms: ['laufendes gut', 'tauwerk', 'takelage', 'rigg'],
+             name_terms: ['tauwerk', 'tauw', 'rope', 'ropes', 'spleiss', 'spleiß', 'cordage', 'touw', 'cordes'] }
   if (any(['sail', 'segel', 'voile', 'vela', 'zeil', 'genua', 'gennaker', 'spinnaker', 'fock', 'code 0']))
     return { category_allow: ['segelmacher', 'sailmaker', 'zubehör'],
-             service_terms: ['segel', 'großsegel', 'genua', 'fock', 'persenning'] }
+             service_terms: ['segel', 'großsegel', 'genua', 'fock', 'persenning'],
+             name_terms: ['sail', 'segel', 'voile', 'vela', 'zeil'] }
   if (any(['rigg', 'rigging', 'mast', 'spar', 'stag', 'want', 'shroud', 'takel']))
     return { category_allow: ['rigg', 'rigger', 'segelmacher', 'takelage'],
              service_terms: ['laufendes gut', 'takelage', 'bäume & masten', 'rigg'] }
   if (any(['engine', 'motor', 'moteur', 'motore', 'diesel', 'propeller', 'welle', 'getriebe', 'außenborder', 'innenborder', 'outboard', 'inboard', 'antrieb']))
     return { category_allow: ['motorservice', 'werkstatt', 'zubehör'],
-             service_terms: ['motor', 'diesel', 'antrieb', 'getriebe', 'welle', 'propeller', 'außenbord', 'innenbord', 'e-antrieb'] }
+             service_terms: ['motor', 'diesel', 'antrieb', 'getriebe', 'welle', 'propeller', 'außenbord', 'innenbord', 'e-antrieb'],
+             name_terms: ['motor', 'diesel', 'marine', 'engine', 'yanmar', 'volvo'] }
   if (any(['electr', 'elektr', 'instrument', 'navigation', 'vhf', 'radar', 'gps', 'battery', 'batterie', 'solar', 'electronic', 'plotter']))
     return { category_allow: ['instrumente', 'elektronik', 'elektrik', 'zubehör'],
              service_terms: ['elektr', 'navigation', 'instrument', 'chartplotter', 'bordnetz', 'radar'] }
@@ -81,9 +84,11 @@ export function providerMatchesQuery(p, q) {
   const cats = new Set([p.category, ...(Array.isArray(p.categories) ? p.categories : [])]
     .filter(Boolean).map(s => String(s).trim().toLowerCase()))
   const svcs = (Array.isArray(p.services) ? p.services : []).map(s => String(s).toLowerCase())
+  const nm = String(p.name || '').toLowerCase()
+  const inName = (q.name_terms || []).some(t => nm.includes(t))
   const inCat = q.category_allow.some(c => cats.has(c))
   const inSvc = q.service_terms.some(t => svcs.some(s => s.includes(t)))
-  return inCat || inSvc
+  return inName || inCat || inSvc
 }
 
 export function providerQueryForItem(item) {

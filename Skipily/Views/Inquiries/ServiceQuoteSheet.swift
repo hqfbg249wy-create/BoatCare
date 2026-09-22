@@ -236,6 +236,9 @@ struct ServiceQuoteSheet: View {
 struct ProviderQuery: Sendable {
     let categoryAllow: [String]
     let serviceTerms: [String]
+    // Starke Begriffe, die im FIRMENNAMEN dedizierte Betriebe erkennen
+    // (z.B. "tauwerk"/"ropes") und im Ranking ganz nach oben sortieren.
+    var nameTerms: [String] = []
 }
 
 /// Ableitung der Domaene aus Kategorie/Name. Bewusst MEHRSPRACHIG in der
@@ -251,13 +254,15 @@ enum ServiceKeywords {
                 "spleiß", "spleiss", "cordage", "cordame", "cabo", "touw", "gréement", "line"]) {
             return ProviderQuery(
                 categoryAllow: ["rigg", "rigger", "segelmacher", "sailmaker", "zubehör", "takelage"],
-                serviceTerms: ["laufendes gut", "tauwerk", "takelage", "rigg"])
+                serviceTerms: ["laufendes gut", "tauwerk", "takelage", "rigg"],
+                nameTerms: ["tauwerk", "tauw", "rope", "ropes", "spleiss", "spleiß", "cordage", "touw", "cordes"])
         }
         // Segel
         if any(["sail", "segel", "voile", "vela", "zeil", "genua", "gennaker", "spinnaker", "fock", "code 0"]) {
             return ProviderQuery(
                 categoryAllow: ["segelmacher", "sailmaker", "zubehör"],
-                serviceTerms: ["segel", "großsegel", "genua", "fock", "persenning"])
+                serviceTerms: ["segel", "großsegel", "genua", "fock", "persenning"],
+                nameTerms: ["sail", "segel", "voile", "vela", "zeil"])
         }
         // Rigg / Mast / stehendes Gut
         if any(["rigg", "rigging", "mast", "spar", "stag", "want", "shroud", "takel"]) {
@@ -271,7 +276,8 @@ enum ServiceKeywords {
             return ProviderQuery(
                 categoryAllow: ["motorservice", "werkstatt", "zubehör"],
                 serviceTerms: ["motor", "diesel", "antrieb", "getriebe", "welle", "propeller",
-                               "außenbord", "innenbord", "e-antrieb"])
+                               "außenbord", "innenbord", "e-antrieb"],
+                nameTerms: ["motor", "diesel", "marine", "engine", "yanmar", "volvo"])
         }
         // Elektronik / Navigation / Elektrik
         if any(["electr", "elektr", "instrument", "navigation", "vhf", "radar", "gps",
