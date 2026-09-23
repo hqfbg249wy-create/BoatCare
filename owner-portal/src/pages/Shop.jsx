@@ -19,6 +19,14 @@ const sfSymbolToEmoji = {
 }
 function mapIcon(icon) { return sfSymbolToEmoji[icon] || '' }
 
+// Schlanke Spaltenliste fuer die Produkt-LISTE: ohne die schweren Felder
+// (translations-JSONB, description, grosse Arrays) -> deutlich kleinere Payload
+// und schnelleres Laden. Die Detailseite laedt ihre eigenen (vollen) Daten.
+const LIST_SELECT =
+  'id, provider_id, name, manufacturer, part_number, price, currency, in_stock, ' +
+  'stock_quantity, delivery_days, rating, category, category_id, images, ' +
+  'product_categories(*), service_providers(id, name, city)'
+
 export default function Shop() {
   const { t, lang } = useT()
   const { user } = useAuth()
@@ -199,7 +207,7 @@ export default function Shop() {
   async function loadProducts(pageNum, append = false) {
     let query = supabase
       .from('metashop_products')
-      .select('*, product_categories(*), service_providers(id, name, city)')
+      .select(LIST_SELECT)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1)
@@ -365,7 +373,7 @@ export default function Shop() {
                 <div key={product.id} className="shop-rec-card">
                   <Link to={`/shop/product/${product.id}`} className="shop-rec-link">
                     {product.images?.[0] ? (
-                      <img src={product.images[0]} alt={product.name} className="shop-rec-img" />
+                      <img src={product.images[0]} alt={product.name} loading="lazy" decoding="async" className="shop-rec-img" />
                     ) : (
                       <div className="shop-rec-img shop-rec-no-img">
                         <Package size={28} color="#cbd5e1" />
@@ -437,7 +445,7 @@ export default function Shop() {
                   <Link to={`/shop/product/${product.id}`} className="shop-product-link">
                     {product.images?.[0] ? (
                       <div className="shop-product-img-wrap">
-                        <img src={product.images[0]} alt={product.name} />
+                        <img src={product.images[0]} alt={product.name} loading="lazy" decoding="async" />
                         {promo && (
                           <span className="shop-discount-badge">
                             {promo.discount_type === 'percent' ? `-${promo.discount_value}%` : `-${Number(promo.discount_value).toFixed(0)}€`}
@@ -644,7 +652,7 @@ function SparePartsRow({ product, reason, bucket, promo, inCart, onAdd }) {
 
       <Link to={`/shop/product/${product.id}`} className="sp-row-content">
         {product.images?.[0] ? (
-          <img src={product.images[0]} alt={product.name} className="sp-row-img" />
+          <img src={product.images[0]} alt={product.name} loading="lazy" decoding="async" className="sp-row-img" />
         ) : (
           <div className="sp-row-img sp-row-img-placeholder">
             <Package size={24} color="#94a3b8" />
