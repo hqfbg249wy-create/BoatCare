@@ -13,6 +13,10 @@ struct ShopView: View {
     @EnvironmentObject var favoritesManager: FavoritesManager
     @Environment(CartManager.self) private var cartManager
 
+    // Übersetzungen werden beobachtet: treffen sie NACH dem Anzeigen der Karten
+    // ein, aktualisieren sich Name/Beschreibung in place (kein Warte-Spinner).
+    @ObservedObject private var translator = TranslationService.shared
+
     @State private var searchText = ""
     @State private var categories: [ProductCategory] = []
     @State private var subcategories: [ProductCategory] = []
@@ -331,7 +335,7 @@ struct ShopView: View {
                             .lineLimit(1)
                     }
 
-                    Text(TranslationService.shared.name(for: product, lang: LanguageManager.shared.currentLanguage.code))
+                    Text(translator.name(for: product, lang: LanguageManager.shared.currentLanguage.code))
                         .font(.caption)
                         .fontWeight(.medium)
                         .lineLimit(2)
@@ -476,7 +480,7 @@ struct ShopView: View {
                     .clipShape(Capsule())
             }
 
-            Text(TranslationService.shared.name(for: product, lang: LanguageManager.shared.currentLanguage.code))
+            Text(translator.name(for: product, lang: LanguageManager.shared.currentLanguage.code))
                 .font(.caption)
                 .fontWeight(.medium)
                 .lineLimit(2)
@@ -990,15 +994,22 @@ struct ShopView: View {
             hasMoreProducts = loaded.count >= pageSize
             prefetchImages(loaded)   // Bilder der geladenen Seite vorwärmen
 
-            // Strategie B: Übersetzungen für aktuelle Sprache nachziehen (Cache + Edge-Fn)
-            await TranslationService.shared.ensureTranslations(
-                for: loaded,
-                lang: LanguageManager.shared.currentLanguage.code
-            )
+            // Grid SOFORT anzeigen (mit Originaltext). Die Übersetzung darf das
+            // Erscheinen der Ergebnisse NICHT blockieren — sie ist langsam (Edge-
+            // Funktion/Claude) und lief bisher vor `isLoading = false`, sodass der
+            // Nutzer nur den Zähler sah und lange auf die Karten wartete.
+            isLoading = false
+
+            // Strategie B: Übersetzungen im Hintergrund nachziehen (Cache + Edge-
+            // Fn). Da ShopView den TranslationService beobachtet, aktualisieren
+            // sich Name/Beschreibung der bereits sichtbaren Karten automatisch.
+            let toTranslate = loaded
+            let lang = LanguageManager.shared.currentLanguage.code
+            Task { await TranslationService.shared.ensureTranslations(for: toTranslate, lang: lang) }
         } catch {
             errorMessage = "\("shop.error_loading".loc): \(error.localizedDescription)"
+            isLoading = false
         }
-        isLoading = false
     }
 
     private func loadMoreProducts() async {
@@ -1023,15 +1034,16 @@ struct ShopView: View {
             // Endlosschleife auslösen.
             hasMoreProducts = moreProducts.count >= pageSize && !newOnes.isEmpty
             prefetchImages(newOnes)   // Bilder der nachgeladenen Seite vorwärmen
+            isLoadingMore = false
 
-            await TranslationService.shared.ensureTranslations(
-                for: moreProducts,
-                lang: LanguageManager.shared.currentLanguage.code
-            )
+            // Übersetzung nicht blockierend — die neuen Karten sind schon sichtbar.
+            let toTranslate = newOnes
+            let lang = LanguageManager.shared.currentLanguage.code
+            Task { await TranslationService.shared.ensureTranslations(for: toTranslate, lang: lang) }
         } catch {
             AppLog.error("Failed to load more products: \(error)")
+            isLoadingMore = false
         }
-        isLoadingMore = false
     }
 
     // MARK: - Equipment Deals
