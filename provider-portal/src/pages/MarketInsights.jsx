@@ -210,6 +210,8 @@ export default function MarketInsights() {
   }
 
   const overview = insights?.fleet_overview || {}
+  // Unter 1000 Nutzern: nur Anteile, keine absoluten Zahlen (Datenschutz).
+  const showAbsolute = (overview.total_users || 0) >= USER_ABSOLUTE_THRESHOLD
   const boatTypes = insights?.boat_types || []
   const boatManufacturers = insights?.boat_manufacturers || []
   const equipmentCategories = insights?.equipment_categories || []
@@ -255,20 +257,28 @@ export default function MarketInsights() {
           onCreateOffer={(filter) => navigate('/promotions', { state: { prefill: filter } })}
           navigate={navigate}
           provider={provider}
+          showAbsolute={showAbsolute}
         />
       ) : (
         <>
-          {/* Overview Stat Cards - clickable */}
+          {/* Overview Stat Cards - clickable.
+              Unter 1000 Nutzern werden die reinen Gesamtzahlen (Boote/Ausrüstung)
+              ausgeblendet, weil sie keinen sinnvollen Prozentwert haben; die
+              Wartungs-Kacheln zeigen dann den Anteil an der Ausrüstung. */}
           <div className="stats-grid">
-            <StatCard icon={<Sailboat />} label={t('mi.k59')} value={overview.total_boats || 0} color="#3b82f6" />
-            <StatCard icon={<Wrench />} label={t('mi.k60')} value={overview.total_equipment || 0} color="#f97316" />
+            {showAbsolute && (
+              <>
+                <StatCard icon={<Sailboat />} label={t('mi.k59')} value={overview.total_boats || 0} color="#3b82f6" />
+                <StatCard icon={<Wrench />} label={t('mi.k60')} value={overview.total_equipment || 0} color="#f97316" />
+              </>
+            )}
             <div className="stat-card stat-card-clickable" onClick={() => drillInto({
               type: 'filtered', label: '🚨 Wartung überfällig',
               filter: { overdueOnly: true }
             })}>
               <div className="stat-icon" style={{ color: '#ef4444' }}><AlertTriangle /></div>
               <div className="stat-info">
-                <span className="stat-value">{equipmentData?.maintenanceSummary?.overdue || 0}</span>
+                <span className="stat-value">{fmtCount(equipmentData?.maintenanceSummary?.overdue || 0, overview.total_equipment || 0, showAbsolute)}</span>
                 <span className="stat-label">{t('mi.k7')}</span>
               </div>
               <ChevronRight size={16} className="stat-drill-icon" />
@@ -279,12 +289,15 @@ export default function MarketInsights() {
             })}>
               <div className="stat-icon" style={{ color: '#eab308' }}><Clock /></div>
               <div className="stat-info">
-                <span className="stat-value">{equipmentData?.maintenanceSummary?.dueSoon || 0}</span>
+                <span className="stat-value">{fmtCount(equipmentData?.maintenanceSummary?.dueSoon || 0, overview.total_equipment || 0, showAbsolute)}</span>
                 <span className="stat-label">{t('mi.k8')}</span>
               </div>
               <ChevronRight size={16} className="stat-drill-icon" />
             </div>
           </div>
+          {!showAbsolute && (
+            <p className="subtitle" style={{ marginTop: '-4px' }}>{t('mi.relativeNote')}</p>
+          )}
 
           {/* Recommendations - clickable */}
           {allRecommendations.length > 0 && (
@@ -333,34 +346,34 @@ export default function MarketInsights() {
               <div className="card">
                 <h2><Sailboat size={18} /> {t('mi.k11')}</h2>
                 {boatTypes.length === 0 ? <p className="empty-text">{t('mi.k12')}</p> :
-                  <BarList data={boatTypes} labelKey="boat_type" valueKey="count" color="#3b82f6"
+                  <BarList data={boatTypes} labelKey="boat_type" valueKey="count" color="#3b82f6" showAbsolute={showAbsolute}
                     onClick={(item) => drillInto({ type: 'boatType', label: `Bootstyp: ${item.boat_type}`, filter: { boatType: item.boat_type } })} />}
               </div>
               <div className="card">
                 <h2><Anchor size={18} /> {t('mi.k13')}</h2>
                 {boatManufacturers.length === 0 ? <p className="empty-text">{t('mi.k12')}</p> :
-                  <BarList data={boatManufacturers} labelKey="manufacturer" valueKey="count" color="#10b981"
+                  <BarList data={boatManufacturers} labelKey="manufacturer" valueKey="count" color="#10b981" showAbsolute={showAbsolute}
                     onClick={(item) => drillInto({ type: 'boatMfr', label: `Bootshersteller: ${item.manufacturer}`, filter: { boatManufacturer: item.manufacturer } })} />}
               </div>
               <div className="card">
                 <h2><Wrench size={18} /> {t('mi.k14')}</h2>
                 {equipmentCategories.length === 0 ? <p className="empty-text">{t('mi.k12')}</p> :
-                  <BarList data={equipmentCategories} labelKey="category" valueKey="count" color="#f97316" labelMap={equipmentCategoryLabels}
+                  <BarList data={equipmentCategories} labelKey="category" valueKey="count" color="#f97316" labelMap={equipmentCategoryLabels} showAbsolute={showAbsolute}
                     onClick={(item) => drillInto({ type: 'category', label: categoryLabel(t, item.category) || item.category, filter: { category: item.category } })} />}
               </div>
               <div className="card">
                 <h2><Factory size={18} /> {t('mi.k15')}</h2>
                 {equipmentManufacturers.length === 0 ? <p className="empty-text">{t('mi.k12')}</p> :
-                  <BarList data={equipmentManufacturers} labelKey="manufacturer" valueKey="count" color="#8b5cf6"
+                  <BarList data={equipmentManufacturers} labelKey="manufacturer" valueKey="count" color="#8b5cf6" showAbsolute={showAbsolute}
                     onClick={(item) => drillInto({ type: 'manufacturer', label: `Hersteller: ${item.manufacturer}`, filter: { manufacturer: item.manufacturer } })} />}
               </div>
             </div>
           )}
 
-          {activeTab === 'models' && <ModelsTab data={equipmentData} onDrill={drillInto} />}
-          {activeTab === 'age' && <AgeTab data={equipmentData} onDrill={drillInto} />}
-          {activeTab === 'maintenance' && <MaintenanceTab data={equipmentData} onDrill={drillInto} />}
-          {activeTab === 'rope' && <RopeTab demand={ropeDemand} navigate={navigate} />}
+          {activeTab === 'models' && <ModelsTab data={equipmentData} onDrill={drillInto} showAbsolute={showAbsolute} />}
+          {activeTab === 'age' && <AgeTab data={equipmentData} onDrill={drillInto} showAbsolute={showAbsolute} />}
+          {activeTab === 'maintenance' && <MaintenanceTab data={equipmentData} onDrill={drillInto} showAbsolute={showAbsolute} />}
+          {activeTab === 'rope' && <RopeTab demand={ropeDemand} navigate={navigate} showAbsolute={showAbsolute} />}
         </>
       )}
     </div>
@@ -397,10 +410,14 @@ function Breadcrumb({ path, onNavigate, onBack }) {
 // ============================================================
 // Drilldown Detail View
 // ============================================================
-function DrilldownView({ level, filteredEquipment, rawEquipment, providerProducts, findMatchingProducts, onDrill, onCreateOffer, navigate, provider }) {
+function DrilldownView({ level, filteredEquipment, rawEquipment, providerProducts, findMatchingProducts, onDrill, onCreateOffer, navigate, provider, showAbsolute = true }) {
   const { t } = useT()
   const filter = level.filter || {}
   const aggregated = aggregateEquipmentData(filteredEquipment)
+  // Bezugsgröße für Prozentwerte im Drilldown: die gesamte Flotte.
+  const fleetTotal = rawEquipment?.length || filteredEquipment.length
+  // Anteil der gefilterten Geräte an der Flotte (statt absoluter Anzahl).
+  const filteredLabel = showAbsolute ? String(filteredEquipment.length) : pctStr(filteredEquipment.length, fleetTotal)
 
   // Find matching provider products for this drill filter
   const matchingProducts = findMatchingProducts(filter)
@@ -456,10 +473,10 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
     <div className="drilldown-view">
       {/* Summary Stats */}
       <div className="stats-grid">
-        <StatCard icon={<Package />} label={t('mi.k61')} value={filteredEquipment.length} color="#3b82f6" />
+        <StatCard icon={<Package />} label={t('mi.k61')} value={filteredLabel} color="#3b82f6" />
         <StatCard icon={<Factory />} label={t('mi.k22')} value={mfrList.length} color="#8b5cf6" />
-        <StatCard icon={<AlertTriangle />} label={t('mi.k47')} value={overdue} color="#ef4444" />
-        <StatCard icon={<Clock />} label={t('mi.k51')} value={dueSoon} color="#eab308" />
+        <StatCard icon={<AlertTriangle />} label={t('mi.k47')} value={fmtCount(overdue, filteredEquipment.length, showAbsolute)} color="#ef4444" />
+        <StatCard icon={<Clock />} label={t('mi.k51')} value={fmtCount(dueSoon, filteredEquipment.length, showAbsolute)} color="#eab308" />
       </div>
 
       {/* Matching Provider Products - Portfolio Offer */}
@@ -472,7 +489,9 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
               const filterMfrs = filter.manufacturer ? [filter.manufacturer] : []
               navigate('/promotions', { state: { prefill: {
                 name: `Aktion: ${level.label}`,
-                description: `Basierend auf Marktanalyse — ${filteredEquipment.length} Geräte in der Flotte`,
+                description: showAbsolute
+                  ? `Basierend auf Marktanalyse — ${filteredEquipment.length} Geräte in der Flotte`
+                  : `Basierend auf Marktanalyse — ${filteredLabel} der Flotte`,
                 filter_categories: filterCategories.join(', '),
                 filter_manufacturers: filterMfrs.join(', '),
               }}})
@@ -508,7 +527,7 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
             <Zap size={24} />
             <div>
               <strong>{t('mi.k19')}</strong>
-              <p>{filteredEquipment.length} Geräte in der Flotte — aber noch keine passenden Produkte in Ihrem Shop. Legen Sie jetzt Produkte an!</p>
+              <p>{showAbsolute ? `${filteredEquipment.length} Geräte in der Flotte` : `${filteredLabel} der Flotte`} — aber noch keine passenden Produkte in Ihrem Shop. Legen Sie jetzt Produkte an!</p>
             </div>
             <button className="btn-primary" onClick={() => navigate('/products')}>
               <Package size={16} /> {t('mi.k20')}
@@ -522,7 +541,7 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
         {!filter.category && catList.length > 1 && (
           <div className="card">
             <h2><Wrench size={18} /> {t('mi.k21')}</h2>
-            <BarList data={catList} labelKey="category" valueKey="count" color="#f97316" labelMap={equipmentCategoryLabels}
+            <BarList data={catList} labelKey="category" valueKey="count" color="#f97316" labelMap={equipmentCategoryLabels} showAbsolute={showAbsolute}
               onClick={(item) => onDrill({ type: 'category', label: categoryLabel(t, item.category) || item.category, filter: { ...filter, category: item.category } })} />
           </div>
         )}
@@ -531,7 +550,7 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
         {!filter.manufacturer && mfrList.length > 1 && (
           <div className="card">
             <h2><Factory size={18} /> {t('mi.k22')}</h2>
-            <BarList data={mfrList.slice(0, 15)} labelKey="manufacturer" valueKey="count" color="#8b5cf6"
+            <BarList data={mfrList.slice(0, 15)} labelKey="manufacturer" valueKey="count" color="#8b5cf6" showAbsolute={showAbsolute}
               onClick={(item) => onDrill({ type: 'manufacturer', label: `Hersteller: ${item.manufacturer}`, filter: { ...filter, manufacturer: item.manufacturer } })} />
           </div>
         )}
@@ -562,7 +581,7 @@ function DrilldownView({ level, filteredEquipment, rawEquipment, providerProduct
                       <td>{m.manufacturer}</td>
                       <td><code>{m.model}</code></td>
                       <td><span className="cat-badge">{categoryLabel(t, m.category) || m.category}</span></td>
-                      <td className="text-right"><strong>{m.count}</strong></td>
+                      <td className="text-right"><strong>{fmtCount(m.count, filteredEquipment.length, showAbsolute)}</strong></td>
                       <td className="text-right"><ChevronRight size={14} style={{ color: 'var(--gray-400)' }} /></td>
                     </tr>
                   ))}
@@ -633,11 +652,12 @@ function getMaintenanceStatus(equipment) {
 // ============================================================
 // Tab: Modelle & Geräte (with drilldown)
 // ============================================================
-function ModelsTab({ data, onDrill }) {
+function ModelsTab({ data, onDrill, showAbsolute = true }) {
   const { t } = useT()
   if (!data || data.models.length === 0) {
     return <div className="card"><p className="empty-text">{t('mi.k32')}</p></div>
   }
+  const modelsTotal = data.models.reduce((s, m) => s + (m.count || 0), 0)
 
   return (
     <div className="insights-grid">
@@ -667,7 +687,7 @@ function ModelsTab({ data, onDrill }) {
                   <td>{m.manufacturer}</td>
                   <td><code>{m.model}</code></td>
                   <td><span className="cat-badge">{categoryLabel(t, m.category) || m.category}</span></td>
-                  <td className="text-right"><strong>{m.count}</strong></td>
+                  <td className="text-right"><strong>{fmtCount(m.count, modelsTotal, showAbsolute)}</strong></td>
                   <td className="text-right"><ChevronRight size={14} style={{ color: 'var(--gray-400)' }} /></td>
                 </tr>
               ))}
@@ -678,13 +698,13 @@ function ModelsTab({ data, onDrill }) {
 
       <div className="card">
         <h2><Factory size={18} /> {t('mi.k35')}</h2>
-        <BarList data={data.manufacturerModelCounts.slice(0, 10)} labelKey="manufacturer" valueKey="modelCount" color="#6366f1"
+        <BarList data={data.manufacturerModelCounts.slice(0, 10)} labelKey="manufacturer" valueKey="modelCount" color="#6366f1" showAbsolute={showAbsolute}
           onClick={(item) => onDrill({ type: 'manufacturer', label: `Hersteller: ${item.manufacturer}`, filter: { manufacturer: item.manufacturer } })} />
       </div>
 
       <div className="card">
         <h2><Wrench size={18} /> {t('mi.k36')}</h2>
-        <BarList data={data.categoryModelCounts.slice(0, 10)} labelKey="category" valueKey="modelCount" color="#f97316" labelMap={equipmentCategoryLabels}
+        <BarList data={data.categoryModelCounts.slice(0, 10)} labelKey="category" valueKey="modelCount" color="#f97316" labelMap={equipmentCategoryLabels} showAbsolute={showAbsolute}
           onClick={(item) => onDrill({ type: 'category', label: categoryLabel(t, item.category) || item.category, filter: { category: item.category } })} />
       </div>
     </div>
@@ -694,7 +714,7 @@ function ModelsTab({ data, onDrill }) {
 // ============================================================
 // Tab: Installationsalter (with drilldown)
 // ============================================================
-function AgeTab({ data, onDrill }) {
+function AgeTab({ data, onDrill, showAbsolute = true }) {
   const { t } = useT()
   if (!data || data.ageGroups.length === 0) {
     return <div className="card"><p className="empty-text">{t('mi.k37')}</p></div>
@@ -726,7 +746,7 @@ function AgeTab({ data, onDrill }) {
                     backgroundColor: ageColors[ag.group] || '#94a3b8'
                   }} />
                 </div>
-                <span className="age-value">{ag.count} ({pct.toFixed(0)}%)</span>
+                <span className="age-value">{showAbsolute ? `${ag.count} (${pct.toFixed(0)}%)` : `${pct.toFixed(1).replace('.', ',')}%`}</span>
                 {(ag.group === '5-10 Jahre' || ag.group === '10+ Jahre') && (
                   <ChevronRight size={14} style={{ color: 'var(--gray-400)', flexShrink: 0 }} />
                 )}
@@ -767,7 +787,7 @@ function AgeTab({ data, onDrill }) {
       <div className="card">
         <h2><TrendingUp size={18} /> {t('mi.k43')}</h2>
         {data.installationYears.length === 0 ? <p className="empty-text">{t('mi.k42')}</p> :
-          <BarList data={data.installationYears} labelKey="year" valueKey="count" color="#3b82f6" />}
+          <BarList data={data.installationYears} labelKey="year" valueKey="count" color="#3b82f6" showAbsolute={showAbsolute} />}
       </div>
     </div>
   )
@@ -776,7 +796,7 @@ function AgeTab({ data, onDrill }) {
 // ============================================================
 // Tab: Wartungsstatus (with drilldown)
 // ============================================================
-function MaintenanceTab({ data, onDrill }) {
+function MaintenanceTab({ data, onDrill, showAbsolute = true }) {
   const { t } = useT()
   if (!data) {
     return <div className="card"><p className="empty-text">{t('mi.k44')}</p></div>
@@ -795,7 +815,7 @@ function MaintenanceTab({ data, onDrill }) {
           })}>
             <AlertTriangle size={24} />
             <div>
-              <span className="maint-value">{summary.overdue}</span>
+              <span className="maint-value">{fmtCount(summary.overdue, summary.total, showAbsolute)}</span>
               <span className="maint-label">{t('mi.k47')}</span>
             </div>
             <ChevronRight size={16} style={{ marginLeft: 'auto', opacity: 0.5 }} />
@@ -805,7 +825,7 @@ function MaintenanceTab({ data, onDrill }) {
           })}>
             <Clock size={24} />
             <div>
-              <span className="maint-value">{summary.dueSoon}</span>
+              <span className="maint-value">{fmtCount(summary.dueSoon, summary.total, showAbsolute)}</span>
               <span className="maint-label">{t('mi.k48')}</span>
             </div>
             <ChevronRight size={16} style={{ marginLeft: 'auto', opacity: 0.5 }} />
@@ -813,7 +833,7 @@ function MaintenanceTab({ data, onDrill }) {
           <div className="maint-stat maint-ok">
             <CheckCircle size={24} />
             <div>
-              <span className="maint-value">{summary.upToDate}</span>
+              <span className="maint-value">{fmtCount(summary.upToDate, summary.total, showAbsolute)}</span>
               <span className="maint-label">{t('mi.k49')}</span>
             </div>
           </div>
@@ -822,7 +842,7 @@ function MaintenanceTab({ data, onDrill }) {
           })}>
             <BarChart3 size={24} />
             <div>
-              <span className="maint-value">{summary.noMaintenance}</span>
+              <span className="maint-value">{fmtCount(summary.noMaintenance, summary.total, showAbsolute)}</span>
               <span className="maint-label">{t('mi.k50')}</span>
             </div>
             <ChevronRight size={16} style={{ marginLeft: 'auto', opacity: 0.5 }} />
@@ -871,12 +891,11 @@ function MaintenanceTab({ data, onDrill }) {
                     type: 'category', label: categoryLabel(t, cat.category) || cat.category,
                     filter: { category: cat.category }
                   })}>
-                    <td><strong>{categoryLabel(t, cat.category) || cat.category}</strong></td>
-                    <td className="text-right">{cat.total}</td>
-                    <td className="text-right text-red">{cat.overdue > 0 ? cat.overdue : '—'}</td>
-                    <td className="text-right text-yellow">{cat.dueSoon > 0 ? cat.dueSoon : '—'}</td>
-                    <td className="text-right text-green">{cat.upToDate > 0 ? cat.upToDate : '—'}</td>
-                    <td className="text-right">{cat.noMaintenance > 0 ? cat.noMaintenance : '—'}</td>
+                    <td><strong>{showAbsolute ? cat.total : pctStr(cat.total, summary.total)}</strong></td>
+                    <td className="text-right text-red">{cat.overdue > 0 ? fmtCount(cat.overdue, cat.total, showAbsolute) : '—'}</td>
+                    <td className="text-right text-yellow">{cat.dueSoon > 0 ? fmtCount(cat.dueSoon, cat.total, showAbsolute) : '—'}</td>
+                    <td className="text-right text-green">{cat.upToDate > 0 ? fmtCount(cat.upToDate, cat.total, showAbsolute) : '—'}</td>
+                    <td className="text-right">{cat.noMaintenance > 0 ? fmtCount(cat.noMaintenance, cat.total, showAbsolute) : '—'}</td>
                     <td className="text-right">{cat.avgDaysSince !== null ? `${cat.avgDaysSince} Tage` : '—'}</td>
                     <td className="text-right"><ChevronRight size={14} style={{ color: 'var(--gray-400)' }} /></td>
                   </tr>
@@ -1148,7 +1167,20 @@ function generateRecommendations(boatTypes, boatManufacturers, equipmentCategori
 // ============================================================
 // Shared Components
 // ============================================================
-function BarList({ data, labelKey, valueKey, color, labelMap, onClick }) {
+// Datenschutz-Schwelle: Unter 1000 Nutzern zeigt die Marktanalyse KEINE
+// absoluten Zahlen, nur Anteile am jeweiligen Gesamt. Ab 1000 Nutzern werden
+// absolute Zahlen abgebildet. `total` ist die Bezugsgröße für den Prozentwert.
+const USER_ABSOLUTE_THRESHOLD = 1000
+function pctStr(value, total) {
+  if (!total || total <= 0) return '0 %'
+  return `${((value / total) * 100).toFixed(1).replace('.', ',')} %`
+}
+// Liefert die anzuzeigende Kennzahl: absolut (ab Schwelle) oder als Anteil.
+function fmtCount(value, total, showAbsolute) {
+  return showAbsolute ? String(value) : pctStr(value, total)
+}
+
+function BarList({ data, labelKey, valueKey, color, labelMap, onClick, showAbsolute = true }) {
   const { t } = useT()
   const maxValue = Math.max(...data.map(d => d[valueKey]), 1)
   const total = data.reduce((sum, d) => sum + d[valueKey], 0)
@@ -1165,7 +1197,9 @@ function BarList({ data, labelKey, valueKey, color, labelMap, onClick }) {
             <div className="bar-header">
               <span className="bar-label">{label}</span>
               <span className="bar-value">
-                {item[valueKey]} <span className="bar-pct">({share}%)</span>
+                {showAbsolute
+                  ? <>{item[valueKey]} <span className="bar-pct">({share}%)</span></>
+                  : <span className="bar-pct">{share.replace('.', ',')}%</span>}
                 {onClick && <ChevronRight size={12} style={{ color: 'var(--gray-400)', marginLeft: '4px' }} />}
               </span>
             </div>
@@ -1212,7 +1246,7 @@ function ropeEndText(v) {
   return ropeEndLabels[v] || v
 }
 
-function RopeTab({ demand, navigate }) {
+function RopeTab({ demand, navigate, showAbsolute = true }) {
   const { t } = useT()
   if (!demand || demand.length === 0) {
     return <div className="card"><p className="empty-text">{t('mi.rope.empty')}</p></div>
@@ -1241,7 +1275,7 @@ function RopeTab({ demand, navigate }) {
               {demand.map((d, i) => (
                 <tr key={i} className="drill-row" onClick={() => navigate('/promotions', { state: { prefill: {
                   name: `Tauwerk: ${d.material}${d.diameter_mm ? ` ${d.diameter_mm} mm` : ''}`,
-                  description: `${t('mi.rope.offerPrefix')}: ${d.req_count}× ${d.material}, `
+                  description: `${t('mi.rope.offerPrefix')}: ${showAbsolute ? `${d.req_count}× ` : ''}${d.material}, `
                     + `${d.diameter_mm || '?'} mm, ${t('mi.rope.end1')}: ${ropeEndText(d.end1)}, `
                     + `${t('mi.rope.end2')}: ${ropeEndText(d.end2)}`
                     + (d.avg_length_m ? `, ø ${d.avg_length_m} m` : ''),
@@ -1251,14 +1285,16 @@ function RopeTab({ demand, navigate }) {
                   <td>{ropeEndText(d.end1)}</td>
                   <td>{ropeEndText(d.end2)}</td>
                   <td className="text-right">{d.avg_length_m ? `${d.avg_length_m} m` : '—'}</td>
-                  <td className="text-right"><strong>{d.req_count}</strong></td>
+                  <td className="text-right"><strong>{fmtCount(Number(d.req_count || 0), totalReq, showAbsolute)}</strong></td>
                   <td className="text-right"><Tag size={14} style={{ color: 'var(--gray-400)' }} /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className="card-subtitle" style={{ marginTop: 10 }}>{t('mi.rope.total')}: <strong>{totalReq}</strong></p>
+        {showAbsolute && (
+          <p className="card-subtitle" style={{ marginTop: 10 }}>{t('mi.rope.total')}: <strong>{totalReq}</strong></p>
+        )}
       </div>
     </div>
   )

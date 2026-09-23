@@ -576,6 +576,7 @@ export default {
   'mi.rec.mostText': '{n} Geräte in dieser Kategorie — bieten Sie Wartungszubehör und Ersatzteile an.',
 
   // Marktanalyse
+  'mi.relativeNote': 'Aus Datenschutzgründen werden bis 1.000 Nutzern nur Anteile (Prozent) statt absoluter Zahlen angezeigt.',
   "mi.k0": '📈 Marktanalyse',
   "mi.k1": '📊 Marktanalyse',
   "mi.k2": 'Marktanalyse',
