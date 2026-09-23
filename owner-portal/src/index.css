@@ -1501,3 +1501,13 @@ button.pd-tag-btn { cursor: pointer; background: none; font-family: inherit; }
 .inq-offer-head { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; color: #16a34a; }
 .inq-offer-total { font-size: 1.3rem; font-weight: 700; color: var(--gray-800); margin-top: 2px; }
 .inq-offer-desc { font-size: 0.9rem; color: var(--gray-600); margin-top: 6px; white-space: pre-wrap; }
+
+/* ── Produktvarianten (Detailseite) ── */
+.pd-variants { display: flex; flex-direction: column; gap: 12px; margin: 6px 0 4px; }
+.pd-variant-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--gray-600, #475569); margin-bottom: 6px; }
+.pd-variant-values { display: flex; flex-wrap: wrap; gap: 8px; }
+.pd-variant-chip { padding: 8px 14px; border: 1.5px solid var(--gray-200, #e2e8f0); border-radius: 8px; background: #fff; cursor: pointer; font-size: 0.9rem; transition: all .15s; }
+.pd-variant-chip:hover:not(:disabled) { border-color: var(--primary, #0a6cff); }
+.pd-variant-chip.active { border-color: var(--primary, #0a6cff); background: color-mix(in srgb, var(--primary, #0a6cff) 10%, white); color: var(--primary, #0a6cff); font-weight: 600; }
+.pd-variant-chip:disabled { opacity: .4; text-decoration: line-through; cursor: not-allowed; }
+.pd-variant-hint { font-size: 0.82rem; color: var(--gray-500, #94a3b8); margin: 2px 0 0; }

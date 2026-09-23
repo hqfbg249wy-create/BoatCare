@@ -24,7 +24,7 @@ function mapIcon(icon) { return sfSymbolToEmoji[icon] || '' }
 // und schnelleres Laden. Die Detailseite laedt ihre eigenen (vollen) Daten.
 const LIST_SELECT =
   'id, provider_id, name, manufacturer, part_number, price, currency, in_stock, ' +
-  'stock_quantity, delivery_days, rating, category, category_id, images, ' +
+  'stock_quantity, delivery_days, rating, category, category_id, images, variant_options, ' +
   'product_categories(*), service_providers(id, name, city)'
 
 export default function Shop() {
@@ -252,6 +252,12 @@ export default function Shop() {
 
   // Cart functions
   function addToCart(product) {
+    // Varianten-Produkte muessen auf der Detailseite konfiguriert werden
+    // (Durchmesser, Groesse, Farbe ...), bevor sie in den Warenkorb koennen.
+    if (Array.isArray(product.variant_options) && product.variant_options.length) {
+      navigate(`/shop/product/${product.id}`)
+      return
+    }
     setCart(prev => {
       const existing = prev.find(i => i.id === product.id)
       if (existing) {

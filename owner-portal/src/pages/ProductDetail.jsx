@@ -22,6 +22,8 @@ export default function ProductDetail() {
     try { return JSON.parse(localStorage.getItem('boatcare_cart') || '[]') } catch { return [] }
   })
   const [tr, setTr] = useState(null) // { name, description } in aktiver Sprache
+  const [variants, setVariants] = useState([])   // product_variants
+  const [variantSel, setVariantSel] = useState({}) // { OptionName: Wert }
 
   useEffect(() => { if (id) loadProduct() }, [id])
 
@@ -49,6 +51,19 @@ export default function ProductDetail() {
     setProduct(data)
 
     if (data) {
+      // Varianten laden (falls definiert)
+      if (Array.isArray(data.variant_options) && data.variant_options.length) {
+        const { data: vs } = await supabase
+          .from('product_variants')
+          .select('*')
+          .eq('product_id', data.id)
+          .eq('is_active', true)
+          .order('sort_order')
+        setVariants(vs || [])
+      } else {
+        setVariants([])
+      }
+
       // Load similar products
       const { data: sim } = await supabase
         .from('metashop_products')
@@ -79,23 +94,52 @@ export default function ProductDetail() {
   }
 
   function addToCart() {
+    const opts = Array.isArray(product.variant_options) ? product.variant_options : []
+    const withVariants = opts.length > 0 && variants.length > 0
+    const chosen = opts.every(o => variantSel[o.name])
+    const v = withVariants && chosen
+      ? (variants.find(x => opts.every(o => String(x.attributes?.[o.name]) === String(variantSel[o.name]))) || null)
+      : null
+    if (withVariants && !v) return // Variante muss vollstaendig gewaehlt sein
+    const id = v ? `${product.id}:${v.id}` : product.id
+    const price = v?.price != null ? Number(v.price) : Number(product.price)
+    const attrLabel = v ? Object.entries(v.attributes || {}).map(([k, val]) => `${k}: ${val}`).join(', ') : ''
+    const dispName = attrLabel ? `${product.name} (${attrLabel})` : product.name
     setCart(prev => {
-      const existing = prev.find(i => i.id === product.id)
-      if (existing) {
-        return prev.map(i => i.id === product.id ? { ...i, quantity: i.quantity + quantity } : i)
-      }
-      return [...prev, { id: product.id, name: product.name, price: product.price, quantity, provider_id: product.provider_id, image: product.images?.[0] }]
+      const existing = prev.find(i => i.id === id)
+      if (existing) return prev.map(i => i.id === id ? { ...i, quantity: i.quantity + quantity } : i)
+      return [...prev, {
+        id, product_id: product.id, variant_id: v?.id || null, variant_sku: v?.sku || null,
+        name: dispName, price, quantity, provider_id: product.provider_id,
+        image: v?.image_url || product.images?.[0],
+      }]
     })
   }
 
   if (loading) return <div className="page"><div className="spinner" /></div>
   if (!product) return <div className="page"><div className="alert alert-error">{t('prod.k0')}</div></div>
 
-  const inCart = cart.some(i => i.id === product.id)
+  // ── Varianten ──
+  const options = Array.isArray(product.variant_options) ? product.variant_options : []
+  const hasVariants = options.length > 0 && variants.length > 0
+  const allChosen = options.every(o => variantSel[o.name])
+  const selectedVariant = hasVariants && allChosen
+    ? (variants.find(v => options.every(o => String(v.attributes?.[o.name]) === String(variantSel[o.name]))) || null)
+    : null
+  // Nur Werte anbieten, die es (in Kombination mit der bisherigen Auswahl) gibt.
+  const valueAvailable = (optName, val) => variants.some(v =>
+    String(v.attributes?.[optName]) === String(val) &&
+    options.every(o => o.name === optName || !variantSel[o.name] || String(v.attributes?.[o.name]) === String(variantSel[o.name])))
+  const basePrice = selectedVariant?.price != null ? Number(selectedVariant.price) : Number(product.price)
+  const variantImage = selectedVariant?.image_url || null
+  const inStockEff = hasVariants ? (selectedVariant ? selectedVariant.in_stock : true) : product.in_stock
+
+  const lineId = selectedVariant ? `${product.id}:${selectedVariant.id}` : product.id
+  const inCart = cart.some(i => i.id === lineId)
   const discountedPrice = promo
     ? promo.discount_type === 'percent'
-      ? product.price * (1 - promo.discount_value / 100)
-      : Math.max(0, product.price - promo.discount_value)
+      ? basePrice * (1 - promo.discount_value / 100)
+      : Math.max(0, basePrice - promo.discount_value)
     : null
 
   return (
@@ -110,7 +154,7 @@ export default function ProductDetail() {
           {product.images?.length > 0 ? (
             <>
               <div className="pd-main-image">
-                <img src={product.images[selectedImage]} alt={product.name} />
+                <img src={variantImage || product.images[selectedImage]} alt={product.name} />
                 {promo && (
                   <span className="shop-discount-badge" style={{ fontSize: '1rem', padding: '6px 14px' }}>
                     {promo.discount_type === 'percent' ? `-${promo.discount_value}%` : `-${Number(promo.discount_value).toFixed(0)}€`}
@@ -158,11 +202,11 @@ export default function ProductDetail() {
           <div className="pd-price-section">
             {discountedPrice !== null ? (
               <>
-                <span className="pd-price-old">{Number(product.price).toFixed(2).replace('.', ',')} €</span>
+                <span className="pd-price-old">{basePrice.toFixed(2).replace('.', ',')} €</span>
                 <span className="pd-price-current pd-price-discount">{discountedPrice.toFixed(2).replace('.', ',')} €</span>
               </>
             ) : (
-              <span className="pd-price-current">{Number(product.price).toFixed(2).replace('.', ',')} €</span>
+              <span className="pd-price-current">{basePrice.toFixed(2).replace('.', ',')} €</span>
             )}
             {product.shipping_cost !== null && product.shipping_cost !== undefined && (
               <span className="pd-shipping">
@@ -171,10 +215,37 @@ export default function ProductDetail() {
             )}
           </div>
 
+          {/* Varianten-Auswahl (z. B. Durchmesser, Farbe, Größe) */}
+          {hasVariants && (
+            <div className="pd-variants">
+              {options.map(o => (
+                <div key={o.name} className="pd-variant-opt">
+                  <label className="pd-variant-label">{o.name}</label>
+                  <div className="pd-variant-values">
+                    {(o.values || []).map(val => {
+                      const active = String(variantSel[o.name]) === String(val)
+                      const avail = valueAvailable(o.name, val)
+                      return (
+                        <button key={val} type="button"
+                          className={`pd-variant-chip ${active ? 'active' : ''}`}
+                          disabled={!avail}
+                          onClick={() => setVariantSel(prev => ({ ...prev, [o.name]: val }))}>
+                          {val}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+              {!allChosen && <p className="pd-variant-hint">Bitte Variante wählen.</p>}
+              {allChosen && !selectedVariant && <p className="pd-variant-hint" style={{ color: '#dc2626' }}>Diese Kombination ist nicht verfügbar.</p>}
+            </div>
+          )}
+
           {/* Availability */}
           <div className="pd-availability">
-            {product.in_stock ? (
-              <span className="pd-stock-ok"><Check size={14} /> Auf Lager{product.stock_quantity && product.stock_quantity < 5 ? ` (nur noch ${product.stock_quantity})` : ''}</span>
+            {inStockEff ? (
+              <span className="pd-stock-ok"><Check size={14} /> Auf Lager{selectedVariant?.stock_quantity && selectedVariant.stock_quantity < 5 ? ` (nur noch ${selectedVariant.stock_quantity})` : (!hasVariants && product.stock_quantity && product.stock_quantity < 5 ? ` (nur noch ${product.stock_quantity})` : '')}</span>
             ) : (
               <span className="pd-stock-out">{t('prod.k2')}</span>
             )}
@@ -188,7 +259,8 @@ export default function ProductDetail() {
               <span>{quantity}</span>
               <button onClick={() => setQuantity(quantity + 1)}><Plus size={16} /></button>
             </div>
-            <button className={`btn-primary pd-add-cart ${inCart ? 'in-cart' : ''}`} onClick={addToCart}>
+            <button className={`btn-primary pd-add-cart ${inCart ? 'in-cart' : ''}`} onClick={addToCart}
+              disabled={hasVariants && !selectedVariant}>
               {inCart ? <><Check size={18} /> {t('prod.k3')}</> : <><ShoppingCart size={18} /> {t('prod.k4')}</>}
             </button>
           </div>

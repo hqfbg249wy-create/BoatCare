@@ -203,6 +203,19 @@ final class ProductService {
         }
     }
 
+    /// Aktive Varianten eines Produkts (Shop-Standard). Leer = keine Varianten.
+    func fetchVariants(productId: UUID) async throws -> [ProductVariant] {
+        let variants: [ProductVariant] = try await client
+            .from("product_variants")
+            .select()
+            .eq("product_id", value: productId.uuidString)
+            .eq("is_active", value: true)
+            .order("sort_order")
+            .execute()
+            .value
+        return variants
+    }
+
     func fetchProductsByProvider(providerId: UUID) async throws -> [Product] {
         let products: [Product] = try await client
             .from("metashop_products")

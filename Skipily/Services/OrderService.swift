@@ -193,6 +193,8 @@ final class OrderService {
             struct OrderItemInsert: Codable {
                 let orderId: String
                 let productId: String
+                let variantId: String?
+                let variantSku: String?
                 let quantity: Int
                 let unitPrice: Double
                 let total: Double
@@ -203,6 +205,8 @@ final class OrderService {
                 enum CodingKeys: String, CodingKey {
                     case orderId = "order_id"
                     case productId = "product_id"
+                    case variantId = "variant_id"
+                    case variantSku = "variant_sku"
                     case quantity
                     case unitPrice = "unit_price"
                     case total
@@ -215,12 +219,16 @@ final class OrderService {
             let itemInserts = group.items.map { item in
                 OrderItemInsert(
                     orderId: order.id.uuidString,
+                    // product_id bleibt die echte Produkt-ID; die Variante wird
+                    // separat in variant_id/variant_sku gespeichert.
                     productId: item.product.id.uuidString,
+                    variantId: item.variant?.id.uuidString,
+                    variantSku: item.variant?.sku,
                     quantity: item.quantity,
-                    unitPrice: item.product.price ?? 0,
+                    unitPrice: item.unitPrice,
                     total: item.lineTotal,
-                    productName: item.product.name,
-                    productSku: item.product.sku,
+                    productName: item.displayName,
+                    productSku: item.variant?.sku ?? item.product.sku,
                     productManufacturer: item.product.manufacturer
                 )
             }

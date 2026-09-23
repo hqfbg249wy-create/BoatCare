@@ -25,6 +25,8 @@ struct ProductDetailView: View {
     @State private var chatConversation: Conversation?
     @State private var showTechnicalDetails = false
     @State private var pdfPreviewURL: URL?
+    @State private var variants: [ProductVariant] = []
+    @State private var variantSelection: [String: String] = [:]  // OptionName -> Wert
 
     @ObservedObject private var translator = TranslationService.shared
     @ObservedObject private var langManager = LanguageManager.shared
@@ -38,6 +40,54 @@ struct ProductDetailView: View {
 
     private var bestPromotion: Promotion? {
         promotionService.bestPromotion(for: product)
+    }
+
+    // MARK: - Varianten
+
+    private var variantOptions: [VariantOption] {
+        (product.variantOptions ?? []).filter { !$0.name.isEmpty && !$0.values.isEmpty }
+    }
+
+    private var hasVariants: Bool {
+        !variantOptions.isEmpty && !variants.isEmpty
+    }
+
+    private var allVariantsChosen: Bool {
+        variantOptions.allSatisfy { variantSelection[$0.name] != nil }
+    }
+
+    /// Die exakt zur aktuellen Auswahl passende Variante (oder nil).
+    private var selectedVariant: ProductVariant? {
+        guard hasVariants, allVariantsChosen else { return nil }
+        return variants.first { v in
+            variantOptions.allSatisfy { v.attributes[$0.name] == variantSelection[$0.name] }
+        }
+    }
+
+    /// Ist ein Optionswert (kombiniert mit der bisherigen Auswahl) lieferbar?
+    private func variantValueAvailable(_ optionName: String, _ value: String) -> Bool {
+        variants.contains { v in
+            v.attributes[optionName] == value && variantOptions.allSatisfy { opt in
+                opt.name == optionName || variantSelection[opt.name] == nil || v.attributes[opt.name] == variantSelection[opt.name]
+            }
+        }
+    }
+
+    /// Add-to-Cart erlaubt? Ohne Varianten wie gehabt, mit Varianten erst wenn
+    /// eine gültige, lieferbare Kombination gewählt wurde.
+    private var canAddToCart: Bool {
+        if hasVariants {
+            guard let v = selectedVariant else { return false }
+            return v.inStock ?? true
+        }
+        return product.isAvailable
+    }
+
+    /// Produktname inkl. gewählter Variante für das Bestätigungs-Sheet.
+    private var afterCartName: String {
+        guard let v = selectedVariant, hasVariants else { return displayName }
+        let label = v.label(for: variantOptions)
+        return label.isEmpty ? displayName : "\(displayName) (\(label))"
     }
 
     var body: some View {
@@ -122,6 +172,12 @@ struct ProductDetailView: View {
                     // Compatibility
                     compatibilitySection
 
+                    // Varianten-Auswahl (Durchmesser/Größe/Farbe ...)
+                    if hasVariants {
+                        Divider()
+                        variantSection
+                    }
+
                     Divider()
 
                     // Quantity + Add to Cart
@@ -168,6 +224,9 @@ struct ProductDetailView: View {
             }
         }
         .task {
+            if product.hasVariants {
+                variants = (try? await ProductService.shared.fetchVariants(productId: product.id)) ?? []
+            }
             await loadRelatedProducts()
             relations = (try? await ProductService.shared.fetchProductRelations(sourceProductId: product.id)) ?? []
         }
@@ -463,6 +522,60 @@ struct ProductDetailView: View {
         }
     }
 
+    // MARK: - Varianten-Auswahl
+
+    private var variantSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(variantOptions, id: \.name) { option in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(option.name)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 70), spacing: 8)], spacing: 8) {
+                        ForEach(option.values, id: \.self) { value in
+                            let selected = variantSelection[option.name] == value
+                            let available = variantValueAvailable(option.name, value)
+                            Button {
+                                variantSelection[option.name] = value
+                            } label: {
+                                Text(value)
+                                    .font(.subheadline)
+                                    .fontWeight(selected ? .semibold : .regular)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(selected ? AppColors.primary.opacity(0.12) : AppColors.gray50)
+                                    .foregroundStyle(selected ? AppColors.primary : (available ? AppColors.gray900 : AppColors.gray400))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(selected ? AppColors.primary : AppColors.gray200, lineWidth: 1.5)
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                            .disabled(!available)
+                            .opacity(available ? 1 : 0.5)
+                        }
+                    }
+                }
+            }
+
+            // Preis der gewählten Variante bzw. Hinweis
+            if let v = selectedVariant, let p = v.price {
+                Text(String(format: "%.2f \(product.currency ?? "EUR")", p).replacingOccurrences(of: ".", with: ","))
+                    .font(.title3).fontWeight(.bold)
+                    .foregroundStyle(AppColors.primary)
+            } else if !allVariantsChosen {
+                Text("shop.choose_variant".loc)
+                    .font(.caption)
+                    .foregroundStyle(AppColors.gray500)
+            } else if selectedVariant == nil {
+                Text("shop.variant_unavailable".loc)
+                    .font(.caption)
+                    .foregroundStyle(AppColors.error)
+            }
+        }
+    }
+
     // MARK: - Add to Cart
 
     private var addToCartSection: some View {
@@ -482,7 +595,7 @@ struct ProductDetailView: View {
             }
 
             Button {
-                cartManager.addToCart(product: product, quantity: quantity)
+                cartManager.addToCart(product: product, variant: selectedVariant, quantity: quantity)
                 // Statt nur Toast: Bottom-Sheet mit klaren nächsten Schritten
                 showAfterCartSheet = true
             } label: {
@@ -493,11 +606,11 @@ struct ProductDetailView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
-                .background(product.isAvailable ? AppColors.primary : AppColors.gray300)
+                .background(canAddToCart ? AppColors.primary : AppColors.gray300)
                 .foregroundStyle(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
             }
-            .disabled(!product.isAvailable)
+            .disabled(!canAddToCart)
         }
         .padding(.bottom, 20)
     }
@@ -513,7 +626,7 @@ struct ProductDetailView: View {
                     .foregroundStyle(AppColors.success)
                 Text("Im Warenkorb")
                     .font(.title3).fontWeight(.bold)
-                Text("\(quantity) × \(product.name)")
+                Text("\(quantity) × \(afterCartName)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

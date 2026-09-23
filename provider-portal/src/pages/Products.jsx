@@ -67,6 +67,7 @@ export default function Products() {
   const [form, setForm] = useState(emptyForm())
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
+  const [valueDraft, setValueDraft] = useState({}) // { optIndex: "neuer Wert" }
   const [selected, setSelected] = useState(() => new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [csvImporting, setCsvImporting] = useState(false)
@@ -93,7 +94,49 @@ export default function Products() {
       category: '', category_id: '', shipping_cost: '', delivery_days: '',
       weight_kg: '', min_order_quantity: '1', is_active: true, in_stock: true,
       image_url: '', images: [],
+      variant_options: [], variants: [],
     }
+  }
+
+  // ── Produktvarianten (Shop-Standard: Optionen + Kombinationen) ──
+  // Kartesisches Produkt aller Optionswerte -> je Kombination eine Variante.
+  function buildCombos(options) {
+    const opts = (options || []).filter(o => o.name?.trim() && (o.values || []).length)
+    if (!opts.length) return []
+    let combos = [{}]
+    for (const o of opts) {
+      const next = []
+      for (const c of combos) for (const v of o.values) next.push({ ...c, [o.name]: v })
+      combos = next
+    }
+    return combos
+  }
+
+  // Optionen/Werte aendern und Varianten-Zeilen neu ableiten, bestehende
+  // Preise/Bestaende je Kombination aber erhalten (per attribute-key gematcht).
+  function regenVariants(options, prevVariants) {
+    const combos = buildCombos(options)
+    const keyOf = (attrs, opts) => (opts || []).map(o => `${o.name}=${attrs?.[o.name] ?? ''}`).join('|')
+    const opts = (options || []).filter(o => o.name?.trim() && (o.values || []).length)
+    const prevByKey = {}
+    for (const v of (prevVariants || [])) prevByKey[keyOf(v.attributes, opts)] = v
+    return combos.map((attrs, i) => {
+      const ex = prevByKey[keyOf(attrs, opts)]
+      return ex
+        ? { ...ex, attributes: attrs, sort_order: i }
+        : { attributes: attrs, price: '', stock_quantity: '', in_stock: true, sku: '', image_url: '', is_active: true, sort_order: i }
+    })
+  }
+
+  function setVariantOptions(updater) {
+    setForm(prev => {
+      const options = typeof updater === 'function' ? updater(prev.variant_options || []) : updater
+      return { ...prev, variant_options: options, variants: regenVariants(options, prev.variants) }
+    })
+  }
+
+  function updateVariantRow(idx, patch) {
+    setForm(prev => ({ ...prev, variants: prev.variants.map((v, i) => i === idx ? { ...v, ...patch } : v) }))
   }
 
   useEffect(() => {
@@ -225,16 +268,25 @@ export default function Products() {
       source: 'manual',
     }
 
+    // Nur echte Optionen (Name + mind. 1 Wert) speichern, sonst null.
+    const cleanOptions = (form.variant_options || [])
+      .map(o => ({ name: (o.name || '').trim(), values: (o.values || []).map(v => String(v).trim()).filter(Boolean) }))
+      .filter(o => o.name && o.values.length)
+    payload.variant_options = cleanOptions.length ? cleanOptions : null
+
     try {
+      let productId = editing?.id
       if (editing === 'new') {
-        const { error } = await supabase.from('metashop_products').insert(payload)
+        const { data, error } = await supabase.from('metashop_products').insert(payload).select('id').single()
         if (error) throw error
+        productId = data.id
         setMessage({ type: 'success', text: t('products.created') })
       } else {
         const { error } = await supabase.from('metashop_products').update(payload).eq('id', editing.id)
         if (error) throw error
         setMessage({ type: 'success', text: t('products.updated') })
       }
+      await persistVariants(productId, cleanOptions)
       setEditing(null)
       setForm(emptyForm())
       loadProducts()
@@ -242,6 +294,50 @@ export default function Products() {
       setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Varianten mit der DB abgleichen: vorhandene aktualisieren, neue anlegen,
+  // entfernte loeschen. Bei Produkten ohne Optionen alle Varianten entfernen.
+  async function persistVariants(productId, cleanOptions) {
+    if (!productId) return
+    const { data: existing } = await supabase
+      .from('product_variants').select('id, attributes').eq('product_id', productId)
+    const keyOf = (attrs) => cleanOptions.map(o => `${o.name}=${attrs?.[o.name] ?? ''}`).join('|')
+
+    if (!cleanOptions.length) {
+      if (existing?.length) await supabase.from('product_variants').delete().eq('product_id', productId)
+      return
+    }
+
+    const existingByKey = {}
+    for (const e of (existing || [])) existingByKey[keyOf(e.attributes)] = e
+    const keepIds = new Set()
+
+    const rows = (form.variants || []).map(v => {
+      const ex = existingByKey[keyOf(v.attributes)]
+      if (ex) keepIds.add(ex.id)
+      return {
+        ...(ex ? { id: ex.id } : {}),
+        product_id: productId,
+        attributes: v.attributes,
+        sku: v.sku?.trim() || null,
+        price: v.price !== '' && v.price != null ? parseFloat(v.price) : null,
+        stock_quantity: v.stock_quantity !== '' && v.stock_quantity != null ? parseInt(v.stock_quantity) : null,
+        in_stock: v.in_stock ?? true,
+        image_url: v.image_url?.trim() || null,
+        is_active: v.is_active ?? true,
+        sort_order: v.sort_order ?? 0,
+      }
+    })
+
+    // Entfernte Kombinationen loeschen
+    const toDelete = (existing || []).filter(e => !keepIds.has(e.id)).map(e => e.id)
+    if (toDelete.length) await supabase.from('product_variants').delete().in('id', toDelete)
+
+    if (rows.length) {
+      const { error } = await supabase.from('product_variants').upsert(rows, { onConflict: 'id' })
+      if (error) throw error
     }
   }
 
@@ -519,7 +615,20 @@ export default function Products() {
     }
   }
 
-  function startEdit(product) {
+  async function startEdit(product) {
+    const options = Array.isArray(product.variant_options) ? product.variant_options : []
+    let loadedVariants = []
+    if (options.length) {
+      const { data } = await supabase
+        .from('product_variants').select('*').eq('product_id', product.id).order('sort_order')
+      loadedVariants = (data || []).map(v => ({
+        id: v.id, attributes: v.attributes || {},
+        price: v.price != null ? String(v.price) : '',
+        stock_quantity: v.stock_quantity != null ? String(v.stock_quantity) : '',
+        in_stock: v.in_stock ?? true, sku: v.sku || '', image_url: v.image_url || '',
+        is_active: v.is_active ?? true, sort_order: v.sort_order ?? 0,
+      }))
+    }
     setForm({
       name: product.name || '',
       manufacturer: product.manufacturer || '',
@@ -540,6 +649,8 @@ export default function Products() {
       in_stock: product.in_stock ?? true,
       image_url: product.image_url || '',
       images: product.images || [],
+      variant_options: options,
+      variants: loadedVariants,
     })
     setEditing(product)
     setMessage(null)
@@ -695,6 +806,90 @@ export default function Products() {
                 {t('products.activeVisible')}
               </label>
             </div>
+          </div>
+
+          <div className="card">
+            <h2>{t('products.variantsTitle')}</h2>
+            <p className="form-hint">{t('products.variantsHint')}</p>
+
+            {(form.variant_options || []).map((opt, oi) => (
+              <div key={oi} className="variant-option">
+                <div className="variant-option-head">
+                  <input
+                    className="variant-opt-name"
+                    value={opt.name}
+                    placeholder={t('products.variantOptNamePh')}
+                    onChange={e => setVariantOptions(prev => prev.map((o, i) => i === oi ? { ...o, name: e.target.value } : o))}
+                  />
+                  <button type="button" className="btn-icon" title={t('common.delete')}
+                    onClick={() => { setVariantOptions(prev => prev.filter((_, i) => i !== oi)); }}>
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="variant-values">
+                  {(opt.values || []).map((val, vi) => (
+                    <span key={vi} className="variant-value-chip">
+                      {val}
+                      <button type="button" onClick={() => setVariantOptions(prev => prev.map((o, i) => i === oi ? { ...o, values: o.values.filter((_, j) => j !== vi) } : o))}>
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    className="variant-value-input"
+                    value={valueDraft[oi] || ''}
+                    placeholder={t('products.variantValuePh')}
+                    onChange={e => setValueDraft(d => ({ ...d, [oi]: e.target.value }))}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        const v = (valueDraft[oi] || '').trim()
+                        if (!v) return
+                        setVariantOptions(prev => prev.map((o, i) => i === oi && !(o.values || []).includes(v) ? { ...o, values: [...(o.values || []), v] } : o))
+                        setValueDraft(d => ({ ...d, [oi]: '' }))
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+
+            <button type="button" className="btn-secondary"
+              onClick={() => setVariantOptions(prev => [...prev, { name: '', values: [] }])}>
+              <Plus size={16} /> {t('products.variantAddOption')}
+            </button>
+
+            {(form.variants || []).length > 0 && (
+              <div className="variant-table-wrap">
+                <table className="variant-table">
+                  <thead>
+                    <tr>
+                      {(form.variant_options || []).filter(o => o.name?.trim()).map((o, i) => <th key={i}>{o.name}</th>)}
+                      <th>{t('products.variantPrice')}</th>
+                      <th>{t('products.variantStock')}</th>
+                      <th>SKU</th>
+                      <th>{t('products.variantInStock')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {form.variants.map((v, vi) => (
+                      <tr key={vi}>
+                        {(form.variant_options || []).filter(o => o.name?.trim()).map((o, i) => (
+                          <td key={i} className="variant-attr-cell">{v.attributes?.[o.name]}</td>
+                        ))}
+                        <td><input type="number" step="0.01" value={v.price} placeholder={form.price || '0.00'}
+                          onChange={e => updateVariantRow(vi, { price: e.target.value })} /></td>
+                        <td><input type="number" value={v.stock_quantity} placeholder="0"
+                          onChange={e => updateVariantRow(vi, { stock_quantity: e.target.value })} /></td>
+                        <td><input value={v.sku} onChange={e => updateVariantRow(vi, { sku: e.target.value })} /></td>
+                        <td style={{ textAlign: 'center' }}><input type="checkbox" checked={v.in_stock}
+                          onChange={e => updateVariantRow(vi, { in_stock: e.target.checked })} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           <div className="card">

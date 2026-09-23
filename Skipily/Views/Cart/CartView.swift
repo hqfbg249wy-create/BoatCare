@@ -159,12 +159,12 @@ struct CartView: View {
 
             // Info
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.product.name)
+                Text(item.displayName)
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .lineLimit(2)
 
-                Text(item.product.displayPrice)
+                Text(String(format: "%.2f \(item.product.currency ?? "EUR")", item.unitPrice).replacingOccurrences(of: ".", with: ","))
                     .font(.caption)
                     .foregroundStyle(AppColors.gray500)
             }
@@ -174,7 +174,7 @@ struct CartView: View {
             // Quantity & Remove
             VStack(alignment: .trailing, spacing: 8) {
                 Button {
-                    cartManager.removeFromCart(productId: item.product.id)
+                    cartManager.removeFromCart(lineId: item.id)
                 } label: {
                     Image(systemName: "trash")
                         .font(.caption)
@@ -184,7 +184,7 @@ struct CartView: View {
                 HStack(spacing: 8) {
                     Button {
                         cartManager.updateQuantity(
-                            productId: item.product.id,
+                            lineId: item.id,
                             quantity: item.quantity - 1
                         )
                     } label: {
@@ -199,7 +199,7 @@ struct CartView: View {
 
                     Button {
                         cartManager.updateQuantity(
-                            productId: item.product.id,
+                            lineId: item.id,
                             quantity: item.quantity + 1
                         )
                     } label: {

@@ -171,6 +171,7 @@ struct ProductCardView: View {
             compatibleEquipment: nil,
             tags: nil,
             images: nil,
+            variantOptions: nil,
             imageUrl: nil,
             source: nil,
             createdAt: nil,

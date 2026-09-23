@@ -451,6 +451,9 @@
 "shop.compatibility" = "Compatibility";
 "shop.quantity" = "Quantity";
 "shop.add_to_cart" = "Add to Cart";
+"shop.choose_options" = "Choose options";
+"shop.choose_variant" = "Please choose a variant.";
+"shop.variant_unavailable" = "This combination is unavailable.";
 "shop.similar_products" = "Similar Products";
 "shop.more_from" = "More from %@";
 "shop.added_to_cart" = "Added to cart";

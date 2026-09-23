@@ -81,25 +81,30 @@ final class CartManager {
 
     // MARK: - Cart Operations
 
-    func addToCart(product: Product, quantity: Int = 1) {
-        if let index = items.firstIndex(where: { $0.product.id == product.id }) {
+    func addToCart(product: Product, variant: ProductVariant? = nil, quantity: Int = 1) {
+        // Zeilen-ID: Varianten trennen sich über ihre eigene ID, sodass z. B.
+        // "8mm" und "10mm" desselben Tauwerks getrennte Warenkorb-Zeilen sind.
+        let lineId = variant?.id ?? product.id
+        if let index = items.firstIndex(where: { $0.id == lineId }) {
             items[index].quantity += quantity
         } else {
-            let item = CartItem(id: product.id, product: product, quantity: quantity)
+            let item = CartItem(id: lineId, product: product, variant: variant, quantity: quantity)
             items.append(item)
         }
     }
 
-    func removeFromCart(productId: UUID) {
-        items.removeAll { $0.product.id == productId }
+    /// Entfernt eine Warenkorb-Zeile. `lineId` ist die Varianten-ID bei
+    /// Varianten, sonst die Produkt-ID (beides via CartItem.id abgebildet).
+    func removeFromCart(lineId: UUID) {
+        items.removeAll { $0.id == lineId }
     }
 
-    func updateQuantity(productId: UUID, quantity: Int) {
+    func updateQuantity(lineId: UUID, quantity: Int) {
         guard quantity > 0 else {
-            removeFromCart(productId: productId)
+            removeFromCart(lineId: lineId)
             return
         }
-        if let index = items.firstIndex(where: { $0.product.id == productId }) {
+        if let index = items.firstIndex(where: { $0.id == lineId }) {
             items[index].quantity = quantity
         }
     }

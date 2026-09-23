@@ -193,7 +193,11 @@ export default function Checkout() {
 
         const orderItems = items.map(item => ({
           order_id: order.id,
-          product_id: item.id,
+          // Varianten-Zeilen tragen product_id separat; item.id ist dann die
+          // zusammengesetzte "produkt:variante"-ID und keine gueltige UUID.
+          product_id: item.product_id || item.id,
+          variant_id: item.variant_id || null,
+          variant_sku: item.variant_sku || null,
           quantity: item.quantity,
           unit_price: item.price,
           total: item.price * item.quantity,

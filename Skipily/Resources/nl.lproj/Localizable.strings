@@ -448,6 +448,9 @@
 "shop.compatibility" = "Compatibiliteit";
 "shop.quantity" = "Aantal";
 "shop.add_to_cart" = "In winkelwagen";
+"shop.choose_options" = "Opties kiezen";
+"shop.choose_variant" = "Kies een variant.";
+"shop.variant_unavailable" = "Deze combinatie is niet beschikbaar.";
 "shop.similar_products" = "Vergelijkbare producten";
 "shop.more_from" = "Meer van %@";
 "shop.added_to_cart" = "Toegevoegd aan winkelwagen";

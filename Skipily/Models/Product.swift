@@ -31,6 +31,9 @@ struct Product: Codable, Identifiable, Hashable, Sendable {
     let compatibleEquipment: [String]?
     let tags: [String]?
     let images: [String]?
+    /// Produktvarianten-Optionen (Shop-Standard), z. B. Durchmesser/Größe/Farbe.
+    /// Format: [{ name, values: [] }]. Null/leer = Produkt ohne Varianten.
+    let variantOptions: [VariantOption]?
     /// Legacy single-image-Feld (wird vom Provider-Portal befüllt). Fällt
     /// als Fallback ein, wenn `images` (Array) leer/null ist.
     let imageUrl: String?
@@ -61,6 +64,7 @@ struct Product: Codable, Identifiable, Hashable, Sendable {
         case fitsManufacturers = "fits_manufacturers"
         case compatibleEquipment = "compatible_equipment"
         case tags, images
+        case variantOptions = "variant_options"
         case imageUrl = "image_url"
         case source
         case createdAt = "created_at"
@@ -86,6 +90,11 @@ struct Product: Codable, Identifiable, Hashable, Sendable {
         (isActive ?? true) && (inStock ?? true) && (stockQuantity ?? 1) > 0
     }
 
+    /// Hat das Produkt konfigurierbare Varianten (mind. eine Option mit Werten)?
+    var hasVariants: Bool {
+        (variantOptions ?? []).contains { !$0.name.isEmpty && !$0.values.isEmpty }
+    }
+
     var firstImageURL: URL? {
         if let first = images?.first, let url = URL(string: first) {
             return url
@@ -103,6 +112,46 @@ struct Product: Codable, Identifiable, Hashable, Sendable {
 
     static func == (lhs: Product, rhs: Product) -> Bool {
         lhs.id == rhs.id
+    }
+}
+
+/// Eine Varianten-Option eines Produkts, z. B. { name: "Durchmesser",
+/// values: ["6mm","8mm","10mm"] }. Liegt als JSONB in metashop_products.
+struct VariantOption: Codable, Hashable, Sendable {
+    let name: String
+    let values: [String]
+}
+
+/// Eine konkrete Varianten-Kombination (Zeile in product_variants) mit eigenem
+/// Preis/Bestand/SKU/Bild. `attributes` = { "Durchmesser": "6mm", ... }.
+struct ProductVariant: Codable, Identifiable, Hashable, Sendable {
+    let id: UUID
+    let productId: UUID
+    let sku: String?
+    let attributes: [String: String]
+    let price: Double?
+    let stockQuantity: Int?
+    let inStock: Bool?
+    let imageUrl: String?
+    let isActive: Bool?
+    let sortOrder: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case productId = "product_id"
+        case sku, attributes, price
+        case stockQuantity = "stock_quantity"
+        case inStock = "in_stock"
+        case imageUrl = "image_url"
+        case isActive = "is_active"
+        case sortOrder = "sort_order"
+    }
+
+    /// Lesbare Kurzbeschreibung, z. B. "Durchmesser: 8mm, Farbe: Blau".
+    func label(for options: [VariantOption]) -> String {
+        options.compactMap { opt in
+            attributes[opt.name].map { "\(opt.name): \($0)" }
+        }.joined(separator: ", ")
     }
 }
 

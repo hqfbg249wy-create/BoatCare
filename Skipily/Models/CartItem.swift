@@ -8,12 +8,28 @@
 import Foundation
 
 struct CartItem: Identifiable, Sendable, Codable {
+    /// Zeilen-ID: bei Varianten die Varianten-ID (damit dasselbe Produkt in
+    /// mehreren Ausführungen getrennte Zeilen bildet), sonst die Produkt-ID.
     let id: UUID
     let product: Product
+    /// Gewählte Variante (Durchmesser/Größe/Farbe ...), falls vorhanden.
+    var variant: ProductVariant?
     var quantity: Int
 
+    /// Effektiver Stückpreis: Varianten-Preis schlägt Produktpreis, sonst Produktpreis.
+    var unitPrice: Double {
+        variant?.price ?? product.price ?? 0
+    }
+
+    /// Anzeigename inkl. Varianten-Label, z. B. "Tauwerk (Durchmesser: 8mm)".
+    var displayName: String {
+        guard let variant, product.hasVariants else { return product.name }
+        let label = variant.label(for: product.variantOptions ?? [])
+        return label.isEmpty ? product.name : "\(product.name) (\(label))"
+    }
+
     var lineTotal: Double {
-        (product.price ?? 0) * Double(quantity)
+        unitPrice * Double(quantity)
     }
 
     var displayLineTotal: String {

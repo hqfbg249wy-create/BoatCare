@@ -359,26 +359,44 @@ struct ShopView: View {
             }
             .buttonStyle(.plain)
 
-            // Add to cart button
-            Button {
-                cartManager.addToCart(product: product)
-                cartToast = product.name
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    if cartToast == product.name { cartToast = nil }
+            // Add to cart button — Varianten-Produkte führen erst zur
+            // Detailseite (Optionen wie Durchmesser/Größe/Farbe wählen).
+            if product.hasVariants {
+                NavigationLink(value: product) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.caption2)
+                        Text("shop.choose_options".loc)
+                            .font(.caption2)
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 7)
+                    .background(AppColors.primary)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: cartManager.contains(productId: product.id) ? "checkmark" : "cart.badge.plus")
-                        .font(.caption2)
-                    Text(cartManager.contains(productId: product.id) ? "shop.in_cart".loc : "shop.add_to_cart".loc)
-                        .font(.caption2)
-                        .fontWeight(.semibold)
+            } else {
+                Button {
+                    cartManager.addToCart(product: product)
+                    cartToast = product.name
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        if cartToast == product.name { cartToast = nil }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: cartManager.contains(productId: product.id) ? "checkmark" : "cart.badge.plus")
+                            .font(.caption2)
+                        Text(cartManager.contains(productId: product.id) ? "shop.in_cart".loc : "shop.add_to_cart".loc)
+                            .font(.caption2)
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 7)
+                    .background(cartManager.contains(productId: product.id) ? AppColors.success : AppColors.primary)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 7)
-                .background(cartManager.contains(productId: product.id) ? AppColors.success : AppColors.primary)
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
         }
         .frame(width: 160)

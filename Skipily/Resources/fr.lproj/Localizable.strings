@@ -448,6 +448,9 @@
 "shop.compatibility" = "Compatibilité";
 "shop.quantity" = "Quantité";
 "shop.add_to_cart" = "Ajouter au panier";
+"shop.choose_options" = "Choisir les options";
+"shop.choose_variant" = "Veuillez choisir une variante.";
+"shop.variant_unavailable" = "Cette combinaison est indisponible.";
 "shop.similar_products" = "Produits similaires";
 "shop.more_from" = "Plus de %@";
 "shop.added_to_cart" = "Ajouté au panier";
