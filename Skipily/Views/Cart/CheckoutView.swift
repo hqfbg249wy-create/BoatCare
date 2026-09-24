@@ -29,12 +29,25 @@ struct CheckoutView: View {
     /// website-skipily/skipily-agb.html Meta-Zeile).
     private let agbVersion = "2026-05"
 
+    // Versandkosten je Provider aus der Engine (calculate-shipping). Wird beim
+    // Betreten des Review-Schritts berechnet und in Summe/Anzeige einbezogen.
+    @State private var engineShipping: [UUID: Double] = [:]
+    @State private var shippingLoading = false
+
     // Stripe
     @State private var paymentSheet: PaymentSheet?
     @State private var isPreparingPayment = false
     // Deferred-Flow: die setup_intent_id, mit der die hinterlegte Karte nach
     // erfolgreichem SetupSheet den Bestellungen zugeordnet wird.
     @State private var deferredSetupIntentId: String?
+
+    // Summen inkl. Engine-Versand (Fallback: bisheriger Gruppen-Versand).
+    private var subtotalAll: Double { cartManager.groupedByProvider.reduce(0) { $0 + $1.subtotal } }
+    private var shippingAll: Double { cartManager.groupedByProvider.reduce(0) { $0 + (engineShipping[$1.id] ?? $1.shippingCost) } }
+    private var grandTotalAll: Double { subtotalAll + shippingAll }
+    private func money(_ v: Double) -> String {
+        String(format: "%.2f €", v).replacingOccurrences(of: ".", with: ",")
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -52,6 +65,20 @@ struct CheckoutView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(currentStep == 2)
         .onAppear { loadSavedAddress() }
+        .onChange(of: currentStep) { _, step in
+            if step == 1 { Task { await loadEngineShipping() } }
+        }
+    }
+
+    /// Berechnet den Versand je Provider-Gruppe über die Engine (für die Anzeige).
+    private func loadEngineShipping() async {
+        shippingLoading = true
+        var map: [UUID: Double] = [:]
+        for group in cartManager.groupedByProvider {
+            map[group.id] = await OrderService.shared.shippingCost(for: group, country: shippingAddress.country)
+        }
+        engineShipping = map
+        shippingLoading = false
     }
 
     // MARK: - Step Indicator
@@ -216,13 +243,36 @@ struct CheckoutView: View {
                         orderGroupCard(group)
                     }
 
+                    // Zwischensumme + Versand + Gesamt
+                    VStack(spacing: 6) {
+                        HStack {
+                            Text("cart.subtotal".loc)
+                                .foregroundStyle(AppColors.gray700)
+                            Spacer()
+                            Text(money(subtotalAll))
+                        }
+                        .font(.subheadline)
+                        HStack {
+                            Text("cart.shipping".loc)
+                                .foregroundStyle(AppColors.gray700)
+                            Spacer()
+                            if shippingLoading {
+                                ProgressView().scaleEffect(0.7)
+                            } else {
+                                Text(shippingAll > 0 ? money(shippingAll) : "cart.shipping_free".loc)
+                            }
+                        }
+                        .font(.subheadline)
+                    }
+                    .padding(.top, 4)
+
                     // Grand total
                     HStack {
                         Text("cart.total_amount".loc)
                             .font(.title3)
                             .fontWeight(.bold)
                         Spacer()
-                        Text(cartManager.displayGrandTotal)
+                        Text(money(grandTotalAll))
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundStyle(AppColors.primary)
@@ -326,7 +376,7 @@ struct CheckoutView: View {
                         } else {
                             Image(systemName: "lock.fill")
                                 .font(.caption)
-                            Text("\("checkout.pay_now".loc) – \(cartManager.displayGrandTotal)")
+                            Text("\("checkout.pay_now".loc) – \(money(grandTotalAll))")
                                 .fontWeight(.semibold)
                         }
                     }

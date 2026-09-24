@@ -396,6 +396,7 @@
 "cart.empty_hint" = "Navega por la tienda y añade\nproductos";
 "cart.subtotal" = "Subtotal";
 "cart.shipping" = "Envío";
+"cart.shipping_free" = "Gratis";
 "cart.total" = "Total";
 "cart.total_amount" = "Importe total";
 "cart.checkout" = "Realizar pedido";

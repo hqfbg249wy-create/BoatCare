@@ -88,6 +88,39 @@ final class OrderService {
     /// - Parameter agbVersion: AGB-Version die der Kunde im Checkout
     ///   akzeptiert hat (siehe orders.agb_accepted_version / _at). Wird pro
     ///   Order gespeichert für Audit-Trail.
+    /// Versandkosten einer Provider-Gruppe über die Engine (provider_shipping_rules).
+    /// Freigrenze + gewichtsbasierte Staffel je Zone. Fällt bei Fehler/Engine-aus
+    /// auf den bisherigen Wert (höchster Produkt-Versand) zurück. Wird sowohl im
+    /// Checkout-Review (Anzeige) als auch bei der Bestellanlage genutzt.
+    func shippingCost(for group: CartGroup, country: String) async -> Double {
+        struct ShipReq: Encodable {
+            let provider_id: String
+            let country: String
+            let subtotal: Double
+            let items: [Item]
+            struct Item: Encodable { let weight_kg: Double?; let quantity: Int; let shipping_cost: Double? }
+        }
+        struct ShipResp: Decodable { let shipping_cost: Double? }
+        do {
+            let req = ShipReq(
+                provider_id: group.id.uuidString,
+                country: country,
+                subtotal: group.subtotal,
+                items: group.items.map {
+                    .init(weight_kg: $0.product.weightKg, quantity: $0.quantity, shipping_cost: $0.product.shippingCost)
+                }
+            )
+            let resp: ShipResp = try await client.functions.invoke(
+                "calculate-shipping",
+                options: .init(body: req)
+            )
+            return resp.shipping_cost ?? group.shippingCost
+        } catch {
+            AppLog.warning("calculate-shipping fehlgeschlagen, Fallback: \(error)")
+            return group.shippingCost
+        }
+    }
+
     func createOrders(
         from cartGroups: [CartGroup],
         buyerId: UUID,
@@ -110,6 +143,10 @@ final class OrderService {
 
             let commissionRate = providerData["commission_rate"] ?? 10.0
             let commissionAmount = group.subtotal * (commissionRate / 100.0)
+
+            // Versandkosten über die Engine (siehe shippingCost(for:country:)).
+            let shippingCost = await shippingCost(for: group, country: shippingAddress.country)
+            let effectiveTotal = group.subtotal + shippingCost
 
             // Create order
             struct OrderInsert: Codable {
@@ -164,10 +201,10 @@ final class OrderService {
                 providerId: group.id.uuidString,
                 status: "pending",
                 subtotal: group.subtotal,
-                shippingCost: group.shippingCost,
+                shippingCost: shippingCost,
                 commissionRate: commissionRate,
                 commissionAmount: commissionAmount,
-                total: group.total,
+                total: effectiveTotal,
                 currency: "EUR",
                 shippingName: shippingAddress.name,
                 shippingStreet: shippingAddress.street,

@@ -396,6 +396,7 @@
 "cart.empty_hint" = "Blader door de shop en voeg\nproducten toe";
 "cart.subtotal" = "Subtotaal";
 "cart.shipping" = "Verzending";
+"cart.shipping_free" = "Gratis";
 "cart.total" = "Totaal";
 "cart.total_amount" = "Totaalbedrag";
 "cart.checkout" = "Afrekenen";

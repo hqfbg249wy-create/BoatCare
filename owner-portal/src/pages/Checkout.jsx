@@ -113,6 +113,61 @@ export default function Checkout() {
 
   const cartTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0)
 
+  // Versandkosten je Provider über die Engine (provider_shipping_rules).
+  const [shipByProvider, setShipByProvider] = useState({})
+  const [shipTotal, setShipTotal] = useState(0)
+  const [shipCalcPending, setShipCalcPending] = useState(false)
+
+  // Berechnet die Versandkosten je Provider-Gruppe über die calculate-shipping
+  // Engine. Liefert Map(providerId -> Kosten) + Summe. Nutzt das gewählte
+  // Lieferland; ohne Land Fallback DE.
+  async function computeShipping() {
+    const map = {}
+    let total = 0
+    for (const [providerId, items] of Object.entries(groupedByProvider)) {
+      if (providerId === 'unknown') { map[providerId] = 0; continue }
+      const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
+      try {
+        const { data: ship } = await supabase.functions.invoke('calculate-shipping', {
+          body: {
+            provider_id: providerId,
+            country: shipping.country || 'DE',
+            subtotal,
+            items: items.map(i => ({
+              weight_kg: i.weight_kg ?? null,
+              quantity: i.quantity,
+              shipping_cost: i.shipping_cost ?? null,
+            })),
+          },
+        })
+        const c = (ship && typeof ship.shipping_cost === 'number') ? ship.shipping_cost : 0
+        map[providerId] = c
+        total += c
+      } catch (_) {
+        map[providerId] = 0
+      }
+    }
+    return { map, total: Math.round(total * 100) / 100 }
+  }
+
+  // Versand für die Anzeige (Review-Schritt) berechnen, sobald Land/Warenkorb
+  // feststehen. So sieht der Kunde den Versand VOR der Bestellung.
+  useEffect(() => {
+    if (step !== 1 || cart.length === 0) return
+    let cancelled = false
+    setShipCalcPending(true)
+    computeShipping().then(({ map, total }) => {
+      if (cancelled) return
+      setShipByProvider(map)
+      setShipTotal(total)
+      setShipCalcPending(false)
+    })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, shipping.country, cart])
+
+  const grandTotal = cartTotal + shipTotal
+
   function validateAddress() {
     if (!shipping.name || !shipping.street || !shipping.city || !shipping.postalCode) {
       setError('Bitte füllen Sie alle Pflichtfelder aus.')
@@ -129,29 +184,17 @@ export default function Checkout() {
     try {
       const orders = []
 
+      // Versand einmal frisch berechnen und für Order-Zeilen UND Zahlbetrag
+      // verwenden (konsistent mit der Anzeige).
+      const { map: shipMap, total: shipSum } = await computeShipping()
+      setShipByProvider(shipMap)
+      setShipTotal(shipSum)
+
       for (const [providerId, items] of Object.entries(groupedByProvider)) {
         const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0)
 
-        // Versandkosten über die Engine berechnen (Freigrenze + Gewicht/Zone).
-        // Fällt bei Fehler/Engine-aus auf höchsten Produkt-Versand bzw. 0 zurück.
-        let shippingCost = 0
-        if (providerId !== 'unknown') {
-          try {
-            const { data: ship } = await supabase.functions.invoke('calculate-shipping', {
-              body: {
-                provider_id: providerId,
-                country: shipping.country,
-                subtotal,
-                items: items.map(i => ({
-                  weight_kg: i.weight_kg ?? null,
-                  quantity: i.quantity,
-                  shipping_cost: i.shipping_cost ?? null,
-                })),
-              },
-            })
-            if (ship && typeof ship.shipping_cost === 'number') shippingCost = ship.shipping_cost
-          } catch (_) { /* Fallback 0 */ }
-        }
+        // Versandkosten aus der Engine (Freigrenze + Gewicht/Zone).
+        const shippingCost = Number(shipMap[providerId]) || 0
 
         let commissionRate = 10
         if (providerId !== 'unknown') {
@@ -213,8 +256,8 @@ export default function Checkout() {
 
       setCreatedOrders(orders)
 
-      // Call create-payment-intent Edge Function
-      const totalCents = Math.round(cartTotal * 100)
+      // Call create-payment-intent Edge Function — Betrag inkl. Versand.
+      const totalCents = Math.round((cartTotal + shipSum) * 100)
       const orderIds = orders.map(o => o.id)
 
       const { data: { session } } = await supabase.auth.getSession()
@@ -416,16 +459,18 @@ export default function Checkout() {
             </div>
             <div className="checkout-total-row">
               <span>{t('chk.k14')}</span>
-              <span>{t('chk.k15')}</span>
+              <span>
+                {shipCalcPending ? '…' : (shipTotal > 0 ? `${shipTotal.toFixed(2).replace('.', ',')} €` : t('chk.k15'))}
+              </span>
             </div>
             <div className="checkout-total-row checkout-grand-total">
               <span>{t('chk.k16')}</span>
-              <span>{cartTotal.toFixed(2).replace('.', ',')} €</span>
+              <span>{grandTotal.toFixed(2).replace('.', ',')} €</span>
             </div>
           </div>
 
-          <button className="btn-primary btn-full" onClick={createOrdersAndPaymentIntent} disabled={loading}>
-            {loading ? 'Bestellung wird erstellt...' : <><CreditCard size={16} /> Weiter zur Bezahlung ({cartTotal.toFixed(2).replace('.', ',')} €)</>}
+          <button className="btn-primary btn-full" onClick={createOrdersAndPaymentIntent} disabled={loading || shipCalcPending}>
+            {loading ? 'Bestellung wird erstellt...' : <><CreditCard size={16} /> Weiter zur Bezahlung ({grandTotal.toFixed(2).replace('.', ',')} €)</>}
           </button>
         </div>
       )}
@@ -443,7 +488,7 @@ export default function Checkout() {
           <div className="checkout-totals" style={{ marginBottom: 20 }}>
             <div className="checkout-total-row checkout-grand-total">
               <span>{t('chk.k18')}</span>
-              <span>{cartTotal.toFixed(2).replace('.', ',')} €</span>
+              <span>{grandTotal.toFixed(2).replace('.', ',')} €</span>
             </div>
           </div>
 

@@ -399,6 +399,7 @@
 "cart.empty_hint" = "Browse the shop and add\nproducts";
 "cart.subtotal" = "Subtotal";
 "cart.shipping" = "Shipping";
+"cart.shipping_free" = "Free";
 "cart.total" = "Total";
 "cart.total_amount" = "Total Amount";
 "cart.checkout" = "Checkout";
