@@ -108,16 +108,18 @@ struct CartView: View {
                         .font(.subheadline)
                         .foregroundStyle(AppColors.gray500)
                     Spacer()
-                    Text(group.displayShipping)
-                        .font(.subheadline)
-                        .foregroundStyle(group.shippingCost == 0 ? AppColors.success : AppColors.gray700)
+                    // Im Warenkorb ist das Lieferland noch unbekannt; der genaue
+                    // Versand wird an der Kasse berechnet (Versandkosten-Engine).
+                    Text("cart.shipping_at_checkout".loc)
+                        .font(.caption)
+                        .foregroundStyle(AppColors.gray500)
                 }
                 Divider()
                 HStack {
-                    Text("cart.total".loc)
+                    Text("cart.subtotal".loc)
                         .font(.headline)
                     Spacer()
-                    Text(group.displayTotal)
+                    Text(group.displaySubtotal)
                         .font(.headline)
                         .foregroundStyle(AppColors.primary)
                 }

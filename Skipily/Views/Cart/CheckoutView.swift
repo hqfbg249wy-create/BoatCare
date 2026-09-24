@@ -33,7 +33,6 @@ struct CheckoutView: View {
     // Betreten des Review-Schritts berechnet und in Summe/Anzeige einbezogen.
     @State private var engineShipping: [UUID: Double] = [:]
     @State private var shippingLoading = false
-    @State private var shipDebug = "" // temporär: Diagnose
 
     // Stripe
     @State private var paymentSheet: PaymentSheet?
@@ -75,27 +74,10 @@ struct CheckoutView: View {
     private func loadEngineShipping() async {
         shippingLoading = true
         var map: [UUID: Double] = [:]
-        var dbg: [String] = []
         for group in cartManager.groupedByProvider {
-            struct ShipReq: Encodable {
-                let provider_id: String; let country: String; let subtotal: Double; let items: [Item]
-                struct Item: Encodable { let weight_kg: Double?; let quantity: Int; let shipping_cost: Double? }
-            }
-            struct ShipResp: Decodable { let shipping_cost: Double? }
-            let req = ShipReq(provider_id: group.id.uuidString, country: shippingAddress.country,
-                              subtotal: group.subtotal,
-                              items: group.items.map { .init(weight_kg: $0.product.weightKg, quantity: $0.quantity, shipping_cost: $0.product.shippingCost) })
-            do {
-                let resp: ShipResp = try await SupabaseManager.shared.client.functions.invoke("calculate-shipping", options: .init(body: req))
-                map[group.id] = resp.shipping_cost ?? group.shippingCost
-                dbg.append("\(group.id.uuidString.prefix(6))/\(shippingAddress.country):\(resp.shipping_cost ?? -1)")
-            } catch {
-                map[group.id] = group.shippingCost
-                dbg.append("err:\(error)")
-            }
+            map[group.id] = await OrderService.shared.shippingCost(for: group, country: shippingAddress.country)
         }
         engineShipping = map
-        shipDebug = dbg.joined(separator: " | ")
         shippingLoading = false
     }
 
@@ -281,12 +263,6 @@ struct CheckoutView: View {
                             }
                         }
                         .font(.subheadline)
-                        if !shipDebug.isEmpty {
-                            Text("⚙ \(shipDebug)")
-                                .font(.caption2)
-                                .foregroundStyle(AppColors.gray400)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
                     }
                     .padding(.top, 4)
 
@@ -452,9 +428,14 @@ struct CheckoutView: View {
                     .font(.caption)
                     .foregroundStyle(AppColors.gray500)
                 Spacer()
-                Text(group.displayShipping)
-                    .font(.caption)
-                    .foregroundStyle(group.shippingCost == 0 ? AppColors.success : AppColors.gray500)
+                if shippingLoading && engineShipping[group.id] == nil {
+                    Text("…").font(.caption).foregroundStyle(AppColors.gray500)
+                } else {
+                    let gs = engineShipping[group.id] ?? group.shippingCost
+                    Text(gs > 0 ? money(gs) : "cart.shipping_free".loc)
+                        .font(.caption)
+                        .foregroundStyle(gs == 0 ? AppColors.success : AppColors.gray500)
+                }
             }
 
             HStack {
@@ -462,7 +443,7 @@ struct CheckoutView: View {
                     .font(.subheadline)
                     .fontWeight(.semibold)
                 Spacer()
-                Text(group.displayTotal)
+                Text(money(group.subtotal + (engineShipping[group.id] ?? group.shippingCost)))
                     .font(.subheadline)
                     .fontWeight(.semibold)
             }

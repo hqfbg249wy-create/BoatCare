@@ -396,6 +396,7 @@
 "cart.empty_hint" = "Sfoglia il negozio e aggiungi\nprodotti";
 "cart.subtotal" = "Subtotale";
 "cart.shipping" = "Spedizione";
+"cart.shipping_at_checkout" = "Calcolate alla cassa";
 "cart.shipping_free" = "Gratuito";
 "cart.total" = "Totale";
 "cart.total_amount" = "Importo totale";
