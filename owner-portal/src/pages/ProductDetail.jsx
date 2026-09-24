@@ -265,6 +265,15 @@ export default function ProductDetail() {
             </button>
           </div>
 
+          {/* Direkt zur Kasse, sobald etwas im Warenkorb ist — sonst müsste man
+              erst zurück in den Shop navigieren, um den Kauf abzuschließen. */}
+          {cart.length > 0 && (
+            <button className="btn-secondary pd-to-checkout" onClick={() => navigate('/checkout')}
+              style={{ width: '100%', marginTop: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <ShoppingCart size={18} /> {t('prod.toCheckout')} ({cart.reduce((n, i) => n + i.quantity, 0)})
+            </button>
+          )}
+
           {/* Description */}
           {(tr?.description || product.description) && (
             <div className="pd-description">

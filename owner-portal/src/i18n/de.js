@@ -404,6 +404,7 @@ export default {
   "prod.k2": "Nicht verfügbar",
   "prod.k3": "Im Warenkorb",
   "prod.k4": "In den Warenkorb",
+  "prod.toCheckout": "Zur Kasse",
   "prod.k5": "Beschreibung",
   "prod.k6": "Kompatibilität",
   "prod.k7": "Ähnliche Produkte",

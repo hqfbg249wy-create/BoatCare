@@ -457,7 +457,7 @@ export default function Checkout() {
               <span>{t('chk.k13')}</span>
               <span>{cartTotal.toFixed(2).replace('.', ',')} €</span>
             </div>
-            <div className="checkout-total-row">
+            <div className="checkout-total-row" data-ship-engine="v2">
               <span>{t('chk.k14')}</span>
               <span>
                 {shipCalcPending ? '…' : (shipTotal > 0 ? `${shipTotal.toFixed(2).replace('.', ',')} €` : t('chk.k15'))}
