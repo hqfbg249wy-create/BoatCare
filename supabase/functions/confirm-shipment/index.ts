@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
 
     const { data: seller } = await svc
       .from("service_providers")
-      .select("id, name, street, postal_code, city, country, email, phone, tax_number, stripe_account_id, commission_rate")
+      .select("id, name, street, postal_code, city, country, email, phone, tax_number, stripe_account_id, commission_rate, billing_address_enabled, billing_name, billing_street, billing_postal_code, billing_city, billing_country")
       .eq("id", order.provider_id)
       .maybeSingle();
     if (!seller) return json({ error: "Verkaeufer nicht gefunden" }, 404);
@@ -218,16 +218,21 @@ Deno.serve(async (req) => {
       invoiceNumber: invNo as string,
       invoiceDate: new Date(),
       currency: order.currency || "EUR",
-      seller: {
-        name: seller.name,
-        street: seller.street,
-        postalCode: seller.postal_code,
-        city: seller.city,
-        country: seller.country,
-        email: seller.email,
-        phone: seller.phone,
-        taxNumber: seller.tax_number,
-      },
+      // Absenderadresse: abweichende Rechnungsadresse hat Vorrang, wenn aktiviert.
+      // Leere Einzelfelder fallen jeweils auf die Betriebsadresse zurueck.
+      seller: (() => {
+        const b = seller.billing_address_enabled;
+        return {
+          name: (b && seller.billing_name) ? seller.billing_name : seller.name,
+          street: (b && seller.billing_street) ? seller.billing_street : seller.street,
+          postalCode: (b && seller.billing_postal_code) ? seller.billing_postal_code : seller.postal_code,
+          city: (b && seller.billing_city) ? seller.billing_city : seller.city,
+          country: (b && seller.billing_country) ? seller.billing_country : seller.country,
+          email: seller.email,
+          phone: seller.phone,
+          taxNumber: seller.tax_number,
+        };
+      })(),
       buyerName: order.shipping_name || buyer.full_name || "",
       shipTo: [
         order.shipping_street,

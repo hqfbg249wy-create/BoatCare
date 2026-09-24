@@ -235,6 +235,12 @@ export default function Profile() {
         postal_code: provider.postal_code || '',
         city: provider.city || '',
         country: provider.country || '',
+        billing_address_enabled: provider.billing_address_enabled ?? false,
+        billing_name: provider.billing_name || '',
+        billing_street: provider.billing_street || '',
+        billing_postal_code: provider.billing_postal_code || '',
+        billing_city: provider.billing_city || '',
+        billing_country: provider.billing_country || '',
         latitude: provider.latitude ?? '',
         longitude: provider.longitude ?? '',
         phone: provider.phone || '',
@@ -877,6 +883,12 @@ export default function Profile() {
           postal_code: form.postal_code,
           city: form.city,
           country: form.country,
+          billing_address_enabled: !!form.billing_address_enabled,
+          billing_name: form.billing_address_enabled ? (form.billing_name || null) : null,
+          billing_street: form.billing_address_enabled ? (form.billing_street || null) : null,
+          billing_postal_code: form.billing_address_enabled ? (form.billing_postal_code || null) : null,
+          billing_city: form.billing_address_enabled ? (form.billing_city || null) : null,
+          billing_country: form.billing_address_enabled ? (form.billing_country || null) : null,
           latitude:  form.latitude  === '' || form.latitude  == null ? null : Number(form.latitude),
           longitude: form.longitude === '' || form.longitude == null ? null : Number(form.longitude),
           phone: form.phone,
@@ -1715,6 +1727,48 @@ export default function Profile() {
               <label>{t('profile.country')}</label>
               <input name="country" value={form.country} onChange={handleChange} />
             </div>
+          </div>
+
+          {/* Abweichende Rechnungsadresse (dient als Absender auf Rechnung/E-Rechnung) */}
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border, #e5e7eb)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={!!form.billing_address_enabled}
+                onChange={e => setForm(prev => ({ ...prev, billing_address_enabled: e.target.checked }))}
+              />
+              {t('profile.billingToggle')}
+            </label>
+            <p style={{ fontSize: 13, color: 'var(--text-muted, #64748b)', margin: '4px 0 0' }}>
+              {t('profile.billingHint')}
+            </p>
+
+            {form.billing_address_enabled && (
+              <div style={{ marginTop: 12 }}>
+                <div className="form-group">
+                  <label>{t('profile.billingName')}</label>
+                  <input name="billing_name" value={form.billing_name} onChange={handleChange} placeholder={form.name || ''} />
+                </div>
+                <div className="form-group">
+                  <label>{t('profile.street')}</label>
+                  <input name="billing_street" value={form.billing_street} onChange={handleChange} />
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>{t('profile.zip')}</label>
+                    <input name="billing_postal_code" value={form.billing_postal_code} onChange={handleChange} />
+                  </div>
+                  <div className="form-group">
+                    <label>{t('profile.city')}</label>
+                    <input name="billing_city" value={form.billing_city} onChange={handleChange} />
+                  </div>
+                  <div className="form-group">
+                    <label>{t('profile.country')}</label>
+                    <input name="billing_country" value={form.billing_country} onChange={handleChange} />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Standort / Geolokalisierung — Provider kann Pin selbst korrigieren */}
