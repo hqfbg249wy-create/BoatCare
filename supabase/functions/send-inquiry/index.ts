@@ -4,6 +4,7 @@
 
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logEvent } from "../_shared/eventlog.ts";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "noreply@skipily.app";
@@ -48,6 +49,11 @@ Deno.serve(async (req) => {
 
     // Nur bei Status 'sent' versenden
     if (inquiry.status !== "sent") {
+      await logEvent(supabase, {
+        event_type: "inquiry_sent", channel: "email", status: "skipped",
+        provider_id: inquiry.provider?.id, user_id: inquiry.owner?.id, inquiry_id,
+        subject: inquiry.subject, error: "Status ist nicht 'sent'",
+      });
       return new Response(JSON.stringify({ skipped: true, reason: "Status ist nicht 'sent'" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -55,6 +61,12 @@ Deno.serve(async (req) => {
 
     const providerEmail = inquiry.provider?.email;
     if (!providerEmail) {
+      await logEvent(supabase, {
+        event_type: "inquiry_sent", channel: "email", status: "skipped",
+        provider_id: inquiry.provider?.id, user_id: inquiry.owner?.id, inquiry_id,
+        subject: inquiry.subject, error: "Provider hat keine E-Mail-Adresse",
+        meta: { provider_name: inquiry.provider?.name },
+      });
       return new Response(JSON.stringify({ skipped: true, reason: "Provider hat keine E-Mail-Adresse" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -144,7 +156,25 @@ Diese Nachricht wurde automatisch über app.skipily.app versendet.
     });
 
     const resData = await res.json();
-    if (!res.ok) throw new Error(`Resend-Fehler: ${JSON.stringify(resData)}`);
+    if (!res.ok) {
+      await logEvent(supabase, {
+        event_type: "inquiry_sent", channel: "email", status: "failed",
+        provider_id: inquiry.provider?.id, user_id: inquiry.owner?.id, inquiry_id,
+        recipient: providerEmail, subject,
+        error: `Resend-Fehler: ${JSON.stringify(resData)}`,
+        meta: { provider_name: inquiry.provider?.name },
+      });
+      throw new Error(`Resend-Fehler: ${JSON.stringify(resData)}`);
+    }
+
+    // Erfolgreich an Resend uebergeben. Der spaetere Zustellstatus
+    // (delivered/bounced/...) wird per Resend-Webhook nachgetragen.
+    await logEvent(supabase, {
+      event_type: "inquiry_sent", channel: "email", status: "sent",
+      provider_id: inquiry.provider?.id, user_id: inquiry.owner?.id, inquiry_id,
+      recipient: providerEmail, subject, provider_message_id: resData.id,
+      meta: { provider_name: inquiry.provider?.name, reply_to: ownerEmail || null },
+    });
 
     return new Response(JSON.stringify({ success: true, email_id: resData.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

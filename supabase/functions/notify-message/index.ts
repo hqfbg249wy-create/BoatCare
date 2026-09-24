@@ -9,6 +9,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { logEvent } from "../_shared/eventlog.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
@@ -152,8 +153,22 @@ serve(async (req: Request) => {
       body: JSON.stringify({ from: FROM_EMAIL, to: [toEmail], subject, text: textBody, html: htmlBody }),
     });
     const resData = await res.json();
-    if (!res.ok) return json({ error: `Resend: ${JSON.stringify(resData)}` }, 502);
+    if (!res.ok) {
+      await logEvent(supabase, {
+        event_type: "new_message", channel: "email", status: "failed",
+        provider_id: conv.provider_id, user_id: conv.user_id,
+        recipient: toEmail, subject, error: `Resend: ${JSON.stringify(resData)}`,
+        meta: { direction: ownerSent ? "owner_to_provider" : "provider_to_owner" },
+      });
+      return json({ error: `Resend: ${JSON.stringify(resData)}` }, 502);
+    }
 
+    await logEvent(supabase, {
+      event_type: "new_message", channel: "email", status: "sent",
+      provider_id: conv.provider_id, user_id: conv.user_id,
+      recipient: toEmail, subject, provider_message_id: resData.id,
+      meta: { direction: ownerSent ? "owner_to_provider" : "provider_to_owner" },
+    });
     return json({ status: "sent", email_id: resData.id });
   } catch (err) {
     console.error("notify-message error:", err);

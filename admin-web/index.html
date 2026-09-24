@@ -153,6 +153,10 @@
                     <span class="icon">🔌</span>
                     API & Webhooks
                 </button>
+                <button class="nav-item" data-page="delivery-log" onclick="window.navigateToPage('delivery-log')">
+                    <span class="icon">📬</span>
+                    Zustellungen
+                </button>
                 <button class="nav-item" data-page="bookkeeping" onclick="window.navigateToPage('bookkeeping')">
                     <span class="icon">📊</span>
                     Buchhaltung
@@ -2018,6 +2022,57 @@
                 </div>
             </div>
 
+            <!-- Zustellungen & Ereignisse (platform_events) -->
+            <div id="delivery-log-page" class="page">
+                <h1>📬 Zustellungen &amp; Ereignisse</h1>
+                <p style="color:#64748b;margin:-8px 0 16px;">Was die Plattform ausgelöst hat (E-Mails via Resend, Push, Ereignisse) und wo etwas hängt. Zustellstatus kommt per Resend-Webhook nach.</p>
+
+                <div class="stats-grid" id="delivery-log-summary" style="margin-bottom:16px;"></div>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+                    <input id="dl-search" type="text" placeholder="Empfänger, Betreff oder Message-ID…" style="flex:1;min-width:220px;padding:9px 12px;border:1px solid #e2e8f0;border-radius:8px;">
+                    <select id="dl-status" style="padding:9px 12px;border:1px solid #e2e8f0;border-radius:8px;">
+                        <option value="">Alle Status</option>
+                        <option value="sent">gesendet</option>
+                        <option value="delivered">zugestellt</option>
+                        <option value="opened">geöffnet</option>
+                        <option value="bounced">Bounce</option>
+                        <option value="complained">Spam</option>
+                        <option value="failed">fehlgeschlagen</option>
+                        <option value="skipped">übersprungen</option>
+                    </select>
+                    <select id="dl-channel" style="padding:9px 12px;border:1px solid #e2e8f0;border-radius:8px;">
+                        <option value="">Alle Kanäle</option>
+                        <option value="email">E-Mail</option>
+                        <option value="push">Push</option>
+                        <option value="inapp">In-App</option>
+                    </select>
+                    <select id="dl-type" style="padding:9px 12px;border:1px solid #e2e8f0;border-radius:8px;">
+                        <option value="">Alle Ereignisse</option>
+                        <option value="inquiry_sent">Anfrage</option>
+                        <option value="new_order">Bestellung</option>
+                        <option value="new_message">Nachricht</option>
+                        <option value="provider_welcome">Provider-Willkommen</option>
+                        <option value="member_invite">Team-Einladung</option>
+                    </select>
+                    <button class="btn-secondary" onclick="loadDeliveryLog()">🔄 Aktualisieren</button>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Zeit</th><th>Ereignis</th><th>Kanal</th>
+                                <th>Empfänger</th><th>Betreff</th><th>Status</th><th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="delivery-log-body">
+                            <tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">Laden…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Invite Provider Page -->
             <div id="invite-provider-page" class="page">
                 <h1>✉️ Provider einladen</h1>
@@ -2374,7 +2429,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260921-behavior"></script>
+    <script src="app.js?v=20260924-delivery-log"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;

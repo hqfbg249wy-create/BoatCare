@@ -4,6 +4,8 @@
 // weitergeworfen, damit eine fehlgeschlagene Benachrichtigung nie den
 // Zahlungs-/Versand-/Refund-Ablauf abbricht.
 
+import { logEvent } from "./eventlog.ts";
+
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const pushSecret = Deno.env.get("PUSH_INTERNAL_SECRET") ?? "";
 const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
@@ -12,25 +14,60 @@ const FROM_EMAIL = "Skipily <noreply@skipily.app>";
 // deno-lint-ignore no-explicit-any
 type Svc = any;
 
+// Optionaler Log-Kontext fuer emailTo/pushToUser: wenn gesetzt, wird der
+// Versand in platform_events protokolliert (Migration 151).
+export interface LogCtx {
+  supabase: Svc;
+  event_type: string;
+  provider_id?: string | null;
+  user_id?: string | null;
+  order_id?: string | null;
+  inquiry_id?: string | null;
+  meta?: Record<string, unknown>;
+}
+
 /** Push an einen Nutzer (best-effort). */
-export async function pushToUser(userId: string, title: string, body: string): Promise<void> {
+export async function pushToUser(userId: string, title: string, body: string, log?: LogCtx): Promise<void> {
   if (!userId || !pushSecret) return;
   try {
-    await fetch(`${supabaseUrl}/functions/v1/send-push`, {
+    const res = await fetch(`${supabaseUrl}/functions/v1/send-push`, {
       method: "POST",
       headers: { "x-internal-secret": pushSecret, "Content-Type": "application/json" },
       body: JSON.stringify({ user_id: userId, title, body }),
     });
+    if (log) {
+      await logEvent(log.supabase, {
+        event_type: log.event_type, channel: "push",
+        status: res.ok ? "sent" : "failed",
+        provider_id: log.provider_id, user_id: userId,
+        order_id: log.order_id, inquiry_id: log.inquiry_id,
+        recipient: userId, subject: title,
+        error: res.ok ? null : `send-push ${res.status}`,
+        meta: log.meta,
+      });
+    }
   } catch (e) {
     console.error("pushToUser failed:", (e as Error).message);
+    if (log) {
+      await logEvent(log.supabase, {
+        event_type: log.event_type, channel: "push", status: "failed",
+        provider_id: log.provider_id, user_id: userId, order_id: log.order_id,
+        inquiry_id: log.inquiry_id, recipient: userId, subject: title,
+        error: (e as Error).message, meta: log.meta,
+      });
+    }
   }
 }
 
 /** E-Mail via Resend (best-effort, aber mit Fehler-Logging).
  *  `html` optional: wird zusaetzlich zum Text mitgeschickt (bessere Darstellung
  *  + Buttons). Der Text bleibt Fallback fuer Clients ohne HTML. */
-export async function emailTo(to: string, subject: string, text: string, html?: string): Promise<void> {
-  if (!to) { console.warn("emailTo: keine Empfaengeradresse"); return; }
+export async function emailTo(to: string, subject: string, text: string, html?: string, log?: LogCtx): Promise<void> {
+  if (!to) {
+    console.warn("emailTo: keine Empfaengeradresse");
+    if (log) await logEvent(log.supabase, { event_type: log.event_type, channel: "email", status: "skipped", provider_id: log.provider_id, user_id: log.user_id, order_id: log.order_id, inquiry_id: log.inquiry_id, subject, error: "keine Empfaengeradresse", meta: log.meta });
+    return;
+  }
   if (!resendKey) { console.warn("emailTo: RESEND_API_KEY fehlt"); return; }
   try {
     const payload: Record<string, unknown> = { from: FROM_EMAIL, to: [to], subject, text };
@@ -41,13 +78,27 @@ export async function emailTo(to: string, subject: string, text: string, html?: 
       body: JSON.stringify(payload),
     });
     const body = await res.text();
+    let messageId: string | null = null;
+    try { messageId = JSON.parse(body)?.id ?? null; } catch { /* ignore */ }
     if (!res.ok) {
       console.error(`emailTo Resend-Fehler ${res.status} an ${to}: ${body}`);
     } else {
       console.log(`emailTo ok an ${to}: ${body}`);
     }
+    if (log) {
+      await logEvent(log.supabase, {
+        event_type: log.event_type, channel: "email",
+        status: res.ok ? "sent" : "failed",
+        provider_id: log.provider_id, user_id: log.user_id,
+        order_id: log.order_id, inquiry_id: log.inquiry_id,
+        recipient: to, subject, provider_message_id: messageId,
+        error: res.ok ? null : `Resend ${res.status}: ${body}`,
+        meta: log.meta,
+      });
+    }
   } catch (e) {
     console.error("emailTo failed:", (e as Error).message);
+    if (log) await logEvent(log.supabase, { event_type: log.event_type, channel: "email", status: "failed", provider_id: log.provider_id, user_id: log.user_id, order_id: log.order_id, inquiry_id: log.inquiry_id, recipient: to, subject, error: (e as Error).message, meta: log.meta });
   }
 }
 
@@ -163,6 +214,8 @@ export async function notifyNewOrder(svc: Svc, orderId: string): Promise<void> {
               `Rechnung und Widerrufsbelehrung werden dabei erzeugt.\n\n`
             : `Bitte bearbeite die Bestellung im Anbieter-Portal.\n\n`) +
           `Zum Anbieter-Portal: https://portal.skipily.app\n\nDein Skipily-Team`,
+        undefined,
+        { supabase: svc, event_type: "new_order", provider_id: order.provider_id, user_id: order.buyer_id, order_id: order.id, meta: { ref, recipient_role: "provider" } },
       );
     }
 
@@ -184,6 +237,8 @@ export async function notifyNewOrder(svc: Svc, orderId: string): Promise<void> {
               `den Versand bestaetigt. Danach erhaeltst du deine Rechnung inkl. Widerrufsbelehrung.\n\n`
             : `Der Anbieter bereitet deine Bestellung vor.\n\n`) +
           `Du kannst deine Bestellung jederzeit in der App unter Bestellungen einsehen.\n\nDein Skipily-Team`,
+        undefined,
+        { supabase: svc, event_type: "new_order", provider_id: order.provider_id, user_id: order.buyer_id, order_id: order.id, meta: { ref, recipient_role: "buyer" } },
       );
     }
   } catch (e) {

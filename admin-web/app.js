@@ -351,6 +351,9 @@ function navigateToPage(pageName) {
         case 'api-monitoring':
             loadApiMonitoring();
             break;
+        case 'delivery-log':
+            loadDeliveryLog();
+            break;
     }
 }
 
@@ -8152,6 +8155,92 @@ function renderWebhookEvents(events) {
             <td style="padding:10px;"><code style="font-size:0.8rem;">${escapeHtml(orderNumber)}</code></td>
             <td style="padding:10px;text-align:center;">${statusHtml}</td>
             <td style="padding:10px;font-size:0.85rem;color:var(--gray-500);">${date}</td>
+        </tr>`;
+    }).join('');
+}
+
+// ═════════════════════════════════════════════════════════════════════
+// Zustellungen & Ereignisse (platform_events, Migration 151)
+// ═════════════════════════════════════════════════════════════════════
+const DL_STATUS_META = {
+    triggered:  { label: 'ausgelöst',      color: '#64748b' },
+    queued:     { label: 'in Warteschlange', color: '#0ea5e9' },
+    sent:       { label: 'gesendet',       color: '#3b82f6' },
+    delivered:  { label: 'zugestellt',     color: '#16a34a' },
+    opened:     { label: 'geöffnet',       color: '#16a34a' },
+    bounced:    { label: 'Bounce',         color: '#dc2626' },
+    complained: { label: 'Spam',           color: '#dc2626' },
+    failed:     { label: 'fehlgeschlagen', color: '#dc2626' },
+    skipped:    { label: 'übersprungen',   color: '#a16207' },
+};
+const DL_TYPE_LABEL = {
+    inquiry_sent: 'Anfrage', new_order: 'Bestellung', new_message: 'Nachricht',
+    provider_welcome: 'Provider-Willkommen', member_invite: 'Team-Einladung',
+    subscription_active: 'Abo aktiv', maintenance_reminder: 'Wartungserinnerung',
+};
+const dlEsc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+async function loadDeliveryLog() {
+    console.log('📬 Loading delivery log...');
+    const body = document.getElementById('delivery-log-body');
+    if (body) body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">Laden…</td></tr>';
+
+    // Zusammenfassung (letzte 7 Tage)
+    try {
+        const { data: sum } = await supabaseClient.rpc('admin_platform_events_summary');
+        renderDeliveryLogSummary(sum || []);
+    } catch (e) { console.warn('summary failed', e?.message); }
+
+    const args = {
+        p_limit: 300,
+        p_status: document.getElementById('dl-status')?.value || null,
+        p_channel: document.getElementById('dl-channel')?.value || null,
+        p_event_type: document.getElementById('dl-type')?.value || null,
+        p_search: document.getElementById('dl-search')?.value || null,
+    };
+    const { data, error } = await supabaseClient.rpc('admin_platform_events', args);
+    if (error) {
+        if (body) body.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:30px;color:#dc2626;">Fehler: ${dlEsc(error.message)}</td></tr>`;
+        return;
+    }
+    renderDeliveryLog(data || []);
+}
+
+function renderDeliveryLogSummary(rows) {
+    const el = document.getElementById('delivery-log-summary');
+    if (!el) return;
+    const agg = {};
+    (rows || []).forEach(r => { agg[r.status] = (agg[r.status] || 0) + Number(r.n || 0); });
+    const order = ['sent', 'delivered', 'bounced', 'failed', 'skipped'];
+    el.innerHTML = order.map(s => {
+        const m = DL_STATUS_META[s] || { label: s, color: '#64748b' };
+        return `<div class="stat-card"><div class="stat-value" style="color:${m.color}">${agg[s] || 0}</div><div class="stat-label">${m.label} (7 Tage)</div></div>`;
+    }).join('');
+}
+
+function renderDeliveryLog(events) {
+    const body = document.getElementById('delivery-log-body');
+    if (!body) return;
+    if (!events.length) {
+        body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">Keine Ereignisse gefunden.</td></tr>';
+        return;
+    }
+    body.innerHTML = events.map(e => {
+        const m = DL_STATUS_META[e.status] || { label: e.status, color: '#64748b' };
+        const when = new Date(e.created_at).toLocaleString('de-DE');
+        const type = DL_TYPE_LABEL[e.event_type] || e.event_type;
+        const chan = e.channel === 'push' ? '📱 Push' : e.channel === 'inapp' ? '💬 In-App' : '✉️ E-Mail';
+        const detail = e.error
+            ? `<span style="color:#dc2626;">${dlEsc(e.error).slice(0, 160)}</span>`
+            : (e.provider_message_id ? `<span style="color:#94a3b8;font-family:monospace;font-size:0.8em;">${dlEsc(e.provider_message_id)}</span>` : '');
+        return `<tr>
+            <td style="white-space:nowrap;">${when}</td>
+            <td>${dlEsc(type)}</td>
+            <td>${chan}</td>
+            <td>${dlEsc(e.recipient || '')}</td>
+            <td>${dlEsc(e.subject || '')}</td>
+            <td><span style="display:inline-block;padding:3px 9px;border-radius:999px;font-size:0.8em;font-weight:600;color:#fff;background:${m.color};">${m.label}</span></td>
+            <td>${detail}</td>
         </tr>`;
     }).join('');
 }

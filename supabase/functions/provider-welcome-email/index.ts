@@ -20,6 +20,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { corsHeaders } from "../_shared/cors.ts";
+import { logEvent } from "../_shared/eventlog.ts";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 const FROM_EMAIL     = "Skipily <noreply@skipily.app>";
@@ -149,7 +150,20 @@ ${tr.team}`;
       body: JSON.stringify({ from: FROM_EMAIL, to: [p.email], subject, text, html }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(`Resend-Fehler: ${JSON.stringify(data)}`);
+    if (!res.ok) {
+      await logEvent(supabase, {
+        event_type: "provider_welcome", channel: "email", status: "failed",
+        provider_id: p.id, recipient: p.email, subject,
+        error: `Resend-Fehler: ${JSON.stringify(data)}`, meta: { provider_name: p.name },
+      });
+      throw new Error(`Resend-Fehler: ${JSON.stringify(data)}`);
+    }
+
+    await logEvent(supabase, {
+      event_type: "provider_welcome", channel: "email", status: "sent",
+      provider_id: p.id, recipient: p.email, subject,
+      provider_message_id: data.id, meta: { provider_name: p.name },
+    });
 
     // Idempotenz-Flag setzen (verhindert Doppelversand bei erneutem Trigger).
     await supabase
