@@ -30,13 +30,32 @@ const ROPE_SERVICE_KEYWORDS = [
   "leine", "festmacher", "running rigging", "cordage",
 ];
 const ROPE_CATEGORY_KEYWORDS = ["segelmacher", "takler", "rigger", "sailmaker"];
+// Starkes Namens-Signal: dedizierte Tauwerk-Betriebe -> nie ausschliessen.
+const ROPE_NAME_STRONG = ["tauwerk", "tauw", "rope", "spleiss", "spleiß", "cordage", "touw"];
+// Fachfremd: taucht oft nur wegen falscher Kategorie (z.B. "Rigg" fuer eine
+// Kran-/Finanzfirma) auf. Ohne starkes Namens-Signal ausschliessen.
+const ROPE_NAME_EXCLUDE = [
+  "propeller", "motorservice", "motoren", "kran", "crane", "finance", "finanz",
+  "versicherung", "insurance", "makler", "broker", "immobilien", "charter",
+  "yachting", "gutachter", "survey",
+];
 
-function isRopeProvider(p: { category?: string | null; services?: unknown }): boolean {
+function isRopeProvider(p: { name?: string | null; category?: string | null; services?: unknown }): boolean {
+  const name = String(p.name ?? "").toLowerCase();
   const cat = String(p.category ?? "").toLowerCase();
   const services = Array.isArray(p.services) ? (p.services as unknown[]).map((s) => String(s)) : [];
   const hay = [cat, ...services].join(" ").toLowerCase();
-  return ROPE_SERVICE_KEYWORDS.some((k) => hay.includes(k)) ||
+
+  // Echter Tauwerk-Betrieb am Namen -> immer aufnehmen.
+  if (ROPE_NAME_STRONG.some((k) => name.includes(k))) return true;
+
+  const matches = ROPE_SERVICE_KEYWORDS.some((k) => hay.includes(k)) ||
     ROPE_CATEGORY_KEYWORDS.some((k) => cat.includes(k));
+  if (!matches) return false;
+
+  // Nur ueber (evtl. falsche) Kategorie/Service erfasst -> fachfremde raus.
+  if (ROPE_NAME_EXCLUDE.some((x) => (name + " " + cat).includes(x))) return false;
+  return true;
 }
 
 Deno.serve(async (req) => {

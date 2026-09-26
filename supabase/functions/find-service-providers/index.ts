@@ -47,6 +47,12 @@ Deno.serve(async (req) => {
       .map((s) => String(s).toLowerCase()).filter(Boolean);
     const nameTerms: string[] = (Array.isArray(name_terms) ? name_terms : [])
       .map((s) => String(s).toLowerCase()).filter(Boolean);
+    // Domaenenspezifische Ausschluss-Begriffe: Betriebe, deren Name/Kategorie
+    // klar fachfremd ist (z.B. bei Tauwerk: propeller, kran, finance, yachting-
+    // charter), fliegen raus AUSSER sie haben ein starkes Namens-Signal
+    // (name_terms-Treffer, z.B. Shop heisst wirklich "Tauwerk ...").
+    const nameExclude: string[] = (Array.isArray(body.name_exclude) ? body.name_exclude : [])
+      .map((s: unknown) => String(s).toLowerCase()).filter(Boolean);
     const structured = catAllow.size > 0 || svcTerms.length > 0 || nameTerms.length > 0;
 
     // Legacy: freies Keyword-Matching ueber alle Felder (fuer aeltere Clients).
@@ -84,9 +90,19 @@ Deno.serve(async (req) => {
     const scoreOf = (p: Record<string, unknown>): number => {
       let s = 0;
       const nm = String(p.name ?? "").toLowerCase();
-      if (nameTerms.length && nameTerms.some((t) => nm.includes(t))) s += 100;
-      if (svcTerms.length && provServices(p).some((sv) => svcTerms.some((t) => sv.includes(t)))) s += 50;
+      const nameHit = nameTerms.length > 0 && nameTerms.some((t) => nm.includes(t));
+      const svcHit = svcTerms.length > 0 && provServices(p).some((sv) => svcTerms.some((t) => sv.includes(t)));
+      if (nameHit) s += 100;
+      if (svcHit) s += 50;
       if (catAllow.size && provCats(p).some((c) => catAllow.has(c))) s += 10;
+      // Fachfremd ausschliessen: greift NUR bei reinen Kategorie-Treffern
+      // (kein Name- und kein Service-Signal). So fliegt ein falsch kategori-
+      // sierter Betrieb (z.B. Kran-/Finanzfirma unter "Rigg") raus, ein echter
+      // Betrieb mit passendem Service-Tag oder Namen bleibt IMMER drin.
+      if (s === 10 && nameExclude.length) {
+        const blob = (nm + " " + provCats(p).join(" ")).toLowerCase();
+        if (nameExclude.some((x) => blob.includes(x))) return 0;
+      }
       return s;
     };
 

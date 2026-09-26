@@ -239,6 +239,9 @@ struct ProviderQuery: Sendable {
     // Starke Begriffe, die im FIRMENNAMEN dedizierte Betriebe erkennen
     // (z.B. "tauwerk"/"ropes") und im Ranking ganz nach oben sortieren.
     var nameTerms: [String] = []
+    // Fachfremde Betriebe, die nur wegen einer (oft falschen) Kategorie
+    // auftauchen, per Name/Kategorie ausschliessen.
+    var nameExclude: [String] = []
 }
 
 /// Ableitung der Domaene aus Kategorie/Name. Bewusst MEHRSPRACHIG in der
@@ -255,7 +258,8 @@ enum ServiceKeywords {
             return ProviderQuery(
                 categoryAllow: ["rigg", "rigger", "segelmacher", "sailmaker", "zubehör", "takelage"],
                 serviceTerms: ["laufendes gut", "tauwerk", "takelage", "rigg"],
-                nameTerms: ["tauwerk", "tauw", "rope", "ropes", "spleiss", "spleiß", "cordage", "touw", "cordes"])
+                nameTerms: ["tauwerk", "tauw", "rope", "ropes", "spleiss", "spleiß", "cordage", "touw", "cordes"],
+                nameExclude: ["propeller", "motorservice", "motoren", "kran", "crane", "finance", "finanz", "versicherung", "insurance", "makler", "broker", "immobilien", "charter", "yachting", "gutachter", "survey"])
         }
         // Segel
         if any(["sail", "segel", "voile", "vela", "zeil", "genua", "gennaker", "spinnaker", "fock", "code 0"]) {
