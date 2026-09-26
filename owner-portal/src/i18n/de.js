@@ -444,6 +444,7 @@ export default {
   "chk.k13": "Zwischensumme",
   "chk.k14": "Versand",
   "chk.k15": "Kostenlos",
+  "chk.freeAbove": "Kostenlos (frei ab {amount})",
   "chk.k16": "Gesamt",
   "chk.k17": "Testmodus: Verwenden Sie die Kartennummer",
   "chk.k18": "Zu bezahlen",

@@ -69,10 +69,10 @@ Deno.serve(async (req) => {
 
     // ── Freigrenze prüfen ──
     if (zone === "domestic" && rule.free_threshold_domestic != null && sub >= Number(rule.free_threshold_domestic)) {
-      return json({ shipping_cost: 0, free: true, zone, reason: `Frei ab ${rule.free_threshold_domestic} € (${zone})`, currency: "EUR" });
+      return json({ shipping_cost: 0, free: true, free_threshold: Number(rule.free_threshold_domestic), zone, reason: `Frei ab ${rule.free_threshold_domestic} € (${zone})`, currency: "EUR" });
     }
     if (zone === "eu" && rule.free_threshold_eu != null && sub >= Number(rule.free_threshold_eu)) {
-      return json({ shipping_cost: 0, free: true, zone, reason: `Frei ab ${rule.free_threshold_eu} € (${zone})`, currency: "EUR" });
+      return json({ shipping_cost: 0, free: true, free_threshold: Number(rule.free_threshold_eu), zone, reason: `Frei ab ${rule.free_threshold_eu} € (${zone})`, currency: "EUR" });
     }
 
     // ── Gesamtgewicht ──

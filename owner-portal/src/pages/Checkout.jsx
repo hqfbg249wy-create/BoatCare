@@ -117,6 +117,7 @@ export default function Checkout() {
   const [shipByProvider, setShipByProvider] = useState({})
   const [shipTotal, setShipTotal] = useState(0)
   const [shipCalcPending, setShipCalcPending] = useState(false)
+  const [shipFreeThreshold, setShipFreeThreshold] = useState(null) // "frei ab X €"
 
   // Berechnet die Versandkosten je Provider-Gruppe über die calculate-shipping
   // Engine. Liefert Map(providerId -> Kosten) + Summe. Nutzt das gewählte
@@ -124,6 +125,7 @@ export default function Checkout() {
   async function computeShipping() {
     const map = {}
     let total = 0
+    let freeThreshold = null
     for (const [providerId, items] of Object.entries(groupedByProvider)) {
       if (providerId === 'unknown') { map[providerId] = 0; continue }
       const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
@@ -141,13 +143,15 @@ export default function Checkout() {
           },
         })
         const c = (ship && typeof ship.shipping_cost === 'number') ? ship.shipping_cost : 0
+        // Grund merken: kostenlos wegen Freigrenze -> im UI als Hinweis zeigen.
+        if (ship?.free && ship?.free_threshold) freeThreshold = Math.max(freeThreshold ?? 0, Number(ship.free_threshold))
         map[providerId] = c
         total += c
       } catch (_) {
         map[providerId] = 0
       }
     }
-    return { map, total: Math.round(total * 100) / 100 }
+    return { map, total: Math.round(total * 100) / 100, freeThreshold }
   }
 
   // Versand für die Anzeige (Review-Schritt) berechnen, sobald Land/Warenkorb
@@ -156,10 +160,11 @@ export default function Checkout() {
     if (step !== 1 || cart.length === 0) return
     let cancelled = false
     setShipCalcPending(true)
-    computeShipping().then(({ map, total }) => {
+    computeShipping().then(({ map, total, freeThreshold }) => {
       if (cancelled) return
       setShipByProvider(map)
       setShipTotal(total)
+      setShipFreeThreshold(freeThreshold ?? null)
       setShipCalcPending(false)
     })
     return () => { cancelled = true }
@@ -460,7 +465,11 @@ export default function Checkout() {
             <div className="checkout-total-row">
               <span>{t('chk.k14')}</span>
               <span>
-                {shipCalcPending ? '…' : (shipTotal > 0 ? `${shipTotal.toFixed(2).replace('.', ',')} €` : t('chk.k15'))}
+                {shipCalcPending ? '…' : (shipTotal > 0
+                  ? `${shipTotal.toFixed(2).replace('.', ',')} €`
+                  : (shipFreeThreshold
+                      ? t('chk.freeAbove', { amount: `${Number(shipFreeThreshold).toFixed(2).replace('.', ',')} €` })
+                      : t('chk.k15')))}
               </span>
             </div>
             <div className="checkout-total-row checkout-grand-total">
