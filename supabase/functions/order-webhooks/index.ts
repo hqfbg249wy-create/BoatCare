@@ -28,6 +28,16 @@ interface WebhookPayload {
     shipping_city: string;
     tracking_number?: string;
     tracking_url?: string;
+    // Bestellpositionen inkl. gewaehlter Variante (variant_sku/attributes).
+    line_items?: Array<{
+      product_name: string;
+      product_sku: string | null;
+      variant_sku: string | null;
+      variant: Record<string, unknown> | null;
+      quantity: number;
+      unit_price: number;
+      total: number;
+    }>;
   };
   timestamp: string;
 }
@@ -56,7 +66,7 @@ Deno.serve(async (req) => {
       .select(`
         *,
         service_providers(id, company_name, webhook_url, email),
-        order_items(id)
+        order_items(id, product_name, product_sku, variant_id, variant_sku, quantity, unit_price, total, product_variants(attributes))
       `)
       .eq("id", order_id)
       .single();
@@ -80,6 +90,15 @@ Deno.serve(async (req) => {
         shipping_city: order.shipping_city || "",
         tracking_number: order.tracking_number,
         tracking_url: order.tracking_url,
+        line_items: (order.order_items || []).map((it: any) => ({
+          product_name: it.product_name,
+          product_sku: it.product_sku ?? null,
+          variant_sku: it.variant_sku ?? null,
+          variant: it.product_variants?.attributes ?? null,
+          quantity: it.quantity,
+          unit_price: it.unit_price,
+          total: it.total,
+        })),
       },
       timestamp: new Date().toISOString(),
     };

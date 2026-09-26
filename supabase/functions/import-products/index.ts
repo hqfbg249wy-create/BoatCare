@@ -22,6 +22,7 @@ const ALLOWED = new Set([
   "name", "manufacturer", "part_number", "sku", "ean", "price", "currency",
   "stock_quantity", "description", "category", "category_id", "shipping_cost", "delivery_days",
   "weight_kg", "min_order_quantity", "is_active", "in_stock", "image_url", "source",
+  "variant_options",
 ]);
 
 Deno.serve(async (req) => {
@@ -70,6 +71,11 @@ Deno.serve(async (req) => {
       for (const k of Object.keys(p)) if (ALLOWED.has(k)) clean[k] = p[k];
       clean.provider_id = providerId;       // immer der validierte Provider
       clean.source = clean.source || "csv";
+      // Varianten separat (keine Spalte) mitfuehren -> nach dem Insert anlegen.
+      // Non-enumerable, damit sie NICHT in DB-Insert/Update landen.
+      Object.defineProperty(clean, "__variants", {
+        value: Array.isArray(p.variants) ? p.variants : null, enumerable: false,
+      });
       return clean;
     });
 
@@ -180,8 +186,33 @@ Deno.serve(async (req) => {
       } catch (e) { failed.push({ row: idx + 2, error: (e as Error).message }); }
     }
 
-    for (let i = 0; i < toInsert.length; i += 50) {
-      const batch = toInsert.slice(i, i + 50);
+    // Produkte MIT Varianten einzeln anlegen (brauchen die neue id, um
+    // product_variants zu schreiben); der Rest laeuft im 50er-Batch.
+    // deno-lint-ignore no-explicit-any
+    const plainBatch: any[] = [];
+    for (const r of toInsert) {
+      // deno-lint-ignore no-explicit-any
+      const variants = (r as any).__variants as Array<Record<string, unknown>> | null;
+      if (!variants || variants.length === 0) { plainBatch.push(r); continue; }
+      const { data, error } = await admin.from("metashop_products").insert(r).select("id").single();
+      if (error) { failed.push({ row: 0, error: error.message }); continue; }
+      ok++;
+      const vrows = variants.map((v, i) => ({
+        product_id: data.id,
+        attributes: (v.attributes && typeof v.attributes === "object") ? v.attributes : {},
+        price: v.price ?? null,
+        stock_quantity: v.stock_quantity ?? null,
+        in_stock: v.in_stock ?? true,
+        sku: v.sku ?? null,
+        image_url: v.image_url ?? null,
+        is_active: v.is_active ?? true,
+        sort_order: i,
+      }));
+      const { error: ve } = await admin.from("product_variants").insert(vrows);
+      if (ve) failed.push({ row: 0, error: "Varianten (" + (r.name ?? "") + "): " + ve.message });
+    }
+    for (let i = 0; i < plainBatch.length; i += 50) {
+      const batch = plainBatch.slice(i, i + 50);
       const { error } = await admin.from("metashop_products").insert(batch);
       if (error) batch.forEach((_, j) => failed.push({ row: i + j + 2, error: error.message }));
       else ok += batch.length;

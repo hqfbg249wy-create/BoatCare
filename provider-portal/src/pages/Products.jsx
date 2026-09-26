@@ -71,6 +71,7 @@ export default function Products() {
   const [selected, setSelected] = useState(() => new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [csvImporting, setCsvImporting] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [csvResult, setCsvResult] = useState(null) // { ok: n, failed: [{row, error}] }
   // Rückfrage-Dialog bei Zeilen ohne Artikelnummer, die per Name matchen:
   const [importReview, setImportReview] = useState(null) // { payloads, rows:[{index,name,...}], decisions:{} }
@@ -360,22 +361,97 @@ export default function Products() {
     'price', 'currency', 'stock_quantity', 'description',
     'category', 'shipping_cost', 'delivery_days', 'weight_kg',
     'min_order_quantity', 'is_active', 'in_stock', 'image_url',
+    // Produktvarianten (optional): mehrere Zeilen mit GLEICHEM name = ein
+    // Produkt mit Varianten. Preis/Bestand/SKU je Variante moeglich.
+    'variante1_name', 'variante1_wert', 'variante2_name', 'variante2_wert',
+    'variante_preis', 'variante_bestand', 'variante_sku', 'variante_bild',
   ]
 
   function downloadCsvTemplate() {
-    const sample = [
-      CSV_HEADERS.join(','),
-      'Impeller Jabsco 1210-0001,Jabsco,1210-0001,JAB-IMP-01,4012345678901,29.90,EUR,50,Impeller spare part for Jabsco cooling pumps,Engine & Drive,5.90,3,0.05,1,true,true,',
-      'Raymarine Element 9 HV,Raymarine,E70643,RAY-EL9,4012345678902,1299.00,EUR,5,Chartplotter with HyperVision sonar,Navigation & Electronics,0,7,1.8,1,true,true,',
-      'Dyneema Rope 10mm blue,Robline,,ROB-DYN10,,3.90,EUR,200,Dyneema core rope sold per metre,Ropes,0,5,0.06,5,true,true,',
-    ].join('\n')
-    const blob = new Blob([sample], { type: 'text/csv;charset=utf-8;' })
+    // Beispielzeilen als Objekte -> in Header-Reihenfolge serialisiert (keine
+    // verzaehlten Kommas). Zeigt u.a. ein Tauwerk mit zwei Durchmesser-Varianten
+    // (gleicher name, unterschiedlicher Preis).
+    const samples = [
+      { name: 'Impeller Jabsco 1210-0001', manufacturer: 'Jabsco', part_number: '1210-0001', sku: 'JAB-IMP-01', ean: '4012345678901', price: '29.90', currency: 'EUR', stock_quantity: '50', description: 'Impeller spare part', category: 'Engine & Drive', shipping_cost: '5.90', delivery_days: '3', weight_kg: '0.05', min_order_quantity: '1', is_active: 'true', in_stock: 'true' },
+      { name: 'Liros Race SK78', manufacturer: 'Liros', description: 'Hochfestes Tauwerk', category: 'Ropes', currency: 'EUR', is_active: 'true', in_stock: 'true', price: '100.00', variante1_name: 'Durchmesser', variante1_wert: '6mm', variante_preis: '100.00', variante_bestand: '20', variante_sku: 'LIROS-SK78-6' },
+      { name: 'Liros Race SK78', variante1_name: 'Durchmesser', variante1_wert: '8mm', variante_preis: '120.00', variante_bestand: '15', variante_sku: 'LIROS-SK78-8' },
+      { name: 'Liros Race SK78', variante1_name: 'Durchmesser', variante1_wert: '10mm', variante_preis: '150.00', variante_bestand: '10', variante_sku: 'LIROS-SK78-10' },
+    ]
+    const esc = (v) => { const s = String(v ?? ''); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s }
+    const lines = [CSV_HEADERS.join(',')]
+    for (const row of samples) lines.push(CSV_HEADERS.map(h => esc(row[h])).join(','))
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = 'skipily-produkte-vorlage.csv'
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  // Bestehenden Produktbestand im NEUEN Vorlagen-Format exportieren (inkl.
+  // Varianten-Spalten). Produkte mit Varianten werden Shopify-artig auf mehrere
+  // Zeilen (gleicher Name) verteilt. Die Datei ist 1:1 wieder importierbar.
+  async function exportProducts() {
+    setExporting(true)
+    setMessage(null)
+    try {
+      const { data: prods, error } = await supabase
+        .from('metashop_products')
+        .select('name, manufacturer, part_number, sku, ean, price, currency, stock_quantity, description, category, shipping_cost, delivery_days, weight_kg, min_order_quantity, is_active, in_stock, image_url, variant_options, id')
+        .eq('provider_id', provider.id)
+        .order('name')
+      if (error) throw error
+      const list = prods || []
+      const ids = list.map(p => p.id)
+      let variantsByProduct = {}
+      if (ids.length) {
+        const { data: vs } = await supabase
+          .from('product_variants').select('*').in('product_id', ids).order('sort_order')
+        for (const v of (vs || [])) (variantsByProduct[v.product_id] ||= []).push(v)
+      }
+      const boolStr = (b) => b === false ? 'false' : 'true'
+      const baseOf = (p) => ({
+        name: p.name || '', manufacturer: p.manufacturer || '', part_number: p.part_number || '',
+        sku: p.sku || '', ean: p.ean || '', price: p.price ?? '', currency: p.currency || 'EUR',
+        stock_quantity: p.stock_quantity ?? '', description: p.description || '', category: p.category || '',
+        shipping_cost: p.shipping_cost ?? '', delivery_days: p.delivery_days ?? '', weight_kg: p.weight_kg ?? '',
+        min_order_quantity: p.min_order_quantity ?? '', is_active: boolStr(p.is_active), in_stock: boolStr(p.in_stock),
+        image_url: p.image_url || '',
+      })
+      const aoa = [CSV_HEADERS]
+      for (const p of list) {
+        const opts = Array.isArray(p.variant_options) ? p.variant_options.filter(o => o?.name) : []
+        const vs = variantsByProduct[p.id] || []
+        if (opts.length && vs.length) {
+          const opt1 = opts[0]?.name || '', opt2 = opts[1]?.name || ''
+          vs.forEach((v, i) => {
+            const a = v.attributes || {}
+            const row = i === 0 ? baseOf(p) : { name: p.name }
+            row.variante1_name = opt1
+            row.variante1_wert = opt1 ? (a[opt1] ?? '') : ''
+            row.variante2_name = opt2
+            row.variante2_wert = opt2 ? (a[opt2] ?? '') : ''
+            row.variante_preis = v.price ?? ''
+            row.variante_bestand = v.stock_quantity ?? ''
+            row.variante_sku = v.sku || ''
+            row.variante_bild = v.image_url || ''
+            aoa.push(CSV_HEADERS.map(h => row[h] ?? ''))
+          })
+        } else {
+          const row = baseOf(p)
+          aoa.push(CSV_HEADERS.map(h => row[h] ?? ''))
+        }
+      }
+      const ws = XLSX.utils.aoa_to_sheet(aoa)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Products')
+      XLSX.writeFile(wb, 'skipily-produkte-export.xlsx')
+    } catch (err) {
+      setMessage({ type: 'error', text: t('common.errorPrefix') + ' ' + err.message })
+    } finally {
+      setExporting(false)
+    }
   }
 
   // Header-Aliase: deutsche/englische Schreibweisen → kanonischer Feldname.
@@ -398,6 +474,16 @@ export default function Products() {
     is_active: ['is_active', 'aktiv', 'active'],
     in_stock: ['in_stock', 'verfügbar', 'verfuegbar', 'vorrätig', 'vorraetig', 'lieferbar'],
     image_url: ['image_url', 'bild', 'bild_url', 'bildurl', 'foto', 'image', 'picture', 'bild-url'],
+    // Produktvarianten (Shopify-artig): mehrere Zeilen mit gleichem Namen bilden
+    // EIN Produkt; jede Zeile mit Optionswerten wird eine Variante.
+    v_opt1_name: ['variante1_name', 'variante_option1', 'option1_name', 'option1', 'optionsname1', 'variantenname1'],
+    v_val1: ['variante1_wert', 'variante_wert1', 'option1_wert', 'option1_value', 'option1_wert1', 'wert1', 'variantenwert1'],
+    v_opt2_name: ['variante2_name', 'variante_option2', 'option2_name', 'option2', 'optionsname2', 'variantenname2'],
+    v_val2: ['variante2_wert', 'variante_wert2', 'option2_wert', 'option2_value', 'wert2', 'variantenwert2'],
+    v_price: ['variante_preis', 'variantenpreis', 'variant_price', 'variantpreis'],
+    v_stock: ['variante_bestand', 'variantenbestand', 'variant_stock', 'variante_menge'],
+    v_sku: ['variante_sku', 'variantensku', 'variant_sku'],
+    v_image: ['variante_bild', 'variant_image', 'variante_bild_url', 'variantbild'],
   }
   const ALIAS_LOOKUP = (() => {
     const m = {}
@@ -499,6 +585,70 @@ export default function Products() {
     }
   }
 
+  // Gruppiert Importzeilen zu Produkten: mehrere Zeilen mit GLEICHEM name
+  // bilden EIN Produkt; Zeilen mit Optionswerten werden zu Varianten
+  // (Shopify-artig, mit Preis/Bestand/SKU je Variante). Zeilen ohne Varianten-
+  // spalten ergeben ein normales Produkt.
+  function buildImportPayloads(rows, failed) {
+    const numOf = (v) => {
+      if (v == null || v === '') return null
+      let s = String(v).trim()
+      const hasC = s.includes(','), hasD = s.includes('.')
+      if (hasC && hasD) s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '')
+      else if (hasC) s = s.replace(',', '.')
+      const n = parseFloat(s); return isNaN(n) ? null : n
+    }
+    const intOf = (v) => { const n = numOf(v); return n == null ? null : Math.round(n) }
+    const groups = new Map()
+    const order = []
+    rows.forEach((row, idx) => {
+      const name = (row.name || '').trim()
+      if (!name) { failed.push({ row: idx + 2, error: 'Name fehlt' }); return }
+      const key = name.toLowerCase()
+      if (!groups.has(key)) { groups.set(key, []); order.push(key) }
+      groups.get(key).push({ row, idx })
+    })
+
+    const payloads = []
+    for (const key of order) {
+      const grp = groups.get(key)
+      const base = rowToPayload(grp[0].row)
+      const opt1 = (grp.map(g => (g.row.v_opt1_name || '').trim()).find(Boolean)) || ''
+      const opt2 = (grp.map(g => (g.row.v_opt2_name || '').trim()).find(Boolean)) || ''
+      const variantRows = grp.filter(g => (g.row.v_val1 || '').trim() || (g.row.v_val2 || '').trim())
+
+      if ((opt1 || opt2) && variantRows.length) {
+        const distinct = (arr) => [...new Set(arr.filter(Boolean))]
+        const options = []
+        if (opt1) options.push({ name: opt1, values: distinct(variantRows.map(g => (g.row.v_val1 || '').trim())) })
+        if (opt2) options.push({ name: opt2, values: distinct(variantRows.map(g => (g.row.v_val2 || '').trim())) })
+        base.variant_options = options.length ? options : null
+        base.variants = variantRows.map(g => {
+          const attrs = {}
+          if (opt1 && (g.row.v_val1 || '').trim()) attrs[opt1] = g.row.v_val1.trim()
+          if (opt2 && (g.row.v_val2 || '').trim()) attrs[opt2] = g.row.v_val2.trim()
+          return {
+            attributes: attrs,
+            price: numOf(g.row.v_price) ?? base.price,
+            stock_quantity: intOf(g.row.v_stock) ?? base.stock_quantity ?? 0,
+            sku: (g.row.v_sku || '').trim() || null,
+            image_url: (g.row.v_image || '').trim() || null,
+            in_stock: true, is_active: true,
+          }
+        })
+      }
+
+      if (base.price == null && (!base.variants || !base.variants.length)) {
+        failed.push({ row: grp[0].idx + 2, error: 'Preis fehlt' })
+        continue
+      }
+      // Produktpreis notfalls aus der ersten Variante ableiten.
+      if (base.price == null && base.variants?.length) base.price = base.variants[0].price ?? 0
+      payloads.push(base)
+    }
+    return payloads
+  }
+
   // Ruft die import-products Edge Function (preview oder commit).
   async function callImport({ products, mode, decisions }) {
     const { data: { session } } = await supabase.auth.getSession()
@@ -561,16 +711,8 @@ export default function Products() {
         return
       }
 
-      const payloads = []
       const failed = []
-      rows.forEach((row, idx) => {
-        const p = rowToPayload(row)
-        if (!p.name || p.price == null) {
-          failed.push({ row: idx + 2, error: 'Name oder Preis fehlt' })
-          return
-        }
-        payloads.push(p)
-      })
+      const payloads = buildImportPayloads(rows, failed)
 
       // Zuerst Vorschau: gibt es Zeilen ohne Artikelnummer, die per Name auf
       // ein vorhandenes Produkt matchen? Die brauchen eine Rückfrage, damit
@@ -973,6 +1115,14 @@ export default function Products() {
               ? <><Loader size={16} className="spin" /> {t('products.importing')}</>
               : <><FileSpreadsheet size={16} /> {t('products.importCsvExcel')}</>}
           </button>
+          {products.length > 0 && (
+            <button className="btn-secondary" onClick={exportProducts} disabled={exporting}
+              title={t('products.exportTitle')}>
+              {exporting
+                ? <><Loader size={16} className="spin" /> {t('products.exporting')}</>
+                : <><Download size={16} /> {t('products.exportProducts')}</>}
+            </button>
+          )}
           <input
             type="file"
             ref={csvInputRef}
