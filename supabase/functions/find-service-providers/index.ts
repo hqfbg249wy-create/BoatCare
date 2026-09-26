@@ -38,7 +38,15 @@ Deno.serve(async (req) => {
 
     // Domaenen-Suche in der DB (Regeln zentral in einer RPC, nicht mehr je
     // Frontend dupliziert). Aktuell: 'rope' -> find_rope_providers().
-    if (body.domain === "rope") {
+    // Auto-Erkennung: auch ALTE Clients (die noch Terme statt domain senden)
+    // werden am Tauwerk-Signal erkannt und auf die RPC geleitet -> KEIN
+    // Portal-/iOS-Neubau noetig, damit die neue Logik greift.
+    const rawName = (Array.isArray(body.name_terms) ? body.name_terms : []).map((x: unknown) => String(x).toLowerCase());
+    const rawSvc = (Array.isArray(body.service_terms) ? body.service_terms : []).map((x: unknown) => String(x).toLowerCase());
+    const isRopeDomain = body.domain === "rope"
+      || rawName.includes("tauwerk") || rawName.includes("rope") || rawName.includes("spleiss")
+      || rawSvc.includes("tauwerk");
+    if (isRopeDomain) {
       const { data: rows, error } = await svc.rpc("find_rope_providers");
       if (error) return json({ error: error.message }, 500);
       const list = (rows ?? []) as Array<Record<string, unknown>>;
