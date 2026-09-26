@@ -366,8 +366,37 @@ a { color: var(--blue); text-decoration: none; }
   .sidebar-overlay { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 99; }
   .main-content { margin-left: 0; }
   .hamburger { display: block; margin-right: 12px; }
-  .chat-layout { grid-template-columns: 1fr; height: auto; }
-  .chat-sidebar { max-height: 200px; }
+}
+
+/* ── Telefon / schmale Ansicht: vollständig responsiv ─────────────── */
+@media (max-width: 768px) {
+  /* Inhaltsränder schlanker, kein horizontales Scrollen der Seite */
+  .content { padding: 12px; }
+  .page { padding: 0; }
+  .page h1 { font-size: 1.3rem; }
+  .card { padding: 14px; }
+
+  /* Grids einspaltig */
+  .stats-grid, .insights-grid { grid-template-columns: 1fr !important; }
+  .form-row { grid-template-columns: 1fr !important; display: grid; gap: 12px; }
+
+  /* Breite Tabellen horizontal scrollbar machen statt Seite sprengen */
+  .table-container, .model-table, .variant-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .data-table, .model-table table { min-width: 560px; }
+
+  /* Buttons in Reihen umbrechen */
+  .offer-actions, .form-actions { flex-wrap: wrap; }
+
+  /* ── Nachrichten: eine Spalte, Liste ODER Thread (wie eine Chat-App) ── */
+  .chat-layout { grid-template-columns: 1fr; height: calc(100vh - 150px); min-height: 0; }
+  /* Standard: Kontaktliste zeigen, Thread verborgen */
+  .chat-layout .chat-main { display: none; }
+  .chat-layout .chat-sidebar { display: block; border-right: none; }
+  /* Sobald eine Konversation gewählt ist: Thread zeigen, Liste verbergen */
+  .chat-layout.has-selection .chat-sidebar { display: none; }
+  .chat-layout.has-selection .chat-main { display: flex; }
+  /* Zurück-Pfeil im Thread-Kopf einblenden */
+  .chat-layout.has-selection .chat-back { display: inline-flex !important; }
 }
 
 /* ── Anfragen (Inquiries) ─────────────────────────────────────────── */

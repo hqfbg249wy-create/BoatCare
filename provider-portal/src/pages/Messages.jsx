@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import { supabase } from '../lib/supabase'
-import { MessageSquare, Send, Search, Sparkles, Loader, Trash2, Archive, ArchiveRestore } from 'lucide-react'
+import { MessageSquare, Send, Search, Sparkles, Loader, Trash2, Archive, ArchiveRestore, ChevronLeft } from 'lucide-react'
 import { useT } from '../i18n'
 
 export default function Messages() {
@@ -273,7 +273,7 @@ export default function Messages() {
         )}
       </h1>
 
-      <div className="chat-layout">
+      <div className={`chat-layout ${selected ? 'has-selection' : ''}`}>
         <div className="chat-sidebar">
           {/* Search */}
           <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--gray-200)' }}>
@@ -342,8 +342,14 @@ export default function Messages() {
             </div>
           ) : (
             <>
-              <div className="chat-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <strong>{getUserName(selected)}</strong>
+              <div className="chat-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  <button className="chat-back" onClick={() => setSelected(null)} title={t('common.back') || 'Zurück'}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'none', alignItems: 'center', color: 'var(--gray-600)' }}>
+                    <ChevronLeft size={22} />
+                  </button>
+                  <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getUserName(selected)}</strong>
+                </span>
                 <button onClick={() => deleteConversation(selected.id)} title={t('msg.deleteConv')}
                   style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 4, display: 'inline-flex' }}>
                   <Trash2 size={16} />

@@ -13,7 +13,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { corsHeaders } from "../_shared/cors.ts";
-import { emailTo } from "../_shared/notify.ts";
+import { emailTo, pushToUser } from "../_shared/notify.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
     if (inq.order_id) return json({ error: "Angebot wurde bereits angenommen", code: "already_ordered" }, 409);
 
     const { data: buyer } = await svc.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
-    const { data: provider } = await svc.from("service_providers").select("name, email").eq("id", inq.provider_id).maybeSingle();
+    const { data: provider } = await svc.from("service_providers").select("name, email, user_id").eq("id", inq.provider_id).maybeSingle();
     const buyerName = buyer?.full_name ?? "Ein Kunde";
     const ref = inq.subject ? `„${inq.subject}"` : "deine Anfrage";
 
@@ -107,6 +107,16 @@ Deno.serve(async (req) => {
       await emailTo(provider.email, "Rueckfrage zu deinem Angebot",
         `${buyerName} hat eine Rueckfrage zu ${ref}:\n\n${q}\n\n` +
           `Bitte antworte im Anbieter-Portal (Nachrichten) und passe bei Bedarf dein Angebot an.\n\nDein Skipily-Team`);
+    }
+
+    // Push an den Anbieter (falls er ein Konto + Gerät registriert hat).
+    // Best-effort: ohne Geraetetoken/APNs passiert nichts.
+    if (provider?.user_id) {
+      await pushToUser(
+        provider.user_id,
+        "Neue Rueckfrage zu deinem Angebot",
+        `${buyerName}: ${q.slice(0, 120)}`,
+      );
     }
 
     return json({ ok: true });
