@@ -408,6 +408,7 @@ struct InquiriesContent: View {
                     Label("inq.offer_decline".loc, systemImage: "xmark.circle")
                         .font(.subheadline)
                 }
+                .buttonStyle(.borderless)
                 .disabled(offerActioningId != nil || acceptingId != nil)
                 Spacer(minLength: 0)
                 Button {
@@ -418,6 +419,7 @@ struct InquiriesContent: View {
                     Label("inq.offer_question".loc, systemImage: "questionmark.bubble")
                         .font(.subheadline)
                 }
+                .buttonStyle(.borderless)
                 .disabled(offerActioningId != nil)
             }
 
