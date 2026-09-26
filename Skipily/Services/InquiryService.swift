@@ -28,6 +28,7 @@ final class InquiryService {
     func findProviders(query: ProviderQuery, countries: [String]) async throws
         -> (providers: [QuoteProvider], countries: [QuoteCountry], total: Int) {
         struct Body: Encodable {
+            let domain: String?
             let category_allow: [String]; let service_terms: [String]
             let name_terms: [String]; let name_exclude: [String]; let countries: [String]
         }
@@ -38,6 +39,7 @@ final class InquiryService {
         let resp: Resp = try await client.functions.invoke(
             "find-service-providers",
             options: .init(body: Body(
+                domain: query.domain,
                 category_allow: query.categoryAllow, service_terms: query.serviceTerms,
                 name_terms: query.nameTerms, name_exclude: query.nameExclude, countries: countries))
         )

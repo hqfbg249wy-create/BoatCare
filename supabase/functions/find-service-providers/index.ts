@@ -35,6 +35,30 @@ Deno.serve(async (req) => {
     if (authErr || !user) return json({ error: "Invalid token" }, 401);
 
     const body = await req.json().catch(() => ({}));
+
+    // Domaenen-Suche in der DB (Regeln zentral in einer RPC, nicht mehr je
+    // Frontend dupliziert). Aktuell: 'rope' -> find_rope_providers().
+    if (body.domain === "rope") {
+      const { data: rows, error } = await svc.rpc("find_rope_providers");
+      if (error) return json({ error: error.message }, 500);
+      const list = (rows ?? []) as Array<Record<string, unknown>>;
+      const cc: Record<string, number> = {};
+      for (const p of list) {
+        const c = String(p.country ?? "");
+        if (c) cc[c] = (cc[c] || 0) + 1;
+      }
+      return json({
+        ok: true,
+        total: list.length,
+        countries: Object.entries(cc).sort((a, b) => b[1] - a[1]).map(([country, count]) => ({ country, count })),
+        providers: list.map((p) => ({
+          id: p.id, name: p.name, city: p.city ?? null,
+          country: p.country ?? null, category: p.category ?? null,
+          has_email: !!p.has_email,
+        })),
+      });
+    }
+
     const { keywords, countries, limit, category_allow, service_terms, name_terms } = body;
     // Strukturiertes Matching (bevorzugt): Betrieb passt, wenn sein NAME einen
     // starken Begriff enthaelt (z.B. "tauwerk"/"ropes"), ODER ein Service-Tag

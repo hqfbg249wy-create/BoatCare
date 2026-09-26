@@ -242,6 +242,9 @@ struct ProviderQuery: Sendable {
     // Fachfremde Betriebe, die nur wegen einer (oft falschen) Kategorie
     // auftauchen, per Name/Kategorie ausschliessen.
     var nameExclude: [String] = []
+    // Zentrale DB-Domänensuche (z.B. "rope" -> find_rope_providers); wenn
+    // gesetzt, ignoriert die Function die obigen Felder und nutzt die RPC.
+    var domain: String? = nil
 }
 
 /// Ableitung der Domaene aus Kategorie/Name. Bewusst MEHRSPRACHIG in der
@@ -256,10 +259,9 @@ enum ServiceKeywords {
         if any(["rope", "tauwerk", "tauw", "leine", "festmacher", "schot", "fall",
                 "spleiß", "spleiss", "cordage", "cordame", "cabo", "touw", "gréement", "line"]) {
             return ProviderQuery(
-                categoryAllow: ["rigg", "rigger", "segelmacher", "sailmaker", "zubehör", "takelage"],
-                serviceTerms: ["laufendes gut", "tauwerk", "takelage", "rigg"],
-                nameTerms: ["tauwerk", "tauw", "rope", "ropes", "spleiss", "spleiß", "cordage", "touw", "cordes"],
-                nameExclude: ["propeller", "motorservice", "motoren", "kran", "crane", "finance", "finanz", "versicherung", "insurance", "makler", "broker", "immobilien", "charter", "yachting", "gutachter", "survey"])
+                categoryAllow: [], serviceTerms: [],
+                // Zentrale Tauwerk-Suche in der DB (RPC find_rope_providers).
+                domain: "rope")
         }
         // Segel
         if any(["sail", "segel", "voile", "vela", "zeil", "genua", "gennaker", "spinnaker", "fock", "code 0"]) {

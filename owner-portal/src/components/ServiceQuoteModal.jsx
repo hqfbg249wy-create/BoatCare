@@ -27,7 +27,9 @@ export default function ServiceQuoteModal({ item, boatName, onClose }) {
       setLoading(true); setLoadError(null)
       const q = providerQueryForItem(item)
       const { data, error } = await supabase.functions.invoke('find-service-providers', {
-        body: { category_allow: q.category_allow, service_terms: q.service_terms, name_terms: q.name_terms || [], name_exclude: q.name_exclude || [], countries: [] },
+        body: q.domain
+          ? { domain: q.domain, countries: [] }
+          : { category_allow: q.category_allow, service_terms: q.service_terms, name_terms: q.name_terms || [], name_exclude: q.name_exclude || [], countries: [] },
       })
       if (!alive) return
       if (error || data?.ok !== true) {

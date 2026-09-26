@@ -45,14 +45,10 @@ export function resolveProviderQuery(text) {
   const c = (text || '').toLowerCase()
   const any = (ks) => ks.some(k => c.includes(k))
 
+  // Tauwerk: zentrale DB-Suche (Regeln in RPC find_rope_providers), damit die
+  // Trefferlogik nicht mehr je Frontend gepflegt werden muss.
   if (any(['rope', 'tauwerk', 'tauw', 'leine', 'festmacher', 'schot', 'fall', 'spleiß', 'spleiss', 'cordage', 'cordame', 'cabo', 'touw', 'gréement', 'line']))
-    return { category_allow: ['rigg', 'rigger', 'segelmacher', 'sailmaker', 'zubehör', 'takelage'],
-             service_terms: ['laufendes gut', 'tauwerk', 'takelage', 'rigg'],
-             name_terms: ['tauwerk', 'tauw', 'rope', 'ropes', 'spleiss', 'spleiß', 'cordage', 'touw', 'cordes'],
-             // Fachfremde Betriebe, die nur wegen einer (oft falschen) Kategorie
-             // wie "Rigg"/"Segelmacher" auftauchen (Kran, Propeller, Finanz,
-             // Charter/Broker, Motorservice), rauswerfen.
-             name_exclude: ['propeller', 'motorservice', 'motoren', 'kran', 'crane', 'finance', 'finanz', 'versicherung', 'insurance', 'makler', 'broker', 'immobilien', 'charter', 'yachting', 'gutachter', 'survey'] }
+    return { domain: 'rope' }
   if (any(['sail', 'segel', 'voile', 'vela', 'zeil', 'genua', 'gennaker', 'spinnaker', 'fock', 'code 0']))
     return { category_allow: ['segelmacher', 'sailmaker', 'zubehör'],
              service_terms: ['segel', 'großsegel', 'genua', 'fock', 'persenning'],
