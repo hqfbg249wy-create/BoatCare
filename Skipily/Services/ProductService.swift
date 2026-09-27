@@ -92,6 +92,33 @@ final class ProductService {
             }
         }
 
+        // Unscharfe Suche zentral in der DB (search_products RPC): sucht ueber
+        // Name/Hersteller/Beschreibung/Artikelnr./Tags UND Kategorienamen, mit
+        // Synonymen (Kleidung=Bekleidung=clothing ...) und Tippfehler-Toleranz.
+        // Ranking + Filter + Pagination liegen in der RPC. Gibt SETOF
+        // metashop_products zurueck -> Embeds (product_categories,
+        // service_providers) funktionieren wie bei .from().
+        if let searchQuery, !searchQuery.isEmpty {
+            struct SearchParams: Encodable {
+                let q: String
+                let p_category: String?
+                let p_provider: String?
+                let p_limit: Int
+                let p_offset: Int
+            }
+            let searched: [Product] = try await client
+                .rpc("search_products", params: SearchParams(
+                    q: searchQuery,
+                    p_category: categoryId?.uuidString,
+                    p_provider: nil,
+                    p_limit: limit,
+                    p_offset: offset))
+                .select(productSelect)
+                .execute()
+                .value
+            return searched
+        }
+
         var query = client
             .from("metashop_products")
             .select(productSelect)
@@ -99,10 +126,6 @@ final class ProductService {
 
         if let categoryId {
             query = query.eq("category_id", value: categoryId.uuidString)
-        }
-
-        if let searchQuery, !searchQuery.isEmpty {
-            query = query.ilike("name", pattern: "%\(searchQuery)%")
         }
 
         // WICHTIG: stabiler Zweit-Sortierschlüssel `id`. Ohne ihn ist die

@@ -205,30 +205,32 @@ export default function Shop() {
   }
 
   async function loadProducts(pageNum, append = false) {
-    let query = supabase
-      .from('metashop_products')
-      .select(LIST_SELECT)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1)
-
-    if (search) {
-      // Split search into words and match any word in name, manufacturer, or description
-      const words = search.trim().split(/\s+/).filter(w => w.length >= 2)
-      if (words.length === 1) {
-        query = query.or(`name.ilike.%${words[0]}%,manufacturer.ilike.%${words[0]}%,description.ilike.%${words[0]}%`)
-      } else if (words.length > 1) {
-        // Match any word in any field — builds OR conditions for each word
-        const conditions = words.flatMap(w => [
-          `name.ilike.%${w}%`,
-          `manufacturer.ilike.%${w}%`,
-          `description.ilike.%${w}%`
-        ])
-        query = query.or(conditions.join(','))
-      }
+    let query
+    if (search && search.trim().length >= 2) {
+      // Unscharfe Suche zentral in der DB (search_products RPC): sucht ueber
+      // Name/Hersteller/Beschreibung/Artikelnr./Tags UND Kategorienamen, mit
+      // Synonymen (Kleidung=Bekleidung=clothing ...) und Tippfehler-Toleranz.
+      // Ranking + Filter + Pagination passieren in der RPC -> hier KEIN
+      // zusaetzliches order()/range().
+      query = supabase
+        .rpc('search_products', {
+          q: search.trim(),
+          p_category: selectedCat || null,
+          p_provider: providerFilter || null,
+          p_limit: PAGE_SIZE,
+          p_offset: pageNum * PAGE_SIZE,
+        })
+        .select(LIST_SELECT)
+    } else {
+      query = supabase
+        .from('metashop_products')
+        .select(LIST_SELECT)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1)
+      if (selectedCat) query = query.eq('category_id', selectedCat)
+      if (providerFilter) query = query.eq('provider_id', providerFilter)
     }
-    if (selectedCat) query = query.eq('category_id', selectedCat)
-    if (providerFilter) query = query.eq('provider_id', providerFilter)
 
     const { data, error } = await query
     if (error) { console.error('Products error:', error); return }
