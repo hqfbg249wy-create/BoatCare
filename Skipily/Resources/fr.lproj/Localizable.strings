@@ -1088,6 +1088,7 @@
 "inq.filterAll" = "Toutes";
 "inq.providerFallback" = "Prestataire";
 "inq.yourMessage" = "Ton message";
+"inq.thread_title" = "Historique";
 "inq.replyFrom" = "Réponse de %@";
 "inq.noneAll" = "Aucune demande pour l’instant";
 "inq.noneFiltered" = "Aucune demande %@";

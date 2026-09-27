@@ -112,6 +112,29 @@ final class InquiryService {
         }
     }
 
+    /// Kompletter Rückfragen-Thread einer Anfrage (zentral aus der DB).
+    func inquiryThread(inquiryId: UUID) async throws -> [InquiryThreadMessage] {
+        struct P: Encodable { let p_inquiry_id: String }
+        return try await client
+            .rpc("get_inquiry_thread", params: P(p_inquiry_id: inquiryId.uuidString))
+            .execute()
+            .value
+    }
+
+    /// Thread als gelesen markieren (setzt den Badge zurück).
+    func markInquiryRead(inquiryId: UUID) async throws {
+        struct P: Encodable { let p_inquiry_id: String }
+        try await client
+            .rpc("mark_inquiry_read", params: P(p_inquiry_id: inquiryId.uuidString))
+            .execute()
+    }
+
+    /// Ungelesene Rückfragen gesamt (für Tab-Badge).
+    func inquiryUnreadTotal() async throws -> Int {
+        let n: Int = try await client.rpc("inquiry_unread_total").execute().value
+        return n
+    }
+
     /// Nimmt das Angebot eines Anbieters an → erzeugt eine Deferred-Bestellung
     /// (Zahlung via Stripe) und liefert deren Order-ID.
     func acceptOffer(inquiryId: UUID) async throws -> UUID {
@@ -328,4 +351,13 @@ private extension String {
     func nilIfEmpty() -> String? {
         isEmpty ? nil : self
     }
+}
+
+/// Eine Nachricht im Rückfragen-Thread (aus get_inquiry_thread).
+struct InquiryThreadMessage: Decodable, Identifiable, Hashable {
+    let id: UUID
+    let sender_type: String
+    let content: String
+    let created_at: String?
+    let is_mine: Bool
 }

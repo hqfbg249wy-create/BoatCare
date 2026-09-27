@@ -1088,6 +1088,7 @@
 "inq.filterAll" = "Tutte";
 "inq.providerFallback" = "Fornitore";
 "inq.yourMessage" = "Il tuo messaggio";
+"inq.thread_title" = "Cronologia";
 "inq.replyFrom" = "Risposta da %@";
 "inq.noneAll" = "Ancora nessuna richiesta";
 "inq.noneFiltered" = "Nessuna richiesta %@";

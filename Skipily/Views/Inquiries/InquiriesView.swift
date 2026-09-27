@@ -40,6 +40,8 @@ struct InquiriesContent: View {
     @State private var offerActioningId: UUID? = nil
     @State private var showQuestionFor: UUID? = nil
     @State private var questionDrafts: [UUID: String] = [:]
+    // Rückfragen-Thread (zentral aus der DB) je Anfrage
+    @State private var threads: [UUID: [InquiryThreadMessage]] = [:]
 
     private var filtered: [ServiceInquiry] {
         if showArchived {
@@ -218,6 +220,7 @@ struct InquiriesContent: View {
                     justReadIds.insert(inq.id)
                     Task { await InquiryService.shared.markReplyRead(id: inq.id) }
                 }
+                if willExpand { Task { await loadThread(inq.id) } }
             } label: {
                 HStack(alignment: .top, spacing: 12) {
                     // Provider icon
@@ -300,6 +303,11 @@ struct InquiriesContent: View {
                     // Provider reply
                     if let reply = inq.providerReply, !reply.isEmpty {
                         infoBox(label: String(format: "inq.replyFrom".loc, inq.provider?.name ?? "inq.providerFallback".loc), text: reply, color: .green)
+                    }
+
+                    // Rückfragen-Verlauf (alles zur Anfrage an einem Ort)
+                    if let msgs = threads[inq.id], !msgs.isEmpty {
+                        threadBox(msgs)
                     }
 
                     // Angebot des Anbieters -> annehmen & bezahlen (via Stripe)
@@ -483,10 +491,51 @@ struct InquiriesContent: View {
             try await InquiryService.shared.askOfferQuestion(inquiryId: inq.id, text: text)
             questionDrafts[inq.id] = ""
             withAnimation { showQuestionFor = nil }
+            await loadThread(inq.id)
             await reload()
         } catch {
             acceptInfo = error.localizedDescription
         }
+    }
+
+    // Rückfragen-Verlauf laden + als gelesen markieren (Badge zurücksetzen).
+    @MainActor
+    private func loadThread(_ inquiryId: UUID) async {
+        do {
+            let msgs = try await InquiryService.shared.inquiryThread(inquiryId: inquiryId)
+            threads[inquiryId] = msgs
+            try? await InquiryService.shared.markInquiryRead(inquiryId: inquiryId)
+            // Badge aktualisieren: Rückfragen sind Nachrichten -> Ungelesen-
+            // Zähler nach dem Lesen neu laden.
+            if let uid = authService.currentUser?.id {
+                await MessagingService.shared.loadUnreadCount(userId: uid)
+            }
+        } catch { /* Thread optional */ }
+    }
+
+    @ViewBuilder
+    private func threadBox(_ msgs: [InquiryThreadMessage]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("inq.thread_title".loc.uppercased())
+                .font(.caption2).fontWeight(.semibold).foregroundStyle(.secondary)
+            ForEach(msgs) { m in
+                HStack {
+                    if m.is_mine { Spacer(minLength: 32) }
+                    Text(m.content)
+                        .font(.footnote)
+                        .padding(.horizontal, 10).padding(.vertical, 7)
+                        .background(m.is_mine ? AppColors.primary : AppColors.gray100)
+                        .foregroundStyle(m.is_mine ? Color.white : Color.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    if !m.is_mine { Spacer(minLength: 32) }
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.gray50)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.horizontal, 14)
     }
 
     @MainActor

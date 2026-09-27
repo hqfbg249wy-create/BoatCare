@@ -1090,6 +1090,7 @@ Ausrüstung unter Boote ergänzen.";
 "inq.filterAll" = "Alle";
 "inq.providerFallback" = "Anbieter";
 "inq.yourMessage" = "Deine Nachricht";
+"inq.thread_title" = "Verlauf";
 "inq.replyFrom" = "Antwort von %@";
 "inq.noneAll" = "Noch keine Anfragen";
 "inq.noneFiltered" = "Keine %@-Anfragen";

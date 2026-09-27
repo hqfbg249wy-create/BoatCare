@@ -1088,6 +1088,7 @@
 "inq.filterAll" = "Alle";
 "inq.providerFallback" = "Aanbieder";
 "inq.yourMessage" = "Jouw bericht";
+"inq.thread_title" = "Verloop";
 "inq.replyFrom" = "Antwoord van %@";
 "inq.noneAll" = "Nog geen aanvragen";
 "inq.noneFiltered" = "Geen %@-aanvragen";

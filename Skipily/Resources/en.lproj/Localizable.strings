@@ -1087,6 +1087,7 @@
 "inq.filterAll" = "All";
 "inq.providerFallback" = "Provider";
 "inq.yourMessage" = "Your message";
+"inq.thread_title" = "Conversation";
 "inq.replyFrom" = "Reply from %@";
 "inq.noneAll" = "No requests yet";
 "inq.noneFiltered" = "No %@ requests";

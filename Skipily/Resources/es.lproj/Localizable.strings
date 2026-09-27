@@ -1088,6 +1088,7 @@
 "inq.filterAll" = "Todas";
 "inq.providerFallback" = "Proveedor";
 "inq.yourMessage" = "Tu mensaje";
+"inq.thread_title" = "Conversación";
 "inq.replyFrom" = "Respuesta de %@";
 "inq.noneAll" = "Aún no hay solicitudes";
 "inq.noneFiltered" = "Sin solicitudes %@";
