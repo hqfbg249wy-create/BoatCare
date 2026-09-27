@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Inbox, Send, CheckCircle, Package, XCircle, Trash2 } from 'lucide-react'
+import { Inbox, Send, CheckCircle, Package, XCircle, Trash2, MessageSquare } from 'lucide-react'
 import { useT } from '../i18n'
 
 // Anfragen der Kunden an diesen Betrieb + strukturiertes Angebot (Preis) abgeben.
@@ -15,6 +15,34 @@ export default function Inquiries() {
   const [sendingId, setSendingId] = useState(null)
   const [actioningId, setActioningId] = useState(null)
   const [message, setMessage] = useState(null)
+  // Rückfragen-Thread (zentral aus der DB): je Anfrage Verlauf + Antwort.
+  const [threads, setThreads] = useState({})     // inquiryId -> messages[]
+  const [threadOpen, setThreadOpen] = useState({}) // inquiryId -> bool
+  const [replyText, setReplyText] = useState({})  // inquiryId -> string
+  const [posting, setPosting] = useState(null)
+
+  async function loadThread(inqId) {
+    const { data } = await supabase.rpc('get_inquiry_thread', { p_inquiry_id: inqId })
+    setThreads(prev => ({ ...prev, [inqId]: data || [] }))
+    supabase.rpc('mark_inquiry_read', { p_inquiry_id: inqId })
+  }
+  function toggleThread(inqId) {
+    setThreadOpen(prev => {
+      const open = !prev[inqId]
+      if (open) loadThread(inqId)
+      return { ...prev, [inqId]: open }
+    })
+  }
+  async function postReply(inqId) {
+    const text = (replyText[inqId] || '').trim()
+    if (!text) return
+    setPosting(inqId)
+    const { error } = await supabase.rpc('post_inquiry_message', { p_inquiry_id: inqId, p_content: text })
+    setPosting(null)
+    if (error) { setMessage({ type: 'error', text: error.message }); return }
+    setReplyText(prev => ({ ...prev, [inqId]: '' }))
+    loadThread(inqId)
+  }
 
   const load = useCallback(async () => {
     if (!provider) return
@@ -246,6 +274,31 @@ export default function Inquiries() {
                     </button>
                   </div>
                 )}
+
+                {/* Rückfragen-Thread (Verlauf + Antwort, an einem Ort) */}
+                <div className="inq-thread-wrap">
+                  <button className="btn-ghost btn-sm" onClick={() => toggleThread(inq.id)}>
+                    <MessageSquare size={14} /> {threadOpen[inq.id] ? t('inquiries.hideThread') : t('inquiries.showThread')}
+                  </button>
+                  {threadOpen[inq.id] && (
+                    <div className="inq-thread">
+                      {(threads[inq.id]?.length > 0) ? threads[inq.id].map(m => (
+                        <div key={m.id} className={`inq-thread-msg ${m.is_mine ? 'mine' : 'theirs'}`}>
+                          <div className="inq-thread-bubble">{m.content}</div>
+                        </div>
+                      )) : <div className="hint" style={{ margin: 0 }}>{t('inquiries.threadEmpty')}</div>}
+                      <div className="inq-thread-reply">
+                        <textarea rows={2} value={replyText[inq.id] || ''}
+                          onChange={e => setReplyText(prev => ({ ...prev, [inq.id]: e.target.value }))}
+                          placeholder={t('inquiries.replyPlaceholder')} />
+                        <button className="btn-primary btn-sm" disabled={posting === inq.id || !(replyText[inq.id] || '').trim()}
+                          onClick={() => postReply(inq.id)}>
+                          <Send size={14} /> {t('inquiries.send')}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )
           })}

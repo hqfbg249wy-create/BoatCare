@@ -54,6 +54,15 @@ export default function Inquiries() {
   const [questionFor, setQuestionFor] = useState(null) // inquiry.id für offene Rückfrage
   const [questionText, setQuestionText] = useState('')
   const [offerBusy, setOfferBusy] = useState(null) // inquiry.id während einer Aktion
+  const [threads, setThreads] = useState({}) // inquiry.id -> Nachrichten-Thread (get_inquiry_thread)
+
+  // Kompletter Rückfragen-Thread einer Anfrage (zentral aus der DB) + als
+  // gelesen markieren (setzt den Badge zurück).
+  async function loadThread(inqId) {
+    const { data } = await supabase.rpc('get_inquiry_thread', { p_inquiry_id: inqId })
+    setThreads(prev => ({ ...prev, [inqId]: data || [] }))
+    supabase.rpc('mark_inquiry_read', { p_inquiry_id: inqId })
+  }
 
   useEffect(() => {
     if (user) { loadInquiries(); loadBoats() }
@@ -145,6 +154,7 @@ export default function Inquiries() {
   async function toggleExpand(inq) {
     const willExpand = expanded !== inq.id
     setExpanded(willExpand ? inq.id : null)
+    if (willExpand) loadThread(inq.id)
     if (willExpand && inq.status === 'replied') {
       setJustRead(prev => new Set(prev).add(inq.id))
       setInquiries(prev => prev.map(i => i.id === inq.id ? { ...i, status: 'read' } : i))
@@ -178,6 +188,7 @@ export default function Inquiries() {
     setOfferBusy(null)
     if (error || data?.ok !== true) { alert(error?.message || data?.error || 'Senden fehlgeschlagen'); return }
     setQuestionFor(null); setQuestionText('')
+    loadThread(inq.id)
     loadInquiries()
   }
 
@@ -323,6 +334,18 @@ export default function Inquiries() {
                 )}
                 {inq.order_id && (
                   <div className="inq-notes-box"><p>Angenommen — Details unter Bestellungen.</p></div>
+                )}
+
+                {/* Rückfragen-Thread (Verlauf, zentral aus der DB) */}
+                {(threads[inq.id]?.length > 0) && (
+                  <div className="inq-thread">
+                    {threads[inq.id].map(m => (
+                      <div key={m.id} className={`inq-thread-msg ${m.is_mine ? 'mine' : 'theirs'}`}>
+                        <div className="inq-thread-bubble">{m.content}</div>
+                        <span className="inq-thread-time">{timeAgo(m.created_at)}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
 
                 {/* Rückfrage-Eingabe */}

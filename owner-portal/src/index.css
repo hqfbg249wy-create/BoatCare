@@ -1455,6 +1455,16 @@ button.pd-tag-btn { cursor: pointer; background: none; font-family: inherit; }
 .inq-message-box { background: var(--gray-50); border-radius: 10px; padding: 12px; }
 .inq-notes-box { background: #fffbeb; border-radius: 10px; padding: 12px; border: 1px solid #fde68a; }
 .inq-reply-box { background: #f0fdf4; border-radius: 10px; padding: 12px; border: 1px solid #bbf7d0; }
+
+/* Rückfragen-Thread (Verlauf im Anfrage-/Angebotsablauf) */
+.inq-thread { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; padding: 10px; background: var(--gray-50, #f8fafc); border-radius: 10px; }
+.inq-thread-msg { display: flex; flex-direction: column; max-width: 82%; }
+.inq-thread-msg.mine { align-self: flex-end; align-items: flex-end; }
+.inq-thread-msg.theirs { align-self: flex-start; align-items: flex-start; }
+.inq-thread-bubble { white-space: pre-wrap; padding: 8px 12px; border-radius: 12px; font-size: 0.9rem; line-height: 1.35; }
+.inq-thread-msg.mine .inq-thread-bubble { background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+.inq-thread-msg.theirs .inq-thread-bubble { background: #fff; color: var(--gray-800, #1e293b); border: 1px solid var(--gray-200); border-bottom-left-radius: 4px; }
+.inq-thread-time { font-size: 0.7rem; color: var(--gray-400); margin-top: 2px; }
 .inq-message-label { font-size: 0.75rem; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
 .inq-message-box p, .inq-notes-box p, .inq-reply-box p { margin: 0; font-size: 0.88rem; line-height: 1.6; color: var(--gray-700); white-space: pre-wrap; }
 .inq-card-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 4px; }

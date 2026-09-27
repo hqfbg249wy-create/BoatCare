@@ -444,3 +444,15 @@ a { color: var(--blue); text-decoration: none; }
 .variant-table th { background: var(--gray-50, #f8fafc); font-weight: 600; }
 .variant-table input { width: 100%; min-width: 70px; padding: 4px 6px; }
 .variant-attr-cell { font-weight: 600; white-space: nowrap; }
+
+/* Rückfragen-Thread in Anfragen (Verlauf + Antwort an einem Ort) */
+.inq-thread-wrap { margin-top: 12px; border-top: 1px solid var(--gray-200, #e5e7eb); padding-top: 10px; }
+.inq-thread { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.inq-thread-msg { display: flex; max-width: 82%; }
+.inq-thread-msg.mine { align-self: flex-end; }
+.inq-thread-msg.theirs { align-self: flex-start; }
+.inq-thread-bubble { white-space: pre-wrap; padding: 8px 12px; border-radius: 12px; font-size: 0.9rem; line-height: 1.35; }
+.inq-thread-msg.mine .inq-thread-bubble { background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+.inq-thread-msg.theirs .inq-thread-bubble { background: #f1f5f9; color: #1e293b; border-bottom-left-radius: 4px; }
+.inq-thread-reply { display: flex; gap: 8px; align-items: flex-end; margin-top: 6px; }
+.inq-thread-reply textarea { flex: 1; resize: vertical; padding: 8px 10px; border: 1px solid var(--gray-200, #e5e7eb); border-radius: 8px; font-family: inherit; font-size: 0.9rem; }

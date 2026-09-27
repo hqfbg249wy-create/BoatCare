@@ -908,6 +908,10 @@ export default {
   'inquiries.removed': 'Aus der Liste entfernt.',
   'inquiries.customerRequest': 'Anfrage des Kunden',
   'inquiries.replyPlaceholder': 'Optionale Nachricht, die der Kunde zusammen mit dem Angebot sieht',
+  'inquiries.showThread': 'Verlauf & Rückfragen',
+  'inquiries.hideThread': 'Verlauf ausblenden',
+  'inquiries.threadEmpty': 'Noch keine Nachrichten zu dieser Anfrage.',
+  'inquiries.send': 'Senden',
   'inquiries.typeQuote': 'Bitte um ein Angebot',
   'inquiries.typeInquiry': 'Unverbindliche Anfrage',
 }
