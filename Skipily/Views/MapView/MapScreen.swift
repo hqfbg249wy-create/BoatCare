@@ -313,6 +313,11 @@ struct MapScreen: View {
     @State private var currentRegion: MKCoordinateRegion?
     @State private var currentZoomLevel: Double = 0.05 // Latitudedelta - kleinerer Wert = mehr Zoom
     @State private var searchText = ""
+    // Unscharfe Anbietersuche zentral in der DB (search_providers RPC): Menge
+    // passender Provider-IDs (Kategorie + Synonyme + Tippfehler). nil = noch
+    // nicht geladen -> solange greift der lokale Wortfilter (sofort).
+    @State private var searchIdSet: Set<UUID>?
+    @State private var providerSearchTask: Task<Void, Never>?
     @State private var searchResults: [MKMapItem] = []
     @State private var selectedResult: MKMapItem?
     @State private var selectedProvider: BoatServiceProvider?
@@ -356,20 +361,26 @@ struct MapScreen: View {
             }
         }
 
-        // Textfilter: Name, Kategorie, Beschreibung, Stadt, Marken, Services
+        // Textfilter: bevorzugt die DB-berechnete Treffermenge (Synonyme/
+        // Tippfehler); solange sie noch nicht da ist, lokaler Wortfilter als
+        // Sofort-Fallback (Name, Kategorie, Beschreibung, Stadt, Marken, Services).
         if !searchText.isEmpty {
-            let words = searchText.lowercased().split(separator: " ").map { String($0) }
-            filtered = filtered.filter { provider in
-                let haystack = [
-                    provider.name,
-                    provider.category,
-                    provider.description ?? "",
-                    provider.address,
-                    provider.city ?? "",
-                    provider.brands?.joined(separator: " ") ?? "",
-                    provider.services?.joined(separator: " ") ?? ""
-                ].joined(separator: " ").lowercased()
-                return words.allSatisfy { haystack.contains($0) }
+            if let ids = searchIdSet {
+                filtered = filtered.filter { ids.contains($0.id) }
+            } else {
+                let words = searchText.lowercased().split(separator: " ").map { String($0) }
+                filtered = filtered.filter { provider in
+                    let haystack = [
+                        provider.name,
+                        provider.category,
+                        provider.description ?? "",
+                        provider.address,
+                        provider.city ?? "",
+                        provider.brands?.joined(separator: " ") ?? "",
+                        provider.services?.joined(separator: " ") ?? ""
+                    ].joined(separator: " ").lowercased()
+                    return words.allSatisfy { haystack.contains($0) }
+                }
             }
         }
 
@@ -564,8 +575,37 @@ struct MapScreen: View {
         .onChange(of: selectedCategory) { _, _ in
             // visibleProviders filtert reaktiv – kein DB-Aufruf nötig
         }
+        .onChange(of: searchText) { _, newValue in
+            refreshProviderSearch(newValue)
+        }
     }
-    
+
+    /// Debounced-Aufruf der zentralen search_providers-RPC. Setzt die Menge
+    /// passender Provider-IDs (Kategorie + Synonyme + Tippfehler); bis dahin
+    /// greift der lokale Wortfilter in visibleProviders.
+    private func refreshProviderSearch(_ raw: String) {
+        providerSearchTask?.cancel()
+        let q = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard q.count >= 2 else { searchIdSet = nil; return }
+        providerSearchTask = Task {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            if Task.isCancelled { return }
+            struct SearchParams: Encodable { let q: String; let p_limit: Int }
+            struct IDRow: Decodable { let id: UUID }
+            do {
+                let rows: [IDRow] = try await authService.supabase
+                    .rpc("search_providers", params: SearchParams(q: q, p_limit: 5000))
+                    .select("id")
+                    .execute()
+                    .value
+                if Task.isCancelled { return }
+                await MainActor.run { searchIdSet = Set(rows.map { $0.id }) }
+            } catch {
+                await MainActor.run { searchIdSet = nil }   // Fallback: lokaler Filter
+            }
+        }
+    }
+
     @ViewBuilder
     private var providerCards: some View {
         if selectedProvider != nil {

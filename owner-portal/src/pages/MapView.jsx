@@ -241,6 +241,11 @@ export default function MapView() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('')
+  // Unscharfe Anbietersuche zentral in der DB (search_providers RPC): liefert
+  // die Menge passender Provider-IDs (Kategorie + Synonyme + Tippfehler). Wir
+  // filtern die geladenen Pins darueber. null = noch nicht/geladen -> solange
+  // greift der lokale Wortfilter (sofortige Reaktion), danach verfeinert.
+  const [searchIdSet, setSearchIdSet] = useState(null)
   const savedPos = useMemo(() => getSavedMapPosition(), [])
   const [center, setCenter] = useState(savedPos ? [savedPos.lat, savedPos.lng] : [50.7, 7.1])
   const [mapZoom, setMapZoom] = useState(savedPos ? savedPos.zoom : 6)
@@ -353,7 +358,10 @@ export default function MapView() {
 
   const filtered = providers.filter(p => {
     if (filterCat && catGroupId(p.category) !== filterCat) return false
-    if (search) {
+    if (search && search.trim().length >= 2) {
+      // Bevorzugt die DB-berechnete Treffermenge (Synonyme/Tippfehler); solange
+      // sie noch nicht da ist, lokaler Wortfilter als Sofort-Fallback.
+      if (searchIdSet) return searchIdSet.has(p.id)
       const words = search.toLowerCase().trim().split(/\s+/).filter(w => w.length >= 2)
       if (words.length === 0) return true
       const fields = [p.name, p.category, p.city, p.street, p.postal_code, p.description,
@@ -366,6 +374,22 @@ export default function MapView() {
     }
     return true
   })
+
+  // Debounced: Treffer-IDs aus der DB holen, wenn ein Suchbegriff anliegt.
+  useEffect(() => {
+    const q = search.trim()
+    if (q.length < 2) { setSearchIdSet(null); return }
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      const { data, error } = await supabase
+        .rpc('search_providers', { q, p_limit: 5000 })
+        .select('id')
+      if (cancelled) return
+      if (error) { setSearchIdSet(null); return }   // Fallback: lokaler Filter
+      setSearchIdSet(new Set((data || []).map(r => r.id)))
+    }, 250)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [search])
 
   // Geocode city search — zoom map to city location
   useEffect(() => {
