@@ -44,6 +44,11 @@ export default function Shop() {
   const [search, setSearch] = useState(searchParams.get('q') || '')
   const [selectedCat, setSelectedCat] = useState(searchParams.get('category') || '')
   const [providerFilter, setProviderFilter] = useState(searchParams.get('provider') || '')
+  // Amazon-artig: Suchvorschlaege (Dropdown) + Eingrenzungs-Chips (Facetten),
+  // beide zentral aus der DB (suggest_products / search_product_facets).
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggest, setShowSuggest] = useState(false)
+  const [facets, setFacets] = useState([])
   const [cart, setCart] = useState(() => {
     try { return JSON.parse(localStorage.getItem('boatcare_cart') || '[]') } catch { return [] }
   })
@@ -90,6 +95,31 @@ export default function Shop() {
   useEffect(() => {
     if (!loading && !isSparePartsMode) loadProducts(0)
   }, [search, selectedCat, providerFilter])
+
+  // Debounced: Suchvorschlaege + Eingrenzungs-Chips aus der DB laden.
+  useEffect(() => {
+    const q = (search || '').trim()
+    if (isSparePartsMode || q.length < 2) { setSuggestions([]); setFacets([]); return }
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      const [sug, fac] = await Promise.all([
+        supabase.rpc('suggest_products', { q, p_limit: 8 }),
+        supabase.rpc('search_product_facets', { q, p_provider: providerFilter || null }),
+      ])
+      if (cancelled) return
+      if (!sug.error) setSuggestions(sug.data || [])
+      if (!fac.error) setFacets(fac.data || [])
+    }, 180)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [search, providerFilter, isSparePartsMode])
+
+  // Klick auf einen Vorschlag: Kategorie -> Filter, sonst Textsuche.
+  function pickSuggestion(s) {
+    setShowSuggest(false)
+    if (s.kind === 'category' && s.category_id) { setSelectedCat(s.category_id); setSearch('') }
+    else { setSelectedCat(''); setSearch(s.suggestion) }
+  }
+  const facetName = (f) => f['name_' + lang] || f.name_de
 
   // Ersatzteil-Modus: breite Volltextsuche über mfg + model + name (bis zu 80 Treffer)
   async function loadSpareParts() {
@@ -331,20 +361,48 @@ export default function Shop() {
 
       {/* Search bar */}
       <div className="filter-bar">
-        <div className="search-input" style={{ maxWidth: 400 }}>
+        <div className="search-input shop-search-wrap" style={{ maxWidth: 400 }}>
           <Search size={16} />
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+            onChange={e => { setSearch(e.target.value); setShowSuggest(true) }}
+            onFocus={() => setShowSuggest(true)}
+            onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
+            onKeyDown={e => { if (e.key === 'Enter') { setShowSuggest(false); handleSearch() } }}
             placeholder={t('shop.k20')}
           />
-          {search && <button className="btn-icon" onClick={() => { setSearch(''); setTimeout(() => loadProducts(0), 0) }}><X size={14} /></button>}
+          {search && <button className="btn-icon" onClick={() => { setSearch(''); setShowSuggest(false); setTimeout(() => loadProducts(0), 0) }}><X size={14} /></button>}
+          {showSuggest && suggestions.length > 0 && (
+            <ul className="shop-suggest">
+              {suggestions.map((s, i) => (
+                <li key={i} onMouseDown={e => { e.preventDefault(); pickSuggestion(s) }}>
+                  <Search size={13} />
+                  <span>{s.suggestion}</span>
+                  {s.kind === 'category' && <span className="shop-suggest-tag">{t('shop.k4') || 'Kategorie'}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <button className="btn-primary" onClick={handleSearch} style={{ padding: '8px 16px' }}>
           <Search size={16} /> {t('shop.k1')}
         </button>
       </div>
+
+      {/* Eingrenzungs-Chips (Facetten der aktuellen Treffermenge) */}
+      {search && search.trim().length >= 2 && facets.length > 1 && (
+        <div className="shop-facets">
+          {facets.map(f => (
+            <button
+              key={f.category_id}
+              className={`shop-facet-chip ${selectedCat === f.category_id ? 'active' : ''}`}
+              onClick={() => setSelectedCat(selectedCat === f.category_id ? '' : f.category_id)}
+            >
+              {facetName(f)} <span className="shop-facet-count">{f.cnt}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Promotions banner */}
       {promotions.length > 0 && (
