@@ -1158,8 +1158,14 @@ a { color: var(--blue); text-decoration: none; }
 .pd-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
 @media (max-width: 768px) { .pd-layout { grid-template-columns: 1fr; } }
 .pd-images { border-radius: 12px; overflow: hidden; }
-.pd-main-image { position: relative; background: var(--gray-50); border-radius: 12px; overflow: hidden; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
-.pd-main-image img { width: 100%; height: 100%; object-fit: cover; }
+.pd-main-image { position: relative; background: var(--gray-50); border-radius: 12px; overflow: hidden; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; touch-action: pan-y; }
+/* Produktbild immer vollstaendig sichtbar (nicht beschnitten) */
+.pd-main-image img { width: 100%; height: 100%; object-fit: contain; }
+.pd-nav-btn { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,0.9); box-shadow: 0 2px 8px rgba(0,0,0,0.18); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--gray-700); z-index: 2; }
+.pd-nav-btn:hover { background: #fff; }
+.pd-nav-btn.prev { left: 8px; }
+.pd-nav-btn.next { right: 8px; }
+.pd-image-counter { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.55); color: #fff; font-size: 12px; padding: 2px 10px; border-radius: 999px; z-index: 2; }
 .pd-no-image { background: var(--gray-100); }
 .pd-image-thumbs { display: flex; gap: 8px; margin-top: 8px; }
 .pd-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; cursor: pointer; border: 2px solid transparent; opacity: 0.6; transition: all 0.15s; }

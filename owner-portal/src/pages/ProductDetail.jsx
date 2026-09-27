@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import ProductRelationsView from '../components/ProductRelationsView'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { ChevronLeft, ShoppingCart, Check, Package, Truck, Star, Tag, Plus, Minus, MapPin } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ShoppingCart, Check, Package, Truck, Star, Tag, Plus, Minus, MapPin } from 'lucide-react'
 import { useT } from '../i18n'
 import { translateProducts, isTranslatableLang } from '../lib/dbTranslate'
 
@@ -16,6 +16,7 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
+  const [touchStartX, setTouchStartX] = useState(null)
   const [similar, setSimilar] = useState([])
   const [promo, setPromo] = useState(null)
   const [cart, setCart] = useState(() => {
@@ -153,12 +154,37 @@ export default function ProductDetail() {
         <div className="pd-images">
           {product.images?.length > 0 ? (
             <>
-              <div className="pd-main-image">
+              <div
+                className="pd-main-image"
+                onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+                onTouchEnd={(e) => {
+                  if (touchStartX == null || variantImage || product.images.length < 2) { setTouchStartX(null); return }
+                  const dx = e.changedTouches[0].clientX - touchStartX
+                  if (Math.abs(dx) > 40) {
+                    const n = product.images.length
+                    setSelectedImage(prev => dx < 0 ? (prev + 1) % n : (prev - 1 + n) % n)
+                  }
+                  setTouchStartX(null)
+                }}
+              >
                 <img src={variantImage || product.images[selectedImage]} alt={product.name} />
                 {promo && (
                   <span className="shop-discount-badge" style={{ fontSize: '1rem', padding: '6px 14px' }}>
                     {promo.discount_type === 'percent' ? `-${promo.discount_value}%` : `-${Number(promo.discount_value).toFixed(0)}€`}
                   </span>
+                )}
+                {!variantImage && product.images.length > 1 && (
+                  <>
+                    <button type="button" className="pd-nav-btn prev" aria-label="prev"
+                      onClick={() => setSelectedImage(prev => (prev - 1 + product.images.length) % product.images.length)}>
+                      <ChevronLeft size={22} />
+                    </button>
+                    <button type="button" className="pd-nav-btn next" aria-label="next"
+                      onClick={() => setSelectedImage(prev => (prev + 1) % product.images.length)}>
+                      <ChevronRight size={22} />
+                    </button>
+                    <span className="pd-image-counter">{selectedImage + 1} / {product.images.length}</span>
+                  </>
                 )}
               </div>
               {product.images.length > 1 && (

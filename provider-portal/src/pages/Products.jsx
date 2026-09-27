@@ -72,6 +72,7 @@ export default function Products() {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [csvImporting, setCsvImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [csvResult, setCsvResult] = useState(null) // { ok: n, failed: [{row, error}] }
   // Rückfrage-Dialog bei Zeilen ohne Artikelnummer, die per Name matchen:
   const [importReview, setImportReview] = useState(null) // { payloads, rows:[{index,name,...}], decisions:{} }
@@ -205,29 +206,68 @@ export default function Products() {
     setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
   }
 
+  // Bis zu 5 Produktbilder. Das erste Bild ist zugleich image_url (Titelbild,
+  // Legacy-Kompatibilitaet). Reihenfolge = Blaetter-Reihenfolge in Web/iOS.
+  const MAX_IMAGES = 5
+
   async function handleImageUpload(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
 
-    const ext = file.name.split('.').pop()
-    const path = `products/${provider.id}/${Date.now()}.${ext}`
+    const current = (form.images && form.images.length) ? form.images
+      : (form.image_url ? [form.image_url] : [])
+    const free = MAX_IMAGES - current.length
+    if (free <= 0) {
+      setMessage({ type: 'error', text: t('products.imageMax', { n: MAX_IMAGES }) })
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
 
+    setUploadingImage(true)
     try {
-      const { error: uploadErr } = await supabase.storage
-        .from('product-images')
-        .upload(path, file)
-
-      if (uploadErr) throw uploadErr
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(path)
-
-      setForm(prev => ({ ...prev, image_url: publicUrl }))
-      setMessage({ type: 'success', text: t('products.imageUploaded') })
+      const uploaded = []
+      for (const file of files.slice(0, free)) {
+        const ext = file.name.split('.').pop()
+        const path = `products/${provider.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+        const { error: uploadErr } = await supabase.storage.from('product-images').upload(path, file)
+        if (uploadErr) throw uploadErr
+        const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path)
+        uploaded.push(publicUrl)
+      }
+      setForm(prev => {
+        const base = (prev.images && prev.images.length) ? prev.images : (prev.image_url ? [prev.image_url] : [])
+        const images = [...base, ...uploaded].slice(0, MAX_IMAGES)
+        return { ...prev, images, image_url: images[0] || '' }
+      })
+      const skipped = files.length - Math.min(files.length, free)
+      setMessage({
+        type: skipped > 0 ? 'error' : 'success',
+        text: skipped > 0 ? t('products.imageMax', { n: MAX_IMAGES }) : t('products.imageUploaded'),
+      })
     } catch (err) {
       setMessage({ type: 'error', text: t('products.imageUploadFailed') + ' ' + err.message })
+    } finally {
+      setUploadingImage(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
+  }
+
+  // Bilder-Verwaltung im Editor: entfernen, als Titelbild setzen (nach vorne).
+  function removeImage(idx) {
+    setForm(prev => {
+      const list = ((prev.images && prev.images.length) ? prev.images : (prev.image_url ? [prev.image_url] : [])).slice()
+      list.splice(idx, 1)
+      return { ...prev, images: list, image_url: list[0] || '' }
+    })
+  }
+  function makeCoverImage(idx) {
+    setForm(prev => {
+      const list = ((prev.images && prev.images.length) ? prev.images : (prev.image_url ? [prev.image_url] : [])).slice()
+      if (idx <= 0 || idx >= list.length) return prev
+      const [img] = list.splice(idx, 1)
+      list.unshift(img)
+      return { ...prev, images: list, image_url: list[0] || '' }
+    })
   }
 
   async function handleSubmit(e) {
@@ -265,7 +305,8 @@ export default function Products() {
       min_order_quantity: form.min_order_quantity ? parseInt(form.min_order_quantity) : 1,
       is_active: form.is_active,
       in_stock: form.in_stock,
-      image_url: form.image_url,
+      images: (form.images && form.images.length) ? form.images : (form.image_url ? [form.image_url] : []),
+      image_url: (form.images && form.images.length) ? form.images[0] : (form.image_url || null),
       source: 'manual',
     }
 
@@ -361,6 +402,9 @@ export default function Products() {
     'price', 'currency', 'stock_quantity', 'description',
     'category', 'shipping_cost', 'delivery_days', 'weight_kg',
     'min_order_quantity', 'is_active', 'in_stock', 'image_url',
+    // Weitere Produktbilder (bis zu 5 gesamt; image_url = Titelbild = Bild 1).
+    // Werden im Shop per Wischen/Pfeil durchgeblaettert.
+    'bild2', 'bild3', 'bild4', 'bild5',
     // Produktvarianten (optional): mehrere Zeilen mit GLEICHEM name = ein
     // Produkt mit Varianten. Preis/Bestand/SKU je Variante moeglich.
     'variante1_name', 'variante1_wert', 'variante2_name', 'variante2_wert',
@@ -372,7 +416,7 @@ export default function Products() {
     // verzaehlten Kommas). Zeigt u.a. ein Tauwerk mit zwei Durchmesser-Varianten
     // (gleicher name, unterschiedlicher Preis).
     const samples = [
-      { name: 'Impeller Jabsco 1210-0001', manufacturer: 'Jabsco', part_number: '1210-0001', sku: 'JAB-IMP-01', ean: '4012345678901', price: '29.90', currency: 'EUR', stock_quantity: '50', description: 'Impeller spare part', category: 'Engine & Drive', shipping_cost: '5.90', delivery_days: '3', weight_kg: '0.05', min_order_quantity: '1', is_active: 'true', in_stock: 'true' },
+      { name: 'Impeller Jabsco 1210-0001', manufacturer: 'Jabsco', part_number: '1210-0001', sku: 'JAB-IMP-01', ean: '4012345678901', price: '29.90', currency: 'EUR', stock_quantity: '50', description: 'Impeller spare part', category: 'Engine & Drive', shipping_cost: '5.90', delivery_days: '3', weight_kg: '0.05', min_order_quantity: '1', is_active: 'true', in_stock: 'true', image_url: 'https://…/impeller-front.jpg', bild2: 'https://…/impeller-side.jpg', bild3: 'https://…/impeller-box.jpg' },
       { name: 'Liros Race SK78', manufacturer: 'Liros', description: 'Hochfestes Tauwerk', category: 'Ropes', currency: 'EUR', is_active: 'true', in_stock: 'true', price: '100.00', variante1_name: 'Durchmesser', variante1_wert: '6mm', variante_preis: '100.00', variante_bestand: '20', variante_sku: 'LIROS-SK78-6' },
       { name: 'Liros Race SK78', variante1_name: 'Durchmesser', variante1_wert: '8mm', variante_preis: '120.00', variante_bestand: '15', variante_sku: 'LIROS-SK78-8' },
       { name: 'Liros Race SK78', variante1_name: 'Durchmesser', variante1_wert: '10mm', variante_preis: '150.00', variante_bestand: '10', variante_sku: 'LIROS-SK78-10' },
@@ -398,7 +442,7 @@ export default function Products() {
     try {
       const { data: prods, error } = await supabase
         .from('metashop_products')
-        .select('name, manufacturer, part_number, sku, ean, price, currency, stock_quantity, description, category, shipping_cost, delivery_days, weight_kg, min_order_quantity, is_active, in_stock, image_url, variant_options, id')
+        .select('name, manufacturer, part_number, sku, ean, price, currency, stock_quantity, description, category, shipping_cost, delivery_days, weight_kg, min_order_quantity, is_active, in_stock, image_url, images, variant_options, id')
         .eq('provider_id', provider.id)
         .order('name')
       if (error) throw error
@@ -417,7 +461,12 @@ export default function Products() {
         stock_quantity: p.stock_quantity ?? '', description: p.description || '', category: p.category || '',
         shipping_cost: p.shipping_cost ?? '', delivery_days: p.delivery_days ?? '', weight_kg: p.weight_kg ?? '',
         min_order_quantity: p.min_order_quantity ?? '', is_active: boolStr(p.is_active), in_stock: boolStr(p.in_stock),
-        image_url: p.image_url || '',
+        // Bild 1 = image_url (Titelbild), Bild 2-5 aus dem images[]-Array.
+        image_url: (Array.isArray(p.images) && p.images.length ? p.images[0] : p.image_url) || '',
+        bild2: (Array.isArray(p.images) && p.images[1]) || '',
+        bild3: (Array.isArray(p.images) && p.images[2]) || '',
+        bild4: (Array.isArray(p.images) && p.images[3]) || '',
+        bild5: (Array.isArray(p.images) && p.images[4]) || '',
       })
       const aoa = [CSV_HEADERS]
       for (const p of list) {
@@ -473,7 +522,11 @@ export default function Products() {
     min_order_quantity: ['min_order_quantity', 'mindestbestellmenge', 'mbm', 'mindestmenge'],
     is_active: ['is_active', 'aktiv', 'active'],
     in_stock: ['in_stock', 'verfügbar', 'verfuegbar', 'vorrätig', 'vorraetig', 'lieferbar'],
-    image_url: ['image_url', 'bild', 'bild_url', 'bildurl', 'foto', 'image', 'picture', 'bild-url'],
+    image_url: ['image_url', 'bild', 'bild1', 'bild_url', 'bildurl', 'foto', 'image', 'picture', 'bild-url', 'bild_1'],
+    img2: ['bild2', 'bild_2', 'image2', 'image_url2', 'foto2'],
+    img3: ['bild3', 'bild_3', 'image3', 'image_url3', 'foto3'],
+    img4: ['bild4', 'bild_4', 'image4', 'image_url4', 'foto4'],
+    img5: ['bild5', 'bild_5', 'image5', 'image_url5', 'foto5'],
     // Produktvarianten (Shopify-artig): mehrere Zeilen mit gleichem Namen bilden
     // EIN Produkt; jede Zeile mit Optionswerten wird eine Variante.
     v_opt1_name: ['variante1_name', 'variante_option1', 'option1_name', 'option1', 'optionsname1', 'variantenname1'],
@@ -581,6 +634,8 @@ export default function Products() {
       is_active: row.is_active === '' || row.is_active == null ? true : asBool(row.is_active),
       in_stock:  row.in_stock  === '' || row.in_stock  == null ? true : asBool(row.in_stock),
       image_url: row.image_url || null,
+      images:    [row.image_url, row.img2, row.img3, row.img4, row.img5]
+                   .map(u => (u || '').trim()).filter(Boolean).slice(0, 5),
       source:    'csv',
     }
   }
@@ -1035,22 +1090,54 @@ export default function Products() {
           </div>
 
           <div className="card">
-            <h2>{t('products.image')}</h2>
-            {form.image_url && (
-              <div className="image-preview">
-                <img src={form.image_url} alt="Vorschau" />
-                <button type="button" className="btn-icon" onClick={() => setForm(prev => ({ ...prev, image_url: '' }))}>
-                  <X size={16} />
-                </button>
+            <h2>{t('products.images')} <span className="muted">({(form.images?.length || (form.image_url ? 1 : 0))}/{MAX_IMAGES})</span></h2>
+            <p className="muted" style={{ marginTop: 0 }}>{t('products.imagesHint', { n: MAX_IMAGES })}</p>
+            {(form.images && form.images.length > 0) && (
+              <div className="product-images-grid">
+                {form.images.map((img, i) => (
+                  <div key={i} className={`product-image-tile ${i === 0 ? 'is-cover' : ''}`}>
+                    <img src={img} alt="" />
+                    {i === 0 && <span className="cover-badge">{t('products.coverImage')}</span>}
+                    <div className="product-image-actions">
+                      {i !== 0 && (
+                        <button type="button" className="btn-icon" title={t('products.makeCover')} onClick={() => makeCoverImage(i)}>
+                          <ImageIcon size={14} />
+                        </button>
+                      )}
+                      <button type="button" className="btn-icon" title={t('common.delete')} onClick={() => removeImage(i)}>
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
             <div className="form-group">
               <label>{t('products.imageUrl')}</label>
-              <input name="image_url" value={form.image_url} onChange={handleChange} placeholder="https://..." />
+              <input
+                value=""
+                onChange={(e) => {
+                  const url = e.target.value.trim()
+                  if (!url) return
+                  setForm(prev => {
+                    const base = (prev.images && prev.images.length) ? prev.images : (prev.image_url ? [prev.image_url] : [])
+                    if (base.length >= MAX_IMAGES) { setMessage({ type: 'error', text: t('products.imageMax', { n: MAX_IMAGES }) }); return prev }
+                    const images = [...base, url].slice(0, MAX_IMAGES)
+                    return { ...prev, images, image_url: images[0] }
+                  })
+                  e.target.value = ''
+                }}
+                placeholder="https://..."
+              />
             </div>
-            <input type="file" ref={fileInputRef} accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
-            <button type="button" className="btn-secondary" onClick={() => fileInputRef.current?.click()}>
-              <Upload size={16} /> {t('products.uploadImage')}
+            <input type="file" ref={fileInputRef} accept="image/*" multiple onChange={handleImageUpload} style={{ display: 'none' }} />
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={uploadingImage || (form.images?.length || 0) >= MAX_IMAGES}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {uploadingImage ? <><Loader size={16} className="spin" /> {t('common.saving')}</> : <><Upload size={16} /> {t('products.uploadImage')}</>}
             </button>
           </div>
 
