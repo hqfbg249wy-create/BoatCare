@@ -92,6 +92,28 @@ Deno.serve(async (req) => {
       ? keywords.map((k) => String(k).toLowerCase()).filter(Boolean) : [];
     const cts: string[] = Array.isArray(countries)
       ? countries.map((c) => String(c)) : [];
+
+    // Synonyme zentral aus search_synonyms (gleiche Quelle wie die Produkt-/
+    // Anbieter-RPCs), damit z.B. "Bekleidung" auch "clothing"/"Funktions-
+    // kleidung" findet. Fehlt die Tabelle, bleibt es beim Originalbegriff.
+    let synGroups: string[][] = [];
+    try {
+      const { data: syn } = await svc.from("search_synonyms").select("terms");
+      synGroups = (syn ?? [])
+        .map((r: Record<string, unknown>) => (Array.isArray(r.terms) ? r.terms.map((s) => String(s).toLowerCase()) : []))
+        .filter((g) => g.length > 0);
+    } catch { /* Synonyme optional */ }
+    const expand = (terms: string[]): string[] => {
+      const out = new Set<string>();
+      for (const t of terms) {
+        out.add(t);
+        for (const g of synGroups) if (g.includes(t)) for (const s of g) out.add(s);
+      }
+      return [...out];
+    };
+    const svcTermsX = expand(svcTerms);
+    const nameTermsX = expand(nameTerms);
+    const kwsX = expand(kws);
     const cap = Math.max(1, Math.min(1000, Number(limit) || 800));
 
     const { data: rows } = await svc
@@ -122,8 +144,8 @@ Deno.serve(async (req) => {
     const scoreOf = (p: Record<string, unknown>): number => {
       let s = 0;
       const nm = String(p.name ?? "").toLowerCase();
-      const nameHit = nameTerms.length > 0 && nameTerms.some((t) => nm.includes(t));
-      const svcHit = svcTerms.length > 0 && provServices(p).some((sv) => svcTerms.some((t) => sv.includes(t)));
+      const nameHit = nameTermsX.length > 0 && nameTermsX.some((t) => nm.includes(t));
+      const svcHit = svcTermsX.length > 0 && provServices(p).some((sv) => svcTermsX.some((t) => sv.includes(t)));
       if (nameHit) s += 100;
       if (svcHit) s += 50;
       if (catAllow.size && provCats(p).some((c) => catAllow.has(c))) s += 10;
@@ -140,7 +162,7 @@ Deno.serve(async (req) => {
 
     let scored = (rows || [])
       .filter((p) => !(cts.length && !cts.includes(String(p.country ?? ""))))
-      .map((p) => ({ p, score: structured ? scoreOf(p) : (kws.length ? (kws.some((k) => hay(p).includes(k)) ? 10 : 0) : 1) }))
+      .map((p) => ({ p, score: structured ? scoreOf(p) : (kwsX.length ? (kwsX.some((k) => hay(p).includes(k)) ? 10 : 0) : 1) }))
       .filter((x) => x.score > 0);
 
     // Sortierung: Score desc, dann Bewertung desc, dann Name.
