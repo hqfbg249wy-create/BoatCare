@@ -47,3 +47,30 @@ vervangt `variants` **alle** bestaande varianten (lege array = verwijderen):
 **Bestellingen:** bij een aankoop geven de API en de webhook per regel de gekozen
 variant mee: `variant_sku` en de kenmerken (`attributes`, bijv.
 `{"Durchmesser":"8mm"}`). Zo weet jouw systeem precies welke variant is besteld.
+
+
+## Productafbeeldingen (tot 5)
+
+Tot **5 afbeeldingen** per product zijn mogelijk. In de shop bladert de klant door de
+afbeeldingen door te **vegen** of met de **pijlen** (iOS en web). De eerste
+afbeelding is de **omslag**.
+
+**In het leveranciersportaal:** upload onder „Productafbeeldingen" meerdere
+afbeeldingen (meervoudige selectie) of plak afbeeldings-URL's. Met „Als omslag
+instellen" kies je de eerste afbeelding, met de X verwijder je er een.
+
+**CSV/Excel:** de omslag staat in `image_url` (alias `bild1`). Zet extra afbeeldingen
+in deze kolommen:
+
+| Kolom | Betekenis |
+|---|---|
+| `image_url` / `bild1` | omslag (afbeelding 1) |
+| `bild2` | tweede afbeelding (URL) |
+| `bild3` | derde afbeelding (URL) |
+| `bild4` | vierde afbeelding (URL) |
+| `bild5` | vijfde afbeelding (URL) |
+
+„Voorraad exporteren" neemt deze kolommen mee, zodat het bestand 1:1 opnieuw
+importeerbaar is. Via de product-API vul je hetzelfde met het veld `images` (array
+van URL's). Let op: afbeeldingen worden in de productweergave altijd **volledig**
+getoond (nooit bijgesneden), ongeacht de verhouding.

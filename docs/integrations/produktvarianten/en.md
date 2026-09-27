@@ -47,3 +47,30 @@ Send `variant_options` (definition) and `variants` (combinations). On POST/PUT,
 **Orders:** on a purchase, the API and webhook include the chosen variant per line
 item: `variant_sku` and the attributes (`attributes`, e.g. `{"Durchmesser":"8mm"}`).
 That way your system knows exactly which variant was ordered.
+
+
+## Product images (up to 5)
+
+Up to **5 images** per product are possible. In the shop the customer browses the
+images by **swiping** or using the **arrows** (iOS and web). The first image is the
+**cover**.
+
+**In the provider portal:** under "Product images" upload several images
+(multi-select) or paste image URLs. Use "Set as cover" to choose the first image and
+the X to remove one.
+
+**CSV/Excel:** the cover goes into `image_url` (alias `bild1`). Add further images in
+these columns:
+
+| Column | Meaning |
+|---|---|
+| `image_url` / `bild1` | cover (image 1) |
+| `bild2` | second image (URL) |
+| `bild3` | third image (URL) |
+| `bild4` | fourth image (URL) |
+| `bild5` | fifth image (URL) |
+
+"Export inventory" writes these columns too, so the file can be re-imported one to
+one. Via the product API you fill the same through the `images` field (array of URLs).
+Note: images are always shown in **full** in the product view (never cropped),
+regardless of aspect ratio.

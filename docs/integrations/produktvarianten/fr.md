@@ -48,3 +48,30 @@ Envoyez `variant_options` (définition) et `variants` (combinaisons). Au POST/PU
 par ligne : `variant_sku` et les attributs (`attributes`, p. ex.
 `{"Durchmesser":"8mm"}`). Votre système sait ainsi exactement quelle variante a été
 commandée.
+
+
+## Images de produit (jusqu'à 5)
+
+Jusqu'à **5 images** par produit sont possibles. Dans la boutique, le client parcourt
+les images en **faisant défiler** ou via les **flèches** (iOS et web). La première
+image est la **couverture**.
+
+**Dans le portail fournisseur :** sous « Images du produit », importez plusieurs
+images (sélection multiple) ou collez des URL d'images. « Définir comme couverture »
+choisit la première image, le X en supprime une.
+
+**CSV/Excel :** la couverture va dans `image_url` (alias `bild1`). Ajoutez d'autres
+images dans ces colonnes :
+
+| Colonne | Signification |
+|---|---|
+| `image_url` / `bild1` | couverture (image 1) |
+| `bild2` | deuxième image (URL) |
+| `bild3` | troisième image (URL) |
+| `bild4` | quatrième image (URL) |
+| `bild5` | cinquième image (URL) |
+
+« Exporter le stock » inclut ces colonnes, le fichier est donc réimportable à
+l'identique. Via l'API produit, vous remplissez la même chose avec le champ `images`
+(tableau d'URL). Remarque : les images sont toujours affichées en **entier** dans la
+fiche produit (jamais rognées), quel que soit le format.

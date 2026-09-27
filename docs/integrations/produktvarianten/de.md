@@ -48,3 +48,30 @@ ersetzt beim POST/PUT **alle** vorhandenen Varianten (leeres Array = löschen):
 Variante mit: `variant_sku` und die Ausprägungen (`attributes`, z. B.
 `{"Durchmesser":"8mm"}`). So weißt du in deinem System genau, welche Variante
 bestellt wurde.
+
+
+## Produktbilder (bis zu 5)
+
+Pro Produkt sind bis zu **5 Bilder** möglich. Im Shop blättert der Kunde per
+**Wischen** oder über die **Pfeile** durch die Bilder (iOS und Web). Das erste
+Bild ist das **Titelbild**.
+
+**Im Anbieter-Portal:** Unter „Produktbilder" mehrere Bilder hochladen
+(Mehrfachauswahl) oder Bild-URLs einfügen. Mit „Als Titelbild" bestimmst du das
+erste Bild, mit dem X entfernst du eines.
+
+**CSV/Excel:** Das Titelbild steht in `image_url` (Alias `bild1`). Weitere Bilder
+trägst du in diese Spalten ein:
+
+| Spalte | Bedeutung |
+|---|---|
+| `image_url` / `bild1` | Titelbild (Bild 1) |
+| `bild2` | zweites Bild (URL) |
+| `bild3` | drittes Bild (URL) |
+| `bild4` | viertes Bild (URL) |
+| `bild5` | fünftes Bild (URL) |
+
+Beim Export „Bestand exportieren" werden diese Spalten mit ausgegeben, sodass die
+Datei 1:1 wieder importierbar ist. Über die Produkt-API füllst du dasselbe über das
+Feld `images` (Array von URLs). Hinweis: Bilder werden in der Produktansicht immer
+**vollständig** angezeigt (nicht beschnitten), unabhängig vom Seitenverhältnis.

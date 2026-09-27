@@ -47,3 +47,30 @@ Envía `variant_options` (definición) y `variants` (combinaciones). En POST/PUT
 **Pedidos:** en una compra, la API y el webhook incluyen la variante elegida por
 línea: `variant_sku` y los atributos (`attributes`, p. ej. `{"Durchmesser":"8mm"}`).
 Así tu sistema sabe exactamente qué variante se pidió.
+
+
+## Imágenes de producto (hasta 5)
+
+Se admiten hasta **5 imágenes** por producto. En la tienda el cliente pasa las
+imágenes **deslizando** o con las **flechas** (iOS y web). La primera imagen es la
+**portada**.
+
+**En el portal de proveedores:** en „Imágenes del producto" sube varias imágenes
+(selección múltiple) o pega URL de imágenes. „Establecer como portada" elige la
+primera imagen y la X elimina una.
+
+**CSV/Excel:** la portada va en `image_url` (alias `bild1`). Añade más imágenes en
+estas columnas:
+
+| Columna | Significado |
+|---|---|
+| `image_url` / `bild1` | portada (imagen 1) |
+| `bild2` | segunda imagen (URL) |
+| `bild3` | tercera imagen (URL) |
+| `bild4` | cuarta imagen (URL) |
+| `bild5` | quinta imagen (URL) |
+
+„Exportar inventario" incluye estas columnas, así el archivo se puede reimportar tal
+cual. Mediante la API de productos rellenas lo mismo con el campo `images` (array de
+URL). Nota: las imágenes siempre se muestran **completas** en la ficha del producto
+(nunca recortadas), sea cual sea la proporción.
