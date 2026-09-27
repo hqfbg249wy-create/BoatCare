@@ -32,6 +32,11 @@ struct ShopView: View {
     @State private var maxPrice: String = ""
     @State private var searchHistory: [String] = UserDefaults.standard.stringArray(forKey: "shopSearchHistory") ?? []
     @State private var equipmentKeywords: [String] = []
+    // Amazon-artig: Suchvorschlaege (Dropdown) + Eingrenzungs-Chips (Facetten)
+    @State private var suggestions: [ProductSuggestion] = []
+    @State private var facets: [ProductFacet] = []
+    @State private var suggestTask: Task<Void, Never>?
+    @FocusState private var searchFocused: Bool
     @State private var equipmentDealProducts: [Product] = []
     @State private var cartToast: String?
 
@@ -50,6 +55,11 @@ struct ShopView: View {
         VStack(spacing: 0) {
             // Search bar
             searchBar
+
+            // Suchvorschlaege direkt unter dem Suchfeld (waehrend der Eingabe)
+            if searchFocused && !suggestions.isEmpty {
+                suggestionsList
+            }
 
             ScrollView {
                 // Bewusst KEIN LazyVStack: die Kopf-Sektionen sind wenige und
@@ -87,6 +97,11 @@ struct ShopView: View {
                     // Recommendations section (only on main page)
                     if !recommendationService.recommendedProducts.isEmpty && searchText.isEmpty && selectedCategory == nil {
                         recommendationsSection
+                    }
+
+                    // Eingrenzungs-Chips (Facetten der Treffermenge)
+                    if !searchText.isEmpty && facets.count > 1 {
+                        facetChips
                     }
 
                     // Category chips
@@ -524,14 +539,21 @@ struct ShopView: View {
                     .foregroundStyle(AppColors.gray900)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .focused($searchFocused)
                     .onSubmit {
+                        searchFocused = false
                         saveToSearchHistory(searchText)
                         Task { await loadProducts() }
+                    }
+                    .onChange(of: searchText) { _, newValue in
+                        refreshSuggestions(newValue)
                     }
 
                 if !searchText.isEmpty {
                     Button {
                         searchText = ""
+                        suggestions = []
+                        facets = []
                         Task { await loadProducts() }
                     } label: {
                         Image(systemName: "xmark.circle.fill")
@@ -558,6 +580,105 @@ struct ShopView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
+    }
+
+    // MARK: - Suchvorschlaege + Eingrenzungs-Chips
+
+    /// Debounced-Aufruf von suggest_products + search_product_facets.
+    private func refreshSuggestions(_ raw: String) {
+        suggestTask?.cancel()
+        let q = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard q.count >= 2 else { suggestions = []; facets = []; return }
+        suggestTask = Task {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            if Task.isCancelled { return }
+            async let sug = try? productService.suggestProducts(q)
+            async let fac = try? productService.searchFacets(q)
+            let (s, f) = await (sug, fac)
+            if Task.isCancelled { return }
+            await MainActor.run {
+                suggestions = s ?? []
+                facets = f ?? []
+            }
+        }
+    }
+
+    /// Klick auf einen Vorschlag: Kategorie -> Filter, sonst Textsuche.
+    private func pickSuggestion(_ s: ProductSuggestion) {
+        searchFocused = false
+        suggestions = []
+        if s.kind == "category", let cid = s.category_id {
+            selectedCategory = categories.first(where: { $0.id == cid })
+                ?? subcategories.first(where: { $0.id == cid })
+                ?? ProductCategory(id: cid, slug: nil, nameDe: s.suggestion, nameEn: s.suggestion,
+                                   parentId: nil, icon: nil, sortOrder: nil)
+            searchText = ""
+        } else {
+            searchText = s.suggestion
+            saveToSearchHistory(s.suggestion)
+        }
+        Task { await loadProducts() }
+    }
+
+    private var suggestionsList: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(suggestions) { s in
+                Button { pickSuggestion(s) } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: s.kind == "category" ? "square.grid.2x2" : "magnifyingglass")
+                            .font(.footnote)
+                            .foregroundStyle(AppColors.gray500)
+                        Text(s.suggestion)
+                            .foregroundStyle(AppColors.gray900)
+                            .lineLimit(1)
+                        Spacer()
+                        if s.kind == "category" {
+                            Text("shop.category".loc)
+                                .font(.caption2)
+                                .foregroundStyle(AppColors.primary)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 11)
+                }
+                .buttonStyle(.plain)
+                Divider().padding(.leading, 42)
+            }
+        }
+        .background(Color(.systemBackground))
+    }
+
+    private var facetChips: some View {
+        let lang = LanguageManager.shared.currentLanguage.code
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(facets) { f in
+                    let active = selectedCategory?.id == f.category_id
+                    Button {
+                        if active { selectedCategory = nil } else {
+                            selectedCategory = categories.first(where: { $0.id == f.category_id })
+                                ?? subcategories.first(where: { $0.id == f.category_id })
+                                ?? ProductCategory(id: f.category_id, slug: nil, nameDe: f.name_de,
+                                                   nameEn: f.name_en ?? f.name_de, nameFr: f.name_fr,
+                                                   nameIt: f.name_it, nameEs: f.name_es, nameNl: f.name_nl,
+                                                   parentId: nil, icon: nil, sortOrder: nil)
+                        }
+                        Task { await loadProducts() }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(f.localizedName(lang)).font(.subheadline)
+                            Text("\(f.cnt)").font(.caption2).opacity(0.7)
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 8)
+                        .background(active ? AppColors.primary : Color(.systemGray6))
+                        .foregroundStyle(active ? Color.white : AppColors.gray700)
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
     }
 
     // MARK: - Search History Chips

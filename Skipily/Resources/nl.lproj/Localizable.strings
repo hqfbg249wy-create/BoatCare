@@ -547,6 +547,7 @@
 // MARK: - Shop (extended)
 "shop.search_placeholder" = "Producten zoeken...";
 "shop.recent_searches" = "Recente zoekopdrachten";
+"shop.category" = "Categorie";
 "shop.valid_until" = "Tot %@";
 "shop.clear" = "Wissen";
 "shop.equipment_match" = "Passend bij jouw uitrusting";

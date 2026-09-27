@@ -547,6 +547,7 @@
 // MARK: - Shop (extended)
 "shop.search_placeholder" = "Cerca prodotti...";
 "shop.recent_searches" = "Ricerche recenti";
+"shop.category" = "Categoria";
 "shop.valid_until" = "Fino al %@";
 "shop.clear" = "Cancella";
 "shop.equipment_match" = "Adatto alla tua attrezzatura";

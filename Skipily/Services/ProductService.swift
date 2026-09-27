@@ -148,6 +148,30 @@ final class ProductService {
         return products
     }
 
+    // MARK: - Suchvorschlaege + Eingrenzungs-Chips (Amazon-artig, zentral in DB)
+
+    /// Autocomplete-Vorschlaege beim Tippen (Kategorien/Hersteller/Produktnamen).
+    func suggestProducts(_ q: String, limit: Int = 8) async throws -> [ProductSuggestion] {
+        let trimmed = q.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 2 else { return [] }
+        struct P: Encodable { let q: String; let p_limit: Int }
+        return try await client
+            .rpc("suggest_products", params: P(q: trimmed, p_limit: limit))
+            .execute()
+            .value
+    }
+
+    /// Eingrenzungs-Chips: haeufigste Kategorien in der aktuellen Treffermenge.
+    func searchFacets(_ q: String) async throws -> [ProductFacet] {
+        let trimmed = q.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 2 else { return [] }
+        struct P: Encodable { let q: String }
+        return try await client
+            .rpc("search_product_facets", params: P(q: trimmed))
+            .execute()
+            .value
+    }
+
     /// Breitere Volltextsuche über mehrere Produktfelder (name, manufacturer,
     /// description, part_number, tags). Splittet die Query an Whitespace und
     /// sucht jedes Wort per ILIKE in allen Feldern. Wird vor allem von der
@@ -326,5 +350,37 @@ final class ProductService {
 
     func invalidateAll() {
         cache.removeAll()
+    }
+}
+
+// MARK: - Such-Hilfsmodelle (Vorschlaege + Facetten)
+
+struct ProductSuggestion: Decodable, Identifiable, Hashable {
+    let suggestion: String
+    let kind: String            // "category" | "manufacturer" | "product"
+    let category_id: UUID?
+    var id: String { "\(kind):\(suggestion)" }
+}
+
+struct ProductFacet: Decodable, Identifiable, Hashable {
+    let category_id: UUID
+    let name_de: String
+    let name_en: String?
+    let name_fr: String?
+    let name_it: String?
+    let name_es: String?
+    let name_nl: String?
+    let cnt: Int
+    var id: UUID { category_id }
+
+    func localizedName(_ lang: String) -> String {
+        switch lang {
+        case "en": return name_en ?? name_de
+        case "fr": return name_fr ?? name_de
+        case "it": return name_it ?? name_de
+        case "es": return name_es ?? name_de
+        case "nl": return name_nl ?? name_de
+        default:   return name_de
+        }
     }
 }

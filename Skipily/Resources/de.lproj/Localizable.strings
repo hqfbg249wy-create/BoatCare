@@ -554,6 +554,7 @@ Ausrüstung unter Boote ergänzen.";
 // MARK: - Shop (extended)
 "shop.search_placeholder" = "Produkte suchen...";
 "shop.recent_searches" = "Letzte Suchen";
+"shop.category" = "Kategorie";
 "shop.valid_until" = "Bis %@";
 "shop.clear" = "Löschen";
 "shop.equipment_match" = "Passend zu deiner Ausrüstung";

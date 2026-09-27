@@ -550,6 +550,7 @@
 // MARK: - Shop (extended)
 "shop.search_placeholder" = "Search products...";
 "shop.recent_searches" = "Recent Searches";
+"shop.category" = "Category";
 "shop.valid_until" = "Until %@";
 "shop.clear" = "Clear";
 "shop.equipment_match" = "Matching your equipment";
