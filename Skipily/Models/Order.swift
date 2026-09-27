@@ -108,7 +108,10 @@ struct Order: Codable, Identifiable, Sendable {
 struct OrderItem: Codable, Identifiable, Sendable {
     let id: UUID
     let orderId: UUID?
-    let productId: UUID
+    // Optional: Positionen aus Angebots-/Tauwerk-Bestellungen haben kein
+    // Metashop-Produkt (product_id ist NULL). Frueher non-optional -> das
+    // Decodieren scheiterte und die gesamte Bestellliste blieb leer.
+    let productId: UUID?
     let quantity: Int
     let unitPrice: Double
     let discountPercent: Double?
