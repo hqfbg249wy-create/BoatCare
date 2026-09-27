@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { getCurrentLocation } from '../lib/geo'
-import { Heart, MapPin, Phone, Mail, Globe, Star, Navigation, Tag, Clock, ChevronLeft, ShoppingBag, Wrench, Package, Pencil, Trash2, Send, X, MessageSquarePlus } from 'lucide-react'
+import { Heart, MapPin, Phone, Mail, Globe, Star, Navigation, Tag, Clock, ChevronLeft, ShoppingBag, Wrench, Package, Pencil, Trash2, Send, X, MessageSquarePlus, Camera, ImagePlus } from 'lucide-react'
 import { useT } from '../i18n'
 import { translateProviders, translateProducts, isTranslatableLang } from '../lib/dbTranslate'
 
@@ -92,6 +92,11 @@ export default function ProviderDetail() {
   const [equipSearch, setEquipSearch] = useState('')
   const [shipLocation, setShipLocation] = useState(null) // { lat, lon }
   const [locating, setLocating] = useState(false)
+  // Foto-Anhänge für die Anfrage ({ file, preview }-Objekte)
+  const [inquiryPhotos, setInquiryPhotos] = useState([])
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const inqCameraRef = useRef(null)
+  const inqLibraryRef = useRef(null)
 
   async function attachShipLocation() {
     setLocating(true)
@@ -267,7 +272,7 @@ export default function ProviderDetail() {
     setEquipSearch('')
     if (!inquiryBoatId) { setBoatEquipment([]); setSelectedEquipIds([]); return }
     supabase.from('equipment')
-      .select('id, name, category, manufacturer, model, serial_number')
+      .select('id, name, category, manufacturer, model, serial_number, part_number, dimensions, location_on_boat, item_description, notes, installation_date, warranty_expiry, last_maintenance_date, next_maintenance_date, maintenance_cycle_years, photo_url')
       .eq('boat_id', inquiryBoatId)
       .order('category')
       .then(({ data }) => setBoatEquipment(data || []))
@@ -291,16 +296,42 @@ export default function ProviderDetail() {
     }
     const eq = boatEquipment.filter(e => selectedEquipIds.includes(e.id))
     if (eq.length) {
-      parts.push('\n' + t('inq.equipData') + ':\n' + eq.map(e => {
-        const d = [e.manufacturer, e.model].filter(Boolean).join(' ')
-        const sn = e.serial_number ? ', ' + t('inq.fSerial') + ' ' + e.serial_number : ''
-        return `• ${e.name}${d ? ' (' + d + ')' : ''}${sn}`
-      }).join('\n'))
+      const blocks = eq.map(e => {
+        const lines = [`• ${e.name || t('inq.equipData')}`]
+        const sub = (label, value) => { if (value != null && String(value).trim() !== '') lines.push(`   - ${label}: ${value}`) }
+        const makeModel = [e.manufacturer, e.model].filter(Boolean).join(' ')
+        sub(t('inq.fCategory'), e.category)
+        sub(t('inq.fMakeModel'), makeModel)
+        sub(t('inq.fSerial'), e.serial_number)
+        sub(t('inq.fPart'), e.part_number)
+        sub(t('inq.fDimensions'), e.dimensions)
+        sub(t('inq.fLocation'), e.location_on_boat)
+        sub(t('inq.fInstalled'), e.installation_date)
+        sub(t('inq.fWarranty'), e.warranty_expiry)
+        sub(t('inq.fLastMaint'), e.last_maintenance_date)
+        sub(t('inq.fNextMaint'), e.next_maintenance_date)
+        if (e.maintenance_cycle_years != null && String(e.maintenance_cycle_years).trim() !== '')
+          sub(t('inq.fCycle'), `${e.maintenance_cycle_years} ${t('inq.fYears')}`)
+        sub(t('inq.fDescription'), e.item_description)
+        sub(t('inq.fNotes'), e.notes)
+        // Ausrüstungs-Fotos verlinken (photo_url ist komma-separiert)
+        const photos = String(e.photo_url || '').split(',').map(u => u.trim()).filter(Boolean)
+        if (photos.length) {
+          lines.push(`   - ${t('inq.fPhotos')}:`)
+          photos.forEach((u, i) => lines.push(`     ${i + 1}. ${u}`))
+        }
+        return lines.join('\n')
+      })
+      parts.push('\n' + t('inq.equipData') + ':\n' + blocks.join('\n'))
     }
     if (shipLocation) {
       parts.push('\n' + t('inq.shipLocation') + ':\n'
         + `• ${shipLocation.lat.toFixed(5)}, ${shipLocation.lon.toFixed(5)}\n`
         + `• https://maps.google.com/?q=${shipLocation.lat},${shipLocation.lon}`)
+    }
+    if (inquiryPhotos.length) {
+      parts.push('\n' + t('inq.fPhotos') + ':\n'
+        + inquiryPhotos.map((p, i) => `• ${i + 1}. ${p.url}`).join('\n'))
     }
     return parts.filter(Boolean).join('\n')
   }
@@ -311,7 +342,45 @@ export default function ProviderDetail() {
     setInquiryBoatId('')
     setInquiryNotes('')
     setShipLocation(null)
+    setInquiryPhotos([])
     setShowInquiryForm(true)
+  }
+
+  // ── Foto-Anhänge für die Anfrage ──────────────────────────────────────────
+  // Direkt beim Auswählen in den Bucket user-photos (wie iOS) hochladen, damit
+  // die öffentlichen URLs sowohl in der E-Mail (mailto) als auch im
+  // Portal-Nachrichtenverlauf (attachment_urls) verfügbar sind.
+  async function onPickInquiryPhotos(e) {
+    const files = Array.from(e.target.files || [])
+    e.target.value = ''
+    if (!files.length) return
+    const room = Math.max(0, 5 - inquiryPhotos.length)
+    const toUpload = files.slice(0, room)
+    if (!toUpload.length) return
+    setPhotoUploading(true)
+    const stamp = Date.now()
+    try {
+      for (let i = 0; i < toUpload.length; i++) {
+        try {
+          const file = toUpload[i]
+          const ext = (file.name?.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
+          const path = `inquiries/${user.id}/${stamp}_${i}.${ext}`
+          const { error } = await supabase.storage.from('user-photos')
+            .upload(path, file, { contentType: file.type || 'image/jpeg', upsert: true })
+          if (error) { console.error('Anfrage-Foto-Upload:', error); continue }
+          const { data } = supabase.storage.from('user-photos').getPublicUrl(path)
+          if (data?.publicUrl) setInquiryPhotos(prev => [...prev, { url: data.publicUrl }])
+        } catch (err) {
+          console.error('Anfrage-Foto-Upload (Ausnahme):', err)
+        }
+      }
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  function removeInquiryPhoto(idx) {
+    setInquiryPhotos(prev => prev.filter((_, i) => i !== idx))
   }
 
   // mode: 'draft' = nur speichern · 'send' = speichern + per Eigner-Mailaccount (mailto) senden
@@ -348,6 +417,7 @@ export default function ProviderDetail() {
             const { data: firstMsg } = await supabase.from('messages').insert({
               conversation_id: conv.id, sender_id: user.id, sender_type: 'user',
               content: `${inquirySubject.trim()}\n\n${fullMessage}`,
+              attachment_urls: inquiryPhotos.length ? inquiryPhotos.map(p => p.url) : null,
             }).select('id').single()
             await supabase.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conv.id)
             // Provider serverseitig per E-Mail benachrichtigen (Resend, mit Portal-Hinweis)
@@ -783,6 +853,39 @@ export default function ProviderDetail() {
                   placeholder={t('prov.k26')}
                 />
               </div>
+              <div className="form-group">
+                <label>{t('inq.fPhotos')}</label>
+                <input ref={inqCameraRef} type="file" accept="image/*" capture="environment" hidden onChange={onPickInquiryPhotos} />
+                <input ref={inqLibraryRef} type="file" accept="image/*" multiple hidden onChange={onPickInquiryPhotos} />
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button type="button" className="btn-secondary" onClick={() => inqCameraRef.current?.click()}
+                          disabled={photoUploading || inquiryPhotos.length >= 5}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Camera size={14} /> {t('inq.camera')}
+                  </button>
+                  <button type="button" className="btn-secondary" onClick={() => inqLibraryRef.current?.click()}
+                          disabled={photoUploading || inquiryPhotos.length >= 5}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <ImagePlus size={14} /> {t('inq.library')}
+                  </button>
+                  {photoUploading && <span style={{ fontSize: 13, color: '#64748b', alignSelf: 'center' }}>{t('inq.uploadingPhotos')}</span>}
+                </div>
+                {inquiryPhotos.length > 0 && (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                    {inquiryPhotos.map((p, i) => (
+                      <div key={i} style={{ position: 'relative', width: 64, height: 64 }}>
+                        <img src={p.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                        <button type="button" onClick={() => removeInquiryPhoto(i)} aria-label={t('inq.remove')}
+                                style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', border: 'none', background: '#1e293b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="form-label-hint" style={{ marginTop: 4, fontSize: 12, color: '#94a3b8' }}>{t('inq.photoHint')}</p>
+              </div>
+
               <div className="form-group">
                 <label>{t('prov.k22')} <span className="form-label-hint">(nur für dich sichtbar)</span></label>
                 <textarea

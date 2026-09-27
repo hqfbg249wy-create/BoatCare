@@ -32,6 +32,9 @@ struct CheckoutView: View {
     // Versandkosten je Provider aus der Engine (calculate-shipping). Wird beim
     // Betreten des Review-Schritts berechnet und in Summe/Anzeige einbezogen.
     @State private var engineShipping: [UUID: Double] = [:]
+    // Freigrenze je Provider, falls die Sendung dank Freigrenze kostenlos ist
+    // (für den Hinweis „Kostenlos (frei ab X €)").
+    @State private var shippingFreeThreshold: [UUID: Double] = [:]
     @State private var shippingLoading = false
 
     // Stripe
@@ -47,6 +50,18 @@ struct CheckoutView: View {
     private var grandTotalAll: Double { subtotalAll + shippingAll }
     private func money(_ v: Double) -> String {
         String(format: "%.2f €", v).replacingOccurrences(of: ".", with: ",")
+    }
+    /// Label für kostenlosen Versand — mit Grund („frei ab X €"), falls die
+    /// Freigrenze bekannt ist, sonst schlicht „Kostenlos".
+    private func freeShippingLabel(threshold: Double?) -> String {
+        if let t = threshold {
+            return String(format: "cart.shipping_free_above".loc, money(t))
+        }
+        return "cart.shipping_free".loc
+    }
+    // Höchste greifende Freigrenze über alle Provider (für die Gesamtzeile).
+    private var combinedFreeThreshold: Double? {
+        shippingFreeThreshold.values.max()
     }
 
     var body: some View {
@@ -74,10 +89,14 @@ struct CheckoutView: View {
     private func loadEngineShipping() async {
         shippingLoading = true
         var map: [UUID: Double] = [:]
+        var thresholds: [UUID: Double] = [:]
         for group in cartManager.groupedByProvider {
-            map[group.id] = await OrderService.shared.shippingCost(for: group, country: shippingAddress.country)
+            let info = await OrderService.shared.shippingInfo(for: group, country: shippingAddress.country)
+            map[group.id] = info.cost
+            if let t = info.freeThreshold { thresholds[group.id] = t }
         }
         engineShipping = map
+        shippingFreeThreshold = thresholds
         shippingLoading = false
     }
 
@@ -259,7 +278,7 @@ struct CheckoutView: View {
                             if shippingLoading {
                                 ProgressView().scaleEffect(0.7)
                             } else {
-                                Text(shippingAll > 0 ? money(shippingAll) : "cart.shipping_free".loc)
+                                Text(shippingAll > 0 ? money(shippingAll) : freeShippingLabel(threshold: combinedFreeThreshold))
                             }
                         }
                         .font(.subheadline)
@@ -432,7 +451,7 @@ struct CheckoutView: View {
                     Text("…").font(.caption).foregroundStyle(AppColors.gray500)
                 } else {
                     let gs = engineShipping[group.id] ?? group.shippingCost
-                    Text(gs > 0 ? money(gs) : "cart.shipping_free".loc)
+                    Text(gs > 0 ? money(gs) : freeShippingLabel(threshold: shippingFreeThreshold[group.id]))
                         .font(.caption)
                         .foregroundStyle(gs == 0 ? AppColors.success : AppColors.gray500)
                 }

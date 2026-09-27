@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skipily — Dein Boot. Dein Assistent. Deine Community.</title>
+<meta name="description" content="Skipily: Werften, Service &amp; Shops auf der Karte, 1:1-Ersatzteilsuche, Wartungsplanung und ein KI-Assistent, der dein Boot kennt.">
+<link rel="icon" href="https://provider.skipily.app/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<link rel="alternate" hreflang="de" href="https://skipily.app/">
+<link rel="alternate" hreflang="en" href="https://skipily.app/en/">
+<link rel="stylesheet" href="/skipily-style.css">
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+<header class="sk-topbar">
+  <a class="brand" href="/"><img src="https://provider.skipily.app/icon-192.png" alt="Skipily">SKIPILY</a>
+  <nav class="sk-topnav">
+    <a class="muted hide-sm" href="/preise">Preise</a>
+    <a class="muted hide-sm" href="/faq">FAQ</a>
+    <a class="muted hide-sm" href="https://provider.skipily.app">Für Anbieter</a>
+    <span class="sk-lang"><a href="/" class="active">DE</a><a href="/en/">EN</a></span>
+  </nav>
+</header>
+<!-- ================================================================
+     SKIPILY.APP — HOME PAGE (Stand: Mai 2026 — Launch-Version)
+     Einfügen in WordPress:
+       Seite "Startseite" → Block "Benutzerdefiniertes HTML" → komplett
+       diesen Inhalt einfügen.
+
+     Bild-URLs sind direkt auf die WordPress-Mediathek von skipily.app
+     gemappt — kein Pfad-Anpassen mehr nötig.
+     ================================================================ -->
+
+<!-- ==================== HERO ==================== -->
+<section class="sk-hero">
+  <div class="sk-hero-inner">
+    <img src="/assets/logo.png"
+         alt="Skipily" class="sk-logo">
+    <div class="sk-accent-line"></div>
+    <p class="sk-tagline">IMMER · SICHER · SEEKLAR</p>
+    <p class="sk-subtagline">Service &amp; Produkte für dich und dein Boot</p>
+
+    <h1 class="sk-h1">Dein Boot. Dein Assistent. Deine Community.</h1>
+
+    <p class="sk-lead">
+      <strong>Skipily</strong> verbindet Bootseigner mit Werften, Werkstätten und Händlern in ganz
+      Europa – mit 1:1‑Ersatzteilsuche, Wartungsplanung, Service-Anfragen
+      und einem KI-Assistenten, der dein Boot kennt.
+    </p>
+
+    <p style="margin: 18px 0 16px; font-size: 0.95rem; font-weight: 600; color: #10b981;">
+      ✓ Gratis für iPhone &amp; iPad · Web-App für Android · alle Kernfunktionen kostenlos
+    </p>
+
+    <div class="sk-hero-cta">
+      <a href="https://apps.apple.com/app/id6757314378" class="sk-btn sk-btn-primary">Im App Store laden</a>
+      <a href="https://app.skipily.app/entdecken" class="sk-btn sk-btn-primary" style="background:#0B1D3A;">Web-App öffnen (Android)</a>
+    </div>
+
+    <p style="margin-top:18px; font-size:13px; color:#64748b;">
+      🇩🇪 Deutsch · 🇬🇧 English · 🇫🇷 Français · 🇮🇹 Italiano · 🇪🇸 Español · 🇳🇱 Nederlands
+    </p>
+  </div>
+</section>
+
+<!-- ==================== USPs ==================== -->
+<section class="sk-section sk-section-light">
+  <div class="sk-container">
+    <h2 class="sk-h2">Gebaut für Bootseigner, die ihr Boot lieben.</h2>
+    <p class="sk-section-lead">
+      Ob Segler oder Motorbootfahrer, Wochenend-Skipper oder Blauwasser-Segler
+      – Skipily organisiert alles rund um dein Boot in einer einzigen App.
+    </p>
+
+    <ul class="sk-usp-list">
+      <li><span class="sk-check">✓</span> Alle Bootsdaten, Fotos &amp; Seriennummern an einem Ort</li>
+      <li><span class="sk-check">✓</span> Wartungsintervalle mit Ampel-Anzeige – nie wieder zu spät</li>
+      <li><span class="sk-check">✓</span> Tausende Service-Partner in Europa, gefiltert nach Marke und Entfernung</li>
+      <li><span class="sk-check">✓</span> Originalteile &amp; passende Derivate für deine Ausrüstung</li>
+      <li><span class="sk-check">✓</span> Service-Anfrage in 10 Sekunden – mit vollständigem Briefing</li>
+      <li><span class="sk-check">✓</span> KI, die deine Ausrüstung kennt</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ==================== FEATURES MIT SCREENSHOTS ==================== -->
+<section class="sk-section sk-section-dark">
+  <div class="sk-container">
+    <h2 class="sk-h2 sk-h2-on-dark">So hilft dir Skipily</h2>
+
+    <!-- Feature 1: Karte ------------------------------------------------ -->
+    <div class="sk-feature-row">
+      <div class="sk-feature-text">
+        <h3 class="sk-h3">Finde Werften &amp; Service-Partner in deiner Nähe</h3>
+        <p>Werften, Werkstätten, Segelmacher, Tankstellen, Lackierer –
+           tausende Anbieter in ganz Europa auf einer interaktiven Karte.
+           Sortiert nach Entfernung, gefiltert nach Kategorie und Marke,
+           mit echten Bewertungen.</p>
+        <ul style="color:#cbd5e1; font-size:14px; padding-left:18px; margin-top:12px;">
+          <li>Mittelmeer, Nord- und Ostsee abgedeckt</li>
+          <li>Routenführung direkt in Apple Maps</li>
+          <li>Telefon, E-Mail, Website mit einem Tap</li>
+        </ul>
+      </div>
+      <div class="sk-feature-img">
+        <img src="/assets/feature-map.jpg"
+             alt="Service-Partner auf der Karte finden">
+      </div>
+    </div>
+
+    <!-- Feature 2: 1:1 Ersatzteilsuche  ⭐ KILLER-FEATURE --------------- -->
+    <div class="sk-feature-row sk-reverse">
+      <div class="sk-feature-text">
+        <span style="color:#fdba74; font-weight:700; letter-spacing:.08em; text-transform:uppercase; font-size:12px;">
+          ⭐ Einzigartig in der Branche
+        </span>
+        <h3 class="sk-h3" style="margin-top:6px;">Originalteile per Knopfdruck</h3>
+        <p>Aus jedem Ausrüstungs-Eintrag direkt zum passenden Ersatzteil –
+           sortiert in <strong>drei klare Kategorien</strong>:</p>
+        <ul style="color:#cbd5e1; font-size:14px; padding-left:18px; margin-top:12px;">
+          <li><strong style="color:#86efac;">Originalteile</strong> – 1:1‑Treffer über die Artikelnummer</li>
+          <li><strong style="color:#93c5fd;">1:1 Derivate</strong> – gleicher Hersteller &amp; Modell, sollte direkt passen</li>
+          <li><strong style="color:#fdba74;">Weitere passende Ausrüstung</strong> – sinnvolle Ergänzungen</li>
+        </ul>
+        <p style="margin-top:12px; color:#cbd5e1; font-size:14px;">
+          Schluss mit stundenlanger Suche nach dem richtigen Impeller oder
+          Wasserfilter.
+        </p>
+      </div>
+      <div class="sk-feature-img">
+        <img src="/assets/feature-parts.jpg"
+             alt="1:1 Ersatzteilsuche mit Original- und Derivat-Kategorisierung">
+      </div>
+    </div>
+
+    <!-- Feature 3: Service-Anfrage mit Briefing ------------------------ -->
+    <div class="sk-feature-row">
+      <div class="sk-feature-text">
+        <h3 class="sk-h3">Service-Anfrage in 10 Sekunden</h3>
+        <p>Du tippst auf „Anfrage" bei einem Ausrüstungs-Eintrag –
+           Skipily baut automatisch ein <strong>vollständiges Briefing</strong>:
+           Marke, Modell, Seriennummer, Maßblatt, Einbau- und Wartungsdaten,
+           Fotos. Du wählst nur noch den Service-Partner.</p>
+        <ul style="color:#cbd5e1; font-size:14px; padding-left:18px; margin-top:12px;">
+          <li>Briefing in 6 Sprachen automatisch erzeugt</li>
+          <li>Fotos und Segel-Maßblatt direkt als Anhang</li>
+          <li>Vorschau und Bearbeitung vor dem Versand</li>
+        </ul>
+      </div>
+      <div class="sk-feature-img">
+        <img src="/assets/feature-request.jpg"
+             alt="Service-Anfrage mit automatischem Equipment-Briefing">
+      </div>
+    </div>
+
+    <!-- Feature 4: Wartung mit Status-Ampeln --------------------------- -->
+    <div class="sk-feature-row sk-reverse">
+      <div class="sk-feature-text">
+        <h3 class="sk-h3">Behalte den Überblick – bevor was kaputt geht</h3>
+        <p>Wartungsintervalle pro Ausrüstung. Skipily zeigt dir mit
+           <strong>Status-Ampeln</strong> was anliegt:</p>
+        <ul style="color:#cbd5e1; font-size:14px; padding-left:18px; margin-top:12px;">
+          <li><span style="color:#fca5a5;">● Rot</span> – überfällig</li>
+          <li><span style="color:#fcd34d;">● Gelb</span> – in den nächsten 30 Tagen fällig</li>
+          <li><span style="color:#86efac;">● Grün</span> – alles im grünen Bereich</li>
+        </ul>
+        <p style="margin-top:12px; color:#cbd5e1; font-size:14px;">
+          Push-Erinnerungen rechtzeitig vor der nächsten Inspektion –
+          nie wieder etwas vergessen.
+        </p>
+      </div>
+      <div class="sk-feature-img">
+        <img src="/assets/feature-maintenance.jpg"
+             alt="Wartungsplanung mit Status-Ampeln">
+      </div>
+    </div>
+
+    <!-- Feature 5: KI-Assistent ---------------------------------------- -->
+    <div class="sk-feature-row">
+      <div class="sk-feature-text">
+        <h3 class="sk-h3">Frag den KI-Assistenten – er kennt dein Boot</h3>
+        <p>Der Skipily-Assistent kennt deine Ausrüstung und beantwortet
+           spezifische Fragen: von „Welches Öl braucht mein Yanmar 3JH5E?"
+           bis „Wie entlüfte ich den Dieselmotor?".</p>
+        <ul style="color:#cbd5e1; font-size:14px; padding-left:18px; margin-top:12px;">
+          <li>Schadens-Foto-Analyse (Skipily Plus)</li>
+          <li>Antwort kann direkt an Service-Partner weitergeleitet werden</li>
+          <li>Kontext aus Boots- und Equipment-Daten</li>
+        </ul>
+      </div>
+      <div class="sk-feature-img">
+        <img src="/assets/feature-ai.jpg"
+             alt="KI-Assistent mit Bootswissen">
+      </div>
+    </div>
+
+    <!-- Feature 6: Provider-Bewertungen -------------------------------- -->
+    <div class="sk-feature-row sk-reverse">
+      <div class="sk-feature-text">
+        <h3 class="sk-h3">Echte Bewertungen von echten Eignern</h3>
+        <p>Jeder Service-Partner mit Bewertungen, Fotos und Kontaktdaten.
+           Du siehst auf einen Blick, welche Werft für Yanmar-Motoren
+           spezialisiert ist und welcher Segelmacher die besten Bewertungen
+           für Genuas hat.</p>
+        <ul style="color:#cbd5e1; font-size:14px; padding-left:18px; margin-top:12px;">
+          <li>Nur verifizierte Bewertungen von echten Kunden</li>
+          <li>Trusted-Provider-Markierung für geprüfte Betriebe</li>
+          <li>Produkte und Sonderangebote direkt sichtbar</li>
+        </ul>
+      </div>
+      <div class="sk-feature-img">
+        <img src="/assets/feature-reviews.jpg"
+             alt="Service-Partner mit echten Bewertungen">
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ==================== FEATURE ICONS (9er Grid) ==================== -->
+<section class="sk-section sk-section-light">
+  <div class="sk-container">
+    <h2 class="sk-h2">Was Skipily alles kann</h2>
+    <div class="sk-grid-3">
+
+      <div class="sk-icon-card">
+        <div class="sk-icon">⚓</div>
+        <h4>Boot &amp; Ausrüstung</h4>
+        <p>Alle Daten, Fotos, Maße, Seriennummern – an einem Ort, auch offline.</p>
+      </div>
+
+      <div class="sk-icon-card">
+        <div class="sk-icon">🔧</div>
+        <h4>Wartungs-Ampeln</h4>
+        <p>Rot, gelb, grün – auf einen Blick siehst du was als nächstes anliegt.</p>
+      </div>
+
+      <div class="sk-icon-card">
+        <div class="sk-icon">🛒</div>
+        <h4>1:1 Ersatzteile</h4>
+        <p>Original, Derivat oder Alternative – klar kategorisiert pro Suche.</p>
+      </div>
+
+      <div class="sk-icon-card">
+        <div class="sk-icon">✉️</div>
+        <h4>Service-Anfrage</h4>
+        <p>Vorausgefülltes Briefing mit Equipment-Daten und Fotos. Direkt zur Werft.</p>
+      </div>
+
+      <div class="sk-icon-card">
+        <div class="sk-icon">⛵</div>
+        <h4>Segel-Maßblatt</h4>
+        <p>Komplettes Aufmaß für Segelmacher – alle Maße, ein PDF, fertig.</p>
+      </div>
+
+      <div class="sk-icon-card">
+        <div class="sk-icon">🤖</div>
+        <h4>KI-Assistent</h4>
+        <p>Antworten auf Bootsfragen mit Kontext zu deiner Ausrüstung. 24/7.</p>
+      </div>
+
+      <div class="sk-icon-card">
+        <div class="sk-icon">🌍</div>
+        <h4>Europa-Karte</h4>
+        <p>Werften und Händler von Skandinavien bis Mittelmeer auf einer Karte.</p>
+      </div>
+
+      <div class="sk-icon-card">
+        <div class="sk-icon">🔔</div>
+        <h4>Smart Notifications</h4>
+        <p>Push-Erinnerungen rechtzeitig vor jeder anstehenden Wartung.</p>
+      </div>
+
+      <div class="sk-icon-card">
+        <div class="sk-icon">💬</div>
+        <h4>6 Sprachen</h4>
+        <p>Deutsch, English, Français, Italiano, Español, Nederlands.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PROVIDER CTA ==================== -->
+<section class="sk-section sk-section-darkblue">
+  <div class="sk-container sk-narrow">
+    <h2 class="sk-h2 sk-h2-on-dark">Sie sind Service-Provider?</h2>
+    <p class="sk-section-lead sk-on-dark">
+      Werften, Werkstätten, Segelmacher, Händler – werden Sie Teil von Skipily
+      und erreichen Sie Bootseigner genau dann, wenn sie Sie brauchen.
+      Mit eigenem Provider-Portal, Produktkatalog, Anfragen-Management
+      und direkter Stripe-Anbindung für Online-Zahlungen.
+    </p>
+    <p class="sk-center">
+      <a href="https://provider.skipily.app" class="sk-btn sk-btn-primary">
+        Provider-Portal entdecken
+      </a>
+    </p>
+    <p style="text-align:center; margin-top:12px; font-size:13px; color:rgba(255,255,255,0.7);">
+      oder direkt schreiben an
+      <a href="mailto:provider@skipily.app" style="color:#fdba74;">provider@skipily.app</a>
+    </p>
+  </div>
+</section>
+
+<!-- ==================== NEWSLETTER / NOTIFY ==================== -->
+<section class="sk-section sk-section-light" id="download">
+  <div class="sk-container sk-narrow sk-center">
+    <h2 class="sk-h2">Jetzt loslegen</h2>
+    <p class="sk-section-lead">
+      Skipily ist da – lade die App fürs iPhone &amp; iPad oder öffne die Web-App auf Android.
+    </p>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:6px;">
+      <a class="sk-btn sk-btn-primary" href="https://apps.apple.com/app/id6757314378">Im App Store laden</a>
+      <a class="sk-btn sk-btn-primary" href="https://app.skipily.app/entdecken" style="background:#0B1D3A;">Web-App öffnen (Android)</a>
+    </div>
+    <p class="sk-fineprint">
+      Kostenlos laden – die Kernfunktionen bleiben dauerhaft gratis.
+    </p>
+  </div>
+</section>
+
+<footer class="sk-sitefooter">
+  <p class="tag">ALWAYS · SAFE · READY TO SAIL</p>
+  <p>Die App für Bootseigner.</p>
+  <p>
+    <a href="/preise">Preise</a> ·
+    <a href="/impressum">Impressum</a> ·
+    <a href="/datenschutz">Datenschutz</a> ·
+    <a href="/agb">AGB</a> ·
+    <a href="/account-deletion">Konto löschen</a>
+  </p>
+  <p>© 2026 SKIPILY GmbH</p>
+</footer>
+</body>
+</html>

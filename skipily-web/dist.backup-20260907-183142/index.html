@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skipily: alles, was es braucht, um sicher auf See zu sein</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: #F6F4F1; color: #12212F; font-family: 'IBM Plex Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; text-wrap: pretty; }
+  h1, h2, h3, h4 { font-family: 'Archivo', system-ui, sans-serif; margin: 0; letter-spacing: -0.02em; }
+  p { margin: 0; }
+  a { color: #F26B21; text-decoration: none; }
+  a:hover { color: #D4551A; text-decoration: underline; }
+  ul { margin: 0; padding: 0; list-style: none; }
+  img { display: block; max-width: 100%; }
+</style>
+</head>
+<body>
+<div style="display:flex; flex-direction:column; width:100%; overflow-x:hidden">
+
+  <header style="position:sticky; top:0; z-index:50; background:rgba(7,27,47,0.94); backdrop-filter:blur(12px); border-bottom:1px solid rgba(255,255,255,0.08)">
+    <div style="max-width:1180px; margin:0 auto; padding:13px clamp(16px,3vw,28px); display:flex; flex-wrap:wrap; align-items:center; row-gap:12px; column-gap:28px">
+      <a href="#top" style="display:flex; align-items:center; gap:11px; color:#fff; text-decoration:none">
+        <img src="media/logo.png" alt="Skipily" style="width:34px; height:34px; border-radius:9px">
+        <span style="font-family:'Archivo'; font-weight:800; font-size:19px; letter-spacing:0.08em; color:#fff">SKIPILY</span>
+      </a>
+      <nav style="display:flex; column-gap:24px; row-gap:12px; margin-left:auto; align-items:center; flex-wrap:wrap; justify-content:flex-end">
+        <a href="#umgebung" style="font-size:14.5px; font-weight:500; color:rgba(255,255,255,0.72); text-decoration:none">Das Problem</a>
+        <a href="#dreifragen" style="font-size:14.5px; font-weight:500; color:rgba(255,255,255,0.72); text-decoration:none">Drei Fragen</a>
+        <a href="#inderapp" style="font-size:14.5px; font-weight:500; color:rgba(255,255,255,0.72); text-decoration:none">In der App</a>
+        <a href="#ueber-mich" style="font-size:14.5px; font-weight:500; color:rgba(255,255,255,0.72); text-decoration:none">Der Gründer</a>
+        <a href="#funktionen" style="font-size:14.5px; font-weight:500; color:rgba(255,255,255,0.72); text-decoration:none">Funktionen</a>
+        <span style="display:flex; align-items:center; gap:2px; font-family:'IBM Plex Mono'; font-size:12.5px; letter-spacing:0.06em; border:1px solid rgba(255,255,255,0.22); border-radius:999px; padding:5px 6px">
+          <span style="background:#F26B21; color:#fff; border-radius:999px; padding:4px 8px; font-weight:500">DE</span>
+          <a href="en.html" style="color:rgba(255,255,255,0.72); text-decoration:none; padding:4px 8px">EN</a>
+          <a href="fr.html" style="color:rgba(255,255,255,0.72); text-decoration:none; padding:4px 8px">FR</a>
+          <a href="it.html" style="color:rgba(255,255,255,0.72); text-decoration:none; padding:4px 8px">IT</a>
+          <a href="es.html" style="color:rgba(255,255,255,0.72); text-decoration:none; padding:4px 8px">ES</a>
+          <a href="nl.html" style="color:rgba(255,255,255,0.72); text-decoration:none; padding:4px 8px">NL</a>
+        </span>
+        <a href="https://apps.apple.com/app/id6757314378" style="background:#F26B21; color:#fff; font-size:14.5px; font-weight:600; padding:10px 18px; border-radius:999px; text-decoration:none">App laden</a>
+      </nav>
+    </div>
+  </header>
+
+  <section id="top" style="background:#071B2F; color:#fff; padding:clamp(48px,7vw,72px) clamp(18px,4vw,28px) clamp(52px,7vw,84px); position:relative; overflow:hidden">
+    <div style="position:absolute; top:-180px; right:-140px; width:620px; height:620px; border-radius:50%; background:radial-gradient(circle, rgba(242,107,33,0.18), rgba(242,107,33,0) 65%)"></div>
+    <div style="max-width:1180px; margin:0 auto; display:flex; flex-wrap:wrap; gap:clamp(36px,5vw,60px); align-items:center; position:relative">
+
+      <div style="flex:1 1 400px; display:flex; flex-direction:column; gap:26px">
+        <div style="display:flex; align-items:center; gap:18px">
+          <img src="media/logo.png" alt="Skipily" style="width:74px; height:74px; border-radius:19px; box-shadow:0 18px 40px -14px rgba(0,0,0,0.6)">
+          <span style="font-family:'Archivo'; font-weight:800; font-size:clamp(30px,5.4vw,46px); letter-spacing:0.06em; line-height:1">SKIPILY</span>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:14px">
+          <span style="width:34px; height:2px; background:#F26B21"></span>
+          <span style="font-family:'IBM Plex Mono'; font-size:12.5px; letter-spacing:0.16em; text-transform:uppercase; color:rgba(255,255,255,0.62)">Immer · sicher · seeklar</span>
+        </div>
+
+        <h1 style="font-size:clamp(33px,6.6vw,58px); line-height:1.05; font-weight:800">
+          Am Boot klemmt etwas?
+          <span style="display:block; margin-top:18px">Du weißt in Minuten, <span style="color:#F26B21">wer hilft, und welches Teil passt.</span></span>
+        </h1>
+
+        <p style="font-size:clamp(16px,1.6vw,18.5px); line-height:1.6; color:rgba(255,255,255,0.76); max-width:520px">
+          Frag die Boots-KI, finde Service-Partner, denen du wirklich vertraust, und das Ersatzteil, das wirklich passt. Kein Telefon-Marathon, kein „passt schon“, kein Forum um Mitternacht.
+        </p>
+
+        <div style="display:flex; flex-wrap:wrap; gap:14px; margin-top:4px">
+          <a href="https://apps.apple.com/app/id6757314378" style="background:#F26B21; color:#fff; font-size:16px; font-weight:600; padding:16px 28px; border-radius:999px; text-decoration:none; box-shadow:0 16px 34px -14px rgba(242,107,33,0.7)">Im App Store laden</a>
+          <a href="https://app.skipily.app" style="border:1.5px solid rgba(255,255,255,0.32); color:#fff; font-size:16px; font-weight:600; padding:16px 28px; border-radius:999px; text-decoration:none">Web-App öffnen (Android)</a>
+        </div>
+        <p style="font-family:'IBM Plex Mono'; font-size:12.5px; color:rgba(255,255,255,0.5); letter-spacing:0.04em">Kostenlos für iPhone &amp; iPad · Web-App für Android · Kernfunktionen gratis</p>
+      </div>
+
+      <div style="flex:1 1 320px; display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; flex-direction:column; gap:16px; align-items:center">
+          <div style="width:100%; max-width:330px; aspect-ratio:9 / 16; border-radius:26px; overflow:hidden; background:#0B2545; border:1px solid rgba(255,255,255,0.14); box-shadow:0 40px 90px -30px rgba(0,0,0,0.75)">
+            <iframe src="https://www.youtube.com/embed/vNA_FoDc5bs?rel=0&amp;playsinline=1&amp;modestbranding=1" title="Skipily" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" style="width:100%; height:100%; border:0; display:block"></iframe>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px; max-width:340px; text-align:center">
+            <p style="font-family:'Archivo'; font-weight:700; font-size:17px; color:#fff">Skipily an Bord</p>
+            <p style="font-size:13.5px; color:rgba(255,255,255,0.7); line-height:1.5">Von der Frage zur Lösung: KI-Antwort, passendes Teil, Werft in der Nähe.</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center">
+          <span style="font-family:'IBM Plex Mono'; font-size:11.5px; letter-spacing:0.06em; color:rgba(255,255,255,0.62); border:1px solid rgba(255,255,255,0.18); border-radius:999px; padding:6px 12px">Boots-KI</span>
+          <span style="font-family:'IBM Plex Mono'; font-size:11.5px; letter-spacing:0.06em; color:rgba(255,255,255,0.62); border:1px solid rgba(255,255,255,0.18); border-radius:999px; padding:6px 12px">1:1 Ersatzteile</span>
+          <span style="font-family:'IBM Plex Mono'; font-size:11.5px; letter-spacing:0.06em; color:rgba(255,255,255,0.62); border:1px solid rgba(255,255,255,0.18); border-radius:999px; padding:6px 12px">Service-Partner in Europa</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="umgebung" style="background:#F6F4F1; padding:clamp(56px,8vw,96px) clamp(18px,4vw,28px)">
+    <div style="max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:52px">
+      <div style="display:flex; flex-wrap:wrap; gap:clamp(28px,4vw,56px); align-items:flex-start">
+        <div style="flex:1 1 300px; display:flex; flex-direction:column; gap:18px">
+          <span style="font-family:'IBM Plex Mono'; font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#F26B21">Warum immer etwas ist</span>
+          <h2 style="font-size:clamp(27px,4.4vw,42px); line-height:1.12; font-weight:800; color:#12212F">Ein Boot liegt in einer der rauesten Umgebungen, die es gibt.</h2>
+        </div>
+        <div style="flex:1 1 340px; display:flex; flex-direction:column; gap:20px; padding-top:12px">
+          <p style="font-size:clamp(16px,1.5vw,18px); line-height:1.65; color:#3D4C5A">
+            Sonne, Wind, Wellen und Salzwasser arbeiten rund um die Uhr gegen das Schiff. Nichts davon macht Pause, wenn du nicht an Bord bist. Darum gibt es auf einem Boot immer wieder Probleme.
+          </p>
+          <p style="font-size:clamp(16px,1.5vw,18px); line-height:1.65; color:#3D4C5A">
+            Gleichzeitig ist eine Yacht ein hoch komplexes technisches Gerät. Motor, Rigg, Elektrik, Segel, Rettungsmittel, Sanitär: Viele Dinge müssen gut in Schuss sein, damit man sicher auf See ist. Fällt eines davon aus, merkt man es meist nicht am Steg, sondern draußen.
+          </p>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(215px,100%), 1fr)); gap:18px">
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:16px; padding:26px 24px; display:flex; flex-direction:column; gap:10px">
+          <span style="width:11px; height:11px; border-radius:50%; background:#F26B21"></span>
+          <h3 style="font-size:19px; font-weight:700">Sonne</h3>
+          <p style="font-size:15px; line-height:1.55; color:#5C6B7A">UV zerlegt Gelcoat, Persenninge, Segeltuch und Dichtungen. Langsam, aber ohne Unterbrechung.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:16px; padding:26px 24px; display:flex; flex-direction:column; gap:10px">
+          <span style="width:11px; height:11px; border-radius:50%; background:#F26B21"></span>
+          <h3 style="font-size:19px; font-weight:700">Wind &amp; Wellen</h3>
+          <p style="font-size:15px; line-height:1.55; color:#5C6B7A">Dauerbewegung an Rigg, Beschlägen und Lagern. Was scheuert, gibt irgendwann nach.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:16px; padding:26px 24px; display:flex; flex-direction:column; gap:10px">
+          <span style="width:11px; height:11px; border-radius:50%; background:#F26B21"></span>
+          <h3 style="font-size:19px; font-weight:700">Salzwasser</h3>
+          <p style="font-size:15px; line-height:1.55; color:#5C6B7A">Korrosion an Elektrik, Kontakten und allem aus Metall, auch dort, wo niemand hinsieht.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:16px; padding:26px 24px; display:flex; flex-direction:column; gap:10px">
+          <span style="width:11px; height:11px; border-radius:50%; background:#F26B21"></span>
+          <h3 style="font-size:19px; font-weight:700">Technik an Bord</h3>
+          <p style="font-size:15px; line-height:1.55; color:#5C6B7A">Motor, Elektronik, Rigg und Rettungsmittel mit eigenen Intervallen und eigenen Ersatzteilnummern.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="dreifragen" style="background:#0B2545; color:#fff; padding:clamp(56px,8vw,92px) clamp(18px,4vw,28px) clamp(56px,8vw,96px)">
+    <div style="max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:86px">
+
+      <div style="display:flex; flex-direction:column; gap:20px; max-width:800px">
+        <span style="font-family:'IBM Plex Mono'; font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#F26B21">Drei Fragen bei jedem Problem</span>
+        <h2 style="font-size:clamp(27px,4.4vw,42px); line-height:1.12; font-weight:800">Wenn etwas kaputt ist, stellst du dir immer die gleichen drei Fragen.</h2>
+        <p style="font-size:clamp(16px,1.5vw,18px); line-height:1.65; color:rgba(255,255,255,0.72); max-width:680px">Skipily beantwortet alle drei in einer App, mit den Daten deines Bootes im Rücken. Die Screenshots sind aus der App, die Markierungen zeigen, wozu die Funktionen dienen.</p>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:clamp(36px,5vw,60px); align-items:center; justify-content:center">
+        <div style="flex:1 1 400px; display:flex; flex-direction:column; gap:22px">
+          <div style="display:flex; align-items:baseline; gap:16px">
+            <span style="font-family:'Archivo'; font-weight:800; font-size:clamp(38px,5vw,56px); color:rgba(242,107,33,0.9); line-height:1">1</span>
+            <h3 style="font-size:clamp(23px,3.2vw,32px); font-weight:800; line-height:1.18">Wie kann ich mir selber helfen?</h3>
+          </div>
+          <p style="font-size:clamp(16px,1.5vw,17.5px); line-height:1.65; color:rgba(255,255,255,0.76); max-width:520px">
+            Der Boat Assistant kennt deine Ausrüstung und beantwortet konkrete Fragen: von „Welches Öl braucht mein Yanmar 3JH5E?“ bis „Wie entlüfte ich den Dieselmotor?“. Keine allgemeine Chat-Antwort, sondern eine Antwort mit dem Kontext deines Bootes.
+          </p>
+          <ul style="display:flex; flex-direction:column; gap:14px; margin-top:4px">
+            <li style="display:flex; gap:14px; align-items:flex-start">
+              <span style="flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center">1</span>
+              <span style="font-size:15.5px; line-height:1.5; color:rgba(255,255,255,0.85)"><strong style="color:#fff">Verlauf, Teilen, neuer Chat.</strong> Jede Antwort bleibt auffindbar und lässt sich direkt an einen Service-Partner weiterleiten.</span>
+            </li>
+            <li style="display:flex; gap:14px; align-items:flex-start">
+              <span style="flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center">2</span>
+              <span style="font-size:15.5px; line-height:1.5; color:rgba(255,255,255,0.85)"><strong style="color: rgb(255, 255, 255);">Er kennt dein Schiff.</strong> Schon in der Begrüßung nennt er das eingetragene Boot. Die Ausrüstung, Seriennummern und Wartungsdaten sind sein Kontext.</span>
+            </li>
+            <li style="display:flex; gap:14px; align-items:flex-start">
+              <span style="flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center">3</span>
+              <span style="font-size:15.5px; line-height:1.5; color:rgba(255,255,255,0.85)"><strong style="color:#fff">Frage tippen oder Foto schicken.</strong> Über Galerie und Kamera geht ein Bild vom Schaden direkt in den Chat.</span>
+            </li>
+          </ul>
+        </div>
+
+        <div style="justify-self:center; display:flex; flex-direction:column; gap:12px; align-items:center">
+          <div style="width:min(314px,84vw); border-radius:44px; background:#152C46; padding:10px; box-shadow:0 40px 80px -26px rgba(0,0,0,0.75); border:1px solid rgba(255,255,255,0.14)">
+            <div style="position:relative; border-radius:35px; overflow:hidden; background:#fff">
+              <img src="media/screen-mtkbwubz-bxwr.jpg" alt="Boat Assistant in der Skipily App" style="width:100%; height:auto">
+              <span style="position:absolute; top:9%; right:5%; width:30px; height:30px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:15px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(242,107,33,0.3), 0 4px 12px rgba(0,0,0,0.3)">1</span>
+              <span style="position:absolute; top:44%; left:5%; width:30px; height:30px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:15px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(242,107,33,0.3), 0 4px 12px rgba(0,0,0,0.3)">2</span>
+              <span style="position:absolute; top:88.5%; left:5%; width:30px; height:30px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:15px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(242,107,33,0.3), 0 4px 12px rgba(0,0,0,0.3)">3</span>
+            </div>
+          </div>
+          <span style="font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:0.08em; color:rgba(255,255,255,0.45)">App-Screenshot · Boat Assistant</span>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:clamp(36px,5vw,60px); align-items:center; justify-content:center">
+        <div style="flex:1 1 548px; max-width:100%; display:flex; flex-wrap:wrap; justify-content:center; gap:20px; align-items:flex-start">
+          <div style="display:flex; flex-direction:column; gap:12px; align-items:center">
+            <div style="width:min(258px,78vw); border-radius:38px; background:#152C46; padding:9px; box-shadow:0 36px 70px -26px rgba(0,0,0,0.75); border:1px solid rgba(255,255,255,0.14)">
+              <div style="position:relative; border-radius:30px; overflow:hidden; background:#fff">
+                <img src="media/screen-mtk9pal4-a550.jpg" alt="Service-Partner auf der Europa-Karte" style="width:100%; height:auto">
+                <span style="position:absolute; top:8%; right:5%; width:28px; height:28px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(242,107,33,0.3), 0 4px 12px rgba(0,0,0,0.3)">1</span>
+                <span style="position:absolute; top:36.5%; left:5%; width:28px; height:28px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(242,107,33,0.3), 0 4px 12px rgba(0,0,0,0.3)">2</span>
+              </div>
+            </div>
+            <span style="font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:0.08em; color:rgba(255,255,255,0.45)">Karte · Europa</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px; align-items:center; margin-top:44px">
+            <div style="width:min(258px,78vw); border-radius:38px; background:#152C46; padding:9px; box-shadow:0 36px 70px -26px rgba(0,0,0,0.75); border:1px solid rgba(255,255,255,0.14)">
+              <div style="position:relative; border-radius:30px; overflow:hidden; background:#fff">
+                <img src="media/screen-mtkbxt7q-bhtq.jpg" alt="Anbieter im Detail mit Bewertungen, Anfrage und Kontakt" style="width:100%; height:auto">
+                <span style="position:absolute; top:44%; left:5%; width:28px; height:28px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(242,107,33,0.3), 0 4px 12px rgba(0,0,0,0.3)">3</span>
+                <span style="position:absolute; top:55.5%; right:5%; width:28px; height:28px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(242,107,33,0.3), 0 4px 12px rgba(0,0,0,0.3)">4</span>
+                <span style="position:absolute; top:67%; left:5%; width:28px; height:28px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(242,107,33,0.3), 0 4px 12px rgba(0,0,0,0.3)">5</span>
+              </div>
+            </div>
+            <span style="font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:0.08em; color:rgba(255,255,255,0.45)">Anbieter im Detail</span>
+          </div>
+        </div>
+
+        <div style="flex:1 1 400px; display:flex; flex-direction:column; gap:22px">
+          <div style="display:flex; align-items:baseline; gap:16px">
+            <span style="font-family:'Archivo'; font-weight:800; font-size:clamp(38px,5vw,56px); color:rgba(242,107,33,0.9); line-height:1">2</span>
+            <h3 style="font-size:clamp(23px,3.2vw,32px); font-weight:800; line-height:1.18">Wo finde ich einen verlässlichen Service-Partner in der Nähe?</h3>
+          </div>
+          <p style="font-size:clamp(16px,1.5vw,17.5px); line-height:1.65; color:rgba(255,255,255,0.76); max-width:520px">Werften, Werkstätten, Segelmacher, Lackierer und Tankstellen: Tausende Anbieter in ganz Europa auf einer Karte. Vom Mittelmeer bis zur Ostsee, gefiltert nach Kategorie und Marke.</p>
+          <ul style="display:flex; flex-direction:column; gap:13px; margin-top:4px">
+            <li style="display:flex; gap:14px; align-items:flex-start">
+              <span style="flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center">1</span>
+              <span style="font-size:15.5px; line-height:1.5; color:rgba(255,255,255,0.85)"><strong style="color: rgb(255, 255, 255);">Suche nach Name, Marke oder Leistung</strong>&nbsp; und dazu der Kategorie-Filter für Werft, Motorservice, Rigg oder Segelmacher.</span>
+            </li>
+            <li style="display:flex; gap:14px; align-items:flex-start">
+              <span style="flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center">2</span>
+              <span style="font-size:15.5px; line-height:1.5; color:rgba(255,255,255,0.85)"><strong style="color: rgb(255, 255, 255);">Cluster mit Anzahl der Betriebe.</strong> Du siehst sofort, wo es eine hohe Dichte gibt und zoomst bis zum einzelnen Anbieter hinein.</span>
+            </li>
+            <li style="display:flex; gap:14px; align-items:flex-start">
+              <span style="flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center">3</span>
+              <span style="font-size:15.5px; line-height:1.5; color:rgba(255,255,255,0.85)"><strong style="color:#fff">Bewertungen von echten Eignern</strong>, und du kannst selbst eine schreiben. Nur verifiziert, keine anonymen Sterne.</span>
+            </li>
+            <li style="display:flex; gap:14px; align-items:flex-start">
+              <span style="flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center">4</span>
+              <span style="font-size:15.5px; line-height:1.5; color:rgba(255,255,255,0.85)"><strong style="color:#fff">Anfrage direkt aus der Karte.</strong> Mit den Daten deines Bootes im Briefing, ohne alles neu zu tippen.</span>
+            </li>
+            <li style="display:flex; gap:14px; align-items:flex-start">
+              <span style="flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center">5</span>
+              <span style="font-size:15.5px; line-height:1.5; color:rgba(255,255,255,0.85)"><strong style="color: rgb(255, 255, 255);">Telefon, Mail, Web und Route mit einem Tap </strong><span style="color: rgb(255, 255, 255);">und</span>&nbsp;darunter die Leistungen im Klartext: Winterlager, Kran, Beschläge.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:clamp(36px,5vw,60px); align-items:center; justify-content:center">
+        <div style="flex:1 1 400px; display:flex; flex-direction:column; gap:22px">
+          <div style="display:flex; align-items:baseline; gap:16px">
+            <span style="font-family:'Archivo'; font-weight:800; font-size:clamp(38px,5vw,56px); color:rgba(242,107,33,0.9); line-height:1">3</span>
+            <h3 style="font-size:clamp(23px,3.2vw,32px); font-weight:800; line-height:1.18">Wo bekomme ich das passende Ersatzteil?</h3>
+          </div>
+          <p style="font-size:clamp(16px,1.5vw,17.5px); line-height:1.65; color:rgba(255,255,255,0.76); max-width:520px">
+            Aus jedem Ausrüstungs-Eintrag direkt zum passenden Ersatzteil. Skipily sortiert die Treffer in drei klare Kategorien, statt dich stundenlang nach dem richtigen Impeller oder Wasserfilter suchen zu lassen.
+          </p>
+          <div style="display:flex; flex-direction:column; gap:12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:16px; padding:20px 22px">
+            <div style="display:flex; gap:12px; align-items:flex-start">
+              <span style="flex:0 0 11px; width:11px; height:11px; border-radius:50%; background:#1E9E63; margin-top:6px"></span>
+              <span style="font-size:15.5px; line-height:1.5; color:rgba(255,255,255,0.85)"><strong style="color: rgb(255, 255, 255);">Originalteile</strong>&nbsp;: 1:1-Treffer über die Artikelnummer.</span>
+            </div>
+            <div style="display:flex; gap:12px; align-items:flex-start">
+              <span style="flex:0 0 11px; width:11px; height:11px; border-radius:50%; background:#2E7BC4; margin-top:6px"></span>
+              <span style="font-size:15.5px; line-height:1.5; color:rgba(255,255,255,0.85)"><strong style="color: rgb(255, 255, 255);">1:1 Derivate:&nbsp;</strong>gleicher Hersteller und Modell, sollte direkt passen.</span>
+            </div>
+            <div style="display:flex; gap:12px; align-items:flex-start">
+              <span style="flex:0 0 11px; width:11px; height:11px; border-radius:50%; background:#F26B21; margin-top:6px"></span>
+              <span style="font-size:15.5px; line-height:1.5; color:rgba(255,255,255,0.85)"><strong style="color: rgb(255, 255, 255);">Weitere passende Ausrüstung:</strong>&nbsp;sinnvolle Ergänzungen, die man beim Tausch braucht.</span>
+            </div>
+          </div>
+          <ul style="display:flex; flex-direction:column; gap:13px; margin-top:4px">
+            <li style="display:flex; gap:14px; align-items:flex-start">
+              <span style="flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center">1</span>
+              <span style="font-size:15.5px; line-height:1.5; color:rgba(255,255,255,0.85)"><strong style="color: rgb(255, 255, 255);">Die Suche kommt aus deiner Ausrüstung.</strong> Gerät, Hersteller und Modell stehen schon oben. Du tippst keine Artikelnummer ab.</span>
+            </li>
+            <li style="display:flex; gap:14px; align-items:flex-start">
+              <span style="flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center">2</span>
+              <span style="font-size:15.5px; line-height:1.5; color:rgba(255,255,255,0.85)"><strong style="color:#fff">Passende Ausrüstung dazu.</strong> Was zum selben Gerät gehört, ist mitgezählt und aufklappbar.</span>
+            </li>
+            <li style="display:flex; gap:14px; align-items:flex-start">
+              <span style="flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center">3</span>
+              <span style="font-size:15.5px; line-height:1.5; color:rgba(255,255,255,0.85)"><strong style="color:#fff">Kategorie, Preis und Lieferbarkeit in einer Zeile.</strong> Kein „passt schon“, keine Rückfrage per Telefon.</span>
+            </li>
+          </ul>
+        </div>
+
+        <div style="justify-self:center; display:flex; flex-direction:column; gap:12px; align-items:center">
+          <div style="width:min(314px,84vw); border-radius:44px; background:#152C46; padding:10px; box-shadow:0 40px 80px -26px rgba(0,0,0,0.75); border:1px solid rgba(255,255,255,0.14)">
+            <div style="position:relative; border-radius:35px; overflow:hidden; background:#fff">
+              <img src="media/feature-parts.jpg" alt="Ersatzteilsuche in der Skipily App" style="width:100%; height:auto">
+              <span style="position:absolute; top:23.5%; right:5%; width:30px; height:30px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:15px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(242,107,33,0.3), 0 4px 12px rgba(0,0,0,0.3)">1</span>
+              <span style="position:absolute; top:29.5%; left:5%; width:30px; height:30px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:15px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(242,107,33,0.3), 0 4px 12px rgba(0,0,0,0.3)">2</span>
+              <span style="position:absolute; top:43%; right:5%; width:30px; height:30px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:15px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(242,107,33,0.3), 0 4px 12px rgba(0,0,0,0.3)">3</span>
+            </div>
+          </div>
+          <span style="font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:0.08em; color:rgba(255,255,255,0.45)">App-Screenshot · Spare Parts</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section id="ueber-mich" style="background:#F6F4F1; padding:0">
+    <div style="display:flex; flex-wrap:wrap">
+      <div style="flex:1 1 340px; min-height:min(560px,70vh); background-image:url('media/olaf-portrait.jpg'); background-size:cover; background-position:52% 40%"></div>
+      <div style="flex:1 1 400px; padding:clamp(48px,6vw,88px) clamp(20px,5vw,64px); display:flex; flex-direction:column; gap:26px; justify-content:center">
+        <span style="font-family:'IBM Plex Mono'; font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#F26B21">Warum es Skipily gibt</span>
+        <blockquote style="margin:0; display:flex; flex-direction:column; gap:20px">
+          <p style="font-family:'Archivo'; font-weight:700; font-size:clamp(20px,2.6vw,27px); line-height:1.32; color:#12212F">
+            „Ich bin selber seit mehreren Jahrzehnten begeisterter Segler, habe zwei Boote gebaut, eines saniert und segel jetzt eine Beneteau First 40CR.“
+          </p>
+          <p style="font-size:clamp(16px,1.5vw,18px); line-height:1.65; color:#3D4C5A">„Was bei mir seit vielen Jahren immer Ärger und Frustration verursacht hat, sind schlechter Service und falsche Ersatzteile sowie fehlende schnelle Hilfe an Bord, wenn ich sie brauche. All das bietet jetzt SKIPILY. In dieser App haben wir alle Dinge zusammengebracht, die wir als Booteigner brauchen, um unsere Schiffe immer sicher seeklar zu halten.“</p>
+        </blockquote>
+        <div style="display:flex; align-items:center; gap:14px; padding-top:18px; border-top:1px solid #E1DDD6">
+          <span style="width:34px; height:2px; background:#F26B21"></span>
+          <span style="font-size:15px; font-weight:600; color:#12212F">Gründer von Skipily · Beneteau First 40CR</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="inderapp" style="background:#fff; padding:clamp(56px,8vw,96px) clamp(18px,4vw,28px)">
+    <div style="max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:64px">
+      <div style="display:flex; flex-direction:column; gap:18px; max-width:760px">
+        <span style="font-family:'IBM Plex Mono'; font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#F26B21">In der App</span>
+        <h2 style="font-size:clamp(27px,4.4vw,42px); line-height:1.12; font-weight:800">Und zwischen den Problemen: alles dokumentiert.</h2>
+        <p style="font-size:clamp(16px,1.5vw,18px); line-height:1.65; color:#5C6B7A">Die meisten Probleme beginnen nicht mit einem Ausfall, sondern mit einem übersehenen Intervall. Darum liegt in Skipily beides zusammen: das Boot mit seiner ganzen Ausrüstung und die Wartung mit Ampel und Erinnerung.</p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(470px,100%), 1fr)); gap:56px">
+
+        <div style="display:flex; flex-wrap:wrap; gap:28px; align-items:center">
+          <div style="flex:0 1 250px; width:min(250px,80vw); border-radius:36px; background:#0B2545; padding:9px; box-shadow:0 30px 60px -24px rgba(11,37,69,0.5)">
+            <div style="position:relative; border-radius:28px; overflow:hidden; background:#fff">
+              <img src="media/feature-maintenance.jpg" alt="Wartung mit Status-Ampeln" style="width:100%; height:auto">
+              <span style="position:absolute; top:7.5%; left:5%; width:27px; height:27px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:13.5px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(242,107,33,0.25), 0 3px 10px rgba(0,0,0,0.25)">1</span>
+              <span style="position:absolute; top:25.5%; left:5%; width:27px; height:27px; border-radius:50%; background:#D5342B; color:#fff; font-family:'Archivo'; font-weight:700; font-size:13.5px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(213,52,43,0.25), 0 3px 10px rgba(0,0,0,0.25)">2</span>
+              <span style="position:absolute; top:34.5%; right:5%; width:27px; height:27px; border-radius:50%; background:#2E7BC4; color:#fff; font-family:'Archivo'; font-weight:700; font-size:13.5px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(46,123,196,0.25), 0 3px 10px rgba(0,0,0,0.25)">3</span>
+            </div>
+          </div>
+          <div style="flex:1 1 240px; display:flex; flex-direction:column; gap:13px">
+            <h3 style="font-size:23px; font-weight:700">Wartung mit Status-Ampeln</h3>
+            <p style="font-size:15.5px; line-height:1.6; color:#5C6B7A">Wartungsintervalle pro Ausrüstung, mit Push-Erinnerung rechtzeitig vor der nächsten Inspektion.</p>
+            <ul style="display:flex; flex-direction:column; gap:10px; margin-top:4px">
+              <li style="display:flex; gap:11px; align-items:flex-start"><span style="flex:0 0 22px; width:22px; height:22px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center">1</span><span style="font-size:14.5px; line-height:1.5; color:#3D4C5A">Neue Aufgabe anlegen, mit eigenem Intervall in Jahren oder Betriebsstunden.</span></li>
+              <li style="display:flex; gap:11px; align-items:flex-start"><span style="flex:0 0 22px; width:22px; height:22px; border-radius:50%; background:#D5342B; color:#fff; font-family:'Archivo'; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center">2</span><span style="font-size:14.5px; line-height:1.5; color:#3D4C5A"><strong style="color:#12212F">Overdue</strong>: rot umrandet und mit Fälligkeitsdatum. Das kommt zuerst dran.</span></li>
+              <li style="display:flex; gap:11px; align-items:flex-start"><span style="flex:0 0 22px; width:22px; height:22px; border-radius:50%; background:#2E7BC4; color:#fff; font-family:'Archivo'; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center">3</span><span style="font-size:14.5px; line-height:1.5; color:#3D4C5A"><strong style="color:#12212F">Upcoming</strong>: steht an, ist aber nicht kritisch. Grün heißt: alles im grünen Bereich.</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:28px; align-items:center">
+          <div style="flex:0 1 250px; width:min(250px,80vw); border-radius:36px; background:#0B2545; padding:9px; box-shadow:0 30px 60px -24px rgba(11,37,69,0.5)">
+            <div style="position:relative; border-radius:28px; overflow:hidden; background:#fff">
+              <img src="media/feature-request.jpg" alt="Boot und Ausrüstung in der Skipily App" style="width:100%; height:auto">
+              <span style="position:absolute; top:27.5%; right:5%; width:27px; height:27px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:13.5px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(242,107,33,0.25), 0 3px 10px rgba(0,0,0,0.25)">1</span>
+              <span style="position:absolute; top:51.5%; left:5%; width:27px; height:27px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:13.5px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(242,107,33,0.25), 0 3px 10px rgba(0,0,0,0.25)">2</span>
+            </div>
+          </div>
+          <div style="flex:1 1 240px; display:flex; flex-direction:column; gap:13px">
+            <h3 style="font-size:23px; font-weight:700">Boot &amp; Ausrüstung</h3>
+            <p style="font-size:15.5px; line-height:1.6; color:#5C6B7A">Alle Bootsdaten, Fotos, Maße und Seriennummern an einem Ort, auch offline.</p>
+            <ul style="display:flex; flex-direction:column; gap:10px; margin-top:4px">
+              <li style="display:flex; gap:11px; align-items:flex-start"><span style="flex:0 0 22px; width:22px; height:22px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center">1</span><span style="font-size:14.5px; line-height:1.5; color:#3D4C5A">Dein Schiff mit Foto, Typ und den Rumpfmaßen: Länge, Breite, Tiefgang.</span></li>
+              <li style="display:flex; gap:11px; align-items:flex-start"><span style="flex:0 0 22px; width:22px; height:22px; border-radius:50%; background:#F26B21; color:#fff; font-family:'Archivo'; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center">2</span><span style="font-size:14.5px; line-height:1.5; color:#3D4C5A">Die Ausrüstungsliste ist der Ausgangspunkt für Ersatzteil, Anfrage und KI-Antwort.</span></li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="background:#F6F4F1; border:1px solid #E6E2DC; border-radius:18px; padding:clamp(22px,4vw,32px) clamp(20px,4vw,34px); display:flex; flex-direction:column; gap:14px">
+        <h3 style="font-size:22px; font-weight:700">Service-Anfrage in 10 Sekunden</h3>
+        <p style="font-size:16.5px; line-height:1.65; color:#3D4C5A; max-width:820px">
+          Du tippst bei einem Ausrüstungs-Eintrag auf „Anfrage“ und Skipily baut das vollständige Briefing: Marke, Modell, Seriennummer, Maßblatt, Einbau- und Wartungsdaten, Fotos. Du wählst nur noch den Service-Partner. Das Briefing entsteht automatisch in sechs Sprachen, Fotos und Segel-Maßblatt hängen direkt dran, und du siehst alles vor dem Versand.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="funktionen" style="background:#F6F4F1; padding:clamp(56px,8vw,96px) clamp(18px,4vw,28px)">
+    <div style="max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:40px">
+      <div style="display:flex; flex-direction:column; gap:16px; max-width:720px">
+        <span style="font-family:'IBM Plex Mono'; font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:#F26B21">Alle Werkzeuge</span>
+        <h2 style="font-size:clamp(27px,4.4vw,42px); line-height:1.12; font-weight:800">Was Skipily alles kann</h2>
+        <p style="font-size:clamp(16px,1.5vw,18px); line-height:1.65; color:#5C6B7A">Von der Ausrüstungsliste bis zum Segel-Maßblatt. Funktionen, die es nur mit <strong style="color:#12212F">Plus</strong> gibt, sind markiert.</p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(300px,100%), 1fr)); gap:16px">
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:15px; padding:22px; display:flex; flex-direction:column; gap:9px">
+          <h3 style="font-size:17.5px; font-weight:700; display:flex; align-items:center; gap:9px"><span style="width:8px; height:8px; border-radius:50%; background:#F26B21"></span>Boot &amp; Ausrüstung</h3>
+          <p style="font-size:14.5px; line-height:1.55; color:#5C6B7A">Alle Daten, Fotos, Maße und Seriennummern an einem Ort, auch offline.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:15px; padding:22px; display:flex; flex-direction:column; gap:9px">
+          <h3 style="font-size:17.5px; font-weight:700; display:flex; align-items:center; gap:9px"><span style="width:8px; height:8px; border-radius:50%; background:#F26B21"></span>Wartungs-Ampeln</h3>
+          <p style="font-size:14.5px; line-height:1.55; color:#5C6B7A">Rot, gelb, grün: auf einen Blick siehst du, was als Nächstes anliegt.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:15px; padding:22px; display:flex; flex-direction:column; gap:9px">
+          <h3 style="font-size:17.5px; font-weight:700; display:flex; align-items:center; gap:9px"><span style="width:8px; height:8px; border-radius:50%; background:#F26B21"></span>1:1 Ersatzteile</h3>
+          <p style="font-size:14.5px; line-height:1.55; color:#5C6B7A">Original, Derivat oder Alternative, klar kategorisiert pro Suche.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:15px; padding:22px; display:flex; flex-direction:column; gap:9px">
+          <h3 style="font-size:17.5px; font-weight:700; display:flex; align-items:center; gap:9px"><span style="width:8px; height:8px; border-radius:50%; background:#F26B21"></span>Service-Anfrage</h3>
+          <p style="font-size:14.5px; line-height:1.55; color:#5C6B7A">Vorausgefülltes Briefing mit Equipment-Daten und Fotos, direkt zur Werft.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:15px; padding:22px; display:flex; flex-direction:column; gap:9px">
+          <h3 style="font-size:17.5px; font-weight:700; display:flex; align-items:center; gap:9px"><span style="width:8px; height:8px; border-radius:50%; background:#F26B21"></span>Segel-Maßblatt</h3>
+          <p style="font-size:14.5px; line-height:1.55; color:#5C6B7A">Komplettes Aufmaß für den Segelmacher: alle Maße, ein PDF, fertig.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:15px; padding:22px; display:flex; flex-direction:column; gap:9px">
+          <h3 style="font-size:17.5px; font-weight:700; display:flex; align-items:center; gap:9px"><span style="width:8px; height:8px; border-radius:50%; background:#F26B21"></span>KI-Assistent</h3>
+          <p style="font-size:14.5px; line-height:1.55; color:#5C6B7A">Antworten auf Bootsfragen mit Kontext zu deiner Ausrüstung, rund um die Uhr.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:15px; padding:22px; display:flex; flex-direction:column; gap:9px">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px"><h3 style="font-size:17.5px; font-weight:700; display:flex; align-items:center; gap:9px"><span style="width:8px; height:8px; border-radius:50%; background:#F26B21"></span>Schadens-Foto-Analyse</h3></div>
+          <p style="font-size:14.5px; line-height:1.55; color:#5C6B7A">Schäden per Foto einschätzen lassen, bevor du zur Werft fährst.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:15px; padding:22px; display:flex; flex-direction:column; gap:9px">
+          <h3 style="font-size:17.5px; font-weight:700; display:flex; align-items:center; gap:9px"><span style="width:8px; height:8px; border-radius:50%; background:#F26B21"></span>Europa-Karte</h3>
+          <p style="font-size:14.5px; line-height:1.55; color:#5C6B7A">Werften und Händler von Skandinavien bis Mittelmeer auf einer Karte.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:15px; padding:22px; display:flex; flex-direction:column; gap:9px">
+          <h3 style="font-size:17.5px; font-weight:700; display:flex; align-items:center; gap:9px"><span style="width:8px; height:8px; border-radius:50%; background:#F26B21"></span>Smart Notifications</h3>
+          <p style="font-size:14.5px; line-height:1.55; color:#5C6B7A">Push-Erinnerungen rechtzeitig vor jeder anstehenden Wartung.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:15px; padding:22px; display:flex; flex-direction:column; gap:9px">
+          <h3 style="font-size:17.5px; font-weight:700; display:flex; align-items:center; gap:9px"><span style="width:8px; height:8px; border-radius:50%; background:#F26B21"></span>Echte Bewertungen</h3>
+          <p style="font-size:14.5px; line-height:1.55; color:#5C6B7A">Nur verifizierte Bewertungen von Eignern, dazu Trusted-Provider-Markierung.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:15px; padding:22px; display:flex; flex-direction:column; gap:9px">
+          <h3 style="font-size:17.5px; font-weight:700; display:flex; align-items:center; gap:9px"><span style="width:8px; height:8px; border-radius:50%; background:#F26B21"></span>Sechs Sprachen</h3>
+          <p style="font-size:14.5px; line-height:1.55; color:#5C6B7A">Deutsch, English, Français, Italiano, Español, Nederlands.</p>
+        </div>
+        <div style="background:#fff; border:1px solid #E6E2DC; border-radius:15px; padding:22px; display:flex; flex-direction:column; gap:9px">
+          <h3 style="font-size:17.5px; font-weight:700; display:flex; align-items:center; gap:9px"><span style="width:8px; height:8px; border-radius:50%; background:#F26B21"></span>Für Anbieter</h3>
+          <p style="font-size:14.5px; line-height:1.55; color:#5C6B7A">Provider-Portal mit Katalog, Anfragen-Management und Stripe-Anbindung. <a href="https://provider.skipily.app">Portal ansehen</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="laden" style="background:#071B2F; color:#fff; padding:clamp(56px,8vw,96px) clamp(18px,4vw,28px)">
+    <div style="max-width:1180px; margin:0 auto; display:flex; flex-wrap:wrap; gap:clamp(32px,4vw,56px); align-items:center">
+      <div style="flex:1 1 380px; display:flex; flex-direction:column; gap:24px">
+        <h2 style="font-size:clamp(27px,4.4vw,42px); line-height:1.12; font-weight:800">Alles, was es braucht, um sicher auf See zu sein.</h2>
+        <p style="font-size:clamp(16px,1.5vw,18px); line-height:1.65; color:rgba(255,255,255,0.74); max-width:520px">Boots-KI, Ersatzteile und Service-Partner in einer App. Gratis für iPhone und iPad, als Web-App für Android: alle Kernfunktionen bleiben dauerhaft kostenlos.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:14px">
+          <a href="https://apps.apple.com/app/id6757314378" style="background:#F26B21; color:#fff; font-size:16px; font-weight:600; padding:16px 28px; border-radius:999px; text-decoration:none; box-shadow:0 16px 34px -14px rgba(242,107,33,0.7)">Im App Store laden</a>
+          <a href="https://app.skipily.app" style="border:1.5px solid rgba(255,255,255,0.32); color:#fff; font-size:16px; font-weight:600; padding:16px 28px; border-radius:999px; text-decoration:none">Web-App öffnen (Android)</a>
+        </div>
+        <p style="font-family:'IBM Plex Mono'; font-size:13px; color:rgba(255,255,255,0.5); letter-spacing:0.04em; line-height:1.7">Deutsch · English · Français · Italiano · Español · Nederlands</p>
+      </div>
+      <img style="flex:1 1 320px" src="media/closing.jpg" alt="Segeln" style="width:100%; height:auto; object-fit:cover; aspect-ratio:3 / 2; border-radius: 20px">
+    </div>
+  </section>
+
+  <footer style="background:#050F1C; color:rgba(255,255,255,0.55); padding:40px clamp(18px,4vw,28px)">
+    <div style="max-width:1180px; margin:0 auto; display:flex; flex-wrap:wrap; gap:20px; justify-content:space-between; align-items:center">
+      <div style="display:flex; align-items:center; gap:11px">
+        <img src="media/logo.png" alt="Skipily" style="width:26px; height:26px; border-radius:7px">
+        <span style="font-family:'Archivo'; font-weight:800; font-size:15px; letter-spacing:0.08em; color:#fff">SKIPILY</span>
+      </div>
+      <div style="display:flex; gap:22px; flex-wrap:wrap; align-items:center">
+        <a href="en.html" style="font-size:14px; color:rgba(255,255,255,0.55); text-decoration:none">English</a>
+        <a href="fr.html" style="font-size:14px; color:rgba(255,255,255,0.55); text-decoration:none">Français</a>
+        <a href="it.html" style="font-size:14px; color:rgba(255,255,255,0.55); text-decoration:none">Italiano</a>
+        <a href="es.html" style="font-size:14px; color:rgba(255,255,255,0.55); text-decoration:none">Español</a>
+        <a href="nl.html" style="font-size:14px; color:rgba(255,255,255,0.55); text-decoration:none">Nederlands</a>
+        <a href="https://www.skipily.app/preise" style="font-size:14px; color:rgba(255,255,255,0.55); text-decoration:none">Preise</a>
+        <a href="https://www.skipily.app/faq" style="font-size:14px; color:rgba(255,255,255,0.55); text-decoration:none">FAQ</a>
+        <a href="https://provider.skipily.app" style="font-size:14px; color:rgba(255,255,255,0.55); text-decoration:none">Für Anbieter</a>
+        <a href="https://www.skipily.app/impressum" style="font-size:14px; color:rgba(255,255,255,0.55); text-decoration:none">Impressum</a>
+        <a href="https://www.skipily.app/datenschutz" style="font-size:14px; color:rgba(255,255,255,0.55); text-decoration:none">Datenschutz</a>
+      </div>
+      <span style="font-size:13.5px">© 2026 SKIPILY GmbH</span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

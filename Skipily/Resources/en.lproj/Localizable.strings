@@ -401,6 +401,7 @@
 "cart.shipping" = "Shipping";
 "cart.shipping_at_checkout" = "Calculated at checkout";
 "cart.shipping_free" = "Free";
+"cart.shipping_free_above" = "Free (free above %@)";
 "cart.total" = "Total";
 "cart.total_amount" = "Total Amount";
 "cart.checkout" = "Checkout";

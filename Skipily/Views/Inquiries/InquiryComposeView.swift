@@ -12,6 +12,7 @@ import Supabase
 import PostgREST
 import PhotosUI
 import MessageUI
+import UniformTypeIdentifiers
 
 struct InquiryComposeView: View {
     // Wenn nil → neue Anfrage; wenn gesetzt → Entwurf bearbeiten
@@ -53,6 +54,12 @@ struct InquiryComposeView: View {
     @State private var photos: [UIImage] = []
     @State private var photoPickerItems: [PhotosPickerItem] = []
     @State private var showCamera: Bool = false
+    // Kurzes Problem-Video (optional, genau ein Video)
+    @State private var videoPickerItem: PhotosPickerItem? = nil
+    @State private var uploadedVideoURL: String? = nil
+    @State private var isUploadingVideo: Bool = false
+    @State private var showVideoCamera: Bool = false
+    @State private var videoErrorMessage: String? = nil
     // Mail-Composer (für Fotos & PDFs als Anhang beim Senden)
     @State private var showMailComposer: Bool = false
     // PDF-Maßblätter (Segel) — werden beim Versand generiert
@@ -116,6 +123,10 @@ struct InquiryComposeView: View {
         return boats
     }
 
+    /// Sentinel-Schlüssel für Ausrüstung ohne gesetzte Kategorie — bekommt einen
+    /// eigenen "Ohne Kategorie"-Filter-Chip, damit solche Items erreichbar bleiben.
+    private static let uncategorizedKey = "__uncategorized__"
+
     /// Liste der Kategorien aus allen sichtbaren Equipment-Items (für Filter-Chips).
     private var availableCategories: [String] {
         var seen = Set<String>()
@@ -131,13 +142,36 @@ struct InquiryComposeView: View {
         return out.sorted()
     }
 
+    /// Gibt es sichtbare Ausrüstung ohne (leere) Kategorie?
+    private var hasUncategorized: Bool {
+        for boat in visibleBoats {
+            for eq in equipmentByBoat[boat.id] ?? [] where (eq.category ?? "").isEmpty {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Filter-Buckets für die Chip-Leiste: echte Kategorien + optional ein
+    /// "Ohne Kategorie"-Bucket. So verschwindet der Filter nicht in eine flache
+    /// Liste, wenn Ausrüstung ohne Kategorie angelegt wurde.
+    private var filterBuckets: [String] {
+        var buckets = availableCategories
+        if hasUncategorized { buckets.append(Self.uncategorizedKey) }
+        return buckets
+    }
+
     private func filteredEquipment(for boatId: UUID) -> [EquipmentPickerItem] {
         let items = equipmentByBoat[boatId] ?? []
         guard let cat = selectedCategoryFilter else { return items }
+        if cat == Self.uncategorizedKey {
+            return items.filter { ($0.category ?? "").isEmpty }
+        }
         return items.filter { ($0.category ?? "") == cat }
     }
 
     private func categoryLabel(_ key: String) -> String {
+        if key == Self.uncategorizedKey { return "inquiry.category_none".loc }
         let translated = "equipment.cat.\(key)".loc
         // Fallback: wenn der Loc-Key nicht existiert, gibt .loc den Schlüssel zurück.
         return translated == "equipment.cat.\(key)" ? key.replacingOccurrences(of: "_", with: " ").capitalized : translated
@@ -257,15 +291,17 @@ struct InquiryComposeView: View {
                     }
                 } else if !equipmentByBoat.isEmpty {
 
-                    // Kategorie-Vorfilter (Chips, einzeilig scrollbar)
-                    if availableCategories.count > 1 {
+                    // Kategorie-Vorfilter (Chips, einzeilig scrollbar).
+                    // Zeigt sich, sobald mehr als ein Bucket existiert (mehrere
+                    // Kategorien oder Kategorien + "Ohne Kategorie").
+                    if filterBuckets.count > 1 {
                         Section {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 6) {
                                     categoryChip(label: "equipment.all".loc, selected: selectedCategoryFilter == nil) {
                                         selectedCategoryFilter = nil
                                     }
-                                    ForEach(availableCategories, id: \.self) { cat in
+                                    ForEach(filterBuckets, id: \.self) { cat in
                                         categoryChip(label: categoryLabel(cat),
                                                      selected: selectedCategoryFilter == cat) {
                                             selectedCategoryFilter = (selectedCategoryFilter == cat) ? nil : cat
@@ -385,6 +421,63 @@ struct InquiryComposeView: View {
                     Task { await loadPhotosFromPicker(newItems) }
                 }
 
+                // Video zum Problem (optional, ein kurzes Video)
+                Section {
+                    if uploadedVideoURL != nil {
+                        HStack(spacing: 10) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(AppColors.success)
+                                .imageScale(.large)
+                            Text("inquiry.video_attached".loc).font(.subheadline)
+                            Spacer()
+                            Button(role: .destructive) {
+                                uploadedVideoURL = nil
+                                videoPickerItem = nil
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                        }
+                    } else if isUploadingVideo {
+                        HStack {
+                            ProgressView().scaleEffect(0.8)
+                            Text("inquiry.video_uploading".loc).foregroundStyle(.secondary).font(.subheadline)
+                        }
+                    } else {
+                        HStack(spacing: 12) {
+                            PhotosPicker(selection: $videoPickerItem, matching: .videos) {
+                                Label("inquiry.video_library".loc, systemImage: "film")
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .background(AppColors.info.opacity(0.12))
+                                    .foregroundStyle(AppColors.info)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                            Button {
+                                showVideoCamera = true
+                            } label: {
+                                Label("inquiry.video_record".loc, systemImage: "video.fill")
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .background(AppColors.success.opacity(0.12))
+                                    .foregroundStyle(AppColors.success)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                            .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    if let ve = videoErrorMessage {
+                        Text(ve).font(.caption).foregroundStyle(.red)
+                    }
+                } header: {
+                    Label("inquiry.video_label".loc, systemImage: "video")
+                } footer: {
+                    Text("inquiry.video_hint".loc)
+                }
+                .onChange(of: videoPickerItem) { _, newItem in
+                    Task { await loadAndUploadVideo(newItem) }
+                }
+
                 // Private Notizen
                 Section {
                     ZStack(alignment: .topLeading) {
@@ -484,6 +577,11 @@ struct InquiryComposeView: View {
                     if let img = img, photos.count < 5 { photos.append(img) }
                 }
             }
+            .fullScreenCover(isPresented: $showVideoCamera) {
+                InquiryVideoPicker { url in
+                    if let url = url { Task { await uploadVideoFromURL(url) } }
+                }
+            }
             .sheet(isPresented: $showMailComposer) {
                 if let email = effectiveProviderEmail {
                     let photoAttachments = photos.enumerated().compactMap { idx, img -> (data: Data, name: String, mime: String)? in
@@ -525,6 +623,54 @@ struct InquiryComposeView: View {
             }
         }
         photoPickerItems = []
+    }
+
+    /// Lädt das ausgewählte Video (aus der Mediathek) und lädt es hoch.
+    private func loadAndUploadVideo(_ item: PhotosPickerItem?) async {
+        guard let item, let uid = authService.currentUser?.id else { return }
+        isUploadingVideo = true
+        videoErrorMessage = nil
+        defer { isUploadingVideo = false }
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else {
+                videoErrorMessage = "inquiry.video_error".loc; return
+            }
+            if data.count > 60 * 1024 * 1024 {
+                videoErrorMessage = "inquiry.video_too_large".loc
+                videoPickerItem = nil
+                return
+            }
+            let ext = item.supportedContentTypes.first?.preferredFilenameExtension ?? "mov"
+            if let url = await InquiryService.shared.uploadInquiryVideo(data, fileExtension: ext, ownerId: uid) {
+                uploadedVideoURL = url
+            } else {
+                videoErrorMessage = "inquiry.video_error".loc
+            }
+        } catch {
+            videoErrorMessage = error.localizedDescription
+        }
+    }
+
+    /// Lädt ein frisch aufgenommenes Video (Kamera) von der Datei-URL hoch.
+    private func uploadVideoFromURL(_ url: URL) async {
+        guard let uid = authService.currentUser?.id else { return }
+        isUploadingVideo = true
+        videoErrorMessage = nil
+        defer { isUploadingVideo = false }
+        do {
+            let data = try Data(contentsOf: url)
+            if data.count > 60 * 1024 * 1024 {
+                videoErrorMessage = "inquiry.video_too_large".loc; return
+            }
+            let ext = url.pathExtension.isEmpty ? "mov" : url.pathExtension
+            if let up = await InquiryService.shared.uploadInquiryVideo(data, fileExtension: ext, ownerId: uid) {
+                uploadedVideoURL = up
+            } else {
+                videoErrorMessage = "inquiry.video_error".loc
+            }
+        } catch {
+            videoErrorMessage = error.localizedDescription
+        }
     }
 
     /// Wird nach dem Laden der Ausrüstungs-Daten angewendet, um ein vom Aufrufer
@@ -693,6 +839,9 @@ struct InquiryComposeView: View {
         var finalMessage = trimmedMessage
         if let attachment = await buildAttachment() {
             finalMessage = finalMessage + "\n\n" + attachment
+        }
+        if let video = uploadedVideoURL {
+            finalMessage = finalMessage + "\n\n🎥 " + "inquiry.video_label".loc + ": " + video
         }
         previewText = finalMessage
         isBuildingPreview = false
@@ -1449,6 +1598,40 @@ private struct InquiryCameraPicker: UIViewControllerRepresentable {
         func imagePickerController(_ picker: UIImagePickerController,
                                    didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             parent.onPick(info[.originalImage] as? UIImage)
+            parent.dismiss()
+        }
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.onPick(nil)
+            parent.dismiss()
+        }
+    }
+}
+
+// MARK: - Video Camera Picker (UIImagePickerController, Movie-Aufnahme)
+
+private struct InquiryVideoPicker: UIViewControllerRepresentable {
+    let onPick: (URL?) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.mediaTypes = [UTType.movie.identifier]
+        picker.cameraCaptureMode = .video
+        picker.videoQuality = .typeMedium
+        picker.videoMaximumDuration = 60
+        picker.delegate = context.coordinator
+        return picker
+    }
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: InquiryVideoPicker
+        init(_ parent: InquiryVideoPicker) { self.parent = parent }
+        func imagePickerController(_ picker: UIImagePickerController,
+                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            parent.onPick(info[.mediaURL] as? URL)
             parent.dismiss()
         }
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {

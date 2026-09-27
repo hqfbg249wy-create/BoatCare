@@ -405,6 +405,7 @@ Ausrüstung unter Boote ergänzen.";
 "cart.shipping" = "Versand";
 "cart.shipping_at_checkout" = "Wird an der Kasse berechnet";
 "cart.shipping_free" = "Kostenlos";
+"cart.shipping_free_above" = "Kostenlos (frei ab %@)";
 "cart.total" = "Gesamt";
 "cart.total_amount" = "Gesamtbetrag";
 "cart.checkout" = "Zur Kasse";

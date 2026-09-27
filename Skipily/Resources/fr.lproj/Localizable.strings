@@ -398,6 +398,7 @@
 "cart.shipping" = "Livraison";
 "cart.shipping_at_checkout" = "Calculés au paiement";
 "cart.shipping_free" = "Gratuit";
+"cart.shipping_free_above" = "Gratuit (offert dès %@)";
 "cart.total" = "Total";
 "cart.total_amount" = "Montant total";
 "cart.checkout" = "Commander";

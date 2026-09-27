@@ -2,29 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>StripePublishableKey</key>
-	<string>$(STRIPE_PUBLISHABLE_KEY)</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Skipily nutzt deinen Standort, um Service-Anbieter in deiner Naehe anzuzeigen und Entfernungen zu berechnen.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Skipily nutzt die Kamera, um Fotos deines Bootes aufzunehmen.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Skipily nutzt deine Fotomediathek, um Fotos deines Bootes und deiner Ausruestung hochzuladen.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Skipily moechte Fotos in deiner Mediathek speichern.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<!--
-	  URL-Scheme fuer Supabase-Auth-Callbacks (E-Mail-Bestaetigung,
-	  Passwort-Reset, OAuth). Nach erfolgreicher Verifikation springt
-	  Supabase auf skipily://auth/callback?... zurueck — iOS oeffnet
-	  daraufhin die App. Den Hash-Token verarbeitet SkipilyApp via
-	  .onOpenURL { supabase.auth.session(from: $0) }.
-	-->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -35,6 +12,12 @@
 				<string>skipily</string>
 			</array>
 		</dict>
+	</array>
+	<key>StripePublishableKey</key>
+	<string>$(STRIPE_PUBLISHABLE_KEY)</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
 	</array>
 </dict>
 </plist>

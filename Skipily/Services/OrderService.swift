@@ -92,7 +92,17 @@ final class OrderService {
     /// Freigrenze + gewichtsbasierte Staffel je Zone. Fällt bei Fehler/Engine-aus
     /// auf den bisherigen Wert (höchster Produkt-Versand) zurück. Wird sowohl im
     /// Checkout-Review (Anzeige) als auch bei der Bestellanlage genutzt.
+    /// Ergebnis der Versand-Engine: Kosten + (falls kostenlos) die Freigrenze,
+    /// ab der versandkostenfrei geliefert wird — für den Hinweis im Checkout.
+    struct ShipInfo { let cost: Double; let freeThreshold: Double? }
+
     func shippingCost(for group: CartGroup, country: String) async -> Double {
+        await shippingInfo(for: group, country: country).cost
+    }
+
+    /// Wie `shippingCost(for:country:)`, liefert zusätzlich die Freigrenze
+    /// (`free_threshold`), wenn die Sendung dank Freigrenze kostenlos ist.
+    func shippingInfo(for group: CartGroup, country: String) async -> ShipInfo {
         struct ShipReq: Encodable {
             let provider_id: String
             let country: String
@@ -100,7 +110,7 @@ final class OrderService {
             let items: [Item]
             struct Item: Encodable { let weight_kg: Double?; let quantity: Int; let shipping_cost: Double? }
         }
-        struct ShipResp: Decodable { let shipping_cost: Double? }
+        struct ShipResp: Decodable { let shipping_cost: Double?; let free: Bool?; let free_threshold: Double? }
         do {
             let req = ShipReq(
                 provider_id: group.id.uuidString,
@@ -114,10 +124,12 @@ final class OrderService {
                 "calculate-shipping",
                 options: .init(body: req)
             )
-            return resp.shipping_cost ?? group.shippingCost
+            let cost = resp.shipping_cost ?? group.shippingCost
+            let threshold = (resp.free == true) ? resp.free_threshold : nil
+            return ShipInfo(cost: cost, freeThreshold: threshold)
         } catch {
             AppLog.warning("calculate-shipping fehlgeschlagen, Fallback: \(error)")
-            return group.shippingCost
+            return ShipInfo(cost: group.shippingCost, freeThreshold: nil)
         }
     }
 

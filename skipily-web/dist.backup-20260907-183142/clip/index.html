@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skipily — Jetzt starten</title>
+<meta name="description" content="Skipily: Bootsservice auf der Karte plus KI-Bootsingenieur. App für iPhone laden oder als Web-App auf Android öffnen.">
+<meta name="apple-itunes-app" content="app-id=6757314378">
+<style>
+  :root { --navy:#0B1D3A; --navy2:#13294d; --orange:#f97316; --orange-dark:#ea580c; --muted:#cbd5e1; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:var(--navy); color:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    display:flex; align-items:center; justify-content:center; padding:28px 20px; }
+  .wrap { width:100%; max-width:440px; text-align:center; }
+  .langs { display:flex; gap:6px; justify-content:center; margin-bottom:16px; }
+  .langs button { background:transparent; border:1px solid #27457a; color:#94a3b8; border-radius:8px;
+    padding:4px 10px; font-size:12px; font-weight:700; cursor:pointer; text-transform:uppercase; }
+  .langs button.active { background:var(--orange); color:var(--navy); border-color:var(--orange); }
+  .logo { width:96px; height:96px; border-radius:22px; display:block; margin:0 auto 18px; box-shadow:0 10px 30px rgba(0,0,0,.35); }
+  h1 { margin:0; font-size:30px; font-weight:800; letter-spacing:6px; }
+  .tag { margin:8px 0 0; color:var(--orange); font-size:12px; font-weight:700; letter-spacing:2px; }
+  .lead { margin:18px 0 24px; color:var(--muted); font-size:17px; line-height:1.6; }
+  .badges { display:flex; flex-direction:column; gap:12px; }
+  .badge { display:block; border-radius:9px; overflow:hidden; transition:transform .08s ease; }
+  .badge:active { transform:scale(.985); }
+  .badge svg { display:block; width:100%; height:auto; max-height:60px; }
+  .primary-hint { font-size:12px; color:#94a3b8; margin:0 0 4px; }
+  .foot { margin-top:28px; font-size:12px; color:#94a3b8; line-height:1.9; }
+  .foot a { color:#94a3b8; }
+  .platform-primary { order:-1; }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="langs" id="langs"></div>
+    <img class="logo" src="https://provider.skipily.app/icon-192.png" width="96" height="96" alt="Skipily">
+    <h1>SKIPILY</h1>
+    <p class="tag">ALWAYS · SAFE · READY TO SAIL</p>
+    <p class="lead" data-i="lead">Bootsservice, Werften &amp; Shops auf einer Karte — plus KI-Bootsingenieur.</p>
+
+    <p class="primary-hint" id="hint" data-i="pickPlatform">Wähle deine Plattform:</p>
+    <div class="badges">
+      <!-- iOS: offizieller App-Store-Badge -->
+      <a class="badge" id="cta-ios" href="https://apps.apple.com/app/id6757314378" aria-label="Download on the App Store">
+        <svg viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Download on the App Store">
+          <rect x="0.5" y="0.5" width="119" height="39" rx="8.5" fill="#000" stroke="#A6A6A6" stroke-width="0.5"/>
+          <path fill="#fff" transform="translate(10.5,9) scale(0.62)" d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z"/>
+          <text x="41" y="15.5" fill="#fff" font-family="Helvetica,Arial,sans-serif" font-size="6.6">Download on the</text>
+          <text x="40.5" y="31" fill="#fff" font-family="Helvetica,Arial,sans-serif" font-size="15.5" font-weight="600" letter-spacing="-0.3">App Store</text>
+        </svg>
+      </a>
+      <!-- Android/Desktop: Web-App (Google Play noch in Prüfung) -->
+      <a class="badge" id="cta-web" href="https://app.skipily.app/entdecken?utm_source=clip&utm_medium=print&utm_campaign=aufsteller" aria-label="Web App">
+        <svg viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" role="img">
+          <rect x="0.5" y="0.5" width="119" height="39" rx="8.5" fill="#000" stroke="#A6A6A6" stroke-width="0.5"/>
+          <g transform="translate(11,9)" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round">
+            <circle cx="11" cy="11" r="10.2"/>
+            <ellipse cx="11" cy="11" rx="4.3" ry="10.2"/>
+            <path d="M1 11 h20.4 M2.6 5.2 h16.8 M2.6 16.8 h16.8"/>
+          </g>
+          <text x="41" y="15.5" fill="#fff" font-family="Helvetica,Arial,sans-serif" font-size="6.6" data-i="webSmall">Für Android · im Browser</text>
+          <text x="41" y="31" fill="#fff" font-family="Helvetica,Arial,sans-serif" font-size="15.5" font-weight="600" letter-spacing="-0.3" data-i="webBig">Web-App öffnen</text>
+        </svg>
+      </a>
+    </div>
+
+    <p class="foot">
+      <a href="https://skipily.app/" data-i="more">Mehr über Skipily</a><br>
+      <a href="https://skipily.app/impressum" data-i="imprint">Impressum</a> ·
+      <a href="https://skipily.app/datenschutz" data-i="privacy">Datenschutz</a>
+    </p>
+  </main>
+
+  <script>
+    var I18N = {
+      de: { lead: "Bootsservice, Werften & Shops auf einer Karte — plus KI-Bootsingenieur.",
+            pickPlatform: "Wähle deine Plattform:", iosHint: "Für iPhone & iPad:", androidHint: "Für Android:",
+            webSmall: "Für Android · im Browser", webBig: "Web-App öffnen",
+            more: "Mehr über Skipily", imprint: "Impressum", privacy: "Datenschutz" },
+      en: { lead: "Marine service, boatyards & shops on one map — plus an AI boat engineer.",
+            pickPlatform: "Choose your platform:", iosHint: "For iPhone & iPad:", androidHint: "For Android:",
+            webSmall: "For Android · in browser", webBig: "Open web app",
+            more: "More about Skipily", imprint: "Imprint", privacy: "Privacy" }
+    };
+    var SUP = ['de', 'en'], NAMES = { de: 'DE', en: 'EN' };
+    function applyLang(lang) {
+      var t = I18N[lang]; if (!t) return;
+      document.querySelectorAll('[data-i]').forEach(function (el) {
+        var k = el.getAttribute('data-i'); if (t[k]) el.textContent = t[k];
+      });
+      fitBadgeText();
+      document.documentElement.lang = lang;
+      document.querySelectorAll('#langs button').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.lang === lang);
+      });
+      applyPlatformHint(lang);
+      try { localStorage.setItem('skipily_lang', lang); } catch (e) {}
+    }
+
+    // Badge-Texte (SVG) nur bei Überlauf auf die Badge-Breite (~74) stauchen —
+    // kurze Texte bleiben unverzerrt, lange werden per textLength geklemmt.
+    function fitBadgeText() {
+      document.querySelectorAll('svg text[data-i]').forEach(function (el) {
+        el.removeAttribute('textLength');
+        el.removeAttribute('lengthAdjust');
+        try {
+          if (el.getComputedTextLength() > 74) {
+            el.setAttribute('textLength', 74);
+            el.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+          }
+        } catch (e) {}
+      });
+    }
+    window.addEventListener('load', fitBadgeText);
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(fitBadgeText); }
+    var _platform = 'other';
+    function applyPlatformHint(lang) {
+      var hint = document.getElementById('hint'); if (!hint) return;
+      var t = I18N[lang];
+      if (_platform === 'ios') hint.textContent = t.iosHint;
+      else if (_platform === 'android') hint.textContent = t.androidHint;
+      else hint.textContent = t.pickPlatform;
+    }
+    (function () {
+      var sw = document.getElementById('langs');
+      SUP.forEach(function (l) {
+        var b = document.createElement('button');
+        b.textContent = NAMES[l]; b.dataset.lang = l;
+        b.addEventListener('click', function () { applyLang(l); });
+        sw.appendChild(b);
+      });
+      // Plattform erkennen und den passenden Button nach oben holen.
+      var ua = navigator.userAgent || '';
+      var isIOS = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && 'ontouchend' in document);
+      var isAndroid = /Android/i.test(ua);
+      _platform = isIOS ? 'ios' : isAndroid ? 'android' : 'other';
+      // Android → direkt zur Gäste-Karte (anonyme Provider-Vorschau, Pendant
+      // zum iPhone-App-Clip). ?noredirect=1 überspringt die Weiterleitung.
+      var noRedirect = new URLSearchParams(location.search).get('noredirect') === '1';
+      if (_platform === 'android' && !noRedirect) {
+        location.replace('https://app.skipily.app/entdecken?utm_source=clip&utm_medium=print&utm_campaign=aufsteller');
+        return;
+      }
+      if (_platform === 'ios') document.getElementById('cta-ios').classList.add('platform-primary');
+      else if (_platform === 'android') document.getElementById('cta-web').classList.add('platform-primary');
+      // Sprache: ?lang > gespeichert > Browser > de
+      var p = new URLSearchParams(location.search);
+      var stored; try { stored = localStorage.getItem('skipily_lang'); } catch (e) {}
+      var nav = (navigator.language || 'de').slice(0, 2).toLowerCase();
+      var lang = [p.get('lang'), stored, nav].find(function (c) { return SUP.indexOf(c) !== -1; }) || 'de';
+      applyLang(lang);
+    })();
+  </script>
+</body>
+</html>

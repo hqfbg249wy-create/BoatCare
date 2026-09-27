@@ -398,6 +398,7 @@
 "cart.shipping" = "Envío";
 "cart.shipping_at_checkout" = "Se calcula en el pago";
 "cart.shipping_free" = "Gratis";
+"cart.shipping_free_above" = "Gratis (gratis desde %@)";
 "cart.total" = "Total";
 "cart.total_amount" = "Importe total";
 "cart.checkout" = "Realizar pedido";
