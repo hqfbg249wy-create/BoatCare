@@ -73,6 +73,29 @@ Deno.serve(async (req) => {
     // Kunde benachrichtigen (best-effort).
     const total = (amt + (Number(shipping) || 0)).toFixed(2).replace(".", ",") +
       " " + (currency || "EUR").toUpperCase();
+
+    // Angebot in den Thread spiegeln (an die Anfrage gekoppelt), damit
+    // Anfrage -> Angebot -> Rueckfragen an EINEM Ort erscheinen.
+    try {
+      const { data: convRows } = await svc.from("conversations")
+        .select("id").eq("user_id", inq.owner_id).eq("provider_id", inq.provider_id).limit(1);
+      let convId = convRows?.[0]?.id as string | undefined;
+      if (!convId) {
+        const { data: newConv } = await svc.from("conversations")
+          .insert({ user_id: inq.owner_id, provider_id: inq.provider_id }).select("id").single();
+        convId = newConv?.id;
+      }
+      if (convId) {
+        const msg = `Angebot: ${total}\n\n${description}` + (reply ? `\n\n${reply}` : "");
+        await svc.from("messages").insert({
+          conversation_id: convId, sender_id: inq.provider_id, sender_type: "provider",
+          content: msg, related_inquiry_id: inquiry_id,
+        });
+        await svc.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", convId);
+      }
+    } catch (e) {
+      console.error("make-offer thread mirror failed:", (e as Error).message);
+    }
     await pushToUser(inq.owner_id, "Neues Angebot erhalten",
       `Du hast ein Angebot ueber ${total} erhalten. Jetzt in der App ansehen und annehmen.`);
     const { data: buyer } = await svc.from("profiles").select("email, full_name").eq("id", inq.owner_id).maybeSingle();

@@ -97,6 +97,9 @@ Deno.serve(async (req) => {
         await svc.from("messages").insert({
           conversation_id: convId, sender_id: user.id, sender_type: "user",
           content: `Rueckfrage zu ${ref}:\n\n${q}`,
+          // Thread an die Anfrage koppeln -> erscheint im Bestell-/Angebots-
+          // ablauf (Trigger verknuepft zusaetzlich die spaetere Order).
+          related_inquiry_id: inquiry_id,
         });
       }
     } catch (e) {

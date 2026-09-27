@@ -85,6 +85,7 @@ Deno.serve(async (req) => {
         await svc.from("messages").insert({
           conversation_id: convId, sender_id: inq.provider_id, sender_type: "provider",
           content: `${providerName} kann ${ref} leider nicht anbieten.`,
+          related_inquiry_id: inquiry_id,
         });
         await svc.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", convId);
       }
