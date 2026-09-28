@@ -171,6 +171,16 @@ struct ShopView: View {
                     proxy.scrollTo(id, anchor: .center)
                 }
             }
+            // Automatisches Nachladen beim Hochscrollen (Swipe nach oben): laedt
+            // die naechste Seite, sobald man sich dem Ende naehert. Ersetzt den
+            // „Mehr laden"-Button und funktioniert auch mit dem eager Raster.
+            .onScrollGeometryChange(for: Bool.self) { geo in
+                geo.contentOffset.y + geo.containerSize.height >= geo.contentSize.height - 900
+            } action: { _, nearBottom in
+                if nearBottom && hasMoreProducts && !isLoadingMore && !isLoading {
+                    Task { await loadMoreProducts() }
+                }
+            }
             }
         }
         .navigationTitle("shop.title".loc)
@@ -1007,21 +1017,11 @@ struct ShopView: View {
                 }
             }
 
-            if hasMoreProducts {
-                Button {
-                    Task { await loadMoreProducts() }
-                } label: {
-                    if isLoadingMore {
-                        ProgressView().padding(.vertical, 12)
-                    } else {
-                        Text("shop.load_more".loc)
-                            .font(.subheadline).fontWeight(.semibold)
-                            .foregroundStyle(AppColors.primary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                    }
-                }
-                .buttonStyle(.plain)
+            // Nachladen passiert automatisch beim Hochscrollen (siehe
+            // .onScrollGeometryChange an der ScrollView). Hier nur ein dezenter
+            // Lade-Indikator waehrend des Nachladens.
+            if isLoadingMore {
+                ProgressView().padding(.vertical, 16)
             }
         }
     }
