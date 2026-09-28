@@ -37,6 +37,10 @@ struct ShopView: View {
     @State private var facets: [ProductFacet] = []
     @State private var suggestTask: Task<Void, Never>?
     @FocusState private var searchFocused: Bool
+    // Zuletzt geoeffnetes Produkt -> beim Zurueckspringen dorthin scrollen.
+    // Behebt den weissen Bildschirm nach mehrfachem Push/Pop (LazyVGrid legt
+    // die wiederhergestellte Scrollposition sonst ins Leere).
+    @State private var lastTappedID: UUID?
     @State private var equipmentDealProducts: [Product] = []
     @State private var cartToast: String?
 
@@ -61,6 +65,7 @@ struct ShopView: View {
                 suggestionsList
             }
 
+            ScrollViewReader { proxy in
             ScrollView {
                 // Bewusst KEIN LazyVStack: die Kopf-Sektionen sind wenige und
                 // günstig. Ein lazy Außen-Container entlädt auf dem iPad beim
@@ -157,15 +162,27 @@ struct ShopView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 20)
             }
+            // Beim (Wieder-)Erscheinen des Shops nach einem Ruecksprung an das
+            // zuletzt geoeffnete Produkt scrollen -> nie mehr leere weisse
+            // Flaeche. Kleiner Verzug, damit das LazyVGrid zuerst layoutet.
+            .onAppear {
+                guard let id = lastTappedID else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    proxy.scrollTo(id, anchor: .center)
+                }
+            }
+            }
         }
         .navigationTitle("shop.title".loc)
         .navigationDestination(for: Product.self) { product in
             ProductDetailView(product: product)
+                .onAppear { lastTappedID = product.id }
         }
         // Eindeutige Routen je Platzierung (siehe ProductRoute) -> zuverlaessige
         // Aktivierung auch wenn dasselbe Produkt mehrfach sichtbar ist.
         .navigationDestination(for: ProductRoute.self) { route in
             ProductDetailView(product: route.product)
+                .onAppear { lastTappedID = route.product.id }
         }
         .task {
             await loadCategories()
@@ -965,6 +982,7 @@ struct ShopView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                    .id(product.id)   // Ziel fuer scrollTo (Ruecksprung-Wiederherstellung)
                     .onAppear {
                         // Infinite scroll: load more when nearing the end
                         if product.id == products.last?.id && hasMoreProducts && !isLoadingMore {
