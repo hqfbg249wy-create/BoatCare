@@ -57,7 +57,11 @@ struct ProductCardView: View {
                             case .failure:
                                 productPlaceholder
                             default:
-                                ProgressView()
+                                // Statischer Platzhalter statt animiertem Spinner:
+                                // viele gleichzeitig animierende ProgressViews (iPad,
+                                // viele Kacheln) haengen je einen Animations-Handler
+                                // an -> "cannot add handler … dropping" + Ueberlastung.
+                                productPlaceholder
                             }
                         }
                     } else {
