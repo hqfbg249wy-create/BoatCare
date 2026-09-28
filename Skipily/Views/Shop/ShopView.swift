@@ -937,16 +937,20 @@ struct ShopView: View {
         VStack(spacing: 12) {
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(products) { product in
-                    // Ganze Kachel = EIN Tap-Ziel mit eindeutigem Routenwert.
-                    // Grosse Trefferflaeche + keine Mehrfach-Link-Kollision ->
-                    // „Details" reagiert zuverlaessig (auch iPad).
-                    NavigationLink(value: ProductRoute(product: product, context: "grid")) {
-                        VStack(spacing: 8) {
-                            ProductCardView(
-                                product: product,
-                                promotionBadge: promotionService.promotionBadgeText(for: product),
-                                discountedPrice: promotionService.displayDiscountedPrice(for: product)
-                            )
+                    VStack(spacing: 8) {
+                        ProductCardView(
+                            product: product,
+                            promotionBadge: promotionService.promotionBadgeText(for: product),
+                            discountedPrice: promotionService.displayDiscountedPrice(for: product)
+                        )
+                        // Eindeutiger Routenwert je Platzierung (ProductRoute) ->
+                        // „Details" reagiert zuverlaessig, auch wenn dasselbe
+                        // Produkt zugleich in Empfehlungen/Deals sichtbar ist.
+                        // Bewusst NUR der Button ist der Link (nicht die ganze
+                        // Karte): sonst blendet SwiftUI beim Weg-Navigieren das
+                        // Link-Label (= Karte) aus, die Grid-Hoehe kollabiert und
+                        // der Ruecksprung landet auf einer weissen Flaeche.
+                        NavigationLink(value: ProductRoute(product: product, context: "grid")) {
                             HStack(spacing: 6) {
                                 Image(systemName: "info.circle.fill")
                                 Text("shop.details".loc)
@@ -957,10 +961,10 @@ struct ShopView: View {
                             .padding(.vertical, 10)
                             .background(AppColors.primary)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .contentShape(Rectangle())
                         }
-                        .contentShape(Rectangle())
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                     .onAppear {
                         // Infinite scroll: load more when nearing the end
                         if product.id == products.last?.id && hasMoreProducts && !isLoadingMore {
