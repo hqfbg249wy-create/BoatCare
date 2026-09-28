@@ -49,6 +49,24 @@ actor ImageDownsampler {
         return c
     }()
 
+    /// Negativ-Cache: Keys, deren Laden/Dekodieren fehlgeschlagen ist. Ohne ihn
+    /// versucht JEDES erneute Erscheinen einer Kachel (v. a. beim mehrfachen
+    /// Vor/Zurueck auf dem iPad) das kaputte Bild neu zu laden -> Thumbnail-
+    /// Fehler + „cannot add handler … dropping" haeufen sich, Touch/Rendering
+    /// brechen ein (weisser Bildschirm). Bekannte Fehlschlaege werden hier fuer
+    /// die Session gemerkt und sofort als Platzhalter behandelt.
+    private static let failedKeys: NSCache<NSString, NSNumber> = {
+        let c = NSCache<NSString, NSNumber>()
+        c.countLimit = 4000
+        return c
+    }()
+    nonisolated static func isKnownFailed(_ key: NSString) -> Bool {
+        failedKeys.object(forKey: key) != nil
+    }
+    nonisolated static func markFailed(_ key: NSString) {
+        failedKeys.setObject(1, forKey: key)
+    }
+
     /// Verzeichnis für persistierte Thumbnails (OS darf es unter Druck leeren).
     private static let thumbDir: URL = {
         let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -98,6 +116,8 @@ actor ImageDownsampler {
     func image(for url: URL, maxPixel: CGFloat) async -> UIImage? {
         let key = Self.cacheKey(url, maxPixel)
         if let cached = Self.cache.object(forKey: key) { return cached }
+        // Bekannter Fehlschlag -> nicht erneut laden (verhindert Wiederholungssturm).
+        if Self.isKnownFailed(key) { return nil }
 
         // Disk-Read, Netz-Fetch UND Downsampling laufen in einem detached Task,
         // NICHT auf dem Actor. Sonst blockiert die (CPU-schwere) Dekodierung den
@@ -116,8 +136,12 @@ actor ImageDownsampler {
             }
 
             // 3. Netz: einmalig laden (über Thumbnail-Proxy), downsamplen, ablegen.
-            guard let data = await Self.fetchData(url, maxPixel: maxPixel) else { return nil }
-            guard let image = Self.downsample(data: data, maxPixel: maxPixel) else { return nil }
+            guard let data = await Self.fetchData(url, maxPixel: maxPixel) else {
+                Self.markFailed(key); return nil
+            }
+            guard let image = Self.downsample(data: data, maxPixel: maxPixel) else {
+                Self.markFailed(key); return nil
+            }
             Self.store(image, key: key)
             Self.writeThumb(image, to: thumbURL)
             return image
@@ -218,19 +242,35 @@ actor ImageDownsampler {
     /// image into memory, which is what keeps the iPad responsive.
     nonisolated static func downsample(data: Data, maxPixel: CGFloat) -> UIImage? {
         let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
-        guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions) else {
-            return nil
+        if let source = CGImageSourceCreateWithData(data as CFData, sourceOptions) {
+            let options: [CFString: Any] = [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceShouldCacheImmediately: true,
+                kCGImageSourceThumbnailMaxPixelSize: max(maxPixel, 1)
+            ]
+            if let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) {
+                return UIImage(cgImage: cgImage)
+            }
         }
-        let options: [CFString: Any] = [
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceCreateThumbnailWithTransform: true,
-            kCGImageSourceShouldCacheImmediately: true,
-            kCGImageSourceThumbnailMaxPixelSize: max(maxPixel, 1)
-        ]
-        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
-            return nil
-        }
-        return UIImage(cgImage: cgImage)
+        // Fallback: ImageIO konnte kein Thumbnail erzeugen (manche Formate/Quellen
+        // liefern 'n/a'). Dann voll dekodieren und selbst herunterrechnen, damit
+        // das Bild trotzdem erscheint (statt Dauer-Platzhalter + Retry-Sturm).
+        return fullDecodeResized(data: data, maxPixel: maxPixel)
+    }
+
+    /// Vollstaendige Dekodierung + manuelles Verkleinern als Fallback.
+    nonisolated private static func fullDecodeResized(data: Data, maxPixel: CGFloat) -> UIImage? {
+        guard let full = UIImage(data: data) else { return nil }
+        let longest = max(full.size.width, full.size.height)
+        guard longest > 0 else { return nil }
+        if longest <= maxPixel { return full }
+        let scale = maxPixel / longest
+        let newSize = CGSize(width: full.size.width * scale, height: full.size.height * scale)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
+        return renderer.image { _ in full.draw(in: CGRect(origin: .zero, size: newSize)) }
     }
 }
 
