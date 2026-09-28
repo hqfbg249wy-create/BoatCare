@@ -599,6 +599,7 @@
 "equipment.article_no" = "Réf.:";
 "shop.title" = "Boutique";
 "shop.details" = "Voir les détails";
+"shop.load_more" = "Charger plus";
 "data_quality.hint" = "Plus vos saisies sont précises, plus il est facile pour l'IA de vous aider et pour la boutique de trouver la bonne pièce. Idéalement, saisissez votre équipement jusqu'au moindre détail – par exemple filtre à huile, pompe à eau ou turbine.";
 "chat.shop_search_header" = "Trouver les pièces adaptées dans la boutique :";
 "chat.shop_search_title" = "Rechercher dans la boutique";

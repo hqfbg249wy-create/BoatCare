@@ -599,6 +599,7 @@
 "equipment.article_no" = "Art.nr.:";
 "shop.title" = "Winkel";
 "shop.details" = "Details bekijken";
+"shop.load_more" = "Meer laden";
 "data_quality.hint" = "Hoe nauwkeuriger je invoer, hoe gemakkelijker de AI je kan helpen en de winkel het juiste onderdeel kan vinden. Voer je uitrusting idealiter tot in detail in – zoals oliefilter, waterpomp of impeller.";
 "chat.shop_search_header" = "Vind passende onderdelen in de shop:";
 "chat.shop_search_title" = "Zoeken in de shop";

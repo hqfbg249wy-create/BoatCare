@@ -950,52 +950,78 @@ struct ShopView: View {
 
     // MARK: - Product Grid
 
+    // Spaltenzahl aus der Bildschirmbreite (fuer das nicht-lazy Raster).
+    private var gridColumnCount: Int {
+        let w = UIScreen.main.bounds.width
+        return max(2, min(6, Int((w - 32) / 190)))
+    }
+
+    // Eine Produktkachel (Karte + Details-Button).
+    @ViewBuilder
+    private func productCell(_ product: Product) -> some View {
+        VStack(spacing: 8) {
+            ProductCardView(
+                product: product,
+                promotionBadge: promotionService.promotionBadgeText(for: product),
+                discountedPrice: promotionService.displayDiscountedPrice(for: product)
+            )
+            NavigationLink(value: ProductRoute(product: product, context: "grid")) {
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle.fill")
+                    Text("shop.details".loc)
+                }
+                .font(.subheadline).fontWeight(.semibold)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(AppColors.primary)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    // Nicht-lazy Raster: LazyVGrid blendet auf iPadOS 27 nach Navigation den
+    // Inhalt aus („fails to show" -> weisser Bildschirm). Ein eager gerendertes
+    // Raster (feste Zeilen) hat dieses Recycling-Problem nicht. Nachladen ueber
+    // einen Button statt Auto-Scroll, damit das eager Raster nicht sofort den
+    // ganzen Katalog zieht.
     private var productGrid: some View {
-        VStack(spacing: 12) {
-            LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(products) { product in
-                    VStack(spacing: 8) {
-                        ProductCardView(
-                            product: product,
-                            promotionBadge: promotionService.promotionBadgeText(for: product),
-                            discountedPrice: promotionService.displayDiscountedPrice(for: product)
-                        )
-                        // Eindeutiger Routenwert je Platzierung (ProductRoute) ->
-                        // „Details" reagiert zuverlaessig, auch wenn dasselbe
-                        // Produkt zugleich in Empfehlungen/Deals sichtbar ist.
-                        // Bewusst NUR der Button ist der Link (nicht die ganze
-                        // Karte): sonst blendet SwiftUI beim Weg-Navigieren das
-                        // Link-Label (= Karte) aus, die Grid-Hoehe kollabiert und
-                        // der Ruecksprung landet auf einer weissen Flaeche.
-                        NavigationLink(value: ProductRoute(product: product, context: "grid")) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "info.circle.fill")
-                                Text("shop.details".loc)
-                            }
-                            .font(.subheadline).fontWeight(.semibold)
-                            .foregroundStyle(.white)
+        let cols = gridColumnCount
+        let rows: [[Product]] = stride(from: 0, to: products.count, by: cols).map { start in
+            Array(products[start..<min(start + cols, products.count)])
+        }
+        return VStack(spacing: 12) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, items in
+                HStack(alignment: .top, spacing: 12) {
+                    ForEach(items) { product in
+                        productCell(product)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(AppColors.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
+                            .id(product.id)
                     }
-                    .id(product.id)   // Ziel fuer scrollTo (Ruecksprung-Wiederherstellung)
-                    .onAppear {
-                        // Infinite scroll: load more when nearing the end
-                        if product.id == products.last?.id && hasMoreProducts && !isLoadingMore {
-                            Task { await loadMoreProducts() }
-                        }
+                    // Leere Fueller, damit die letzte Reihe gleiche Kachelbreite haelt.
+                    ForEach(Array(0..<(cols - items.count)), id: \.self) { _ in
+                        Color.clear.frame(maxWidth: .infinity)
                     }
                 }
             }
 
-            // Loading more indicator
-            if isLoadingMore {
-                ProgressView()
-                    .padding(.vertical, 16)
+            if hasMoreProducts {
+                Button {
+                    Task { await loadMoreProducts() }
+                } label: {
+                    if isLoadingMore {
+                        ProgressView().padding(.vertical, 12)
+                    } else {
+                        Text("shop.load_more".loc)
+                            .font(.subheadline).fontWeight(.semibold)
+                            .foregroundStyle(AppColors.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                }
+                .buttonStyle(.plain)
             }
         }
     }

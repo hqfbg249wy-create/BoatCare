@@ -602,6 +602,7 @@
 "equipment.article_no" = "Item no.:";
 "shop.title" = "Shop";
 "shop.details" = "View details";
+"shop.load_more" = "Load more";
 "data_quality.hint" = "The more accurate your entries, the easier it is for the AI to help you and the shop to find the right part. Ideally, add your equipment right down to the individual part – such as oil filter, water pump or impeller.";
 "chat.shop_search_header" = "Find matching parts in the shop:";
 "chat.shop_search_title" = "Search the shop";

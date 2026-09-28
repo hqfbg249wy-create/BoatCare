@@ -606,6 +606,7 @@ Ausrüstung unter Boote ergänzen.";
 "equipment.article_no" = "Art.-Nr.:";
 "shop.title" = "Shop";
 "shop.details" = "Details ansehen";
+"shop.load_more" = "Mehr laden";
 "data_quality.hint" = "Je genauer Deine Eingaben sind, desto leichter kann Dir die KI helfen und der Shop das passende Teil finden. Trage Deine Ausrüstung idealerweise bis ins Detail ein – etwa Ölfilter, Wasserpumpe oder Impeller.";
 "chat.shop_search_header" = "Passende Teile im Shop finden:";
 "chat.shop_search_title" = "Im Shop suchen";

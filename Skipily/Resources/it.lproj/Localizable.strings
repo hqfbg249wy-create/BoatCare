@@ -599,6 +599,7 @@
 "equipment.article_no" = "Art. n.:";
 "shop.title" = "Negozio";
 "shop.details" = "Vedi dettagli";
+"shop.load_more" = "Carica altro";
 "data_quality.hint" = "Più precise sono le tue voci, più facile sarà per l'IA aiutarti e per il negozio trovare il pezzo giusto. Idealmente, inserisci la tua attrezzatura fin nei dettagli – ad esempio filtro dell'olio, pompa dell'acqua o girante.";
 "chat.shop_search_header" = "Trova i pezzi adatti nel negozio:";
 "chat.shop_search_title" = "Cerca nel negozio";
