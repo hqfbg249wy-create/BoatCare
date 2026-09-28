@@ -45,10 +45,15 @@ struct ProductCardView: View {
                         CachedAsyncImage(url: url, targetSize: CGSize(width: 210, height: 150)) { phase in
                             switch phase {
                             case .success(let image):
+                                // Vollstaendig sichtbar (nicht beschnitten) und mit
+                                // fester Hoehe -> stabiles Grid-Layout. Vorher .fill
+                                // ohne Hoehenbegrenzung: Bilder wurden am Rand
+                                // abgeschnitten und die unbegrenzte Bildhoehe machte
+                                // das LazyVGrid beim Recycling instabil.
                                 image
                                     .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(minWidth: 0, maxWidth: .infinity)
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(maxWidth: .infinity, maxHeight: 150)
                             case .failure:
                                 productPlaceholder
                             default:
