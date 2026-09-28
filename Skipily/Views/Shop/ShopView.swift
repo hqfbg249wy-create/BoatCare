@@ -162,6 +162,11 @@ struct ShopView: View {
         .navigationDestination(for: Product.self) { product in
             ProductDetailView(product: product)
         }
+        // Eindeutige Routen je Platzierung (siehe ProductRoute) -> zuverlaessige
+        // Aktivierung auch wenn dasselbe Produkt mehrfach sichtbar ist.
+        .navigationDestination(for: ProductRoute.self) { route in
+            ProductDetailView(product: route.product)
+        }
         .task {
             await loadCategories()
             await loadProducts()
@@ -298,7 +303,7 @@ struct ShopView: View {
     private func equipmentDealCard(_ product: Product) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             // Tappable area navigates to product detail
-            NavigationLink(value: product) {
+            NavigationLink(value: ProductRoute(product: product, context: "eqdeal")) {
                 VStack(alignment: .leading, spacing: 6) {
                     // Image with discount badge overlay
                     ZStack(alignment: .topTrailing) {
@@ -381,7 +386,7 @@ struct ShopView: View {
             // Add to cart button — Varianten-Produkte führen erst zur
             // Detailseite (Optionen wie Durchmesser/Größe/Farbe wählen).
             if product.hasVariants {
-                NavigationLink(value: product) {
+                NavigationLink(value: ProductRoute(product: product, context: "eqdeal-variant")) {
                     HStack(spacing: 4) {
                         Image(systemName: "slider.horizontal.3")
                             .font(.caption2)
@@ -444,7 +449,7 @@ struct ShopView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(recommendationService.recommendedProducts) { product in
-                        NavigationLink(value: product) {
+                        NavigationLink(value: ProductRoute(product: product, context: "rec")) {
                             recommendationCard(product)
                         }
                         .buttonStyle(.plain)
@@ -932,16 +937,16 @@ struct ShopView: View {
         VStack(spacing: 12) {
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(products) { product in
-                    VStack(spacing: 8) {
-                        ProductCardView(
-                            product: product,
-                            promotionBadge: promotionService.promotionBadgeText(for: product),
-                            discountedPrice: promotionService.displayDiscountedPrice(for: product)
-                        )
-                        // Details-Navigation typbasiert (wie Empfehlungen/Deals) —
-                        // EIN einheitliches navigationDestination(for:) statt zusätzlich
-                        // item-basiert; das behebt den Blank-Screen beim Zurückspringen.
-                        NavigationLink(value: product) {
+                    // Ganze Kachel = EIN Tap-Ziel mit eindeutigem Routenwert.
+                    // Grosse Trefferflaeche + keine Mehrfach-Link-Kollision ->
+                    // „Details" reagiert zuverlaessig (auch iPad).
+                    NavigationLink(value: ProductRoute(product: product, context: "grid")) {
+                        VStack(spacing: 8) {
+                            ProductCardView(
+                                product: product,
+                                promotionBadge: promotionService.promotionBadgeText(for: product),
+                                discountedPrice: promotionService.displayDiscountedPrice(for: product)
+                            )
                             HStack(spacing: 6) {
                                 Image(systemName: "info.circle.fill")
                                 Text("shop.details".loc)
@@ -953,8 +958,9 @@ struct ShopView: View {
                             .background(AppColors.primary)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-                        .buttonStyle(.plain)
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
                     .onAppear {
                         // Infinite scroll: load more when nearing the end
                         if product.id == products.last?.id && hasMoreProducts && !isLoadingMore {

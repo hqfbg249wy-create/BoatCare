@@ -115,6 +115,17 @@ struct Product: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+/// Navigationsziel für ein Produkt. Product ist NUR über `id` hashbar; wenn
+/// dasselbe Produkt gleichzeitig in mehreren Bereichen (Empfehlungen, Deals,
+/// Raster) als NavigationLink erscheint, sind die Werte identisch und SwiftUI
+/// aktiviert dann nur EINEN Link — die übrigen „Details"-Buttons wirken tot
+/// (v. a. auf dem iPad, wo mehr Kacheln gleichzeitig sichtbar sind). Ein
+/// Kontext-Diskriminator macht die Werte je Platzierung eindeutig.
+struct ProductRoute: Hashable {
+    let product: Product
+    let context: String
+}
+
 /// Eine Varianten-Option eines Produkts, z. B. { name: "Durchmesser",
 /// values: ["6mm","8mm","10mm"] }. Liegt als JSONB in metashop_products.
 struct VariantOption: Codable, Hashable, Sendable {
