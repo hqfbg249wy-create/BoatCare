@@ -18,6 +18,7 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { recordAiUsage } from "../_shared/aiQuota.ts";
+import { reserveSystemAiCall } from "../_shared/systemBudget.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-haiku-4-5";
@@ -134,6 +135,14 @@ Keep the same idx as input. Preserve line breaks (\\n) and punctuation.
 
 Input:
 ${JSON.stringify(indexed, null, 2)}`;
+
+  // System-Deckel: bei erschoepftem Tagesbudget NICHT uebersetzen, sondern die
+  // Originaltexte zurueckgeben (kein API-Call -> keine Kosten).
+  if (!(await reserveSystemAiCall())) {
+    const identity: Record<string, string> = {};
+    for (const it of items) identity[it.id] = it.text;
+    return { translations: identity, usedTokens: 0 };
+  }
 
   const resp = await fetch(ANTHROPIC_API_URL, {
     method: "POST",

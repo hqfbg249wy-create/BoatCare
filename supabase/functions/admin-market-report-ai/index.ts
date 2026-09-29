@@ -11,6 +11,7 @@
 
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { reserveSystemAiCall } from "../_shared/systemBudget.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-haiku-4-5";
@@ -84,6 +85,12 @@ Deno.serve(async (req) => {
 
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) return json({ error: "AI-Service nicht konfiguriert" }, 500);
+
+    // System-Deckel: Marktbericht nicht generieren, wenn das Tagesbudget fuer
+    // systemgetriggerte KI-Calls erreicht ist.
+    if (!(await reserveSystemAiCall())) {
+      return json({ error: "Tages-KI-Budget erreicht — Marktbericht spaeter erneut anfordern." }, 429);
+    }
 
     const resp = await fetch(ANTHROPIC_API_URL, {
       method: "POST",

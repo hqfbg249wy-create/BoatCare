@@ -18,6 +18,7 @@
 
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { reserveSystemAiCall } from "../_shared/systemBudget.ts";
 
 // DeepL Free-API (api-free.deepl.com). Key als Supabase-Secret DEEPL_API_KEY.
 const DEEPL_API_URL = "https://api-free.deepl.com/v2/translate";
@@ -44,6 +45,10 @@ const LANG_NAME: Record<Lang, string> = {
 async function claudeTranslateAll(texts: string[], lang: Lang): Promise<string[]> {
   const key = Deno.env.get("ANTHROPIC_API_KEY");
   if (!key) throw new Error("kein ANTHROPIC_API_KEY fuer Fallback");
+  // System-Deckel fuer den Claude-Fallback (siehe translate-product).
+  if (!(await reserveSystemAiCall())) {
+    throw new Error("System-KI-Tagesbudget erreicht (translate-provider Claude-Fallback)");
+  }
   const out: string[] = [];
   const BATCH = 20;
   for (let i = 0; i < texts.length; i += BATCH) {

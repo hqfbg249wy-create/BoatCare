@@ -20,6 +20,7 @@
 
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { reserveSystemAiCall } from "../_shared/systemBudget.ts";
 
 // DeepL Free-API (api-free.deepl.com). Key als Supabase-Secret DEEPL_API_KEY.
 const DEEPL_API_URL = "https://api-free.deepl.com/v2/translate";
@@ -52,6 +53,12 @@ let lastClaudeRaw = "";
 async function claudeTranslateAll(texts: string[], lang: Lang): Promise<string[]> {
   const key = Deno.env.get("ANTHROPIC_API_KEY");
   if (!key) throw new Error("kein ANTHROPIC_API_KEY fuer Fallback");
+  // System-Deckel: der Claude-Fallback (DeepL-Ausfall) darf das Tagesbudget
+  // nicht sprengen. Bei erschoepftem Budget abbrechen -> nichts wird uebersetzt
+  // oder faelschlich als Uebersetzung gecacht (Client zeigt Originaltext).
+  if (!(await reserveSystemAiCall())) {
+    throw new Error("System-KI-Tagesbudget erreicht (translate-product Claude-Fallback)");
+  }
   const out: string[] = [];
   const BATCH = 15;
   for (let i = 0; i < texts.length; i += BATCH) {
