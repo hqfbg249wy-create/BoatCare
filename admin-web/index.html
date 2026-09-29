@@ -216,6 +216,43 @@
                     </div>
                 </div>
 
+                <!-- KI-Kosten (Claude-API) -->
+                <div id="ai-costs-section" style="margin-top:28px;">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <h2 style="margin:0;">🤖 KI-Kosten (Claude-API)</h2>
+                        <button class="btn-secondary" onclick="window.loadAiCosts()" style="padding:6px 10px; font-size:13px;">🔄 Aktualisieren</button>
+                        <span id="ai-costs-hint" style="font-size:12px; color:#94a3b8;"></span>
+                    </div>
+                    <p style="font-size:13px; color:#64748b; margin:6px 0 14px;">
+                        Kosten der KI-Nutzung durch Nutzer. Zeitraum wählbar; Auflistung je Nutzer.
+                    </p>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-value" id="ai-cost-today">–</div><div class="stat-label">Heute</div></div>
+                        <div class="stat-card"><div class="stat-icon">🗓️</div><div class="stat-value" id="ai-cost-month">–</div><div class="stat-label">Diesen Monat</div></div>
+                        <div class="stat-card"><div class="stat-icon">📆</div><div class="stat-value" id="ai-cost-year">–</div><div class="stat-label">Dieses Jahr</div></div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; margin:14px 0 8px;">
+                        <span style="font-size:13px; color:#64748b;">Nutzer-Aufstellung:</span>
+                        <select id="ai-cost-period" onchange="window.loadAiCosts()" style="padding:5px 8px; font-size:13px;">
+                            <option value="today">Heute</option>
+                            <option value="month" selected>Dieser Monat</option>
+                            <option value="year">Dieses Jahr</option>
+                        </select>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="data-table" style="width:100%;border-collapse:collapse;">
+                            <thead><tr>
+                                <th style="text-align:left;">Nutzer</th>
+                                <th style="text-align:right;">Anfragen</th>
+                                <th style="text-align:right;">Input-Token</th>
+                                <th style="text-align:right;">Output-Token</th>
+                                <th style="text-align:right;">Kosten (USD)</th>
+                            </tr></thead>
+                            <tbody id="ai-costs-tbody"><tr><td colspan="5" style="color:#94a3b8;padding:10px;">Wird geladen…</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- Feature 3: Nutzerentwicklung & Aktivität (Segmente) -->
                 <div id="user-growth-section" style="margin-top:28px;">
                     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -2429,7 +2466,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20260924-delivery-log"></script>
+    <script src="app.js?v=20260929-ai-costs"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;

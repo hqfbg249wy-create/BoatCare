@@ -422,6 +422,9 @@ Deno.serve(async (req) => {
       source:     quota.source!,
       costTokens: usedTokens,
       metadata:   { model: chosenModel, lang: userLang },
+      model:        chosenModel,
+      inputTokens:  result.usage?.input_tokens ?? 0,
+      outputTokens: result.usage?.output_tokens ?? 0,
     }).catch(() => null);
 
     return new Response(

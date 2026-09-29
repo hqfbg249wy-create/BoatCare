@@ -357,6 +357,58 @@ function navigateToPage(pageName) {
     }
 }
 
+// ── KI-Kosten (Claude-API) fuers Dashboard ──
+async function loadAiCosts() {
+    const fmtUsd = (n) => '$' + (Number(n) || 0).toFixed(2);
+    const hint = document.getElementById('ai-costs-hint');
+    try {
+        if (hint) hint.textContent = 'lädt…';
+        // Gesamtsummen Heute/Monat/Jahr
+        const { data: totals } = await supabaseClient.rpc('admin_ai_cost_totals');
+        const byPeriod = {};
+        (totals || []).forEach(r => { byPeriod[r.period] = r; });
+        const setT = (id, p) => { const el = document.getElementById(id); if (el) el.textContent = fmtUsd(byPeriod[p]?.cost_usd || 0); };
+        setT('ai-cost-today', 'today'); setT('ai-cost-month', 'month'); setT('ai-cost-year', 'year');
+
+        // Aufstellung je Nutzer im gewaehlten Zeitraum
+        const period = document.getElementById('ai-cost-period')?.value || 'month';
+        const now = new Date();
+        let from;
+        if (period === 'today') from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        else if (period === 'year') from = new Date(now.getFullYear(), 0, 1);
+        else from = new Date(now.getFullYear(), now.getMonth(), 1);
+        const to = new Date(now.getTime() + 24 * 3600 * 1000); // offene Obergrenze (bis morgen)
+        const { data: rows, error } = await supabaseClient.rpc('admin_ai_costs', {
+            p_from: from.toISOString(), p_to: to.toISOString(),
+        });
+        const tb = document.getElementById('ai-costs-tbody');
+        if (error) { if (tb) tb.innerHTML = `<tr><td colspan="5" style="color:#ef4444;padding:10px;">Fehler: ${error.message}</td></tr>`; if (hint) hint.textContent = ''; return; }
+        if (tb) {
+            if (!rows || rows.length === 0) {
+                tb.innerHTML = '<tr><td colspan="5" style="color:#94a3b8;padding:10px;">Keine KI-Nutzung im Zeitraum.</td></tr>';
+            } else {
+                const esc = (s) => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+                const nf = (n) => (Number(n) || 0).toLocaleString('de-DE');
+                tb.innerHTML = rows.map(r => {
+                    const who = esc(r.email || r.full_name || r.user_id || '—');
+                    return `<tr>
+                        <td style="text-align:left;">${who}</td>
+                        <td style="text-align:right;">${nf(r.calls)}</td>
+                        <td style="text-align:right;">${nf(r.input_tokens)}</td>
+                        <td style="text-align:right;">${nf(r.output_tokens)}</td>
+                        <td style="text-align:right;font-weight:600;">${fmtUsd(r.cost_usd)}</td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+        if (hint) hint.textContent = '';
+    } catch (e) {
+        if (hint) hint.textContent = 'Fehler beim Laden';
+        console.error('loadAiCosts', e);
+    }
+}
+window.loadAiCosts = loadAiCosts;
+
 // Event Listeners
 function setupEventListeners() {
     console.log('🎧 Setup Event Listeners...');
@@ -458,6 +510,9 @@ function setupEventListeners() {
 
 async function loadDashboard() {
     console.log('📊 Lade Dashboard...');
+
+    // KI-Kosten laden (nicht-blockierend)
+    loadAiCosts().catch(() => {});
 
     try {
         // Lade Statistics

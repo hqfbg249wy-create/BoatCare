@@ -189,6 +189,9 @@ STRICT RULES (credibility matters):
       userId, providerId: null, feature: "photo_analysis",
       source: quota.source!, costTokens: usedTokens,
       metadata: { model: MODEL, lang: userLang },
+      model: MODEL,
+      inputTokens:  data?.usage?.input_tokens ?? 0,
+      outputTokens: data?.usage?.output_tokens ?? 0,
     }).catch(() => null);
 
     return json({ fields, confidence, note: str(parsed.note) });

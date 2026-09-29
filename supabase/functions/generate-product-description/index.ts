@@ -148,6 +148,9 @@ Antworte NUR mit dem reinen Beschreibungstext, kein Vorwort, kein Markdown, kein
       source:     "provider_quota",
       costTokens: usedTokens,
       metadata:   { model: MODEL, lang: userLang, kind: "product_description", product_name: name },
+      model: MODEL,
+      inputTokens:  result.usage?.input_tokens ?? 0,
+      outputTokens: result.usage?.output_tokens ?? 0,
     }).catch(() => null);
 
     return json({

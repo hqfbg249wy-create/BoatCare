@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       return json({ translations: {} });
     }
 
-    const { translations, usedTokens } = await translateBatch(items, lang, apiKey);
+    const { translations, usedTokens, inputTokens, outputTokens } = await translateBatch(items, lang, apiKey);
 
     // Tracking ohne Gate: Übersetzungen sind System-getriggert (User liest
     // Reviews in fremder Sprache) → kein User-Limit. Aber wir loggen, damit
@@ -100,6 +100,9 @@ Deno.serve(async (req) => {
             source: "free",  // System-getriggert, kein Plus-Verbrauch
             costTokens: usedTokens,
             metadata: { lang, item_count: items.length, untracked_gate: true },
+            model: MODEL,
+            inputTokens,
+            outputTokens,
           }).catch(() => null);
         }
       } catch { /* tracking failure must not break the response */ }
@@ -121,7 +124,7 @@ async function translateBatch(
   items: TextItem[],
   lang: Lang,
   apiKey: string,
-): Promise<{ translations: Record<string, string>; usedTokens: number }> {
+): Promise<{ translations: Record<string, string>; usedTokens: number; inputTokens: number; outputTokens: number }> {
   const langName = LANG_NAMES[lang];
 
   const indexed = items.map((it, i) => ({ idx: i + 1, id: it.id, text: it.text }));
@@ -141,7 +144,7 @@ ${JSON.stringify(indexed, null, 2)}`;
   if (!(await reserveSystemAiCall())) {
     const identity: Record<string, string> = {};
     for (const it of items) identity[it.id] = it.text;
-    return { translations: identity, usedTokens: 0 };
+    return { translations: identity, usedTokens: 0, inputTokens: 0, outputTokens: 0 };
   }
 
   const resp = await fetch(ANTHROPIC_API_URL, {
@@ -181,8 +184,9 @@ ${JSON.stringify(indexed, null, 2)}`;
     const translated = (entry.text ?? "").trim();
     if (translated) out[orig.id] = translated;
   }
-  const usedTokens = (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0);
-  return { translations: out, usedTokens };
+  const inputTokens = data?.usage?.input_tokens ?? 0;
+  const outputTokens = data?.usage?.output_tokens ?? 0;
+  return { translations: out, usedTokens: inputTokens + outputTokens, inputTokens, outputTokens };
 }
 
 function json(body: unknown, status = 200) {

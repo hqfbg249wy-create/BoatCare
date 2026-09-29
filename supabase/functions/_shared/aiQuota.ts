@@ -13,6 +13,7 @@
 //   translate_*         → Skipily-intern, läuft immer durch
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { costUsd } from "./aiPricing.ts";
 
 // Phase-1-Preismodell (Bootseigner):
 //   Free  → 10 KI-Fragen EINMALIG (lifetime, Summe über alle Monate)
@@ -169,19 +170,30 @@ export async function recordAiUsage(args: {
   costTokens?: number;
   metadata?: Record<string, unknown>;
   platform?: string | null; // 'ios' | 'web' | 'provider' (aus x-skipily-platform)
+  // Kostentransparenz (Admin-Anzeige): Modell + Token je Call.
+  model?: string | null;
+  inputTokens?: number;
+  outputTokens?: number;
 }): Promise<void> {
   const sb = adminClient();
   const plat = (args.platform && ["ios", "web", "provider"].includes(args.platform))
     ? args.platform : undefined;
   const meta = plat ? { ...(args.metadata ?? {}), platform: plat } : (args.metadata ?? null);
+  const inTok  = args.inputTokens ?? 0;
+  const outTok = args.outputTokens ?? 0;
+  const usd    = costUsd(args.model, inTok, outTok);
   try {
     await sb.rpc("increment_ai_usage", {
       p_user_id:      args.userId,
       p_provider_id:  args.providerId ?? null,
       p_feature:      args.feature,
       p_source:       args.source,
-      p_cost_tokens:  args.costTokens ?? 0,
+      p_cost_tokens:  args.costTokens ?? (inTok + outTok),
       p_metadata:     meta,
+      p_input_tokens:  inTok,
+      p_output_tokens: outTok,
+      p_model:         args.model ?? null,
+      p_cost_usd:      usd,
     });
   } catch (err) {
     console.error("recordAiUsage failed:", err);
