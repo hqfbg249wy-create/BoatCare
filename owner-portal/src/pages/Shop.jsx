@@ -58,7 +58,7 @@ export default function Shop() {
   // Endlos-Scroll ohne Button: ein Sentinel am Listenende laedt die naechste
   // Seite, sobald er in Sichtweite kommt. Refs halten den aktuellen Stand,
   // damit der Observer nicht an veralteten State/Filter gebunden ist.
-  const sentinelRef = useRef(null)
+  const observerRef = useRef(null)
   const infiniteRef = useRef({})
   const [cartToast, setCartToast] = useState(null)
   // Empfehlungen für User-Equipment ("Passende Produkte für Deine Ausrüstung")
@@ -284,18 +284,20 @@ export default function Shop() {
   // aktuellen Filter/Seiten nutzt.
   infiniteRef.current = { page, hasMore, loading, loadingMore, isSparePartsMode, load: loadProducts }
 
-  useEffect(() => {
-    const el = sentinelRef.current
-    if (!el) return
-    const obs = new IntersectionObserver(async (entries) => {
+  // Callback-Ref: haengt den Observer an, sobald der Sentinel im DOM ist (der
+  // erscheint erst NACH dem ersten Laden). Ein reiner Mount-Effekt wuerde den
+  // Sentinel verpassen -> es wuerde nichts nachgeladen.
+  const sentinelCallback = useCallback((node) => {
+    if (observerRef.current) { observerRef.current.disconnect(); observerRef.current = null }
+    if (!node) return
+    observerRef.current = new IntersectionObserver(async (entries) => {
       if (!entries[0]?.isIntersecting) return
       const s = infiniteRef.current
       if (s.isSparePartsMode || !s.hasMore || s.loading || s.loadingMore) return
       setLoadingMore(true)
       try { await s.load(s.page + 1, true) } finally { setLoadingMore(false) }
     }, { rootMargin: '800px' })
-    obs.observe(el)
-    return () => obs.disconnect()
+    observerRef.current.observe(node)
   }, [])
 
   function handleSearch() {
@@ -584,7 +586,7 @@ export default function Shop() {
 
           {/* Endlos-Scroll: unsichtbarer Sentinel laedt beim Scrollen nach. */}
           {hasMore && (
-            <div ref={sentinelRef} style={{ textAlign: 'center', marginTop: 20, minHeight: 1 }}>
+            <div ref={sentinelCallback} style={{ textAlign: 'center', marginTop: 20, minHeight: 1 }}>
               {loadingMore && <div className="spinner" />}
             </div>
           )}
