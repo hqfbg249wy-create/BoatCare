@@ -17,8 +17,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkAiQuota, recordAiUsage } from "../_shared/aiQuota.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-6";
-const MAX_TOKENS = 1024;
+const MODEL = "claude-haiku-4-5";
+const MAX_TOKENS = 500;
 
 const LANG_NAMES: Record<string, string> = {
   de: "German", en: "English", fr: "French",

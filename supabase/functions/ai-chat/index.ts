@@ -15,7 +15,8 @@ const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 // Plus → Opus 5 (stärkere KI für tiefergehende Analysen).
 const SONNET_MODEL = "claude-sonnet-5";
 const OPUS_MODEL   = "claude-opus-5";
-const MAX_TOKENS = 2048;
+const HAIKU_MODEL  = "claude-haiku-4-5";
+const MAX_TOKENS = 1024;
 const MAX_FEWSHOTS = 3;
 
 // Stopwords fuer die Keyword-Extraktion aus der Nutzerfrage.
@@ -358,11 +359,16 @@ Deno.serve(async (req) => {
     // Modellwahl nach Tier: Plus → Opus 5 (adaptive Thinking + effort medium),
     // sonst Sonnet 5 (Thinking aus). Opus NICHT hart abschalten (Fehlermodi) —
     // die Kosten werden über effort "medium" dosiert.
+    // Kostensparende Modellwahl: Plus -> Opus (bezahlte Zusage), Basic ->
+    // Sonnet, Free -> Haiku (guenstigstes Modell fuer die groesste,
+    // nicht zahlende Gruppe).
     const usePlusModel = quota.tier === "plus";
-    const chosenModel  = usePlusModel ? OPUS_MODEL : SONNET_MODEL;
+    const chosenModel  = usePlusModel ? OPUS_MODEL
+                       : quota.tier === "basic" ? SONNET_MODEL
+                       : HAIKU_MODEL;
     const reqBody: Record<string, unknown> = {
       model:      chosenModel,
-      max_tokens: usePlusModel ? 4096 : MAX_TOKENS,
+      max_tokens: usePlusModel ? 2048 : MAX_TOKENS,
       system: [
         { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
         { type: "text", text: dynamicSystem },

@@ -52,8 +52,8 @@ async function claudeTranslateAll(texts: string[], lang: Lang): Promise<string[]
       method: "POST",
       headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-5",
-        max_tokens: 3000,
+        model: "claude-haiku-4-5",
+        max_tokens: 1500,
         system: `You are a professional translator for a marine marketplace. Translate EACH input string fully into ${LANG_NAME[lang]}. ` +
           `Translate all descriptive service/product words; keep UNCHANGED only company/brand names. ` +
           `Do NOT leave foreign words untranslated. Return ONLY a JSON array of strings, same length and order.`,
