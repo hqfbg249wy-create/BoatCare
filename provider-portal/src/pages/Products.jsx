@@ -1202,14 +1202,15 @@ export default function Products() {
               ? <><Loader size={16} className="spin" /> {t('products.importing')}</>
               : <><FileSpreadsheet size={16} /> {t('products.importCsvExcel')}</>}
           </button>
-          {products.length > 0 && (
-            <button className="btn-secondary" onClick={exportProducts} disabled={exporting}
-              title={t('products.exportTitle')}>
-              {exporting
-                ? <><Loader size={16} className="spin" /> {t('products.exporting')}</>
-                : <><Download size={16} /> {t('products.exportProducts')}</>}
-            </button>
-          )}
+          {/* Immer sichtbar (bei 0 Produkten deaktiviert), damit der Export nicht
+              scheinbar "verschwindet", wenn die Liste leer/gefiltert ist. */}
+          <button className="btn-secondary" onClick={exportProducts}
+            disabled={exporting || products.length === 0}
+            title={products.length === 0 ? t('products.exportTitle') : t('products.exportTitle')}>
+            {exporting
+              ? <><Loader size={16} className="spin" /> {t('products.exporting')}</>
+              : <><Download size={16} /> {t('products.exportProducts')}</>}
+          </button>
           <input
             type="file"
             ref={csvInputRef}
