@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
@@ -54,6 +54,12 @@ export default function Shop() {
   })
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  // Endlos-Scroll ohne Button: ein Sentinel am Listenende laedt die naechste
+  // Seite, sobald er in Sichtweite kommt. Refs halten den aktuellen Stand,
+  // damit der Observer nicht an veralteten State/Filter gebunden ist.
+  const sentinelRef = useRef(null)
+  const infiniteRef = useRef({})
   const [cartToast, setCartToast] = useState(null)
   // Empfehlungen für User-Equipment ("Passende Produkte für Deine Ausrüstung")
   const [equipmentRecommendations, setEquipmentRecommendations] = useState([])
@@ -272,6 +278,25 @@ export default function Shop() {
     }
     setPage(pageNum)
   }
+
+  // Aktuellen Stand + Loader in Refs spiegeln, damit der (einmalig erstellte)
+  // IntersectionObserver immer die neueste loadProducts-Funktion und die
+  // aktuellen Filter/Seiten nutzt.
+  infiniteRef.current = { page, hasMore, loading, loadingMore, isSparePartsMode, load: loadProducts }
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(async (entries) => {
+      if (!entries[0]?.isIntersecting) return
+      const s = infiniteRef.current
+      if (s.isSparePartsMode || !s.hasMore || s.loading || s.loadingMore) return
+      setLoadingMore(true)
+      try { await s.load(s.page + 1, true) } finally { setLoadingMore(false) }
+    }, { rootMargin: '800px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
 
   function handleSearch() {
     loadProducts(0)
@@ -557,11 +582,10 @@ export default function Shop() {
             })}
           </div>
 
+          {/* Endlos-Scroll: unsichtbarer Sentinel laedt beim Scrollen nach. */}
           {hasMore && (
-            <div style={{ textAlign: 'center', marginTop: 20 }}>
-              <button className="btn-secondary" onClick={() => loadProducts(page + 1, true)}>
-                {t('shop.k11')}
-              </button>
+            <div ref={sentinelRef} style={{ textAlign: 'center', marginTop: 20, minHeight: 1 }}>
+              {loadingMore && <div className="spinner" />}
             </div>
           )}
         </>
