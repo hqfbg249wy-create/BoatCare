@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { ChevronLeft, ChevronRight, ShoppingCart, Check, Package, Truck, Star, Tag, Plus, Minus, MapPin } from 'lucide-react'
 import { useT } from '../i18n'
 import { translateProducts, isTranslatableLang } from '../lib/dbTranslate'
+import { isColorOption, swatchFor } from '../lib/variantColors'
 
 export default function ProductDetail() {
   const { t, lang } = useT()
@@ -252,25 +253,30 @@ export default function ProductDetail() {
           {/* Varianten-Auswahl (z. B. Durchmesser, Farbe, Größe) */}
           {hasVariants && (
             <div className="pd-variants">
-              {options.map(o => (
+              {options.map(o => {
+                const colorOpt = isColorOption(o)
+                return (
                 <div key={o.name} className="pd-variant-opt">
                   <label className="pd-variant-label">{o.name}</label>
                   <div className="pd-variant-values">
                     {(o.values || []).map(val => {
                       const active = String(variantSel[o.name]) === String(val)
                       const avail = valueAvailable(o.name, val)
+                      const swatch = colorOpt ? swatchFor(o, val) : null
                       return (
                         <button key={val} type="button"
-                          className={`pd-variant-chip ${active ? 'active' : ''}`}
+                          className={`pd-variant-chip ${active ? 'active' : ''} ${swatch ? 'has-swatch' : ''}`}
                           disabled={!avail}
+                          title={val}
                           onClick={() => setVariantSel(prev => ({ ...prev, [o.name]: val }))}>
+                          {swatch && <span className="pd-variant-swatch" style={{ background: swatch }} />}
                           {val}
                         </button>
                       )
                     })}
                   </div>
                 </div>
-              ))}
+              )})}
               {!allChosen && <p className="pd-variant-hint">{t('prod.chooseVariant')}</p>}
               {allChosen && !selectedVariant && <p className="pd-variant-hint" style={{ color: '#dc2626' }}>{t('prod.variantUnavailable')}</p>}
             </div>

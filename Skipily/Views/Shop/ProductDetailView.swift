@@ -544,14 +544,24 @@ struct ProductDetailView: View {
                         .font(.subheadline)
                         .fontWeight(.semibold)
 
+                    let colorOpt = option.isColorOption
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 70), spacing: 8)], spacing: 8) {
                         ForEach(option.values, id: \.self) { value in
                             let selected = variantSelection[option.name] == value
                             let available = variantValueAvailable(option.name, value)
+                            let swatch = colorOpt ? option.swatchColor(for: value) : nil
                             Button {
                                 variantSelection[option.name] = value
                             } label: {
-                                Text(value)
+                                HStack(spacing: 6) {
+                                    if let swatch {
+                                        Circle()
+                                            .fill(swatch)
+                                            .frame(width: 16, height: 16)
+                                            .overlay(Circle().stroke(AppColors.gray300, lineWidth: 1))
+                                    }
+                                    Text(value)
+                                }
                                     .font(.subheadline)
                                     .fontWeight(selected ? .semibold : .regular)
                                     .frame(maxWidth: .infinity)

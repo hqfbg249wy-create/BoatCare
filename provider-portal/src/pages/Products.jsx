@@ -8,6 +8,7 @@ import { Plus, Pencil, Trash2, Search, Upload, X, Save, Loader, Image as ImageIc
 import { useT } from '../i18n'
 import * as XLSX from 'xlsx'
 import { exportEquipmentXlsx } from '../lib/equipmentExport'
+import { isColorOption, swatchFor, withSwatch } from '../lib/variantColors'
 
 export default function Products() {
   const { provider } = useAuth()
@@ -383,8 +384,19 @@ export default function Products() {
     }
 
     // Nur echte Optionen (Name + mind. 1 Wert) speichern, sonst null.
+    // Farboptionen behalten is_color + swatches (nur fuer noch vorhandene Werte).
     const cleanOptions = (form.variant_options || [])
-      .map(o => ({ name: (o.name || '').trim(), values: (o.values || []).map(v => String(v).trim()).filter(Boolean) }))
+      .map(o => {
+        const values = (o.values || []).map(v => String(v).trim()).filter(Boolean)
+        const out = { name: (o.name || '').trim(), values }
+        if (o.is_color === true || o.is_color === false) out.is_color = o.is_color
+        if (o.swatches && typeof o.swatches === 'object') {
+          const sw = {}
+          for (const v of values) if (o.swatches[v]) sw[v] = o.swatches[v]
+          if (Object.keys(sw).length) out.swatches = sw
+        }
+        return out
+      })
       .filter(o => o.name && o.values.length)
     payload.variant_options = cleanOptions.length ? cleanOptions : null
 
@@ -1086,7 +1098,9 @@ export default function Products() {
             <h2>{t('products.variantsTitle')}</h2>
             <p className="form-hint">{t('products.variantsHint')}</p>
 
-            {(form.variant_options || []).map((opt, oi) => (
+            {(form.variant_options || []).map((opt, oi) => {
+              const colorOpt = isColorOption(opt)
+              return (
               <div key={oi} className="variant-option">
                 <div className="variant-option-head">
                   <input
@@ -1095,6 +1109,11 @@ export default function Products() {
                     placeholder={t('products.variantOptNamePh')}
                     onChange={e => setVariantOptions(prev => prev.map((o, i) => i === oi ? { ...o, name: e.target.value } : o))}
                   />
+                  <label className="variant-color-toggle" title={t('products.variantColorHint')}>
+                    <input type="checkbox" checked={colorOpt}
+                      onChange={e => setVariantOptions(prev => prev.map((o, i) => i === oi ? { ...o, is_color: e.target.checked } : o))} />
+                    {t('products.variantColorLabel')}
+                  </label>
                   <button type="button" className="btn-icon" title={t('common.delete')}
                     onClick={() => { setVariantOptions(prev => prev.filter((_, i) => i !== oi)); }}>
                     <X size={16} />
@@ -1103,8 +1122,17 @@ export default function Products() {
                 <div className="variant-values">
                   {(opt.values || []).map((val, vi) => (
                     <span key={vi} className="variant-value-chip">
+                      {colorOpt && (
+                        <input
+                          type="color"
+                          className="variant-swatch-input"
+                          title={t('products.variantColorCode')}
+                          value={swatchFor(opt, val) || '#cccccc'}
+                          onChange={e => setVariantOptions(prev => prev.map((o, i) => i === oi ? withSwatch(o, val, e.target.value) : o))}
+                        />
+                      )}
                       {val}
-                      <button type="button" onClick={() => setVariantOptions(prev => prev.map((o, i) => i === oi ? { ...o, values: o.values.filter((_, j) => j !== vi) } : o))}>
+                      <button type="button" onClick={() => setVariantOptions(prev => prev.map((o, i) => i === oi ? withSwatch({ ...o, values: o.values.filter((_, j) => j !== vi) }, val, null) : o))}>
                         <X size={12} />
                       </button>
                     </span>
@@ -1126,7 +1154,7 @@ export default function Products() {
                   />
                 </div>
               </div>
-            ))}
+            )})}
 
             <button type="button" className="btn-secondary"
               onClick={() => setVariantOptions(prev => [...prev, { name: '', values: [] }])}>

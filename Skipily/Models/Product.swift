@@ -131,6 +131,16 @@ struct ProductRoute: Hashable {
 struct VariantOption: Codable, Hashable, Sendable {
     let name: String
     let values: [String]
+    /// Optional als Farboption markiert (Farbfeld statt reinem Text).
+    let isColor: Bool?
+    /// Optionaler Farbcode je Wert (z. B. RAL/Gelcoat -> Hex), Wert -> "#rrggbb".
+    let swatches: [String: String]?
+
+    enum CodingKeys: String, CodingKey {
+        case name, values
+        case isColor = "is_color"
+        case swatches
+    }
 }
 
 /// Eine konkrete Varianten-Kombination (Zeile in product_variants) mit eigenem
