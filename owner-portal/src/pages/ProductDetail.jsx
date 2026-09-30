@@ -263,19 +263,26 @@ export default function ProductDetail() {
                   </div>
                 </div>
               ))}
-              {!allChosen && <p className="pd-variant-hint">Bitte Variante wählen.</p>}
-              {allChosen && !selectedVariant && <p className="pd-variant-hint" style={{ color: '#dc2626' }}>Diese Kombination ist nicht verfügbar.</p>}
+              {!allChosen && <p className="pd-variant-hint">{t('prod.chooseVariant')}</p>}
+              {allChosen && !selectedVariant && <p className="pd-variant-hint" style={{ color: '#dc2626' }}>{t('prod.variantUnavailable')}</p>}
             </div>
           )}
 
           {/* Availability */}
           <div className="pd-availability">
             {inStockEff ? (
-              <span className="pd-stock-ok"><Check size={14} /> Auf Lager{selectedVariant?.stock_quantity && selectedVariant.stock_quantity < 5 ? ` (nur noch ${selectedVariant.stock_quantity})` : (!hasVariants && product.stock_quantity && product.stock_quantity < 5 ? ` (nur noch ${product.stock_quantity})` : '')}</span>
+              (() => {
+                const low = selectedVariant?.stock_quantity && selectedVariant.stock_quantity < 5
+                  ? selectedVariant.stock_quantity
+                  : (!hasVariants && product.stock_quantity && product.stock_quantity < 5 ? product.stock_quantity : null)
+                return (
+                  <span className="pd-stock-ok"><Check size={14} /> {t('prod.inStock')}{low ? ` ${t('prod.onlyLeft', { n: low })}` : ''}</span>
+                )
+              })()
             ) : (
               <span className="pd-stock-out">{t('prod.k2')}</span>
             )}
-            {product.delivery_days && <span className="pd-delivery">Lieferzeit: {product.delivery_days} Tage</span>}
+            {product.delivery_days && <span className="pd-delivery">{t('prod.deliveryDays', { n: product.delivery_days })}</span>}
           </div>
 
           {/* Quantity + Cart */}
