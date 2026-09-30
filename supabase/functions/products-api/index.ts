@@ -119,23 +119,43 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── Rate-Limiting (lastfest fuer professionellen Betrieb) ──
+    // Schreib-Zugriffe je Provider (300/min), Lese-Zugriffe je IP (600/min).
+    // Atomar in der DB (hit_rate_limit) -> instanzuebergreifend zuverlaessig.
+    const isWrite = req.method === "POST" || req.method === "PUT";
+    if (isWrite) {
+      if (!providerId) return jsonResponse({ error: "Authentication required" }, 401);
+      const { data: allowed } = await supabase.rpc("hit_rate_limit", {
+        p_key: `products-api:write:${providerId}`, p_max: 300, p_window_seconds: 60,
+      });
+      if (allowed === false) {
+        return jsonResponse({ error: "Rate limit exceeded (max 300 writes/min). Bitte Anfragen drosseln." }, 429);
+      }
+    } else if (req.method === "GET") {
+      const ip = (req.headers.get("x-forwarded-for") || "unknown").split(",")[0].trim();
+      const { data: allowed } = await supabase.rpc("hit_rate_limit", {
+        p_key: `products-api:read:${ip}`, p_max: 600, p_window_seconds: 60,
+      });
+      if (allowed === false) {
+        return jsonResponse({ error: "Rate limit exceeded (max 600 reads/min)." }, 429);
+      }
+    }
+
     // ── Route by method ──
     switch (req.method) {
       case "GET":
         return await handleGet(supabase, url);
 
       case "POST": {
-        if (!providerId) return jsonResponse({ error: "Authentication required" }, 401);
         const body = await req.json();
-        return await handleCreate(supabase, providerId, body);
+        return await handleCreate(supabase, providerId!, body);
       }
 
       case "PUT": {
-        if (!providerId) return jsonResponse({ error: "Authentication required" }, 401);
         const body = await req.json();
         const id = url.searchParams.get("id");
         if (!id) return jsonResponse({ error: "Product ID required" }, 400);
-        return await handleUpdate(supabase, providerId, id, body);
+        return await handleUpdate(supabase, providerId!, id, body);
       }
 
       default:
