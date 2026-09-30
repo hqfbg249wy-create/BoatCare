@@ -91,6 +91,17 @@ serve(async (req: Request) => {
     }
     if (!isOwnerOrAdmin) return json({ error: "Keine Berechtigung" }, 403);
 
+    // ── AUTO-LABEL umschalten (Sendcloud-Automatik bei Versand an/aus) ──
+    if (action === "set_auto_label") {
+      const enabled = body.auto_label === true;
+      const { error } = await supabase
+        .from("provider_sendcloud")
+        .update({ auto_label: enabled, updated_at: new Date().toISOString() })
+        .eq("provider_id", providerId);
+      if (error) throw error;
+      return json({ ok: true, auto_label: enabled });
+    }
+
     // ── DISCONNECT ────────────────────────────────────────────────────────────
     if (action === "disconnect") {
       const { error } = await supabase

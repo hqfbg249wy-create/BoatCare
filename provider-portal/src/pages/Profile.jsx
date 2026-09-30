@@ -108,9 +108,9 @@ export default function Profile() {
   const { provider, loadProvider, user } = useAuth()
   const access = useFeatureAccess()
   const { t, lang } = useT()
-  const sendcloudGuideUrl = lang === 'de'
-    ? '/anleitungen/04-Sendcloud-Versand.pdf'
-    : '/anleitungen/en/04-Sendcloud-Shipping.pdf'
+  const sendcloudGuideUrl = ['de', 'en', 'fr', 'it', 'es', 'nl'].includes(lang)
+    ? `/anleitungen/sendcloud/sendcloud-${lang}.pdf`
+    : '/anleitungen/sendcloud/sendcloud-en.pdf'
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
@@ -356,7 +356,7 @@ export default function Profile() {
     if (!provider?.id) return
     supabase
       .from('provider_sendcloud')
-      .select('status, account_name, account_email, connected_at, last_checked_at')
+      .select('status, account_name, account_email, connected_at, last_checked_at, auto_label')
       .eq('provider_id', provider.id)
       .maybeSingle()
       .then(({ data }) => setSc(data || null))
@@ -380,7 +380,7 @@ export default function Profile() {
   function reloadSendcloud() {
     return supabase
       .from('provider_sendcloud')
-      .select('status, account_name, account_email, connected_at, last_checked_at')
+      .select('status, account_name, account_email, connected_at, last_checked_at, auto_label')
       .eq('provider_id', provider.id)
       .maybeSingle()
       .then(({ data }) => setSc(data || null))
@@ -438,6 +438,20 @@ export default function Profile() {
       } else {
         setScMsg({ type: 'error', text: t('sc.msgInvalidKeys') })
       }
+    } catch (err) {
+      setScMsg({ type: 'error', text: err.message })
+    } finally {
+      setScBusy(false)
+    }
+  }
+
+  // Sendcloud-Automatik (Label bei Versand) je Betrieb an/aus.
+  async function setAutoLabel(next) {
+    setScMsg(null); setScBusy(true)
+    try {
+      const { ok, data } = await callSendcloud({ action: 'set_auto_label', auto_label: next })
+      if (ok) await reloadSendcloud()
+      else setScMsg({ type: 'error', text: data?.error || t('common.errorPrefix') })
     } catch (err) {
       setScMsg({ type: 'error', text: err.message })
     } finally {
@@ -2142,6 +2156,26 @@ export default function Profile() {
                     </div>
                     <div style={{ fontSize: 34, lineHeight: 1 }}>📦</div>
                   </div>
+
+                  {/* Entscheidung sichtbar: Preisquelle vs. Label */}
+                  <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '10px 12px', marginBottom: 12, fontSize: '0.82rem', color: '#1e3a5f', lineHeight: 1.5 }}>
+                    <strong>{t('sc.decisionTitle')}</strong><br />
+                    {t('sc.decisionEngine')}<br />
+                    {t('sc.decisionLabel')}
+                  </div>
+
+                  {/* Auto-Label an/aus */}
+                  {canAdmin && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={sc?.auto_label !== false} disabled={scBusy}
+                        onChange={e => setAutoLabel(e.target.checked)} />
+                      <span style={{ fontSize: '0.88rem' }}>
+                        <strong>{t('sc.autoLabelTitle')}</strong>
+                        <span style={{ display: 'block', fontSize: '0.8rem', color: '#64748b' }}>{t('sc.autoLabelHint')}</span>
+                      </span>
+                    </label>
+                  )}
+
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <button type="button" className="btn-secondary" onClick={testSendcloud} disabled={scBusy}>
                       {scBusy ? <><Loader size={14} className="spin" /> {t('sc.testing')}</> : <><RefreshCw size={14} /> {t('sc.testConnection')}</>}

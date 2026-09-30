@@ -14,6 +14,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { stripe } from "../_shared/stripe.ts";
+import { createSendcloudParcel } from "../_shared/sendcloud.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { buildInvoicePdf, type InvoiceItem, type InvoiceData } from "../_shared/invoice.ts";
 import { buildEInvoiceXml } from "../_shared/erechnung.ts";
@@ -185,6 +186,51 @@ Deno.serve(async (req) => {
       return json({ error: "Abbuchung fehlgeschlagen: " + msg, code }, 402);
     }
 
+    // ── 1b) Sendcloud-Automatik (Fulfillment/Label) ──
+    // Nur wenn KEIN manuelles Tracking gesetzt wurde und der Betrieb sein
+    // Sendcloud-Konto verbunden hat (auto_label an). Erzeugt in Sendcloud ein
+    // Paket + Label (per Versandregeln des Betriebs) und schreibt Tracking
+    // zurueck. Nicht-blockierend: schlaegt es fehl, wird trotzdem versandt.
+    // WICHTIG: Der Kundenpreis (order.shipping_cost) kommt aus der Skipily-
+    // Versandkostenengine und bleibt hier UNVERAENDERT.
+    let scTracking: string | null = tracking_number ?? null;
+    let scTrackingUrl: string | null = tracking_url ?? null;
+    let scLabelUrl: string | null = null;
+    let scParcelId: number | null = null;
+    try {
+      if (!tracking_number) {
+        const { data: scRow } = await svc
+          .from("provider_sendcloud")
+          .select("status, auto_label, public_key, secret_key")
+          .eq("provider_id", order.provider_id)
+          .maybeSingle();
+        if (scRow?.status === "connected" && scRow?.auto_label && scRow?.public_key && scRow?.secret_key) {
+          const totalWeight =
+            (order.order_items || []).reduce((s: number, it: any) => s + 0.5 * (Number(it.quantity) || 1), 0) || 1;
+          const scRes = await createSendcloudParcel(scRow.public_key, scRow.secret_key, {
+            order_number: order.order_number,
+            name: order.shipping_name || buyer.full_name || "",
+            street: order.shipping_street || "",
+            city: order.shipping_city || "",
+            postal_code: order.shipping_postal_code || "",
+            country: order.shipping_country || "DE",
+            email: buyer.email || null,
+            weight_kg: totalWeight,
+          });
+          if (scRes.ok) {
+            scTracking = scRes.tracking_number ?? scTracking;
+            scTrackingUrl = scRes.tracking_url ?? scTrackingUrl;
+            scLabelUrl = scRes.label_url ?? null;
+            scParcelId = scRes.parcel_id ?? null;
+          } else {
+            console.error("Sendcloud parcel failed:", scRes.error);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Sendcloud automation error:", (e as Error).message);
+    }
+
     // ── 2) Erst nach erfolgreicher Zahlung: Rechnungsnummer + PDF ──
     const { data: invNo, error: invErr } = await svc.rpc("next_invoice_number", {
       p_provider: order.provider_id,
@@ -198,11 +244,13 @@ Deno.serve(async (req) => {
         charged_at: new Date().toISOString(),
         stripe_payment_intent_id: paymentIntentId,
         shipped_at: new Date().toISOString(),
-        tracking_number: tracking_number ?? null,
-        tracking_url: tracking_url ?? null,
+        tracking_number: scTracking,
+        tracking_url: scTrackingUrl,
+        shipping_label_url: scLabelUrl,
+        sendcloud_parcel_id: scParcelId,
         charge_error: null,
       }).eq("id", order.id);
-      return json({ ok: true, warning: "Bezahlt und versandt, Rechnung wird nachgezogen." });
+      return json({ ok: true, warning: "Bezahlt und versandt, Rechnung wird nachgezogen.", sendcloud_label: scLabelUrl });
     }
 
     const items: InvoiceItem[] = (order.order_items || []).map((it: any) => ({
@@ -290,8 +338,10 @@ Deno.serve(async (req) => {
       charged_at: nowIso,
       stripe_payment_intent_id: paymentIntentId,
       shipped_at: nowIso,
-      tracking_number: tracking_number ?? null,
-      tracking_url: tracking_url ?? null,
+      tracking_number: scTracking,
+      tracking_url: scTrackingUrl,
+      shipping_label_url: scLabelUrl,
+      sendcloud_parcel_id: scParcelId,
       invoice_number: invNo,
       invoice_url: invoiceUrl,
       invoice_xml_url: invoiceXmlUrl,
@@ -312,6 +362,9 @@ Deno.serve(async (req) => {
       invoice_url: invoiceUrl,
       invoice_xml_url: invoiceXmlUrl,
       payment_intent: paymentIntentId,
+      tracking_number: scTracking,
+      tracking_url: scTrackingUrl,
+      sendcloud_label: scLabelUrl,
     });
   } catch (err) {
     console.error("confirm-shipment FAILED:", (err as Error).message);
