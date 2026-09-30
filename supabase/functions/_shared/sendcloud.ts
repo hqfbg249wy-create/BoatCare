@@ -58,29 +58,34 @@ export async function createSendcloudParcel(
   publicKey: string,
   secretKey: string,
   order: SendcloudOrder,
+  shippingMethodId?: number | null,
 ): Promise<SendcloudResult> {
   try {
     const auth = btoa(`${publicKey}:${secretKey}`);
     const { address, house } = splitStreet(order.street);
     const weight = Math.max(0.1, Number(order.weight_kg ?? 1)).toFixed(3);
 
-    const body = {
-      parcel: {
-        name: order.name || "",
-        address,
-        house_number: house,
-        city: order.city || "",
-        postal_code: order.postal_code || "",
-        country: iso2(order.country),
-        email: order.email || "",
-        telephone: order.telephone || "",
-        order_number: order.order_number,
-        weight,
-        quantity: 1,
-        request_label: true,
-        apply_shipping_rules: true,
-      },
+    const parcel: Record<string, unknown> = {
+      name: order.name || "",
+      address,
+      house_number: house,
+      city: order.city || "",
+      postal_code: order.postal_code || "",
+      country: iso2(order.country),
+      email: order.email || "",
+      telephone: order.telephone || "",
+      order_number: order.order_number,
+      weight,
+      quantity: 1,
+      request_label: true,
     };
+    // Standard-Versandart des Betriebs hat Vorrang; sonst die Sendcloud-Regeln.
+    if (shippingMethodId && Number(shippingMethodId) > 0) {
+      parcel.shipment = { id: Number(shippingMethodId) };
+    } else {
+      parcel.apply_shipping_rules = true;
+    }
+    const body = { parcel };
 
     const res = await fetch(`${SENDCLOUD_API}/parcels`, {
       method: "POST",
@@ -111,5 +116,44 @@ export async function createSendcloudParcel(
     };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
+  }
+}
+
+/** Listet die Versandarten des Sendcloud-Kontos (id, name, carrier). */
+export async function listShippingMethods(
+  publicKey: string,
+  secretKey: string,
+): Promise<Array<{ id: number; name: string; carrier: string }>> {
+  try {
+    const auth = btoa(`${publicKey}:${secretKey}`);
+    const res = await fetch(`${SENDCLOUD_API}/shipping_methods`, {
+      headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
+    });
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => ({}));
+    const list = Array.isArray(data?.shipping_methods) ? data.shipping_methods : [];
+    return list.map((m: any) => ({
+      id: Number(m.id), name: String(m.name ?? m.id), carrier: String(m.carrier ?? ""),
+    })).filter((m: { id: number }) => Number.isFinite(m.id));
+  } catch {
+    return [];
+  }
+}
+
+/** Laedt das Label-PDF (Sendcloud-URL erfordert Basic-Auth) als Bytes. */
+export async function fetchSendcloudLabel(
+  publicKey: string,
+  secretKey: string,
+  labelUrl: string,
+): Promise<Uint8Array | null> {
+  try {
+    const auth = btoa(`${publicKey}:${secretKey}`);
+    const res = await fetch(labelUrl, {
+      headers: { Authorization: `Basic ${auth}`, Accept: "application/pdf" },
+    });
+    if (!res.ok) return null;
+    return new Uint8Array(await res.arrayBuffer());
+  } catch {
+    return null;
   }
 }

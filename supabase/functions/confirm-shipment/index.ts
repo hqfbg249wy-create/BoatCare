@@ -14,7 +14,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { stripe } from "../_shared/stripe.ts";
-import { createSendcloudParcel } from "../_shared/sendcloud.ts";
+import { createSendcloudParcel, fetchSendcloudLabel } from "../_shared/sendcloud.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { buildInvoicePdf, type InvoiceItem, type InvoiceData } from "../_shared/invoice.ts";
 import { buildEInvoiceXml } from "../_shared/erechnung.ts";
@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
       if (!tracking_number) {
         const { data: scRow } = await svc
           .from("provider_sendcloud")
-          .select("status, auto_label, public_key, secret_key")
+          .select("status, auto_label, public_key, secret_key, default_shipping_method_id")
           .eq("provider_id", order.provider_id)
           .maybeSingle();
         if (scRow?.status === "connected" && scRow?.auto_label && scRow?.public_key && scRow?.secret_key) {
@@ -216,12 +216,27 @@ Deno.serve(async (req) => {
             country: order.shipping_country || "DE",
             email: buyer.email || null,
             weight_kg: totalWeight,
-          });
+          }, scRow.default_shipping_method_id);
           if (scRes.ok) {
             scTracking = scRes.tracking_number ?? scTracking;
             scTrackingUrl = scRes.tracking_url ?? scTrackingUrl;
-            scLabelUrl = scRes.label_url ?? null;
             scParcelId = scRes.parcel_id ?? null;
+            // Label-PDF (Sendcloud-URL braucht Basic-Auth) serverseitig holen und
+            // in einen privaten Bucket legen -> frei abrufbare signierte URL.
+            if (scRes.label_url) {
+              const bytes = await fetchSendcloudLabel(scRow.public_key, scRow.secret_key, scRes.label_url);
+              if (bytes) {
+                try {
+                  await svc.storage.createBucket("labels", { public: false }).catch(() => {});
+                  const lp = `${order.id}/label.pdf`;
+                  await svc.storage.from("labels").upload(lp, bytes, { contentType: "application/pdf", upsert: true });
+                  const { data: signed } = await svc.storage.from("labels").createSignedUrl(lp, 60 * 60 * 24 * 365);
+                  scLabelUrl = signed?.signedUrl ?? null;
+                } catch (e) {
+                  console.error("Sendcloud label upload failed:", (e as Error).message);
+                }
+              }
+            }
           } else {
             console.error("Sendcloud parcel failed:", scRes.error);
           }

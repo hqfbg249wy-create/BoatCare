@@ -347,6 +347,7 @@ export default function Profile() {
   // Der Client liest NUR den Status (kein secret_key — durch Spalten-GRANTs in
   // Migration 099 abgesichert). Verbinden/Trennen läuft über die Edge Function.
   const [sc, setSc] = useState(null)          // Zeile aus provider_sendcloud
+  const [scMethods, setScMethods] = useState([]) // Sendcloud-Versandarten
   const [scPublic, setScPublic] = useState('')
   const [scSecret, setScSecret] = useState('')
   const [scBusy, setScBusy] = useState(false)
@@ -356,13 +357,18 @@ export default function Profile() {
     if (!provider?.id) return
     supabase
       .from('provider_sendcloud')
-      .select('status, account_name, account_email, connected_at, last_checked_at, auto_label')
+      .select('status, account_name, account_email, connected_at, last_checked_at, auto_label, default_shipping_method_id, default_method_name')
       .eq('provider_id', provider.id)
       .maybeSingle()
       .then(({ data }) => setSc(data || null))
   }, [provider?.id])
 
   const scConnected = sc?.status === 'connected'
+
+  // Versandarten laden, sobald verbunden.
+  useEffect(() => {
+    if (scConnected && scMethods.length === 0) loadSendcloudMethods()
+  }, [scConnected])
 
   async function callSendcloud(payload) {
     const { data: { session } } = await supabase.auth.getSession()
@@ -380,7 +386,7 @@ export default function Profile() {
   function reloadSendcloud() {
     return supabase
       .from('provider_sendcloud')
-      .select('status, account_name, account_email, connected_at, last_checked_at, auto_label')
+      .select('status, account_name, account_email, connected_at, last_checked_at, auto_label, default_shipping_method_id, default_method_name')
       .eq('provider_id', provider.id)
       .maybeSingle()
       .then(({ data }) => setSc(data || null))
@@ -438,6 +444,26 @@ export default function Profile() {
       } else {
         setScMsg({ type: 'error', text: t('sc.msgInvalidKeys') })
       }
+    } catch (err) {
+      setScMsg({ type: 'error', text: err.message })
+    } finally {
+      setScBusy(false)
+    }
+  }
+
+  // Verfügbare Sendcloud-Versandarten (für die Standard-Auswahl).
+  async function loadSendcloudMethods() {
+    try {
+      const { ok, data } = await callSendcloud({ action: 'list_methods' })
+      if (ok) setScMethods(Array.isArray(data.methods) ? data.methods : [])
+    } catch { /* optional */ }
+  }
+  async function setDefaultMethod(id, name) {
+    setScBusy(true); setScMsg(null)
+    try {
+      const { ok, data } = await callSendcloud({ action: 'set_default_method', method_id: id || null, method_name: name || null })
+      if (ok) await reloadSendcloud()
+      else setScMsg({ type: 'error', text: data?.error || t('common.errorPrefix') })
     } catch (err) {
       setScMsg({ type: 'error', text: err.message })
     } finally {
@@ -2174,6 +2200,27 @@ export default function Profile() {
                         <span style={{ display: 'block', fontSize: '0.8rem', color: '#64748b' }}>{t('sc.autoLabelHint')}</span>
                       </span>
                     </label>
+                  )}
+
+                  {/* Standard-Versandart (Fallback, wenn keine Sendcloud-Regel greift) */}
+                  {canAdmin && (
+                    <div className="form-group" style={{ marginBottom: 12, maxWidth: 480 }}>
+                      <label>{t('sc.defaultMethod')}</label>
+                      <select
+                        value={sc?.default_shipping_method_id || ''}
+                        disabled={scBusy}
+                        onChange={e => {
+                          const id = e.target.value ? Number(e.target.value) : null
+                          const m = scMethods.find(x => x.id === id)
+                          setDefaultMethod(id, m ? `${m.carrier ? m.carrier + ' · ' : ''}${m.name}` : null)
+                        }}>
+                        <option value="">{t('sc.defaultMethodAuto')}</option>
+                        {scMethods.map(m => (
+                          <option key={m.id} value={m.id}>{m.carrier ? `${m.carrier} · ` : ''}{m.name}</option>
+                        ))}
+                      </select>
+                      <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 4 }}>{t('sc.defaultMethodHint')}</div>
+                    </div>
                   )}
 
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>

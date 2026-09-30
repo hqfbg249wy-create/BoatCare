@@ -15,6 +15,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { corsHeaders } from "../_shared/cors.ts";
+import { listShippingMethods } from "../_shared/sendcloud.ts";
 
 const supabaseUrl        = Deno.env.get("SUPABASE_URL") ?? "";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -90,6 +91,34 @@ serve(async (req: Request) => {
       isOwnerOrAdmin = member?.role === "owner" || member?.role === "admin";
     }
     if (!isOwnerOrAdmin) return json({ error: "Keine Berechtigung" }, 403);
+
+    // ── Versandarten auflisten (fuer die Standard-Versandart-Auswahl) ──
+    if (action === "list_methods") {
+      const { data: row } = await supabase
+        .from("provider_sendcloud")
+        .select("public_key, secret_key, status")
+        .eq("provider_id", providerId)
+        .maybeSingle();
+      if (!row?.public_key || !row?.secret_key) return json({ methods: [] });
+      const methods = await listShippingMethods(row.public_key, row.secret_key);
+      return json({ methods });
+    }
+
+    // ── Standard-Versandart setzen ──
+    if (action === "set_default_method") {
+      const id = body.method_id != null ? Number(body.method_id) : null;
+      const name = body.method_name ? String(body.method_name) : null;
+      const { error } = await supabase
+        .from("provider_sendcloud")
+        .update({
+          default_shipping_method_id: (id && id > 0) ? id : null,
+          default_method_name: (id && id > 0) ? name : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("provider_id", providerId);
+      if (error) throw error;
+      return json({ ok: true });
+    }
 
     // ── AUTO-LABEL umschalten (Sendcloud-Automatik bei Versand an/aus) ──
     if (action === "set_auto_label") {

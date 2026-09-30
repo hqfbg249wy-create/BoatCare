@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { FileText, Truck, CheckCircle, DollarSign, Package, Clock, XCircle, MessageSquare, FileSpreadsheet } from 'lucide-react'
+import { FileText, Truck, CheckCircle, DollarSign, Package, Clock, XCircle, MessageSquare, FileSpreadsheet, Download } from 'lucide-react'
 import { useT } from '../i18n'
 import { exportEquipmentXlsx, safeFilePart } from '../lib/equipmentExport'
 
@@ -408,6 +408,14 @@ export default function Orders() {
                 <div style={{ fontSize: '0.85rem', color: '#8b5cf6', marginTop: 8 }}>
                   {t('orders.tracking')} {order.tracking_number}
                   {order.tracking_url && <> &middot; <a href={order.tracking_url} target="_blank" rel="noreferrer" style={{ color: '#8b5cf6' }}>{t('orders.track')}</a></>}
+                </div>
+              )}
+              {order.shipping_label_url && (
+                <div style={{ marginTop: 6 }}>
+                  <a href={order.shipping_label_url} target="_blank" rel="noreferrer"
+                     className="btn-small" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
+                    <Download size={14} /> {t('orders.downloadLabel')}
+                  </a>
                 </div>
               )}
 
