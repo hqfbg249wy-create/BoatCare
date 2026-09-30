@@ -40,6 +40,8 @@ export default function ProductDetail() {
     })
   }, [product, lang])
   useEffect(() => { localStorage.setItem('boatcare_cart', JSON.stringify(cart)) }, [cart])
+  // Beim Wechsel der Variantenauswahl auf das erste (Titel-)Bild zuruecksetzen.
+  useEffect(() => { setSelectedImage(0) }, [JSON.stringify(variantSel)])
 
   async function loadProduct() {
     setLoading(true)
@@ -112,7 +114,7 @@ export default function ProductDetail() {
       return [...prev, {
         id, product_id: product.id, variant_id: v?.id || null, variant_sku: v?.sku || null,
         name: dispName, price, quantity, provider_id: product.provider_id,
-        image: v?.image_url || product.images?.[0],
+        image: (v && ((Array.isArray(v.images) && v.images[0]) || v.image_url)) || product.images?.[0],
       }]
     })
   }
@@ -132,7 +134,13 @@ export default function ProductDetail() {
     String(v.attributes?.[optName]) === String(val) &&
     options.every(o => o.name === optName || !variantSel[o.name] || String(v.attributes?.[o.name]) === String(variantSel[o.name])))
   const basePrice = selectedVariant?.price != null ? Number(selectedVariant.price) : Number(product.price)
-  const variantImage = selectedVariant?.image_url || null
+  // Galerie: hat die gewaehlte Variante eigene Bilder, ersetzen sie die Produktbilder.
+  const variantImages = selectedVariant
+    ? (Array.isArray(selectedVariant.images) && selectedVariant.images.length
+        ? selectedVariant.images
+        : (selectedVariant.image_url ? [selectedVariant.image_url] : []))
+    : []
+  const galleryImages = variantImages.length ? variantImages : (product.images || [])
   const inStockEff = hasVariants ? (selectedVariant ? selectedVariant.in_stock : true) : product.in_stock
 
   const lineId = selectedVariant ? `${product.id}:${selectedVariant.id}` : product.id
@@ -152,45 +160,45 @@ export default function ProductDetail() {
       <div className="pd-layout">
         {/* Images */}
         <div className="pd-images">
-          {product.images?.length > 0 ? (
+          {galleryImages.length > 0 ? (
             <>
               <div
                 className="pd-main-image"
                 onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
                 onTouchEnd={(e) => {
-                  if (touchStartX == null || variantImage || product.images.length < 2) { setTouchStartX(null); return }
+                  if (touchStartX == null || galleryImages.length < 2) { setTouchStartX(null); return }
                   const dx = e.changedTouches[0].clientX - touchStartX
                   if (Math.abs(dx) > 40) {
-                    const n = product.images.length
+                    const n = galleryImages.length
                     setSelectedImage(prev => dx < 0 ? (prev + 1) % n : (prev - 1 + n) % n)
                   }
                   setTouchStartX(null)
                 }}
               >
-                <img src={variantImage || product.images[selectedImage]} alt={product.name} />
+                <img src={galleryImages[Math.min(selectedImage, galleryImages.length - 1)]} alt={product.name} />
                 {promo && (
                   <span className="shop-discount-badge" style={{ fontSize: '1rem', padding: '6px 14px' }}>
                     {promo.discount_type === 'percent' ? `-${promo.discount_value}%` : `-${Number(promo.discount_value).toFixed(0)}€`}
                   </span>
                 )}
-                {!variantImage && product.images.length > 1 && (
+                {galleryImages.length > 1 && (
                   <>
                     <button type="button" className="pd-nav-btn prev" aria-label="prev"
-                      onClick={() => setSelectedImage(prev => (prev - 1 + product.images.length) % product.images.length)}>
+                      onClick={() => setSelectedImage(prev => (prev - 1 + galleryImages.length) % galleryImages.length)}>
                       <ChevronLeft size={22} />
                     </button>
                     <button type="button" className="pd-nav-btn next" aria-label="next"
-                      onClick={() => setSelectedImage(prev => (prev + 1) % product.images.length)}>
+                      onClick={() => setSelectedImage(prev => (prev + 1) % galleryImages.length)}>
                       <ChevronRight size={22} />
                     </button>
-                    <span className="pd-image-counter">{selectedImage + 1} / {product.images.length}</span>
+                    <span className="pd-image-counter">{Math.min(selectedImage, galleryImages.length - 1) + 1} / {galleryImages.length}</span>
                   </>
                 )}
               </div>
-              {product.images.length > 1 && (
+              {galleryImages.length > 1 && (
                 <div className="pd-image-thumbs">
-                  {product.images.map((img, i) => (
-                    <img key={i} src={img} alt="" className={`pd-thumb ${i === selectedImage ? 'active' : ''}`} onClick={() => setSelectedImage(i)} />
+                  {galleryImages.map((img, i) => (
+                    <img key={i} src={img} alt="" className={`pd-thumb ${i === Math.min(selectedImage, galleryImages.length - 1) ? 'active' : ''}`} onClick={() => setSelectedImage(i)} />
                   ))}
                 </div>
               )}

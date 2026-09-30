@@ -28,6 +28,15 @@ struct CartItem: Identifiable, Sendable, Codable {
         return label.isEmpty ? product.name : "\(product.name) (\(label))"
     }
 
+    /// Bild fuer die Warenkorb-Vorschau: Titelbild der gewaehlten Variante,
+    /// sonst das erste Produktbild.
+    var imageURL: URL? {
+        if let first = variant?.galleryImages.first, let url = URL(string: first) {
+            return url
+        }
+        return product.firstImageURL
+    }
+
     var lineTotal: Double {
         unitPrice * Double(quantity)
     }

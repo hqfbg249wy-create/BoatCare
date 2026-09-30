@@ -64,6 +64,16 @@ struct ProductDetailView: View {
         }
     }
 
+    /// Galerie-Bilder: hat die gewaehlte Variante eigene Bilder, ersetzen sie
+    /// die Produktbilder; sonst die regulaeren Produktbilder.
+    private var galleryImages: [String] {
+        if let v = selectedVariant {
+            let imgs = v.galleryImages
+            if !imgs.isEmpty { return imgs }
+        }
+        return product.images ?? []
+    }
+
     /// Ist ein Optionswert (kombiniert mit der bisherigen Auswahl) lieferbar?
     private func variantValueAvailable(_ optionName: String, _ value: String) -> Bool {
         variants.contains { v in
@@ -323,9 +333,9 @@ struct ProductDetailView: View {
     private var imageGallery: some View {
         ZStack(alignment: .bottom) {
             TabView(selection: $selectedImageIndex) {
-                if let images = product.images, !images.isEmpty {
-                    ForEach(images.indices, id: \.self) { index in
-                        CachedAsyncImage(url: URL(string: images[index]), targetSize: CGSize(width: 700, height: 500)) { phase in
+                if !galleryImages.isEmpty {
+                    ForEach(galleryImages.indices, id: \.self) { index in
+                        CachedAsyncImage(url: URL(string: galleryImages[index]), targetSize: CGSize(width: 700, height: 500)) { phase in
                             switch phase {
                             case .success(let image):
                                 image
@@ -346,9 +356,9 @@ struct ProductDetailView: View {
             .frame(height: 300)
             .background(AppColors.gray50)
 
-            if let images = product.images, images.count > 1 {
+            if galleryImages.count > 1 {
                 HStack(spacing: 6) {
-                    ForEach(images.indices, id: \.self) { index in
+                    ForEach(galleryImages.indices, id: \.self) { index in
                         Circle()
                             .fill(selectedImageIndex == index ? AppColors.primary : AppColors.gray300)
                             .frame(width: 8, height: 8)
@@ -357,6 +367,8 @@ struct ProductDetailView: View {
                 .padding(.bottom, 12)
             }
         }
+        // Beim Variantenwechsel auf das erste Bild der neuen Galerie springen.
+        .onChange(of: selectedVariant?.id) { _, _ in selectedImageIndex = 0 }
     }
 
     private var imagePlaceholder: some View {

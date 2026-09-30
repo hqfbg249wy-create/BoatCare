@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, Fragment } from 'react'
 import ProductRelations from '../components/ProductRelations'
 import { useAuth } from '../hooks/useAuth'
 import { useFeatureAccess } from '../hooks/useFeatureAccess'
@@ -73,6 +73,9 @@ export default function Products() {
   const [csvImporting, setCsvImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [variantImgIdx, setVariantImgIdx] = useState(null) // geoeffnetes Bilder-Panel je Variante (Index) oder null
+  const [uploadingVariantImg, setUploadingVariantImg] = useState(false)
+  const variantFileRef = useRef(null)
   const [csvResult, setCsvResult] = useState(null) // { ok: n, failed: [{row, error}] }
   // Rückfrage-Dialog bei Zeilen ohne Artikelnummer, die per Name matchen:
   const [importReview, setImportReview] = useState(null) // { payloads, rows:[{index,name,...}], decisions:{} }
@@ -126,7 +129,7 @@ export default function Products() {
       const ex = prevByKey[keyOf(attrs, opts)]
       return ex
         ? { ...ex, attributes: attrs, sort_order: i }
-        : { attributes: attrs, price: '', stock_quantity: '', in_stock: true, sku: '', image_url: '', is_active: true, sort_order: i }
+        : { attributes: attrs, price: '', stock_quantity: '', in_stock: true, sku: '', image_url: '', images: [], is_active: true, sort_order: i }
     })
   }
 
@@ -139,6 +142,75 @@ export default function Products() {
 
   function updateVariantRow(idx, patch) {
     setForm(prev => ({ ...prev, variants: prev.variants.map((v, i) => i === idx ? { ...v, ...patch } : v) }))
+  }
+
+  // ── Bilder je Variante (bis zu 5) ──
+  // Wie bei Produkten: images[] ist die Galerie, image_url = images[0] (Titel/Legacy).
+  const MAX_VARIANT_IMAGES = 5
+  function variantImagesOf(v) {
+    if (!v) return []
+    return (v.images && v.images.length) ? v.images : (v.image_url ? [v.image_url] : [])
+  }
+  function setVariantImages(idx, list) {
+    const clean = (list || []).slice(0, MAX_VARIANT_IMAGES)
+    updateVariantRow(idx, { images: clean, image_url: clean[0] || '' })
+  }
+  function addVariantImageUrl(idx, url) {
+    const u = (url || '').trim()
+    if (!u) return
+    const cur = variantImagesOf(form.variants[idx])
+    if (cur.length >= MAX_VARIANT_IMAGES) {
+      setMessage({ type: 'error', text: t('products.imageMax', { n: MAX_VARIANT_IMAGES }) })
+      return
+    }
+    setVariantImages(idx, [...cur, u])
+  }
+  function removeVariantImage(idx, i) {
+    const cur = variantImagesOf(form.variants[idx]).slice()
+    cur.splice(i, 1)
+    setVariantImages(idx, cur)
+  }
+  function makeVariantCover(idx, i) {
+    const cur = variantImagesOf(form.variants[idx]).slice()
+    if (i <= 0 || i >= cur.length) return
+    const [img] = cur.splice(i, 1)
+    cur.unshift(img)
+    setVariantImages(idx, cur)
+  }
+  async function handleVariantImageUpload(e) {
+    const idx = variantImgIdx
+    const files = Array.from(e.target.files || [])
+    if (idx == null || !files.length) { if (variantFileRef.current) variantFileRef.current.value = ''; return }
+    const current = variantImagesOf(form.variants[idx])
+    const free = MAX_VARIANT_IMAGES - current.length
+    if (free <= 0) {
+      setMessage({ type: 'error', text: t('products.imageMax', { n: MAX_VARIANT_IMAGES }) })
+      if (variantFileRef.current) variantFileRef.current.value = ''
+      return
+    }
+    setUploadingVariantImg(true)
+    try {
+      const uploaded = []
+      for (const file of files.slice(0, free)) {
+        const ext = file.name.split('.').pop()
+        const path = `products/${provider.id}/variants/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+        const { error: uploadErr } = await supabase.storage.from('product-images').upload(path, file)
+        if (uploadErr) throw uploadErr
+        const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path)
+        uploaded.push(publicUrl)
+      }
+      setVariantImages(idx, [...current, ...uploaded])
+      const skipped = files.length - Math.min(files.length, free)
+      setMessage({
+        type: skipped > 0 ? 'error' : 'success',
+        text: skipped > 0 ? t('products.imageMax', { n: MAX_VARIANT_IMAGES }) : t('products.imageUploaded'),
+      })
+    } catch (err) {
+      setMessage({ type: 'error', text: t('products.imageUploadFailed') + ' ' + err.message })
+    } finally {
+      setUploadingVariantImg(false)
+      if (variantFileRef.current) variantFileRef.current.value = ''
+    }
   }
 
   useEffect(() => {
@@ -367,7 +439,8 @@ export default function Products() {
         price: v.price !== '' && v.price != null ? parseFloat(v.price) : null,
         stock_quantity: v.stock_quantity !== '' && v.stock_quantity != null ? parseInt(v.stock_quantity) : null,
         in_stock: v.in_stock ?? true,
-        image_url: v.image_url?.trim() || null,
+        images: variantImagesOf(v),
+        image_url: variantImagesOf(v)[0] || v.image_url?.trim() || null,
         is_active: v.is_active ?? true,
         sort_order: v.sort_order ?? 0,
       }
@@ -484,7 +557,7 @@ export default function Products() {
             row.variante_preis = v.price ?? ''
             row.variante_bestand = v.stock_quantity ?? ''
             row.variante_sku = v.sku || ''
-            row.variante_bild = v.image_url || ''
+            row.variante_bild = (Array.isArray(v.images) && v.images.length ? v.images : (v.image_url ? [v.image_url] : [])).join(' | ')
             aoa.push(CSV_HEADERS.map(h => row[h] ?? ''))
           })
         } else {
@@ -682,12 +755,15 @@ export default function Products() {
           const attrs = {}
           if (opt1 && (g.row.v_val1 || '').trim()) attrs[opt1] = g.row.v_val1.trim()
           if (opt2 && (g.row.v_val2 || '').trim()) attrs[opt2] = g.row.v_val2.trim()
+          // Mehrere Variantenbilder: Trennung per | oder ; (bis zu 5).
+          const vImages = (g.row.v_image || '').split(/[|;]/).map(s => s.trim()).filter(Boolean).slice(0, 5)
           return {
             attributes: attrs,
             price: numOf(g.row.v_price) ?? base.price,
             stock_quantity: intOf(g.row.v_stock) ?? base.stock_quantity ?? 0,
             sku: (g.row.v_sku || '').trim() || null,
-            image_url: (g.row.v_image || '').trim() || null,
+            image_url: vImages[0] || null,
+            images: vImages,
             in_stock: true, is_active: true,
           }
         })
@@ -823,6 +899,7 @@ export default function Products() {
         price: v.price != null ? String(v.price) : '',
         stock_quantity: v.stock_quantity != null ? String(v.stock_quantity) : '',
         in_stock: v.in_stock ?? true, sku: v.sku || '', image_url: v.image_url || '',
+        images: Array.isArray(v.images) && v.images.length ? v.images : (v.image_url ? [v.image_url] : []),
         is_active: v.is_active ?? true, sort_order: v.sort_order ?? 0,
       }))
     }
@@ -1058,20 +1135,29 @@ export default function Products() {
 
             {(form.variants || []).length > 0 && (
               <div className="variant-table-wrap">
+                {(() => {
+                  const optCols = (form.variant_options || []).filter(o => o.name?.trim())
+                  const totalCols = optCols.length + 5 // Optionen + Preis/Bestand/SKU/Lager/Bilder
+                  return (
                 <table className="variant-table">
                   <thead>
                     <tr>
-                      {(form.variant_options || []).filter(o => o.name?.trim()).map((o, i) => <th key={i}>{o.name}</th>)}
+                      {optCols.map((o, i) => <th key={i}>{o.name}</th>)}
                       <th>{t('products.variantPrice')}</th>
                       <th>{t('products.variantStock')}</th>
                       <th>SKU</th>
                       <th>{t('products.variantInStock')}</th>
+                      <th>{t('products.images')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {form.variants.map((v, vi) => (
-                      <tr key={vi}>
-                        {(form.variant_options || []).filter(o => o.name?.trim()).map((o, i) => (
+                    {form.variants.map((v, vi) => {
+                      const imgs = variantImagesOf(v)
+                      const open = variantImgIdx === vi
+                      return (
+                      <Fragment key={vi}>
+                      <tr>
+                        {optCols.map((o, i) => (
                           <td key={i} className="variant-attr-cell">{v.attributes?.[o.name]}</td>
                         ))}
                         <td><input type="number" step="0.01" value={v.price} placeholder={form.price || '0.00'}
@@ -1081,10 +1167,61 @@ export default function Products() {
                         <td><input value={v.sku} onChange={e => updateVariantRow(vi, { sku: e.target.value })} /></td>
                         <td style={{ textAlign: 'center' }}><input type="checkbox" checked={v.in_stock}
                           onChange={e => updateVariantRow(vi, { in_stock: e.target.checked })} /></td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button type="button" className="btn-secondary" style={{ padding: '4px 8px', whiteSpace: 'nowrap' }}
+                            onClick={() => setVariantImgIdx(open ? null : vi)}>
+                            <ImageIcon size={14} /> {imgs.length}/{MAX_VARIANT_IMAGES}
+                          </button>
+                        </td>
                       </tr>
-                    ))}
+                      {open && (
+                        <tr className="variant-images-row">
+                          <td colSpan={totalCols}>
+                            <div className="variant-images-panel">
+                              {imgs.length > 0 && (
+                                <div className="product-images-grid">
+                                  {imgs.map((img, i) => (
+                                    <div key={i} className={`product-image-tile ${i === 0 ? 'is-cover' : ''}`}>
+                                      <img src={img} alt="" />
+                                      {i === 0 && <span className="cover-badge">{t('products.coverImage')}</span>}
+                                      <div className="product-image-actions">
+                                        {i !== 0 && (
+                                          <button type="button" className="btn-icon" title={t('products.makeCover')} onClick={() => makeVariantCover(vi, i)}>
+                                            <ImageIcon size={14} />
+                                          </button>
+                                        )}
+                                        <button type="button" className="btn-icon" title={t('common.delete')} onClick={() => removeVariantImage(vi, i)}>
+                                          <X size={14} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <div className="form-group" style={{ marginTop: 8 }}>
+                                <label>{t('products.imageUrl')}</label>
+                                <input
+                                  value=""
+                                  placeholder="https://..."
+                                  onChange={(e) => { addVariantImageUrl(vi, e.target.value); e.target.value = '' }}
+                                />
+                              </div>
+                              <button type="button" className="btn-secondary"
+                                disabled={uploadingVariantImg || imgs.length >= MAX_VARIANT_IMAGES}
+                                onClick={() => { setVariantImgIdx(vi); variantFileRef.current?.click() }}>
+                                {uploadingVariantImg ? <><Loader size={16} className="spin" /> {t('common.saving')}</> : <><Upload size={16} /> {t('products.uploadImage')}</>}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </Fragment>
+                    )})}
                   </tbody>
                 </table>
+                  )
+                })()}
+                <input type="file" ref={variantFileRef} accept="image/*" multiple onChange={handleVariantImageUpload} style={{ display: 'none' }} />
               </div>
             )}
           </div>

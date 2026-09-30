@@ -142,7 +142,7 @@ struct CartView: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(AppColors.gray100)
-                if let url = item.product.firstImageURL {
+                if let url = item.imageURL {
                     AsyncImage(url: url) { phase in
                         if case .success(let image) = phase {
                             image.resizable().aspectRatio(contentMode: .fill)

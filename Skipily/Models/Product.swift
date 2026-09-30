@@ -143,6 +143,7 @@ struct ProductVariant: Codable, Identifiable, Hashable, Sendable {
     let price: Double?
     let stockQuantity: Int?
     let inStock: Bool?
+    let images: [String]?
     let imageUrl: String?
     let isActive: Bool?
     let sortOrder: Int?
@@ -150,12 +151,19 @@ struct ProductVariant: Codable, Identifiable, Hashable, Sendable {
     enum CodingKeys: String, CodingKey {
         case id
         case productId = "product_id"
-        case sku, attributes, price
+        case sku, attributes, price, images
         case stockQuantity = "stock_quantity"
         case inStock = "in_stock"
         case imageUrl = "image_url"
         case isActive = "is_active"
         case sortOrder = "sort_order"
+    }
+
+    /// Bildergalerie der Variante (bis zu 5). Faellt auf das Einzelbild zurueck.
+    var galleryImages: [String] {
+        if let imgs = images, !imgs.isEmpty { return imgs }
+        if let single = imageUrl, !single.isEmpty { return [single] }
+        return []
     }
 
     /// Lesbare Kurzbeschreibung, z. B. "Durchmesser: 8mm, Farbe: Blau".

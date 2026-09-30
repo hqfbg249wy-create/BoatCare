@@ -179,7 +179,7 @@ async function handleGet(supabase: any, url: URL) {
     tags, images, variant_options, created_at, updated_at,
     product_categories(id, slug, name_de, name_en),
     service_providers(id, name, city),
-    product_variants(id, attributes, price, stock_quantity, in_stock, sku, image_url, is_active, sort_order)
+    product_variants(id, attributes, price, stock_quantity, in_stock, sku, images, image_url, is_active, sort_order)
   `;
 
   // Single product
@@ -325,7 +325,10 @@ async function writeVariants(supabase: any, productId: string, variants: any): P
     stock_quantity: v?.stock_quantity ?? null,
     in_stock: v?.in_stock ?? true,
     sku: v?.sku ?? null,
-    image_url: v?.image_url ?? null,
+    // Bis zu 5 Bilder je Variante; image_url = Titelbild (= images[0], Legacy).
+    images: Array.isArray(v?.images) ? v.images.slice(0, 5)
+          : (v?.image_url ? [v.image_url] : []),
+    image_url: v?.image_url ?? (Array.isArray(v?.images) && v.images.length ? v.images[0] : null),
     is_active: v?.is_active ?? true,
     sort_order: i,
   }));

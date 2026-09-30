@@ -204,7 +204,9 @@ Deno.serve(async (req) => {
         stock_quantity: v.stock_quantity ?? null,
         in_stock: v.in_stock ?? true,
         sku: v.sku ?? null,
-        image_url: v.image_url ?? null,
+        image_url: v.image_url ?? (Array.isArray(v.images) && v.images.length ? v.images[0] : null),
+        images: Array.isArray(v.images) ? v.images.slice(0, 5)
+              : (v.image_url ? [v.image_url] : []),
         is_active: v.is_active ?? true,
         sort_order: i,
       }));
