@@ -142,7 +142,9 @@ struct ProductCardView: View {
         }
         .frame(height: cardHeight, alignment: .top)
         .padding(12)
-        .background(.white)
+        // Adaptiv: feste .white-Karte zeigte im Dark Mode weisse Label-Schrift
+        // (AppColors.gray900 = UIColor.label -> weiss) auf weissem Grund.
+        .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
     }
