@@ -332,6 +332,8 @@ export default {
   "shop.k19": "Zum Shop",
   "shop.k20": "Produkt, Marke oder Beschreibung...",
   "shop.k21": "Zurück",
+  "shop.partNo": "Art.-Nr.:",
+  "shop.discountSuffix": "Rabatt",
 
   // pages/MapView.jsx
   "mapv.k0": "Service-Partner finden",

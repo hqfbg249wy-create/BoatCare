@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { MessageSquare, Send, Search, Trash2, Archive, ArchiveRestore, Bell } from 'lucide-react'
 import { useT } from '../i18n'
 import { useAnnouncements } from '../hooks/useAnnouncements'
-import { accentColor } from '../lib/announcements'
+import { accentColor, localizedAnnouncement } from '../lib/announcements'
 import { enableWebPush, webPushPermission } from '../lib/webpush'
 
 // Eigner-Nachrichten: nutzt dasselbe conversations/messages-System wie das
@@ -12,7 +12,7 @@ import { enableWebPush, webPushPermission } from '../lib/webpush'
 // Provider-Nachrichten = sender_type 'provider'.
 export default function Messages() {
   const { user } = useAuth()
-  const { t } = useT()
+  const { t, lang } = useT()
   const [conversations, setConversations] = useState([])
   const [selected, setSelected] = useState(null)
   const [messages, setMessages] = useState([])
@@ -184,7 +184,7 @@ export default function Messages() {
                     )}
                   </div>
                   <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {ann.items[0]?.title}
+                    {ann.items[0] ? localizedAnnouncement(ann.items[0], lang).title : ''}
                   </div>
                 </div>
               )
@@ -227,7 +227,7 @@ export default function Messages() {
                 </span>
                 {pushState !== 'granted' && pushState !== 'unsupported' && (
                   <button className="btn-secondary" style={{ fontSize: 12, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                    onClick={async () => { const ok = await enableWebPush(); setPushState(webPushPermission()); if (!ok && webPushPermission() === 'denied') alert(t('announcement.push.denied')) }}>
+                    onClick={async () => { const ok = await enableWebPush(lang); setPushState(webPushPermission()); if (!ok && webPushPermission() === 'denied') alert(t('announcement.push.denied')) }}>
                     <Bell size={14} /> {t('announcement.push.enable')}
                   </button>
                 )}
@@ -237,10 +237,11 @@ export default function Messages() {
                   <div style={{ color: '#94a3b8', textAlign: 'center', padding: 40 }}>{t('announcement.empty.body')}</div>
                 ) : ann.items.map(a => {
                   const accent = accentColor(a.accent)
+                  const loc = localizedAnnouncement(a, lang)
                   return (
                     <div key={a.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderLeft: `4px solid ${accent}`, borderRadius: 10, padding: '10px 12px' }}>
-                      <div style={{ fontWeight: 600, color: '#1e293b' }}>{a.title}</div>
-                      <div style={{ fontSize: 14, color: '#475569', marginTop: 4, whiteSpace: 'pre-wrap' }}>{a.body}</div>
+                      <div style={{ fontWeight: 600, color: '#1e293b' }}>{loc.title}</div>
+                      <div style={{ fontSize: 14, color: '#475569', marginTop: 4, whiteSpace: 'pre-wrap' }}>{loc.body}</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
                         <span style={{ fontSize: 11, color: '#94a3b8' }}>{a.created_at ? new Date(a.created_at).toLocaleString() : ''}</span>
                         {a.action_url && (

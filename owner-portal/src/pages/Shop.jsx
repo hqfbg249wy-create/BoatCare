@@ -440,7 +440,7 @@ export default function Shop() {
               <div>
                 <strong>{p.name}</strong>
                 <span className="promo-discount">
-                  {p.discount_type === 'percent' ? `${p.discount_value}% Rabatt` : `${Number(p.discount_value).toFixed(2).replace('.', ',')} € Rabatt`}
+                  {p.discount_type === 'percent' ? `${p.discount_value}% ${t('shop.discountSuffix')}` : `${Number(p.discount_value).toFixed(2).replace('.', ',')} € ${t('shop.discountSuffix')}`}
                 </span>
                 {p.service_providers?.name && <span className="promo-provider">{p.service_providers.name}</span>}
               </div>
@@ -716,6 +716,7 @@ function SparePartsBucket({ bucket, items, bestPromo, isInCart, addToCart }) {
           <SparePartsRow
             key={product.id}
             product={product}
+            displayName={nameOf(product)}
             reason={reason}
             bucket={bucket}
             promo={bestPromo(product)}
@@ -728,7 +729,7 @@ function SparePartsBucket({ bucket, items, bestPromo, isInCart, addToCart }) {
   )
 }
 
-function SparePartsRow({ product, reason, bucket, promo, inCart, onAdd }) {
+function SparePartsRow({ product, displayName, reason, bucket, promo, inCart, onAdd }) {
   const { t } = useT()
   const meta = BUCKET_META[bucket]
   const inStock = product.in_stock ?? (product.stock_quantity > 0)
@@ -751,10 +752,10 @@ function SparePartsRow({ product, reason, bucket, promo, inCart, onAdd }) {
           </div>
         )}
         <div className="sp-row-info">
-          <span className="sp-row-name">{product.name}</span>
+          <span className="sp-row-name">{displayName || product.name}</span>
           {product.manufacturer && <span className="sp-row-mfg">{product.manufacturer}</span>}
           {product.part_number && (
-            <span className="sp-row-part">Art.-Nr.: {product.part_number}</span>
+            <span className="sp-row-part">{t('shop.partNo')} {product.part_number}</span>
           )}
         </div>
         <div className="sp-row-meta">
