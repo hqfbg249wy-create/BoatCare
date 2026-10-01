@@ -1,8 +1,11 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { MessageSquare, Send, Search, Trash2, Archive, ArchiveRestore } from 'lucide-react'
+import { MessageSquare, Send, Search, Trash2, Archive, ArchiveRestore, Megaphone, Bell } from 'lucide-react'
 import { useT } from '../i18n'
+import { useAnnouncements } from '../hooks/useAnnouncements'
+import { accentColor } from '../lib/announcements'
+import { enableWebPush, webPushPermission } from '../lib/webpush'
 
 // Eigner-Nachrichten: nutzt dasselbe conversations/messages-System wie das
 // Provider-Portal. Aus Eigner-Sicht: eigene Nachrichten = sender_type 'user',
@@ -19,7 +22,16 @@ export default function Messages() {
   const [search, setSearch] = useState('')
   const [unread, setUnread] = useState({})
   const [showArchived, setShowArchived] = useState(false)
+  const [annOpen, setAnnOpen] = useState(false)
+  const [pushState, setPushState] = useState(webPushPermission())
+  const ann = useAnnouncements()
   const endRef = useRef(null)
+
+  // Beim Öffnen der Skipily-Liste alle ungelesenen Ankündigungen als gelesen markieren.
+  useEffect(() => {
+    if (annOpen) ann.items.filter(a => !a.read_at).forEach(a => ann.markRead(a.id))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [annOpen])
 
   async function archiveConversation(convId, archived) {
     const { error } = await supabase.from('conversations').update({ owner_archived: archived }).eq('id', convId)
@@ -156,10 +168,31 @@ export default function Messages() {
             </div>
           </div>
           <div style={{ overflowY: 'auto', flex: 1 }}>
+            {/* Plattform-Ankündigungen ("Skipily") – farbig, oberhalb der Chats */}
+            {!showArchived && ann.items.length > 0 && (() => {
+              const accent = accentColor(ann.items[0]?.accent)
+              return (
+                <div onClick={() => { setAnnOpen(true); setSelected(null) }}
+                     style={{ padding: '12px 14px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
+                              background: annOpen ? `${accent}14` : `${accent}0a`, borderLeft: `3px solid ${accent}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14, color: '#1e293b' }}>
+                      <Megaphone size={15} style={{ color: accent }} /> {t('announcement.contact')}
+                    </span>
+                    {ann.unread > 0 && (
+                      <span style={{ background: accent, color: '#fff', borderRadius: 10, minWidth: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, padding: '0 6px' }}>{ann.unread}</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {ann.items[0]?.title}
+                  </div>
+                </div>
+              )
+            })()}
             {loading ? <div style={{ padding: 16, color: '#94a3b8' }}>{t('common.loading')}</div>
               : filtered.length === 0 ? <div style={{ padding: 16, color: '#94a3b8', fontSize: 14 }}>{t('msg.noConversations')}</div>
               : filtered.map(c => (
-                <div key={c.id} onClick={() => setSelected(c)}
+                <div key={c.id} onClick={() => { setSelected(c); setAnnOpen(false) }}
                      style={{ padding: '12px 14px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', background: selected?.id === c.id ? '#eff6ff' : '#fff' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontWeight: 600, fontSize: 14, color: '#1e293b' }}>{provName(c)}</span>
@@ -186,7 +219,41 @@ export default function Messages() {
         </div>
 
         <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {!selected ? (
+          {annOpen ? (
+            <>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Megaphone size={18} style={{ color: accentColor(ann.items[0]?.accent) }} /> {t('announcement.title')}
+                </span>
+                {pushState !== 'granted' && pushState !== 'unsupported' && (
+                  <button className="btn-secondary" style={{ fontSize: 12, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    onClick={async () => { const ok = await enableWebPush(); setPushState(webPushPermission()); if (!ok && webPushPermission() === 'denied') alert(t('announcement.push.denied')) }}>
+                    <Bell size={14} /> {t('announcement.push.enable')}
+                  </button>
+                )}
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 10, background: '#f8fafc' }}>
+                {ann.items.length === 0 ? (
+                  <div style={{ color: '#94a3b8', textAlign: 'center', padding: 40 }}>{t('announcement.empty.body')}</div>
+                ) : ann.items.map(a => {
+                  const accent = accentColor(a.accent)
+                  return (
+                    <div key={a.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderLeft: `4px solid ${accent}`, borderRadius: 10, padding: '10px 12px' }}>
+                      <div style={{ fontWeight: 600, color: '#1e293b' }}>{a.title}</div>
+                      <div style={{ fontSize: 14, color: '#475569', marginTop: 4, whiteSpace: 'pre-wrap' }}>{a.body}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                        <span style={{ fontSize: 11, color: '#94a3b8' }}>{a.created_at ? new Date(a.created_at).toLocaleString() : ''}</span>
+                        {a.action_url && (
+                          <a href={a.action_url} target={/^https?:\/\//i.test(a.action_url) ? '_blank' : undefined} rel="noopener noreferrer"
+                             style={{ fontSize: 13, fontWeight: 600, color: accent, textDecoration: 'none' }}>{t('announcement.more')}</a>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          ) : !selected ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', gap: 10 }}>
               <MessageSquare size={48} /><p>{t('msg.selectConversation')}</p>
             </div>

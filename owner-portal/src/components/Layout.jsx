@@ -10,6 +10,7 @@ import { useUnreadInquiries } from '../hooks/useUnreadInquiries'
 import { useUnreadMessages } from '../hooks/useUnreadMessages'
 import { useUsageTracker } from '../hooks/useUsageTracker'
 import Tour from './Tour'
+import AnnouncementBanner from './AnnouncementBanner'
 import { useT } from '../i18n'
 import LanguageSwitcher from './LanguageSwitcher'
 import {
@@ -134,5 +135,5 @@ export default function Layout() {
   // Native Plattform (Capacitor Android) → iOS-Style-Layout
   // Web/Browser → klassisches Sidebar-Layout
   const inner = Capacitor.isNativePlatform() ? <LayoutMobile /> : <LayoutDesktop />
-  return (<>{inner}<Tour /></>)
+  return (<>{inner}<AnnouncementBanner /><Tour /></>)
 }
