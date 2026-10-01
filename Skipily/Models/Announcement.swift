@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import Combine
 import Supabase
 
 struct Announcement: Codable, Identifiable, Hashable, Sendable {
