@@ -59,10 +59,9 @@ struct ConversationsContent: View {
         let accent = announcements.items.first?.accentColor ?? AppColors.primary
         let unread = announcements.unreadCount
         return HStack(spacing: 12) {
-            ZStack {
-                Circle().fill(accent.opacity(0.15)).frame(width: 44, height: 44)
-                Image(systemName: "megaphone.fill").foregroundStyle(accent)
-            }
+            SkipilyLogoIcon(size: 44)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(accent.opacity(0.4), lineWidth: 1.5))
             VStack(alignment: .leading, spacing: 2) {
                 Text("announcement.contact".loc)
                     .font(.subheadline).fontWeight(.semibold)

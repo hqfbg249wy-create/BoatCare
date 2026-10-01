@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Megaphone, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useAnnouncements } from '../hooks/useAnnouncements'
 import { accentColor } from '../lib/announcements'
 import { enableWebPush, webPushPermission } from '../lib/webpush'
@@ -51,7 +51,8 @@ export default function AnnouncementBanner() {
       }}
     >
       <div style={{ width: 5, alignSelf: 'stretch', background: accent, borderRadius: 3, marginLeft: 0 }} />
-      <Megaphone size={22} style={{ color: accent, flex: 'none', marginLeft: 4 }} />
+      <img src="/icon-192.png" alt="Skipily" width={34} height={34}
+        style={{ flex: 'none', marginLeft: 4, borderRadius: 8 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {current.title}

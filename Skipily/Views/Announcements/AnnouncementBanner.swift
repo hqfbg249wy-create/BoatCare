@@ -15,14 +15,13 @@ struct AnnouncementBanner: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Farbkennzeichnung + Icon
+            // Farbkennzeichnung + Skipily-Logo (Wiedererkennbarkeit)
             RoundedRectangle(cornerRadius: 3)
                 .fill(announcement.accentColor)
                 .frame(width: 5)
 
-            Image(systemName: "megaphone.fill")
-                .font(.title3)
-                .foregroundStyle(announcement.accentColor)
+            SkipilyLogoIcon(size: 34)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(announcement.title)

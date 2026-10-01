@@ -11,7 +11,7 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Skipily';
   const options = {
     body: data.body || '',
-    icon: '/icon-192.png',
+    icon: data.icon || '/icon-192.png',   // Skipily-Logo zur Wiedererkennung
     badge: '/icon-192.png',
     tag: data.id ? ('ann-' + data.id) : undefined,
     data: { url: data.url || '', id: data.id || '' },

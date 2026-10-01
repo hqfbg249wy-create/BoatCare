@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { MessageSquare, Send, Search, Trash2, Archive, ArchiveRestore, Megaphone, Bell } from 'lucide-react'
+import { MessageSquare, Send, Search, Trash2, Archive, ArchiveRestore, Bell } from 'lucide-react'
 import { useT } from '../i18n'
 import { useAnnouncements } from '../hooks/useAnnouncements'
 import { accentColor } from '../lib/announcements'
@@ -177,7 +177,7 @@ export default function Messages() {
                               background: annOpen ? `${accent}14` : `${accent}0a`, borderLeft: `3px solid ${accent}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14, color: '#1e293b' }}>
-                      <Megaphone size={15} style={{ color: accent }} /> {t('announcement.contact')}
+                      <img src="/icon-192.png" alt="" width={22} height={22} style={{ borderRadius: 5 }} /> {t('announcement.contact')}
                     </span>
                     {ann.unread > 0 && (
                       <span style={{ background: accent, color: '#fff', borderRadius: 10, minWidth: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, padding: '0 6px' }}>{ann.unread}</span>
@@ -223,7 +223,7 @@ export default function Messages() {
             <>
               <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Megaphone size={18} style={{ color: accentColor(ann.items[0]?.accent) }} /> {t('announcement.title')}
+                  <img src="/icon-192.png" alt="" width={22} height={22} style={{ borderRadius: 5 }} /> {t('announcement.title')}
                 </span>
                 {pushState !== 'granted' && pushState !== 'unsupported' && (
                   <button className="btn-secondary" style={{ fontSize: 12, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
