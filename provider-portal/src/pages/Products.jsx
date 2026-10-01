@@ -494,6 +494,9 @@ export default function Products() {
     // Produkt mit Varianten. Preis/Bestand/SKU je Variante moeglich.
     'variante1_name', 'variante1_wert', 'variante2_name', 'variante2_wert',
     'variante_preis', 'variante_bestand', 'variante_sku', 'variante_bild',
+    // Farbcode (Hex, z. B. #0a3d62) fuer den Farbwert dieser Zeile -> Farbfeld
+    // im Shop. Nur bei Farboptionen noetig (RAL/Gelcoat etc.).
+    'variante_farbe_hex',
   ]
 
   function downloadCsvTemplate() {
@@ -505,6 +508,9 @@ export default function Products() {
       { name: 'Liros Race SK78', manufacturer: 'Liros', description: 'Hochfestes Tauwerk', category: 'Ropes', currency: 'EUR', is_active: 'true', in_stock: 'true', price: '100.00', variante1_name: 'Durchmesser', variante1_wert: '6mm', variante_preis: '100.00', variante_bestand: '20', variante_sku: 'LIROS-SK78-6' },
       { name: 'Liros Race SK78', variante1_name: 'Durchmesser', variante1_wert: '8mm', variante_preis: '120.00', variante_bestand: '15', variante_sku: 'LIROS-SK78-8' },
       { name: 'Liros Race SK78', variante1_name: 'Durchmesser', variante1_wert: '10mm', variante_preis: '150.00', variante_bestand: '10', variante_sku: 'LIROS-SK78-10' },
+      // Farbvariante mit Farbcode (Hex) -> Farbfeld im Shop, z. B. Gelcoat/RAL.
+      { name: 'Gelcoat Topcoat', manufacturer: 'Yachtcare', description: 'Gelcoat zum Ausbessern', category: 'Paint & Antifouling', currency: 'EUR', is_active: 'true', in_stock: 'true', price: '39.90', variante1_name: 'Farbe', variante1_wert: 'RAL 9010 Reinweiß', variante_preis: '39.90', variante_bestand: '25', variante_sku: 'GC-9010', variante_farbe_hex: '#f1f0ea' },
+      { name: 'Gelcoat Topcoat', variante1_name: 'Farbe', variante1_wert: 'RAL 5010 Enzianblau', variante_preis: '39.90', variante_bestand: '18', variante_sku: 'GC-5010', variante_farbe_hex: '#0e294b' },
     ]
     const esc = (v) => { const s = String(v ?? ''); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s }
     const lines = [CSV_HEADERS.join(',')]
@@ -558,7 +564,10 @@ export default function Products() {
         const opts = Array.isArray(p.variant_options) ? p.variant_options.filter(o => o?.name) : []
         const vs = variantsByProduct[p.id] || []
         if (opts.length && vs.length) {
-          const opt1 = opts[0]?.name || '', opt2 = opts[1]?.name || ''
+          const opt1obj = opts[0] || null, opt2obj = opts[1] || null
+          const opt1 = opt1obj?.name || '', opt2 = opt2obj?.name || ''
+          // Fuer den Export: die Farboption (falls vorhanden) und ihre Swatches.
+          const colorOptObj = [opt1obj, opt2obj].find(o => o && isColorOption(o)) || null
           vs.forEach((v, i) => {
             const a = v.attributes || {}
             const row = i === 0 ? baseOf(p) : { name: p.name }
@@ -570,6 +579,7 @@ export default function Products() {
             row.variante_bestand = v.stock_quantity ?? ''
             row.variante_sku = v.sku || ''
             row.variante_bild = (Array.isArray(v.images) && v.images.length ? v.images : (v.image_url ? [v.image_url] : [])).join(' | ')
+            row.variante_farbe_hex = colorOptObj ? (colorOptObj.swatches?.[a[colorOptObj.name]] || '') : ''
             aoa.push(CSV_HEADERS.map(h => row[h] ?? ''))
           })
         } else {
@@ -622,6 +632,7 @@ export default function Products() {
     v_stock: ['variante_bestand', 'variantenbestand', 'variant_stock', 'variante_menge'],
     v_sku: ['variante_sku', 'variantensku', 'variant_sku'],
     v_image: ['variante_bild', 'variant_image', 'variante_bild_url', 'variantbild'],
+    v_color_hex: ['variante_farbe_hex', 'variante_farbcode', 'variant_color_hex', 'variante_hex', 'farbcode', 'variante_farbe'],
   }
   const ALIAS_LOOKUP = (() => {
     const m = {}
@@ -762,6 +773,28 @@ export default function Products() {
         const options = []
         if (opt1) options.push({ name: opt1, values: distinct(variantRows.map(g => (g.row.v_val1 || '').trim())) })
         if (opt2) options.push({ name: opt2, values: distinct(variantRows.map(g => (g.row.v_val2 || '').trim())) })
+
+        // Farbcodes (Spalte variante_farbe_hex) der passenden Farboption zuordnen.
+        // Werden Codes geliefert, gilt die Option automatisch als Farboption
+        // (greift auch bei frei benannten Optionen wie "Gelcoat").
+        const normHex = (x) => {
+          const m = String(x || '').trim().match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/)
+          return m ? ('#' + m[1].toLowerCase()) : null
+        }
+        const colorName = [opt1, opt2].filter(Boolean).find(n => isColorOption({ name: n }))
+          || (options.length === 1 ? options[0].name : opt1)
+        const targetOpt = options.find(o => o.name === colorName)
+        if (targetOpt) {
+          const sw = {}
+          for (const g of variantRows) {
+            const hex = normHex(g.row.v_color_hex)
+            if (!hex) continue
+            const v = ((colorName === opt1 ? g.row.v_val1 : g.row.v_val2) || '').trim()
+            if (v) sw[v] = hex
+          }
+          if (Object.keys(sw).length) { targetOpt.swatches = sw; targetOpt.is_color = true }
+        }
+
         base.variant_options = options.length ? options : null
         base.variants = variantRows.map(g => {
           const attrs = {}
