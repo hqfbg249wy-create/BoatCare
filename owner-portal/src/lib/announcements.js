@@ -12,6 +12,15 @@ export function accentColor(a) {
   return ANNOUNCEMENT_ACCENT[(a || 'blue').toLowerCase()] || ANNOUNCEMENT_ACCENT.blue
 }
 
+// Titel/Text in der aktuellen Sprache (Fallback: Originaltext).
+export function localizedAnnouncement(a, lang) {
+  const tr = a?.translations && a.translations[lang]
+  return {
+    title: (tr && tr.title) || a?.title || '',
+    body: (tr && tr.body) || a?.body || '',
+  }
+}
+
 export async function listAnnouncements() {
   const { data, error } = await supabase.rpc('list_my_announcements')
   if (error) { console.warn('list_my_announcements', error); return [] }

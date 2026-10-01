@@ -66,7 +66,7 @@ struct ConversationsContent: View {
                 Text("announcement.contact".loc)
                     .font(.subheadline).fontWeight(.semibold)
                     .foregroundStyle(AppColors.gray900)
-                Text(announcements.items.first?.title ?? "")
+                Text(announcements.items.first?.displayTitle ?? "")
                     .font(.caption).foregroundStyle(AppColors.gray500).lineLimit(1)
             }
             Spacer()

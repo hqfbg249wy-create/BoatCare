@@ -24,11 +24,11 @@ struct AnnouncementBanner: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(announcement.title)
+                Text(announcement.displayTitle)
                     .font(.subheadline).fontWeight(.semibold)
                     .foregroundStyle(AppColors.gray900)
                     .lineLimit(1)
-                Text(announcement.body)
+                Text(announcement.displayBody)
                     .font(.caption)
                     .foregroundStyle(AppColors.gray500)
                     .lineLimit(2)

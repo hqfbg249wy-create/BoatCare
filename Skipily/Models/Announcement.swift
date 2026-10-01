@@ -17,12 +17,14 @@ struct Announcement: Codable, Identifiable, Hashable, Sendable {
     let accent: String?
     let category: String?
     let actionURL: String?
+    /// { "de": {"title","body"}, "en": {...}, ... } — serverseitig uebersetzt.
+    let translations: [String: [String: String]]?
     let createdAt: String?
     let readAt: String?
     let dismissedAt: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, title, body, accent, category
+        case id, title, body, accent, category, translations
         case actionURL = "action_url"
         case createdAt = "created_at"
         case readAt = "read_at"
@@ -31,6 +33,13 @@ struct Announcement: Codable, Identifiable, Hashable, Sendable {
 
     var isRead: Bool { readAt != nil }
     var isDismissed: Bool { dismissedAt != nil }
+
+    /// Titel/Text in der aktuellen UI-Sprache (Fallback: Originaltext).
+    func localizedTitle(_ lang: String) -> String { translations?[lang]?["title"] ?? title }
+    func localizedBody(_ lang: String) -> String { translations?[lang]?["body"] ?? body }
+    var lang: String { LanguageManager.shared.currentLanguage.code }
+    var displayTitle: String { localizedTitle(lang) }
+    var displayBody: String { localizedBody(lang) }
 
     /// Farbe zur Unterscheidung von Provider-Nachrichten.
     var accentColor: Color {
@@ -118,7 +127,7 @@ final class AnnouncementStore: ObservableObject {
         let nowIso = ISO8601DateFormatter().string(from: Date())
         items[i] = Announcement(
             id: a.id, title: a.title, body: a.body, accent: a.accent, category: a.category,
-            actionURL: a.actionURL, createdAt: a.createdAt,
+            actionURL: a.actionURL, translations: a.translations, createdAt: a.createdAt,
             readAt: nowIso, dismissedAt: a.dismissedAt)
     }
 }

@@ -106,17 +106,22 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { user_id, user_ids, title, body, data } = await req.json();
+    const { user_id, user_ids, title, body, data, localized } = await req.json();
     const ids: string[] = Array.isArray(user_ids)
       ? user_ids
       : (typeof user_id === "string" ? [user_id] : []);
     if (ids.length === 0) return json({ error: "user_id/user_ids fehlt" }, 400);
     if (!title || !body) return json({ error: "title/body fehlt" }, 400);
 
+    // Optionale Lokalisierung: { "de": {title,body}, "en": {...}, ... }
+    // Pro Geraet wird anhand device_tokens.locale die passende Sprache gewaehlt.
+    const loc: Record<string, { title?: string; body?: string }> =
+      (localized && typeof localized === "object") ? localized : {};
+
     const supabase = createClient(supabaseUrl, serviceKey);
     const { data: tokens, error } = await supabase
       .from("device_tokens")
-      .select("token, environment")
+      .select("token, environment, locale")
       .in("user_id", ids);
     if (error) return json({ error: error.message }, 500);
     if (!tokens || tokens.length === 0) return json({ status: "no_devices", sent: 0 });
@@ -124,15 +129,15 @@ serve(async (req: Request) => {
     const key = await importP8(APNS_PRIVATE_KEY);
     const jwt = await makeJWT(key);
 
-    const apsPayload = {
-      aps: { alert: { title, body }, sound: "default" },
-      ...(data && typeof data === "object" ? data : {}),
-    };
-
     let sent = 0;
     const dead: string[] = [];
 
     for (const row of tokens) {
+      const l = row.locale && loc[row.locale] ? loc[row.locale] : null;
+      const apsPayload = {
+        aps: { alert: { title: l?.title || title, body: l?.body || body }, sound: "default" },
+        ...(data && typeof data === "object" ? data : {}),
+      };
       const primary = row.environment === "sandbox" ? HOST_SANDBOX : HOST_PROD;
       const secondary = primary === HOST_PROD ? HOST_SANDBOX : HOST_PROD;
 

@@ -43,7 +43,7 @@ private struct AnnouncementRow: View {
                 Image(systemName: "megaphone.fill")
                     .font(.footnote)
                     .foregroundStyle(announcement.accentColor)
-                Text(announcement.title)
+                Text(announcement.displayTitle)
                     .font(.subheadline).fontWeight(.semibold)
                     .foregroundStyle(AppColors.gray900)
                 Spacer()
@@ -51,7 +51,7 @@ private struct AnnouncementRow: View {
                     Circle().fill(announcement.accentColor).frame(width: 8, height: 8)
                 }
             }
-            Text(announcement.body)
+            Text(announcement.displayBody)
                 .font(.callout)
                 .foregroundStyle(AppColors.gray700)
                 .lineLimit(expanded ? nil : 3)

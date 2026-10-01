@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { useAnnouncements } from '../hooks/useAnnouncements'
-import { accentColor } from '../lib/announcements'
+import { accentColor, localizedAnnouncement } from '../lib/announcements'
 import { enableWebPush, webPushPermission } from '../lib/webpush'
 import { useT } from '../i18n'
 
@@ -10,11 +10,11 @@ import { useT } from '../i18n'
 export default function AnnouncementBanner() {
   const { items, markRead, dismiss } = useAnnouncements()
   const navigate = useNavigate()
-  const { t } = useT()
+  const { t, lang } = useT()
   const [hidden, setHidden] = useState(false)
 
-  // Web-Push still auffrischen, wenn die Erlaubnis bereits erteilt wurde.
-  useEffect(() => { if (webPushPermission() === 'granted') enableWebPush() }, [])
+  // Web-Push still auffrischen (und Locale aktualisieren), wenn bereits erlaubt.
+  useEffect(() => { if (webPushPermission() === 'granted') enableWebPush(lang) }, [lang])
 
   const current = useMemo(
     () => items.find(a => !a.dismissed_at && !a.read_at) || null,
@@ -23,6 +23,7 @@ export default function AnnouncementBanner() {
   if (!current || hidden) return null
 
   const accent = accentColor(current.accent)
+  const loc = localizedAnnouncement(current, lang)
 
   const open = async () => {
     await markRead(current.id)
@@ -55,10 +56,10 @@ export default function AnnouncementBanner() {
         style={{ flex: 'none', marginLeft: 4, borderRadius: 8 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {current.title}
+          {loc.title}
         </div>
         <div style={{ fontSize: 12, color: '#64748b', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-          {current.body}
+          {loc.body}
         </div>
       </div>
       <button onClick={close} aria-label={t('announcement.dismiss')}

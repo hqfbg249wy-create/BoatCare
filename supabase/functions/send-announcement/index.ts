@@ -52,10 +52,34 @@ serve(async (req: Request) => {
     const actionUrl = b.action_url ? String(b.action_url).slice(0, 2000) : null;
     const sendPush = b.send_push !== false; // default: ja
 
-    // 3) Ankuendigung anlegen
+    // 3) In alle sechs Sprachen uebersetzen (title + body) via translate-text.
+    //    So kann die Push-Nachricht je Geraet in der passenden Sprache zugestellt
+    //    und die Liste im Client lokalisiert angezeigt werden.
+    const LANGS = ["de", "en", "es", "fr", "it", "nl"];
+    const translations: Record<string, { title: string; body: string }> = {};
+    await Promise.all(LANGS.map(async (lang) => {
+      try {
+        const r = await fetch(`${supabaseUrl}/functions/v1/translate-text`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ texts: [{ id: "title", text: title }, { id: "body", text: bodyText }], target_lang: lang }),
+        });
+        const jr = await r.json().catch(() => ({}));
+        const tr = jr?.translations || {};
+        translations[lang] = {
+          title: (tr.title && String(tr.title)) || title,
+          body: (tr.body && String(tr.body)) || bodyText,
+        };
+      } catch (e) {
+        console.error("translate-text", lang, e);
+        translations[lang] = { title, body: bodyText };
+      }
+    }));
+
+    // 3b) Ankuendigung anlegen (inkl. Uebersetzungen)
     const { data: ann, error: insErr } = await admin.from("announcements").insert({
       title, body: bodyText, accent, category, audience,
-      action_url: actionUrl, created_by: user.id,
+      action_url: actionUrl, created_by: user.id, translations,
     }).select("id").single();
     if (insErr) throw insErr;
     const announcementId = ann.id as string;
@@ -72,11 +96,12 @@ serve(async (req: Request) => {
       const data = { type: "announcement", id: announcementId, url: actionUrl || "", accent };
 
       // 4a) APNs ueber bestehende send-push-Function (Service-Role-Bearer).
+      //     localized -> send-push waehlt je Geraet (device_tokens.locale) die Sprache.
       try {
         const r = await fetch(`${supabaseUrl}/functions/v1/send-push`, {
           method: "POST",
           headers: { "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ user_ids: userIds, title, body: bodyText, data }),
+          body: JSON.stringify({ user_ids: userIds, title, body: bodyText, data, localized: translations }),
         });
         const jr = await r.json().catch(() => ({}));
         result.apns = Number(jr?.sent ?? jr?.delivered ?? 0) || 0;
@@ -88,11 +113,13 @@ serve(async (req: Request) => {
       if (VAPID_PUBLIC && VAPID_PRIVATE) {
         const { data: subs } = await admin
           .from("web_push_subscriptions")
-          .select("endpoint, p256dh, auth")
+          .select("endpoint, p256dh, auth, locale")
           .in("user_id", userIds);
-        const payload = { title, body: bodyText, url: actionUrl || "", id: announcementId, accent };
         const dead: string[] = [];
-        for (const s of (subs || []) as WebPushSub[]) {
+        for (const s of (subs || []) as (WebPushSub & { locale?: string })[]) {
+          const loc = (s.locale && translations[s.locale]) ? s.locale : null;
+          const t = loc ? translations[loc] : { title, body: bodyText };
+          const payload = { title: t.title, body: t.body, url: actionUrl || "", id: announcementId, accent };
           try {
             const res = await sendWebPush(s, payload, {
               publicKey: VAPID_PUBLIC, privateKey: VAPID_PRIVATE, subject: VAPID_SUBJECT,

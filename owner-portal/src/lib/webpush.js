@@ -22,7 +22,7 @@ function urlBase64ToUint8Array(base64String) {
 
 // Fragt (falls nötig) die Erlaubnis ab und registriert das Push-Abo in Supabase.
 // Gibt true zurück, wenn ein aktives Abo besteht.
-export async function enableWebPush() {
+export async function enableWebPush(locale) {
   if (!webPushSupported()) return false
   try {
     const perm = await Notification.requestPermission()
@@ -40,6 +40,7 @@ export async function enableWebPush() {
       p_endpoint: sub.endpoint,
       p_p256dh: json.keys?.p256dh,
       p_auth: json.keys?.auth,
+      p_locale: locale || null,
     })
     return true
   } catch (e) {

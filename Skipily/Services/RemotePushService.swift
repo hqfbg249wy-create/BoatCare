@@ -87,6 +87,8 @@ final class RemotePushService {
                     "p_token": hex,
                     "p_platform": "ios",
                     "p_environment": environment,
+                    // Geraete-Sprache -> lokalisierte Push-Nachrichten.
+                    "p_locale": LanguageManager.shared.currentLanguage.code,
                 ])
                 .execute()
             AppLog.info("APNs-Token registriert (\(environment))")
