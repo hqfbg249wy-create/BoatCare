@@ -82,6 +82,10 @@
                     <span class="icon">👥</span>
                     Benutzer
                 </button>
+                <button class="nav-item" data-page="announcements" onclick="window.navigateToPage('announcements')">
+                    <span class="icon">📣</span>
+                    Push / Ankündigungen
+                </button>
                 <button class="nav-item" data-page="search-automation" onclick="window.navigateToPage('search-automation')">
                     <span class="icon">🔍</span>
                     Betriebe suchen
@@ -2444,6 +2448,60 @@
                     <div id="market-app-usage" style="font-size:13px; color:#64748b;">Wird geladen…</div>
                 </div>
 
+            </div>
+
+            <!-- Push / Ankündigungen -->
+            <div id="announcements-page" class="page">
+                <h1>📣 Push / Ankündigungen</h1>
+                <p style="color:#64748b; margin-top:-6px;">Informiere Nutzer über Updates, neue Provider oder Händler. Zustellung per Push auf den Sperrbildschirm (iOS + Web) und als farbiger Eintrag unter „Nachrichten".</p>
+
+                <div class="card" style="max-width:680px;">
+                    <h3 style="margin-top:0;">Neue Ankündigung</h3>
+                    <label style="display:block; font-size:13px; font-weight:600; margin:10px 0 4px;">Titel</label>
+                    <input id="ann-title" type="text" maxlength="120" placeholder="z. B. Neuer Händler in Kiel" style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:8px;">
+
+                    <label style="display:block; font-size:13px; font-weight:600; margin:12px 0 4px;">Text</label>
+                    <textarea id="ann-body" rows="4" maxlength="1000" placeholder="Kurzer Hinweis, der im Banner und in den Nachrichten erscheint." style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:8px; resize:vertical;"></textarea>
+
+                    <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:12px;">
+                        <div style="flex:1; min-width:180px;">
+                            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Zielgruppe</label>
+                            <select id="ann-audience" style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:8px;">
+                                <option value="all">Alle Nutzer</option>
+                                <option value="owners">Nur Eigner</option>
+                                <option value="providers">Nur Provider / Händler</option>
+                            </select>
+                        </div>
+                        <div style="flex:1; min-width:180px;">
+                            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Farbkennzeichnung</label>
+                            <select id="ann-accent" style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:8px;">
+                                <option value="blue">🔵 Blau (Info)</option>
+                                <option value="green">🟢 Grün (Neu)</option>
+                                <option value="orange">🟠 Orange (Update)</option>
+                                <option value="purple">🟣 Violett (Aktion)</option>
+                                <option value="red">🔴 Rot (Wichtig)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <label style="display:block; font-size:13px; font-weight:600; margin:12px 0 4px;">Link für „mehr Informationen" (optional)</label>
+                    <input id="ann-url" type="text" maxlength="2000" placeholder="https://skipily.app/… oder leer lassen" style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:8px;">
+
+                    <label style="display:flex; align-items:center; gap:8px; margin-top:12px; font-size:14px;">
+                        <input id="ann-push" type="checkbox" checked>
+                        Als Push auf den Sperrbildschirm senden (iOS + Web)
+                    </label>
+
+                    <div style="display:flex; gap:10px; align-items:center; margin-top:16px;">
+                        <button id="ann-send-btn" class="btn-primary" onclick="window.sendAnnouncement()">Senden</button>
+                        <span id="ann-send-status" style="font-size:13px; color:#64748b;"></span>
+                    </div>
+                </div>
+
+                <div class="card" style="max-width:680px; margin-top:20px;">
+                    <h3 style="margin-top:0;">Verlauf</h3>
+                    <div id="ann-history" style="font-size:13px; color:#64748b;">Wird geladen…</div>
+                </div>
             </div>
         </main>
     </div>

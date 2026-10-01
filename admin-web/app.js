@@ -320,6 +320,9 @@ function navigateToPage(pageName) {
         case 'suggestions':
             loadSuggestions();
             break;
+        case 'announcements':
+            loadAnnouncements();
+            break;
         case 'providers':
             loadProviders();
             break;
@@ -408,6 +411,88 @@ async function loadAiCosts() {
     }
 }
 window.loadAiCosts = loadAiCosts;
+
+// ── Push / Ankündigungen ──────────────────────────────────────────────────
+const ANN_ACCENT = {
+    blue:   { c: '#2563eb', label: 'Info' },
+    green:  { c: '#16a34a', label: 'Neu' },
+    orange: { c: '#f97316', label: 'Update' },
+    purple: { c: '#7c3aed', label: 'Aktion' },
+    red:    { c: '#dc2626', label: 'Wichtig' },
+};
+const ANN_AUDIENCE_LABEL = { all: 'Alle Nutzer', owners: 'Nur Eigner', providers: 'Nur Provider/Händler' };
+
+async function loadAnnouncements() {
+    const host = document.getElementById('ann-history');
+    if (host) host.textContent = 'Wird geladen…';
+    try {
+        const { data, error } = await supabaseClient.rpc('admin_list_announcements', { p_limit: 50 });
+        if (error) throw error;
+        const rows = data || [];
+        if (!host) return;
+        if (!rows.length) { host.innerHTML = '<em>Noch keine Ankündigungen versendet.</em>'; return; }
+        host.innerHTML = rows.map(a => {
+            const ac = ANN_ACCENT[a.accent] || ANN_ACCENT.blue;
+            const when = a.created_at ? new Date(a.created_at).toLocaleString('de-DE') : '';
+            return `<div style="border-left:4px solid ${ac.c}; background:#f8fafc; border-radius:8px; padding:10px 12px; margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; gap:10px; align-items:baseline;">
+                    <strong>${escapeHtml(a.title)}</strong>
+                    <span style="font-size:11px; color:#94a3b8; white-space:nowrap;">${when}</span>
+                </div>
+                <div style="margin:4px 0; color:#475569;">${escapeHtml(a.body)}</div>
+                <div style="font-size:11px; color:#94a3b8;">
+                    ${ANN_AUDIENCE_LABEL[a.audience] || a.audience} · ${ac.label} · ${a.read_count || 0}× gelesen
+                    ${a.action_url ? ' · <a href="' + escapeHtml(a.action_url) + '" target="_blank" rel="noopener">Link</a>' : ''}
+                </div>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        console.error('loadAnnouncements', e);
+        if (host) host.textContent = 'Fehler beim Laden: ' + (e.message || e);
+    }
+}
+window.loadAnnouncements = loadAnnouncements;
+
+async function sendAnnouncement() {
+    const btn = document.getElementById('ann-send-btn');
+    const statusEl = document.getElementById('ann-send-status');
+    const title = (document.getElementById('ann-title').value || '').trim();
+    const body = (document.getElementById('ann-body').value || '').trim();
+    const audience = document.getElementById('ann-audience').value;
+    const accent = document.getElementById('ann-accent').value;
+    const action_url = (document.getElementById('ann-url').value || '').trim() || null;
+    const send_push = document.getElementById('ann-push').checked;
+
+    if (!title || !body) { if (statusEl) { statusEl.style.color = '#dc2626'; statusEl.textContent = 'Titel und Text sind erforderlich.'; } return; }
+
+    const audLabel = ANN_AUDIENCE_LABEL[audience] || audience;
+    if (!confirm(`Ankündigung „${title}" an ${audLabel} senden` + (send_push ? ' und als Push zustellen?' : '?'))) return;
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Senden…'; }
+    if (statusEl) { statusEl.style.color = '#64748b'; statusEl.textContent = 'Wird gesendet…'; }
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('send-announcement', {
+            body: { title, body, audience, accent, action_url, send_push },
+        });
+        if (error) throw error;
+        if (data && data.error) throw new Error(data.error);
+        if (statusEl) {
+            statusEl.style.color = '#16a34a';
+            statusEl.textContent = `Gesendet an ${data.recipients} Empfänger` +
+                (send_push ? ` · ${data.apns} iOS · ${data.web} Web` : '') + '.';
+        }
+        document.getElementById('ann-title').value = '';
+        document.getElementById('ann-body').value = '';
+        document.getElementById('ann-url').value = '';
+        loadAnnouncements();
+    } catch (e) {
+        console.error('sendAnnouncement', e);
+        if (statusEl) { statusEl.style.color = '#dc2626'; statusEl.textContent = 'Fehler: ' + (e.message || e); }
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Senden'; }
+    }
+}
+window.sendAnnouncement = sendAnnouncement;
 
 // Event Listeners
 function setupEventListeners() {
