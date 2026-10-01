@@ -111,8 +111,9 @@ RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
 $$;
 
 -- ── Empfaenger-IDs einer Zielgruppe (nur service_role / Edge Function) ──
+-- RETURNS TABLE(id uuid) -> PostgREST liefert verlaesslich [{ "id": ... }].
 CREATE OR REPLACE FUNCTION public.announcement_recipient_ids(p_audience text)
-RETURNS SETOF uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+RETURNS TABLE(id uuid) LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT u.id FROM auth.users u
    WHERE public.user_matches_audience(u.id, p_audience);
 $$;
