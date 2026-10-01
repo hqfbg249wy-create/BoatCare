@@ -1232,3 +1232,11 @@
 "inq.offer_question_send" = "Invia domanda";
 "inq.offer_declined" = "Offerta rifiutata";
 "inq.declined_by_provider" = "Rifiutata dal fornitore — l'azienda non può offrire questa richiesta.";
+
+/* Plattform-Ankündigungen */
+"announcement.title" = "Comunicazioni";
+"announcement.contact" = "Skipily";
+"announcement.more" = "Maggiori informazioni";
+"announcement.dismiss" = "Nascondi";
+"announcement.empty.title" = "Nessuna comunicazione";
+"announcement.empty.body" = "Qui compaiono le novità di Skipily, ad es. aggiornamenti o nuovi fornitori.";

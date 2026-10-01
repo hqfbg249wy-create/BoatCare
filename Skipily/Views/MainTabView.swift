@@ -26,6 +26,9 @@ struct MainTabView: View {
     @State private var inquiryService = InquiryService.shared
     @State private var offlineService = OfflineStorageService.shared
     @StateObject private var locationManagerForOffline = LocationManager()
+    @ObservedObject private var announcements = AnnouncementStore.shared
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var showAnnouncements = false
 
     @State private var selectedTab: AppTab = .map
 
@@ -122,9 +125,29 @@ struct MainTabView: View {
                     cacheAge: offlineService.cacheAge
                 )
                 .transition(.move(edge: .top).combined(with: .opacity))
+            } else if let ann = announcements.banner {
+                // Plattform-Ankuendigung (iOS-typisches In-App-Banner)
+                AnnouncementBanner(
+                    announcement: ann,
+                    onTap: {
+                        Task { await announcements.markRead(ann.id) }
+                        announcements.banner = nil
+                        showAnnouncements = true
+                    },
+                    onDismiss: { Task { await announcements.dismiss(ann.id) } }
+                )
+                .padding(.top, 4)
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .animation(.easeInOut(duration: 0.3), value: offlineService.isOnline)
+        .animation(.easeInOut(duration: 0.3), value: announcements.banner)
+        .sheet(isPresented: $showAnnouncements) {
+            NavigationStack { AnnouncementsView() }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await announcements.refresh() } }
+        }
         .task {
             // Start network monitoring + initial sync
             offlineService.start()
@@ -135,6 +158,7 @@ struct MainTabView: View {
                 await messagingService.loadConversations(userId: uid)
                 await inquiryService.loadInquiries(ownerId: uid)
             }
+            await announcements.refresh()
         }
         .onChange(of: locationManagerForOffline.location) { _, newLocation in
             if let loc = newLocation {

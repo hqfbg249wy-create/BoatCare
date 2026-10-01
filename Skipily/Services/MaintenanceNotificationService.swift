@@ -160,9 +160,30 @@ final class MaintenanceNotificationService: NSObject, UNUserNotificationCenterDe
     // MARK: - Foreground-Anzeige
 
     /// Zeigt Wartungs-Notifications auch als Banner, wenn die App offen ist.
+    /// Fuer Plattform-Ankuendigungen unterdruecken wir das System-Banner und
+    /// zeigen stattdessen das eigene In-App-Banner (iOS-typisch, mit X/Antippen).
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        let info = notification.request.content.userInfo
+        if (info["type"] as? String) == "announcement" {
+            let id = info["id"] as? String
+            Task { @MainActor in await AnnouncementStore.shared.handlePush(announcementId: id) }
+            completionHandler([.sound, .list])   // kein System-Banner -> eigenes Banner
+            return
+        }
         completionHandler([.banner, .sound, .list])
+    }
+
+    /// Tippt der Nutzer eine Ankuendigungs-Notification an -> Liste/Banner oeffnen.
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+        let info = response.notification.request.content.userInfo
+        if (info["type"] as? String) == "announcement" {
+            let id = info["id"] as? String
+            Task { @MainActor in await AnnouncementStore.shared.handlePush(announcementId: id) }
+        }
+        completionHandler()
     }
 }

@@ -1236,3 +1236,11 @@ Ausrüstung unter Boote ergänzen.";
 "inq.offer_question_send" = "Nachfrage senden";
 "inq.offer_declined" = "Angebot abgelehnt";
 "inq.declined_by_provider" = "Vom Anbieter abgelehnt — der Betrieb kann diese Anfrage nicht anbieten.";
+
+/* Plattform-Ankündigungen */
+"announcement.title" = "Mitteilungen";
+"announcement.contact" = "Skipily";
+"announcement.more" = "Mehr Informationen";
+"announcement.dismiss" = "Ausblenden";
+"announcement.empty.title" = "Keine Mitteilungen";
+"announcement.empty.body" = "Hier erscheinen Neuigkeiten von Skipily, z. B. zu Updates oder neuen Anbietern.";

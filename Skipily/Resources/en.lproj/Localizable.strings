@@ -1231,3 +1231,11 @@
 "inq.offer_question_send" = "Send question";
 "inq.offer_declined" = "Offer declined";
 "inq.declined_by_provider" = "Declined by the provider — the business can't offer this request.";
+
+/* Plattform-Ankündigungen */
+"announcement.title" = "Announcements";
+"announcement.contact" = "Skipily";
+"announcement.more" = "More information";
+"announcement.dismiss" = "Dismiss";
+"announcement.empty.title" = "No announcements";
+"announcement.empty.body" = "News from Skipily appears here, e.g. about updates or new providers.";

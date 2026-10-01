@@ -1232,3 +1232,11 @@
 "inq.offer_question_send" = "Vraag versturen";
 "inq.offer_declined" = "Aanbod afgewezen";
 "inq.declined_by_provider" = "Afgewezen door de aanbieder — het bedrijf kan deze aanvraag niet aanbieden.";
+
+/* Plattform-Ankündigungen */
+"announcement.title" = "Mededelingen";
+"announcement.contact" = "Skipily";
+"announcement.more" = "Meer informatie";
+"announcement.dismiss" = "Verbergen";
+"announcement.empty.title" = "Geen mededelingen";
+"announcement.empty.body" = "Hier verschijnt nieuws van Skipily, bijv. over updates of nieuwe aanbieders.";

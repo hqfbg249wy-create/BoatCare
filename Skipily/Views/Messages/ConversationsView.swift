@@ -11,6 +11,7 @@ import SwiftUI
 
 struct ConversationsContent: View {
     @EnvironmentObject var authService: AuthService
+    @ObservedObject private var announcements = AnnouncementStore.shared
 
     @State private var conversations: [Conversation] = []
     @State private var isLoading = true
@@ -26,6 +27,14 @@ struct ConversationsContent: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
 
+            // Plattform-Ankuendigungen ("Skipily") – farbig, oberhalb der Chats.
+            if !showArchived && !announcements.items.isEmpty {
+                NavigationLink { AnnouncementsView() } label: { announcementContactRow }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 4)
+            }
+
             Group {
                 if isLoading {
                     ProgressView("messages.loading".loc)
@@ -37,11 +46,43 @@ struct ConversationsContent: View {
                 }
             }
         }
-        .task { await loadConversations() }
-        .refreshable { await loadConversations() }
+        .task { await loadConversations(); await announcements.refresh() }
+        .refreshable { await loadConversations(); await announcements.refresh() }
         .onChange(of: showArchived) { _, _ in
             Task { await loadConversations() }
         }
+    }
+
+    /// Farbig gekennzeichneter "Skipily"-Eintrag (unterscheidet sich von
+    /// Provider-Nachrichten durch Akzentfarbe + Megafon-Symbol).
+    private var announcementContactRow: some View {
+        let accent = announcements.items.first?.accentColor ?? AppColors.primary
+        let unread = announcements.unreadCount
+        return HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(accent.opacity(0.15)).frame(width: 44, height: 44)
+                Image(systemName: "megaphone.fill").foregroundStyle(accent)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("announcement.contact".loc)
+                    .font(.subheadline).fontWeight(.semibold)
+                    .foregroundStyle(AppColors.gray900)
+                Text(announcements.items.first?.title ?? "")
+                    .font(.caption).foregroundStyle(AppColors.gray500).lineLimit(1)
+            }
+            Spacer()
+            if unread > 0 {
+                Text("\(unread)")
+                    .font(.caption2).fontWeight(.bold).foregroundStyle(.white)
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .background(accent).clipShape(Capsule())
+            }
+            Image(systemName: "chevron.right").font(.caption).foregroundStyle(AppColors.gray400)
+        }
+        .padding(12)
+        .background(accent.opacity(0.06))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(accent.opacity(0.25), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var conversationList: some View {
