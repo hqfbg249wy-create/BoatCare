@@ -137,6 +137,11 @@ struct ServiceProviderDetailView: View {
                     // 5. Buttons: Route, Website, Telefon, Email
                     contactButtonsSection
 
+                    // 5a. Prominenter Anfrage-/Angebot-Button (immer sichtbar,
+                    // wie im Web). Zusaetzlich zum Icon in der Kontaktreihe, damit
+                    // der Einstieg nicht uebersehen wird.
+                    inquiryCTAButton
+
                     // 5b. Sonderangebot (prominent, direkt nach Kontakt)
                     promotionBanner
 
@@ -502,6 +507,24 @@ struct ServiceProviderDetailView: View {
             )
             .environmentObject(authService)
         }
+    }
+
+    // Prominenter Haupt-CTA: Angebot/Anfrage anfordern (immer sichtbar).
+    @ViewBuilder
+    private var inquiryCTAButton: some View {
+        Button { showingInquiry = true } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "paperplane.fill")
+                Text("provider.inquiry_cta".loc)
+                    .fontWeight(.semibold)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(AppColors.primary)
+            .foregroundStyle(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     private func contactIconButton(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {

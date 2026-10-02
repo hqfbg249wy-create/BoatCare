@@ -76,6 +76,7 @@
 "provider.verified" = "Verificado";
 "provider.more_details" = "Más detalles";
 "provider.send_inquiry" = "Enviar solicitud";
+"provider.inquiry_cta" = "Solicitar presupuesto";
 "provider.special_offer" = "Oferta especial";
 "provider.go_to_shop" = "Ir a la tienda";
 "provider.swipe_hint" = "Deslizar para más proveedores";
