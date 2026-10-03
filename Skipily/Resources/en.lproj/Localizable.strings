@@ -82,6 +82,7 @@
 "provider.more_details" = "More Details";
 "provider.send_inquiry" = "Send inquiry";
 "provider.inquiry_cta" = "Request a quote";
+"provider.inquiry_short" = "Request";
 "provider.google_rating" = "Google Rating";
 "provider.special_offer" = "Special Offer";
 "provider.go_to_shop" = "Go to Shop";

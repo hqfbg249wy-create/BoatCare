@@ -81,6 +81,7 @@
 "provider.more_details" = "Mehr Details";
 "provider.send_inquiry" = "Anfrage senden";
 "provider.inquiry_cta" = "Angebot anfragen";
+"provider.inquiry_short" = "Anfrage";
 "provider.google_rating" = "Google-Bewertung";
 "provider.special_offer" = "Sonderangebot";
 "provider.go_to_shop" = "Zum Shop";

@@ -77,6 +77,7 @@
 "provider.more_details" = "Plus de détails";
 "provider.send_inquiry" = "Envoyer une demande";
 "provider.inquiry_cta" = "Demander un devis";
+"provider.inquiry_short" = "Demande";
 "provider.special_offer" = "Offre spéciale";
 "provider.go_to_shop" = "Vers la boutique";
 "provider.swipe_hint" = "Glisser pour plus de prestataires";

@@ -2115,6 +2115,8 @@ struct ProviderDetailCard: View {
     @State private var showingLoginRequired = false
     @State private var showingLogin = false
     @State private var showingInquiry = false
+    @State private var inquiryMode: QuoteMode = .quote
+    @State private var showingInquiryChooser = false
     @State private var showingWriteReview = false
     @StateObject private var reviewService = ReviewService()
     @State private var serviceNames: [String] = []
@@ -2261,10 +2263,10 @@ struct ProviderDetailCard: View {
                 }
 
                 // Anfrage senden — direkt aus der Kurzansicht (Login erforderlich).
-                // So sehen Eigner sofort, dass eine Anfrage möglich ist.
+                // Zwei Arten (wie beim Tauwerk): unverbindlich oder Angebot.
                 Button {
                     if authService.isAuthenticated {
-                        showingInquiry = true
+                        showingInquiryChooser = true
                     } else {
                         showingLoginRequired = true
                     }
@@ -2391,12 +2393,18 @@ struct ProviderDetailCard: View {
             LoginView()
                 .environmentObject(authService)
         }
+        .confirmationDialog("provider.send_inquiry".loc, isPresented: $showingInquiryChooser, titleVisibility: .visible) {
+            Button("quote.mode_inquiry".loc) { inquiryMode = .inquiry; showingInquiry = true }
+            Button("quote.mode_quote".loc)   { inquiryMode = .quote;   showingInquiry = true }
+            Button("general.cancel".loc, role: .cancel) {}
+        }
         .sheet(isPresented: $showingInquiry) {
             InquiryComposeView(
                 editing: nil,
                 providerId: provider.id,
                 providerName: provider.name,
-                providerEmail: provider.email
+                providerEmail: provider.email,
+                quoteMode: inquiryMode
             )
             .environmentObject(authService)
         }

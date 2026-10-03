@@ -225,6 +225,8 @@ struct FavoriteRow: View {
 
     @EnvironmentObject var authService: AuthService
     @State private var showingInquiry = false
+    @State private var inquiryMode: QuoteMode = .quote
+    @State private var showingInquiryChooser = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -311,7 +313,7 @@ struct FavoriteRow: View {
                         label: "provider.send_inquiry".loc,
                         color: AppColors.primary
                     ) {
-                        showingInquiry = true
+                        showingInquiryChooser = true
                     }
                     if hasRoute {
                         contactButton(
@@ -361,12 +363,18 @@ struct FavoriteRow: View {
             }
         }
         .padding(.vertical, 8)
+        .confirmationDialog("provider.send_inquiry".loc, isPresented: $showingInquiryChooser, titleVisibility: .visible) {
+            Button("quote.mode_inquiry".loc) { inquiryMode = .inquiry; showingInquiry = true }
+            Button("quote.mode_quote".loc)   { inquiryMode = .quote;   showingInquiry = true }
+            Button("general.cancel".loc, role: .cancel) {}
+        }
         .sheet(isPresented: $showingInquiry) {
             InquiryComposeView(
                 editing: nil,
                 providerId: provider.id,
                 providerName: provider.name,
-                providerEmail: provider.email
+                providerEmail: provider.email,
+                quoteMode: inquiryMode
             )
             .environmentObject(authService)
         }

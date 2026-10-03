@@ -16,6 +16,7 @@ struct ServiceProviderDetailView: View {
     @State private var showingWriteReview = false
     @State private var showingSuggestEdit = false
     @State private var showingInquiry = false
+    @State private var inquiryMode: QuoteMode = .quote
     @StateObject private var reviewService = ReviewService()
     @StateObject private var suggestionService = EditSuggestionService()
     @StateObject private var locationManager = LocationManager()
@@ -134,13 +135,8 @@ struct ServiceProviderDetailView: View {
 
                     Divider()
 
-                    // 5. Buttons: Route, Website, Telefon, Email
+                    // 5. Buttons: Route, Website, Telefon, Email, Anfrage
                     contactButtonsSection
-
-                    // 5a. Prominenter Anfrage-/Angebot-Button (immer sichtbar,
-                    // wie im Web). Zusaetzlich zum Icon in der Kontaktreihe, damit
-                    // der Einstieg nicht uebersehen wird.
-                    inquiryCTAButton
 
                     // 5b. Sonderangebot (prominent, direkt nach Kontakt)
                     promotionBanner
@@ -487,14 +483,34 @@ struct ServiceProviderDetailView: View {
                 }
             }
 
-            // Anfrage stellen — vereint Briefing + Anfrage in einem Flow.
-            // Eigner wählt Ausrüstung, ergänzt Betreff/Nachricht/Notizen,
-            // sendet als Anfrage oder speichert als Entwurf.
-            contactIconButton(
-                icon: "paperplane.fill",
-                label: "Anfrage",
-                color: AppColors.info
-            ) { showingInquiry = true }
+            // Anfrage stellen — zwei Arten (wie beim Tauwerk): unverbindliche
+            // Anfrage oder Bitte um ein Angebot. Beides oeffnet denselben
+            // Anfrage-Flow, nur mit anderem Betreff/Modus.
+            Menu {
+                Button {
+                    inquiryMode = .inquiry; showingInquiry = true
+                } label: {
+                    Label("quote.mode_inquiry".loc, systemImage: "bubble.left")
+                }
+                Button {
+                    inquiryMode = .quote; showingInquiry = true
+                } label: {
+                    Label("quote.mode_quote".loc, systemImage: "tag")
+                }
+            } label: {
+                VStack(spacing: 4) {
+                    Image(systemName: "paperplane.fill")
+                        .font(.title2)
+                        .foregroundStyle(AppColors.info)
+                        .frame(width: 48, height: 48)
+                        .background(AppColors.info.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    Text("provider.inquiry_short".loc)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
 
             Spacer()
         }
@@ -503,28 +519,11 @@ struct ServiceProviderDetailView: View {
                 editing: nil,
                 providerId: provider.id,
                 providerName: provider.name,
-                providerEmail: provider.email
+                providerEmail: provider.email,
+                quoteMode: inquiryMode
             )
             .environmentObject(authService)
         }
-    }
-
-    // Prominenter Haupt-CTA: Angebot/Anfrage anfordern (immer sichtbar).
-    @ViewBuilder
-    private var inquiryCTAButton: some View {
-        Button { showingInquiry = true } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "paperplane.fill")
-                Text("provider.inquiry_cta".loc)
-                    .fontWeight(.semibold)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(AppColors.primary)
-            .foregroundStyle(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        }
-        .buttonStyle(.plain)
     }
 
     private func contactIconButton(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {

@@ -23,6 +23,8 @@ struct InquiryComposeView: View {
     var providerEmail: String?
     // Wenn aus Ausrüstung-Detail geöffnet: dieses Equipment vorauswählen
     var preselectedEquipmentId: UUID?
+    // Anfrage-Art (unverbindlich vs. Angebot) — befüllt den Betreff passend vor.
+    var quoteMode: QuoteMode? = nil
 
     var onSave: (() async -> Void)?
 
@@ -607,7 +609,13 @@ struct InquiryComposeView: View {
     // MARK: - Prefill (editing)
 
     private func prefill() {
-        guard let inq = editing else { return }
+        guard let inq = editing else {
+            // Neue Anfrage: Betreff passend zur gewaehlten Anfrage-Art vorbelegen.
+            if subject.isEmpty, let mode = quoteMode {
+                subject = (mode == .inquiry) ? "quote.mode_inquiry".loc : "quote.mode_quote".loc
+            }
+            return
+        }
         subject = inq.subject
         message = inq.message
         notes   = inq.ownerNotes ?? ""
