@@ -440,6 +440,7 @@ a { color: var(--blue); text-decoration: none; }
 .variant-value-input { flex: 1; min-width: 160px; border: 1px dashed var(--gray-300, #cbd5e1); }
 .variant-color-toggle { display: inline-flex; align-items: center; gap: 4px; font-size: 0.82rem; color: var(--gray-600, #475569); white-space: nowrap; cursor: pointer; user-select: none; }
 .variant-color-toggle input { margin: 0; }
+.variant-swatch-preview { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(0,0,0,.18); flex: none; display: inline-block; }
 .variant-swatch-input { width: 20px; height: 20px; padding: 0; border: 1px solid var(--gray-300, #cbd5e1); border-radius: 50%; background: none; cursor: pointer; flex: none; }
 .variant-swatch-input::-webkit-color-swatch-wrapper { padding: 0; }
 .variant-swatch-input::-webkit-color-swatch { border: none; border-radius: 50%; }

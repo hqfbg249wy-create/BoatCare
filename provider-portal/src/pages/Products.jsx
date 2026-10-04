@@ -8,7 +8,7 @@ import { Plus, Pencil, Trash2, Search, Upload, X, Save, Loader, Image as ImageIc
 import { useT } from '../i18n'
 import * as XLSX from 'xlsx'
 import { exportEquipmentXlsx } from '../lib/equipmentExport'
-import { isColorOption, swatchFor, withSwatch } from '../lib/variantColors'
+import { isColorOption, swatchFor, swatchBackground, withSwatch } from '../lib/variantColors'
 
 export default function Products() {
   const { provider } = useAuth()
@@ -1156,13 +1156,20 @@ export default function Products() {
                   {(opt.values || []).map((val, vi) => (
                     <span key={vi} className="variant-value-chip">
                       {colorOpt && (
-                        <input
-                          type="color"
-                          className="variant-swatch-input"
-                          title={t('products.variantColorCode')}
-                          value={swatchFor(opt, val) || '#cccccc'}
-                          onChange={e => setVariantOptions(prev => prev.map((o, i) => i === oi ? withSwatch(o, val, e.target.value) : o))}
-                        />
+                        <>
+                          {/* Vorschau: Vollton oder Zweiton (z. B. Rot-Weiss),
+                              auch aus RAL/RGB/Hex im Wert erkannt. */}
+                          <span className="variant-swatch-preview"
+                            title={swatchFor(opt, val) || ''}
+                            style={{ background: swatchBackground(opt, val) || 'repeating-linear-gradient(45deg,#eee,#eee 3px,#fff 3px,#fff 6px)' }} />
+                          <input
+                            type="color"
+                            className="variant-swatch-input"
+                            title={t('products.variantColorCode')}
+                            value={swatchFor(opt, val) || '#cccccc'}
+                            onChange={e => setVariantOptions(prev => prev.map((o, i) => i === oi ? withSwatch(o, val, e.target.value) : o))}
+                          />
+                        </>
                       )}
                       {val}
                       <button type="button" onClick={() => setVariantOptions(prev => prev.map((o, i) => i === oi ? withSwatch({ ...o, values: o.values.filter((_, j) => j !== vi) }, val, null) : o))}>

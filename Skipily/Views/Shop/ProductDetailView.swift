@@ -549,16 +549,13 @@ struct ProductDetailView: View {
                         ForEach(option.values, id: \.self) { value in
                             let selected = variantSelection[option.name] == value
                             let available = variantValueAvailable(option.name, value)
-                            let swatch = colorOpt ? option.swatchColor(for: value) : nil
+                            let swatch = colorOpt ? option.swatchColors(for: value) : []
                             Button {
                                 variantSelection[option.name] = value
                             } label: {
                                 HStack(spacing: 6) {
-                                    if let swatch {
-                                        Circle()
-                                            .fill(swatch)
-                                            .frame(width: 16, height: 16)
-                                            .overlay(Circle().stroke(AppColors.gray300, lineWidth: 1))
+                                    if !swatch.isEmpty {
+                                        VariantSwatch(colors: swatch, size: 16)
                                     }
                                     Text(value)
                                 }

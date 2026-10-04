@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase'
 import { ChevronLeft, ChevronRight, ShoppingCart, Check, Package, Truck, Star, Tag, Plus, Minus, MapPin } from 'lucide-react'
 import { useT } from '../i18n'
 import { translateProducts, isTranslatableLang } from '../lib/dbTranslate'
-import { isColorOption, swatchFor } from '../lib/variantColors'
+import { isColorOption, swatchBackground } from '../lib/variantColors'
 
 export default function ProductDetail() {
   const { t, lang } = useT()
@@ -262,7 +262,7 @@ export default function ProductDetail() {
                     {(o.values || []).map(val => {
                       const active = String(variantSel[o.name]) === String(val)
                       const avail = valueAvailable(o.name, val)
-                      const swatch = colorOpt ? swatchFor(o, val) : null
+                      const swatch = colorOpt ? swatchBackground(o, val) : null
                       return (
                         <button key={val} type="button"
                           className={`pd-variant-chip ${active ? 'active' : ''} ${swatch ? 'has-swatch' : ''}`}
