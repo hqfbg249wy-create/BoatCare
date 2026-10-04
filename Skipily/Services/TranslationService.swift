@@ -24,6 +24,8 @@ final class TranslationService: ObservableObject {
     struct Translation: Codable, Hashable {
         let name: String
         let description: String?
+        // Uebersetzte Varianten-Begriffe: Original -> Uebersetzung (Anzeige).
+        let vopts: [String: String]?
     }
 
     struct ProviderTranslation: Codable, Hashable {
@@ -64,6 +66,17 @@ final class TranslationService: ObservableObject {
             return product.name
         }
         return t.name
+    }
+
+    /// Anzuzeigender Varianten-Begriff (Optionsname oder -wert): Uebersetzung
+    /// wenn vorhanden, sonst Original. Das Matching der Varianten laeuft weiter
+    /// ueber die Originalwerte.
+    func variantLabel(for product: Product, _ original: String, lang: String) -> String {
+        guard needsTranslation(lang),
+              let tr = cache[product.id]?[lang]?.vopts?[original], !tr.isEmpty else {
+            return original
+        }
+        return tr
     }
 
     /// Liefert die anzuzeigende Beschreibung.

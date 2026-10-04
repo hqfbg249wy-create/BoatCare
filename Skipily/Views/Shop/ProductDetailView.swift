@@ -540,7 +540,7 @@ struct ProductDetailView: View {
         VStack(alignment: .leading, spacing: 14) {
             ForEach(variantOptions, id: \.name) { option in
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(option.name)
+                    Text(translator.variantLabel(for: product, option.name, lang: lang))
                         .font(.subheadline)
                         .fontWeight(.semibold)
 
@@ -557,7 +557,7 @@ struct ProductDetailView: View {
                                     if !swatch.isEmpty {
                                         VariantSwatch(colors: swatch, size: 16)
                                     }
-                                    Text(value)
+                                    Text(translator.variantLabel(for: product, value, lang: lang))
                                 }
                                     .font(.subheadline)
                                     .fontWeight(selected ? .semibold : .regular)

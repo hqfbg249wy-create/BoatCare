@@ -130,11 +130,36 @@ async function deeplTranslateAll(
   return out;
 }
 
+interface VariantOptionDef { name?: string; values?: string[] }
 interface ProductRow {
   id: string;
   name: string;
   description: string | null;
-  translations: Record<string, { name?: string; description?: string }> | null;
+  variant_options: VariantOptionDef[] | null;
+  translations:
+    | Record<string, { name?: string; description?: string; v?: number; vopts?: Record<string, string> }>
+    | null;
+}
+
+// Alle uebersetzbaren Varianten-Begriffe (Optionsnamen + Werte) eines Produkts.
+function optionStrings(vo: VariantOptionDef[] | null): string[] {
+  if (!Array.isArray(vo)) return [];
+  const s = new Set<string>();
+  for (const o of vo) {
+    if (o?.name && String(o.name).trim()) s.add(String(o.name).trim());
+    for (const v of (o?.values ?? [])) if (v && String(v).trim()) s.add(String(v).trim());
+  }
+  return [...s];
+}
+
+// Plain-String-Array uebersetzen (Claude zuerst, DeepL als Fallback).
+async function translateStrings(strings: string[], lang: Lang, apiKey: string): Promise<string[]> {
+  if (!strings.length) return [];
+  try { return await claudeTranslateAll(strings, lang); }
+  catch (e) {
+    if (!apiKey) throw e;
+    return await deeplTranslateAll(strings, lang, apiKey);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -175,73 +200,83 @@ Deno.serve(async (req) => {
     // Produkte laden
     const { data: products, error: loadErr } = await admin
       .from("metashop_products")
-      .select("id, name, description, translations")
+      .select("id, name, description, variant_options, translations")
       .in("id", product_ids);
 
     if (loadErr) {
       return json({ error: "Produkte laden: " + loadErr.message }, 500);
     }
 
-    const result: Record<string, { name: string; description: string | null }> =
-      {};
-    const toTranslate: ProductRow[] = [];
+    const rows = (products ?? []) as ProductRow[];
+    const result: Record<string, { name: string; description: string | null; vopts?: Record<string, string> }> = {};
+    const toTranslate: ProductRow[] = []; // Name/Beschreibung fehlt
+    const vNeed: ProductRow[] = [];       // Varianten-Begriffe (vopts) fehlen
 
-    // Cache-Hits sammeln, Misses für Translation merken.
-    // Selbstheilend: ein Eintrag gilt nur als gueltiger Cache-Treffer, wenn er
-    // mit dem aktuellen Uebersetzungs-Marker (v:2) gespeichert wurde. Alte oder
-    // fehlerhafte Eintraege (kein v, oder Name == Original) werden neu uebersetzt.
-    for (const p of (products ?? []) as ProductRow[]) {
-      const cached = p.translations?.[lang] as
-        | { name?: string; description?: string | null; v?: number }
-        | undefined;
-      // Gueltig, wenn mit aktuellem Marker gespeichert (v:2) ODER der Name klar
-      // vom Original abweicht (echte Uebersetzung). Alt-Muell (kein v UND Name ==
-      // Original) wird neu uebersetzt.
-      const validHit = !!cached?.name && (cached.v === 2 || cached.name !== p.name);
+    // Cache-Hits sammeln, Misses für Translation merken. Selbstheilend: gueltig,
+    // wenn Marker v:2/v:3 ODER Name klar vom Original abweicht. vopts (Varianten)
+    // werden separat ergaenzt, auch wenn Name/Beschreibung schon gecacht sind.
+    for (const p of rows) {
+      const cached = p.translations?.[lang];
+      const validHit = !!cached?.name && (cached.v === 2 || cached.v === 3 || cached.name !== p.name);
       if (!force && validHit) {
         result[p.id] = {
           name: cached!.name!,
           description: cached!.description ?? p.description,
+          vopts: cached!.vopts,
         };
       } else {
         toTranslate.push(p);
       }
+      if ((force || !cached?.vopts) && optionStrings(p.variant_options).length > 0) {
+        vNeed.push(p);
+      }
     }
 
-    // Misses übersetzen (in einem einzigen Claude-Call → batch-fähig)
-    if (toTranslate.length > 0) {
-      const translated = await translateBatch(toTranslate, lang, apiKey);
+    // 1) Name/Beschreibung uebersetzen (ein Batch).
+    let nameDesc: Record<string, { name: string; description: string | null }> = {};
+    if (toTranslate.length > 0) nameDesc = await translateBatch(toTranslate, lang, apiKey);
 
-      // Result befüllen + DB-Update parallel
-      const updates = await Promise.allSettled(
-        toTranslate.map(async (p) => {
-          const t = translated[p.id];
-          if (!t) return;
-          result[p.id] = { name: t.name, description: t.description };
+    // 2) Varianten-Begriffe uebersetzen: ALLE distinct Strings in EINEM Aufruf.
+    const vmap: Record<string, string> = {};
+    if (vNeed.length > 0) {
+      const distinct = [...new Set(vNeed.flatMap((p) => optionStrings(p.variant_options)))];
+      const tr = await translateStrings(distinct, lang, apiKey);
+      distinct.forEach((s, i) => { const t = (tr[i] ?? "").trim(); if (t) vmap[s] = t; });
+    }
 
-          const newTranslations = {
-            ...(p.translations ?? {}),
-            [lang]: { name: t.name, description: t.description, v: 2 },
-          };
-          await admin
-            .from("metashop_products")
-            .update({ translations: newTranslations })
-            .eq("id", p.id);
-        }),
-      );
+    // 3) Zusammenfuehren + je betroffenem Produkt EIN DB-Update.
+    const affected = [...new Set([...toTranslate, ...vNeed].map((p) => p.id))];
+    const updates = await Promise.allSettled(affected.map(async (id) => {
+      const p = rows.find((x) => x.id === id)!;
+      const cached = p.translations?.[lang] ?? {};
+      const nd = nameDesc[id];
+      const name = nd?.name ?? cached.name ?? p.name;
+      const description = nd?.description ?? cached.description ?? p.description ?? null;
+      let vopts = cached.vopts;
+      if (vNeed.some((x) => x.id === id)) {
+        vopts = { ...(cached.vopts ?? {}) };
+        for (const s of optionStrings(p.variant_options)) if (vmap[s]) vopts[s] = vmap[s];
+      }
+      result[id] = { name, description, vopts };
+      const newTranslations = {
+        ...(p.translations ?? {}),
+        [lang]: { name, description, v: 3, ...(vopts ? { vopts } : {}) },
+      };
+      await admin.from("metashop_products").update({ translations: newTranslations }).eq("id", id);
+    }));
+    const failed = updates.filter((u) => u.status === "rejected").length;
+    if (failed > 0) console.error(`translate-product: ${failed} DB-Updates fehlgeschlagen`);
 
-      const failed = updates.filter((u) => u.status === "rejected").length;
-      if (failed > 0) console.error(`translate-product: ${failed} DB-Updates fehlgeschlagen`);
-
-      // Kosten-Transparenz: neu erzeugte Uebersetzungen als ai_usage buchen
-      // (translate_product zaehlt NICHT gegen die Free-Quota des Nutzers).
+    // Kosten-Transparenz: neu erzeugte Uebersetzungen als ai_usage buchen.
+    if (toTranslate.length > 0 || vNeed.length > 0) {
       try {
-        const chars = toTranslate.reduce((s, p) => s + (p.name?.length ?? 0) + (p.description?.length ?? 0), 0);
+        const chars = toTranslate.reduce((s, p) => s + (p.name?.length ?? 0) + (p.description?.length ?? 0), 0)
+          + Object.keys(vmap).reduce((s, k) => s + k.length, 0);
         await admin.from("ai_usage").insert({
           feature: "translate_product",
           source: "provider_quota",
           cost_tokens: Math.ceil(chars / 4),
-          metadata: { kind: "translation", target_lang: lang, products: toTranslate.length, chars },
+          metadata: { kind: "translation", target_lang: lang, products: toTranslate.length, variant_terms: Object.keys(vmap).length, chars },
         });
       } catch (_e) { /* best-effort */ }
     }
@@ -252,6 +287,7 @@ Deno.serve(async (req) => {
         requested: product_ids.length,
         cached: product_ids.length - toTranslate.length,
         newly_translated: toTranslate.length,
+        variant_terms: Object.keys(vmap).length,
         ...(force ? { claude_raw: lastClaudeRaw } : {}),
       },
     });

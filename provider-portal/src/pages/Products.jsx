@@ -1210,7 +1210,7 @@ export default function Products() {
                 <table className="variant-table">
                   <thead>
                     <tr>
-                      {optCols.map((o, i) => <th key={i}>{o.name}</th>)}
+                      {optCols.map((o, i) => <th key={i}>{(typeof editing === 'object' && editing?.translations?.[lang]?.vopts?.[o.name]) || o.name}</th>)}
                       <th>{t('products.variantPrice')}</th>
                       <th>{t('products.variantStock')}</th>
                       <th>SKU</th>
@@ -1226,7 +1226,7 @@ export default function Products() {
                       <Fragment key={vi}>
                       <tr>
                         {optCols.map((o, i) => (
-                          <td key={i} className="variant-attr-cell">{v.attributes?.[o.name]}</td>
+                          <td key={i} className="variant-attr-cell">{(typeof editing === 'object' && editing?.translations?.[lang]?.vopts?.[v.attributes?.[o.name]]) || v.attributes?.[o.name]}</td>
                         ))}
                         <td><input type="number" step="0.01" value={v.price} placeholder={form.price || '0.00'}
                           onChange={e => updateVariantRow(vi, { price: e.target.value })} /></td>

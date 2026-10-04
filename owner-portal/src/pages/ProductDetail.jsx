@@ -107,7 +107,7 @@ export default function ProductDetail() {
     if (withVariants && !v) return // Variante muss vollstaendig gewaehlt sein
     const id = v ? `${product.id}:${v.id}` : product.id
     const price = v?.price != null ? Number(v.price) : Number(product.price)
-    const attrLabel = v ? Object.entries(v.attributes || {}).map(([k, val]) => `${k}: ${val}`).join(', ') : ''
+    const attrLabel = v ? Object.entries(v.attributes || {}).map(([k, val]) => `${tr?.vopts?.[k] || k}: ${tr?.vopts?.[val] || val}`).join(', ') : ''
     const dispName = attrLabel ? `${product.name} (${attrLabel})` : product.name
     setCart(prev => {
       const existing = prev.find(i => i.id === id)
@@ -257,7 +257,7 @@ export default function ProductDetail() {
                 const colorOpt = isColorOption(o)
                 return (
                 <div key={o.name} className="pd-variant-opt">
-                  <label className="pd-variant-label">{o.name}</label>
+                  <label className="pd-variant-label">{tr?.vopts?.[o.name] || o.name}</label>
                   <div className="pd-variant-values">
                     {(o.values || []).map(val => {
                       const active = String(variantSel[o.name]) === String(val)
@@ -270,7 +270,7 @@ export default function ProductDetail() {
                           title={val}
                           onClick={() => setVariantSel(prev => ({ ...prev, [o.name]: val }))}>
                           {swatch && <span className="pd-variant-swatch" style={{ background: swatch }} />}
-                          {val}
+                          {tr?.vopts?.[val] || val}
                         </button>
                       )
                     })}
