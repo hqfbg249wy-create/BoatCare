@@ -196,7 +196,8 @@ final class InquiryService {
         subject: String,
         message: String,
         notes: String?,
-        send: Bool
+        send: Bool,
+        ropeConfig: RopeConfigPayload? = nil
     ) async throws {
         let payload = InquiryInsert(
             ownerId: ownerId,
@@ -205,12 +206,42 @@ final class InquiryService {
             subject: subject.trimmingCharacters(in: .whitespacesAndNewlines),
             message: message.trimmingCharacters(in: .whitespacesAndNewlines),
             ownerNotes: notes?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty(),
-            status: send ? "sent" : "draft"
+            status: send ? "sent" : "draft",
+            ropeConfig: ropeConfig
         )
         try await client
             .from("service_inquiries")
             .insert(payload)
             .execute()
+    }
+
+    /// Neueste Tauwerk-Konfiguration eines Equipments als rope_config-Payload
+    /// (fuer den Angebots-Builder des Anbieters). nil, wenn keine vorhanden.
+    func fetchRopeConfig(equipmentId: UUID) async -> RopeConfigPayload? {
+        struct Row: Decodable {
+            let length_m: Double?; let diameter_mm: Double?; let material: String?
+            let end1: String?; let end2: String?
+            let end1_eye_length_cm: Double?; let end2_eye_length_cm: Double?
+            let article_number: String?; let matched_product_id: String?
+        }
+        do {
+            let rows: [Row] = try await client
+                .from("rope_configurations")
+                .select("length_m, diameter_mm, material, end1, end2, end1_eye_length_cm, end2_eye_length_cm, article_number, matched_product_id")
+                .eq("equipment_id", value: equipmentId.uuidString)
+                .order("updated_at", ascending: false)
+                .limit(1)
+                .execute().value
+            guard let r = rows.first else { return nil }
+            return RopeConfigPayload(
+                length_m: r.length_m, diameter_mm: r.diameter_mm, material: r.material,
+                end1: r.end1, end2: r.end2,
+                end1_eye_length_cm: r.end1_eye_length_cm, end2_eye_length_cm: r.end2_eye_length_cm,
+                article_number: r.article_number, matched_product_id: r.matched_product_id)
+        } catch {
+            AppLog.warning("fetchRopeConfig fehlgeschlagen: \(error)")
+            return nil
+        }
     }
 
     // MARK: - Update (draft editing)

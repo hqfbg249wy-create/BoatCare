@@ -1078,6 +1078,17 @@ struct InquiryComposeView: View {
                       let pid = effectiveProviderId else {
                     errorMessage = "Bitte einen Anbieter wählen."; isSaving = false; return
                 }
+                // Tauwerk-Kriterien mitgeben (Auto-Vorbefuellung im Angebots-Builder
+                // des Anbieters), wenn ein Tauwerk-Equipment beteiligt ist.
+                let allEq = equipmentByBoat.values.flatMap { $0 }
+                let isRope: (EquipmentPickerItem) -> Bool = { eq in
+                    let c = (eq.category ?? "").lowercased()
+                    return c.contains("rope") || c.contains("tauwerk")
+                }
+                var ropeEqId: UUID? = selectedEquipment.first { id in allEq.first { $0.id == id }.map(isRope) ?? false }
+                if ropeEqId == nil, let pre = preselectedEquipmentId, let eq = allEq.first(where: { $0.id == pre }), isRope(eq) { ropeEqId = pre }
+                let ropeCfg = ropeEqId != nil ? await InquiryService.shared.fetchRopeConfig(equipmentId: ropeEqId!) : nil
+
                 try await InquiryService.shared.createInquiry(
                     ownerId: uid,
                     providerId: pid,
@@ -1085,7 +1096,8 @@ struct InquiryComposeView: View {
                     subject: trimmedSubject,
                     message: trimmedMessage,
                     notes: trimmedNotes.isEmpty ? nil : trimmedNotes,
-                    send: send
+                    send: send,
+                    ropeConfig: ropeCfg
                 )
                 if send {
                     // Anfrage als Konversation spiegeln → im Provider-Portal sichtbar.

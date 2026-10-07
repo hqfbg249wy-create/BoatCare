@@ -182,6 +182,20 @@ struct InquiryBoat: Codable, Sendable {
 
 // MARK: - Insert / Update payloads
 
+// Strukturierte Tauwerk-Kriterien an der Anfrage (fuer den Angebots-Builder
+// des Anbieters). Entspricht service_inquiries.rope_config (jsonb).
+struct RopeConfigPayload: Encodable {
+    let length_m: Double?
+    let diameter_mm: Double?
+    let material: String?
+    let end1: String?
+    let end2: String?
+    let end1_eye_length_cm: Double?
+    let end2_eye_length_cm: Double?
+    let article_number: String?
+    let matched_product_id: String?
+}
+
 struct InquiryInsert: Encodable {
     let ownerId: UUID
     let providerId: UUID
@@ -190,6 +204,7 @@ struct InquiryInsert: Encodable {
     let message: String
     let ownerNotes: String?
     let status: String
+    var ropeConfig: RopeConfigPayload? = nil
 
     enum CodingKeys: String, CodingKey {
         case ownerId    = "owner_id"
@@ -199,6 +214,7 @@ struct InquiryInsert: Encodable {
         case message
         case ownerNotes = "owner_notes"
         case status
+        case ropeConfig = "rope_config"
     }
 }
 
