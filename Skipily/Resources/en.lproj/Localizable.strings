@@ -1241,3 +1241,8 @@
 "announcement.dismiss" = "Dismiss";
 "announcement.empty.title" = "No announcements";
 "announcement.empty.body" = "News from Skipily appears here, e.g. about updates or new providers.";
+
+/* Tauwerk-Angebot (Varianten) */
+"inq.rope.shipping" = "Shipping";
+"inq.rope.total" = "Total";
+"inq.rope.byAddress" = "shipping by address";

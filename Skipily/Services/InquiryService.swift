@@ -137,17 +137,32 @@ final class InquiryService {
 
     /// Nimmt das Angebot eines Anbieters an → erzeugt eine Deferred-Bestellung
     /// (Zahlung via Stripe) und liefert deren Order-ID.
-    func acceptOffer(inquiryId: UUID) async throws -> UUID {
-        struct Body: Encodable { let inquiry_id: String }
+    func acceptOffer(inquiryId: UUID, variantId: UUID? = nil) async throws -> UUID {
+        struct Body: Encodable { let inquiry_id: String; let variant_id: String? }
         struct Resp: Decodable { let ok: Bool?; let order_id: UUID?; let error: String? }
         let resp: Resp = try await client.functions.invoke(
-            "accept-offer", options: .init(body: Body(inquiry_id: inquiryId.uuidString))
+            "accept-offer",
+            options: .init(body: Body(inquiry_id: inquiryId.uuidString, variant_id: variantId?.uuidString))
         )
         guard resp.ok == true, let oid = resp.order_id else {
             throw NSError(domain: "Skipily.Offer", code: 500,
                           userInfo: [NSLocalizedDescriptionKey: resp.error ?? "Annahme fehlgeschlagen"])
         }
         return oid
+    }
+
+    /// Laedt das strukturierte Tauwerk-Angebot (bis zu 3 Varianten) via RPC.
+    func fetchInquiryOffer(inquiryId: UUID) async -> InquiryOffer? {
+        struct P: Encodable { let p_inquiry_id: String }
+        do {
+            let offer: InquiryOffer = try await client
+                .rpc("get_inquiry_offer", params: P(p_inquiry_id: inquiryId.uuidString))
+                .execute().value
+            return offer
+        } catch {
+            AppLog.warning("get_inquiry_offer fehlgeschlagen: \(error)")
+            return nil
+        }
     }
 
     /// Tauwerk-Angebotsanfrage an ALLE Tauwerk-Anbieter (je Anbieter eine

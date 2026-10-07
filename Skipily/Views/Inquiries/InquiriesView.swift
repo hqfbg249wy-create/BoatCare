@@ -384,29 +384,39 @@ struct InquiriesContent: View {
         return VStack(alignment: .leading, spacing: 8) {
             Text("inq.offer_label".loc.uppercased())
                 .font(.caption2).fontWeight(.semibold).foregroundStyle(AppColors.primary)
-            if let d = inq.offerDescription, !d.isEmpty {
-                Text(d).font(.subheadline).fixedSize(horizontal: false, vertical: true)
-            }
-            Text(String(format: "inq.offer_total".loc, money(inq.offerTotal)))
-                .font(.headline)
-            if (inq.offerShipping ?? 0) > 0 {
-                Text(String(format: "inq.offer_incl_shipping".loc, money(inq.offerShipping ?? 0)))
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Button {
-                Task { await acceptAndPay(inq) }
-            } label: {
-                HStack(spacing: 8) {
-                    if acceptingId == inq.id { ProgressView().tint(.white) }
-                    else { Image(systemName: "checkmark.seal.fill") }
-                    Text("inq.offer_accept_pay".loc).fontWeight(.semibold)
+            if inq.isRopeOffer {
+                // Tauwerk: bis zu 3 Varianten, Annahme je Variante.
+                RopeOfferVariantsView(
+                    inquiry: inq,
+                    isAccepting: acceptingId == inq.id,
+                    disabled: acceptingId != nil || offerActioningId != nil,
+                    onAccept: { vid in Task { await acceptAndPay(inq, variantId: vid) } }
+                )
+            } else {
+                if let d = inq.offerDescription, !d.isEmpty {
+                    Text(d).font(.subheadline).fixedSize(horizontal: false, vertical: true)
                 }
-                .frame(maxWidth: .infinity)
+                Text(String(format: "inq.offer_total".loc, money(inq.offerTotal)))
+                    .font(.headline)
+                if (inq.offerShipping ?? 0) > 0 {
+                    Text(String(format: "inq.offer_incl_shipping".loc, money(inq.offerShipping ?? 0)))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Button {
+                    Task { await acceptAndPay(inq) }
+                } label: {
+                    HStack(spacing: 8) {
+                        if acceptingId == inq.id { ProgressView().tint(.white) }
+                        else { Image(systemName: "checkmark.seal.fill") }
+                        Text("inq.offer_accept_pay".loc).fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
+                .tint(AppColors.success)
+                .disabled(acceptingId != nil || offerActioningId != nil)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.regular)
-            .tint(AppColors.success)
-            .disabled(acceptingId != nil || offerActioningId != nil)
 
             // Ablehnen + Nachfrage
             HStack(spacing: 10) {
@@ -539,12 +549,12 @@ struct InquiriesContent: View {
     }
 
     @MainActor
-    private func acceptAndPay(_ inq: ServiceInquiry) async {
+    private func acceptAndPay(_ inq: ServiceInquiry, variantId: UUID? = nil) async {
         acceptingId = inq.id
         acceptInfo = nil
         defer { acceptingId = nil }
         do {
-            let orderId = try await InquiryService.shared.acceptOffer(inquiryId: inq.id)
+            let orderId = try await InquiryService.shared.acceptOffer(inquiryId: inq.id, variantId: variantId)
             pendingOrderId = orderId
             // Deferred-Flow: Karte hinterlegen (SetupIntent), keine Sofort-Abbuchung.
             let (sheet, setupIntentId) = try await PaymentService.shared.createDeferredSetupSheet()

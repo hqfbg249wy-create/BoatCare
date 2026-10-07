@@ -1246,3 +1246,8 @@ Ausrüstung unter Boote ergänzen.";
 "announcement.dismiss" = "Ausblenden";
 "announcement.empty.title" = "Keine Mitteilungen";
 "announcement.empty.body" = "Hier erscheinen Neuigkeiten von Skipily, z. B. zu Updates oder neuen Anbietern.";
+
+/* Tauwerk-Angebot (Varianten) */
+"inq.rope.shipping" = "Versand";
+"inq.rope.total" = "Gesamt";
+"inq.rope.byAddress" = "Versand nach Adresse";

@@ -52,12 +52,15 @@ struct ServiceInquiry: Identifiable, Codable, Sendable {
     let offerStatus: String?
     let orderId: UUID?
     let ownerArchived: Bool?
+    // Tauwerk-Kriterien (vorhanden => strukturiertes Mehr-Varianten-Angebot).
+    let ropeConfig: RopeConfigDecoded?
 
     // Joined
     let provider: InquiryProvider?
     let boat: InquiryBoat?
 
     var isArchived: Bool { ownerArchived == true }
+    var isRopeOffer: Bool { ropeConfig != nil }
 
     /// Es liegt ein annehmbares Angebot vor (noch keine Bestellung erzeugt).
     var hasOpenOffer: Bool {
@@ -86,6 +89,7 @@ struct ServiceInquiry: Identifiable, Codable, Sendable {
         case offerStatus      = "offer_status"
         case orderId          = "order_id"
         case ownerArchived    = "owner_archived"
+        case ropeConfig       = "rope_config"
         case provider     = "service_providers"
         case boat         = "boats"
     }
@@ -181,6 +185,38 @@ struct InquiryBoat: Codable, Sendable {
 }
 
 // MARK: - Insert / Update payloads
+
+// Dekodierte Tauwerk-Kriterien an der Anfrage (Presence => Rope-Angebot).
+struct RopeConfigDecoded: Codable, Hashable {
+    let length_m: Double?
+    let diameter_mm: Double?
+    let material: String?
+    let end1: String?
+    let end2: String?
+}
+
+// Strukturiertes Angebot (get_inquiry_offer): Anschreiben + bis zu 3 Varianten.
+struct InquiryOffer: Codable {
+    let cover_letter: String?
+    let variants: [OfferVariant]?
+}
+struct OfferVariant: Codable, Identifiable, Hashable {
+    let id: UUID
+    let title: String?
+    let currency: String?
+    let discount_type: String?
+    let discount_value: Double?
+    let discount_label: String?
+    let shipping_mode: String?
+    let shipping_cost: Double?
+    let total: Double?
+    let items: [OfferItem]?
+}
+struct OfferItem: Codable, Identifiable, Hashable {
+    let id: UUID
+    let label: String?
+    let line_total: Double?
+}
 
 // Strukturierte Tauwerk-Kriterien an der Anfrage (fuer den Angebots-Builder
 // des Anbieters). Entspricht service_inquiries.rope_config (jsonb).

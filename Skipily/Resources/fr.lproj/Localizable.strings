@@ -1242,3 +1242,8 @@
 "announcement.dismiss" = "Masquer";
 "announcement.empty.title" = "Aucune annonce";
 "announcement.empty.body" = "Les nouveautés de Skipily apparaissent ici, par ex. mises à jour ou nouveaux prestataires.";
+
+/* Tauwerk-Angebot (Varianten) */
+"inq.rope.shipping" = "Livraison";
+"inq.rope.total" = "Total";
+"inq.rope.byAddress" = "frais selon l'adresse";

@@ -1242,3 +1242,8 @@
 "announcement.dismiss" = "Nascondi";
 "announcement.empty.title" = "Nessuna comunicazione";
 "announcement.empty.body" = "Qui compaiono le novità di Skipily, ad es. aggiornamenti o nuovi fornitori.";
+
+/* Tauwerk-Angebot (Varianten) */
+"inq.rope.shipping" = "Spedizione";
+"inq.rope.total" = "Totale";
+"inq.rope.byAddress" = "spedizione per indirizzo";
