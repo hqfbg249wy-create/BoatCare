@@ -21,6 +21,12 @@ export default function Inquiries() {
   const [threadOpen, setThreadOpen] = useState({}) // inquiryId -> bool
   const [replyText, setReplyText] = useState({})  // inquiryId -> string
   const [posting, setPosting] = useState(null)
+  const [ropeForce, setRopeForce] = useState(() => new Set()) // manuell als Tauwerk-Angebot
+
+  // Tauwerk-Angebot (Varianten-Builder) zeigen: wenn rope_config vorhanden,
+  // am Stichwort erkannt oder vom Anbieter manuell gewaehlt.
+  const isRopeKeyword = (inq) => /tauwerk|rope|splei|cordage|touw/i.test(`${inq.subject || ''} ${inq.message || ''}`)
+  const showRope = (inq) => !!inq.rope_config || ropeForce.has(inq.id) || isRopeKeyword(inq)
 
   async function loadThread(inqId) {
     const { data } = await supabase.rpc('get_inquiry_thread', { p_inquiry_id: inqId })
@@ -203,7 +209,7 @@ export default function Inquiries() {
                   </div>
                 )}
 
-                {!ordered && inq.rope_config && (
+                {!ordered && showRope(inq) && (
                   <div className="offer-form">
                     <RopeOfferBuilder inquiry={inq} provider={provider}
                       onSent={() => { setMessage({ type: 'success', text: t('inquiries.offerSent') }); load() }} />
@@ -221,10 +227,14 @@ export default function Inquiries() {
                     </div>
                   </div>
                 )}
-                {!ordered && !inq.rope_config && (
+                {!ordered && !showRope(inq) && (
                   <div className="offer-form">
-                    <div className="offer-form-title">
-                      {(offered || declined) ? t('inquiries.changeOffer') : t('inquiries.makeOffer')}
+                    <div className="offer-form-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span>{(offered || declined) ? t('inquiries.changeOffer') : t('inquiries.makeOffer')}</span>
+                      <button type="button" className="btn-secondary" style={{ padding: '4px 10px', fontSize: 13 }}
+                        onClick={() => setRopeForce(prev => new Set(prev).add(inq.id))}>
+                        {t('inquiries.useRopeBuilder')}
+                      </button>
                     </div>
                     <div className="form-row">
                       <div className="form-group">

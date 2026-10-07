@@ -52,6 +52,7 @@ export default function Inquiries() {
   const [deleteConfirm, setDeleteConfirm] = useState(null) // id to confirm delete
   const [expanded, setExpanded] = useState(null)       // expanded reply
   const [justRead, setJustRead] = useState(() => new Set()) // in dieser Sitzung gelesen
+  const [ropeVars, setRopeVars] = useState({}) // inquiryId -> true/false (hat Varianten)
   const [questionFor, setQuestionFor] = useState(null) // inquiry.id für offene Rückfrage
   const [questionText, setQuestionText] = useState('')
   const [offerBusy, setOfferBusy] = useState(null) // inquiry.id während einer Aktion
@@ -322,12 +323,14 @@ export default function Inquiries() {
                   </div>
                 )}
 
-                {/* Tauwerk-Angebot (bis zu 3 Varianten) */}
-                {inq.offer_status === 'offered' && !inq.order_id && inq.rope_config && (
-                  <RopeOfferView inquiry={inq} busy={offerBusy === inq.id} onAccept={(vid) => offerAccept(inq, vid)} />
+                {/* Tauwerk-Angebot (bis zu 3 Varianten) - sichtbar, sobald Varianten existieren */}
+                {inq.offer_status === 'offered' && !inq.order_id && (
+                  <RopeOfferView inquiry={inq} busy={offerBusy === inq.id}
+                    onAccept={(vid) => offerAccept(inq, vid)}
+                    onLoaded={(has) => setRopeVars(prev => (prev[inq.id] === has ? prev : { ...prev, [inq.id]: has }))} />
                 )}
-                {/* Bepreistes (flaches) Angebot */}
-                {inq.offer_status === 'offered' && Number(inq.offer_amount) > 0 && !inq.order_id && !inq.rope_config && (
+                {/* Bepreistes (flaches) Angebot - nur wenn KEINE Varianten */}
+                {inq.offer_status === 'offered' && Number(inq.offer_amount) > 0 && !inq.order_id && ropeVars[inq.id] === false && (
                   <div className="inq-offer-box">
                     <div className="inq-offer-head"><Tag size={15} /> Angebot</div>
                     <div className="inq-offer-total">{money((Number(inq.offer_amount) || 0) + (Number(inq.offer_shipping) || 0), inq.offer_currency)}</div>
@@ -374,7 +377,7 @@ export default function Inquiries() {
                 {/* Actions */}
                 <div className="inq-card-actions">
                   {/* Käufer-Aktionen auf ein Angebot (flach; Tauwerk hat Buttons je Variante) */}
-                  {inq.offer_status === 'offered' && Number(inq.offer_amount) > 0 && !inq.order_id && !inq.rope_config && (
+                  {inq.offer_status === 'offered' && Number(inq.offer_amount) > 0 && !inq.order_id && ropeVars[inq.id] === false && (
                     <button className="btn-success btn-sm" disabled={offerBusy === inq.id}
                       onClick={() => offerAccept(inq)}>
                       <Check size={14} /> Annehmen &amp; bezahlen

@@ -20,15 +20,19 @@ function renderLetter(tpl, provider, fullName) {
     .replace(/[ \t]{2,}/g, ' ')
 }
 
-export default function RopeOfferView({ inquiry, onAccept, busy }) {
+export default function RopeOfferView({ inquiry, onAccept, busy, onLoaded }) {
   const { user } = useAuth()
   const { t } = useT()
   const [offer, setOffer] = useState(null)
   const [buyerName, setBuyerName] = useState('')
 
   useEffect(() => {
-    supabase.rpc('get_inquiry_offer', { p_inquiry_id: inquiry.id }).then(({ data }) => setOffer(data || null))
+    supabase.rpc('get_inquiry_offer', { p_inquiry_id: inquiry.id }).then(({ data }) => {
+      setOffer(data || null)
+      onLoaded?.((data?.variants?.length || 0) > 0)
+    })
     if (user?.id) supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle().then(({ data }) => setBuyerName(data?.full_name || ''))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inquiry.id, user?.id])
 
   if (!offer || !(offer.variants?.length)) return null

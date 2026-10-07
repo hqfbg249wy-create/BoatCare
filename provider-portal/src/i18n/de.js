@@ -989,4 +989,5 @@ export default {
   "ropePrices.standardTerm": "Standardbegriff",
   "ropePrices.ownTerm": "Eigene Bezeichnung",
   "ropePrices.priceCol": "Preis (€)",
+  "inquiries.useRopeBuilder": "Tauwerk-Angebot (Varianten)",
 }
