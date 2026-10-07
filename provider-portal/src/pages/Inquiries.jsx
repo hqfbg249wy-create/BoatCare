@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Inbox, Send, CheckCircle, Package, XCircle, Trash2, MessageSquare } from 'lucide-react'
 import { useT } from '../i18n'
+import RopeOfferBuilder from '../components/RopeOfferBuilder'
 
 // Anfragen der Kunden an diesen Betrieb + strukturiertes Angebot (Preis) abgeben.
 // Der Kunde kann das Angebot in der App annehmen und ueber Stripe bezahlen.
@@ -202,7 +203,25 @@ export default function Inquiries() {
                   </div>
                 )}
 
-                {!ordered && (
+                {!ordered && inq.rope_config && (
+                  <div className="offer-form">
+                    <RopeOfferBuilder inquiry={inq} provider={provider}
+                      onSent={() => { setMessage({ type: 'success', text: t('inquiries.offerSent') }); load() }} />
+                    <div className="offer-actions" style={{ marginTop: 10 }}>
+                      {!declined && (
+                        <button className="btn-secondary" disabled={busy}
+                          onClick={() => doAction(inq, 'decline', t('inquiries.declineConfirm'))}>
+                          <XCircle size={15} /> {t('inquiries.decline')}
+                        </button>
+                      )}
+                      <button className="btn-secondary btn-danger" disabled={busy}
+                        onClick={() => doAction(inq, 'archive', t('inquiries.removeConfirm'))}>
+                        <Trash2 size={15} /> {t('inquiries.remove')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {!ordered && !inq.rope_config && (
                   <div className="offer-form">
                     <div className="offer-form-title">
                       {(offered || declined) ? t('inquiries.changeOffer') : t('inquiries.makeOffer')}

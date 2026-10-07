@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useFeatureAccess } from '../hooks/useFeatureAccess'
 import FeatureLock from '../components/FeatureLock'
+import RopeEndPricesEditor from '../components/RopeEndPricesEditor'
 import { supabase } from '../lib/supabase'
 import { Save, Loader, CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, Key, Copy, RefreshCw, Globe, Image as ImageIcon, Upload, Trash2, Tag, Wrench, Plus, X, Eye, Lock, Truck, ShieldCheck, RotateCcw, FileText, ChevronDown } from 'lucide-react'
 import { useT } from '../i18n'
@@ -2782,6 +2783,8 @@ export default function Profile() {
           </button>
         </div>
       </form>
+
+      {canAdmin && <RopeEndPricesEditor provider={provider} />}
     </div>
   )
 }
