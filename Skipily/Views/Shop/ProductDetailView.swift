@@ -545,7 +545,7 @@ struct ProductDetailView: View {
                         .fontWeight(.semibold)
 
                     let colorOpt = option.isColorOption
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 70), spacing: 8)], spacing: 8) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 88), spacing: 8)], spacing: 8) {
                         ForEach(option.values, id: \.self) { value in
                             let selected = variantSelection[option.name] == value
                             let available = variantValueAvailable(option.name, value)
@@ -558,11 +558,15 @@ struct ProductDetailView: View {
                                         VariantSwatch(colors: swatch, size: 16)
                                     }
                                     Text(translator.variantLabel(for: product, value, lang: lang))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.7)
+                                        .truncationMode(.tail)
                                 }
                                     .font(.subheadline)
                                     .fontWeight(selected ? .semibold : .regular)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 10)
+                                    .padding(.horizontal, 6)
                                     .background(selected ? AppColors.primary.opacity(0.12) : AppColors.gray50)
                                     .foregroundStyle(selected ? AppColors.primary : (available ? AppColors.gray900 : AppColors.gray400))
                                     .overlay(
