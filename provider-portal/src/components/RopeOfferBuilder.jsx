@@ -45,6 +45,8 @@ export default function RopeOfferBuilder({ inquiry, provider, onSent }) {
   const [products, setProducts] = useState([])
   const [variantsByProduct, setVariantsByProduct] = useState({}) // productId -> [{id, label, price}]
   const [endPrices, setEndPrices] = useState({}) // end_option -> price
+  const [endLabels, setEndLabels] = useState({}) // end_option -> eigenes Label
+  const [matLabels, setMatLabels] = useState({}) // material_key -> eigenes Label
   const [sending, setSending] = useState(false)
   const [err, setErr] = useState(null)
 
@@ -59,13 +61,24 @@ export default function RopeOfferBuilder({ inquiry, provider, onSent }) {
       setProducts(prods || [])
       const { data: ep } = await supabase
         .from('provider_rope_end_prices')
-        .select('end_option, price')
+        .select('end_option, price, label')
         .eq('provider_id', provider.id)
-      const m = {}
-      for (const r of ep || []) m[r.end_option] = r.price
-      setEndPrices(m)
+      const m = {}, lbl = {}
+      for (const r of ep || []) { m[r.end_option] = r.price; if (r.label) lbl[r.end_option] = r.label }
+      setEndPrices(m); setEndLabels(lbl)
+      const { data: ml } = await supabase
+        .from('provider_rope_material_labels')
+        .select('material_key, label')
+        .eq('provider_id', provider.id)
+      const mm = {}
+      for (const r of ml || []) if (r.label) mm[r.material_key] = r.label
+      setMatLabels(mm)
     })()
   }, [provider])
+
+  // Eigene Begriffe bevorzugen, sonst Standard-Label.
+  const endLabel = (o) => endLabels[o] || t('rope.end.' + o)
+  const matLabel = (m) => matLabels[m] || t('rope.material.' + m)
 
   // Produktvarianten (Preise) bei Bedarf nachladen.
   async function ensureProductVariants(productId) {
@@ -141,8 +154,8 @@ export default function RopeOfferBuilder({ inquiry, provider, onSent }) {
           product_id: v.material_product_id, product_variant_id: v.material_variant_id || null,
         })
       }
-      if (v.end1) items.push({ kind: 'end1', label: `${t('ropeOffer.end1')}: ${t('rope.end.' + v.end1)}`, qty: 1, unit_price: num(v.end1_price) })
-      if (v.end2) items.push({ kind: 'end2', label: `${t('ropeOffer.end2')}: ${t('rope.end.' + v.end2)}`, qty: 1, unit_price: num(v.end2_price) })
+      if (v.end1) items.push({ kind: 'end1', label: `${t('ropeOffer.end1')}: ${endLabel(v.end1)}`, qty: 1, unit_price: num(v.end1_price) })
+      if (v.end2) items.push({ kind: 'end2', label: `${t('ropeOffer.end2')}: ${endLabel(v.end2)}`, qty: 1, unit_price: num(v.end2_price) })
       for (const c of (v.custom || [])) if ((c.label || '').trim()) items.push({ kind: 'custom', label: c.label.trim(), qty: num(c.qty) || 1, unit_price: num(c.price) })
       return {
         title: v.title, length_m: num(v.length_m) || null, diameter_mm: num(v.diameter_mm) || null,
@@ -203,7 +216,7 @@ export default function RopeOfferBuilder({ inquiry, provider, onSent }) {
             <div style={{ marginTop: 8 }}><label style={{ fontSize: 12 }}>{t('ropeOffer.material')}</label>
               <select value={v.material} onChange={e => patch(vi, { material: e.target.value })} style={inStyle}>
                 <option value="">{t('rope.materialNone')}</option>
-                {ROPE_MATERIALS.map(m => <option key={m} value={m}>{t('rope.material.' + m)}</option>)}
+                {ROPE_MATERIALS.map(m => <option key={m} value={m}>{matLabel(m)}</option>)}
               </select>
             </div>
 
@@ -226,7 +239,7 @@ export default function RopeOfferBuilder({ inquiry, provider, onSent }) {
               <div><label style={{ fontSize: 12 }}>{t('ropeOffer.end1')}</label>
                 <select value={v.end1} onChange={e => onSelectEnd(vi, 1, e.target.value)} style={inStyle}>
                   <option value="">{t('rope.endNone')}</option>
-                  {ROPE_END_OPTIONS.map(o => <option key={o} value={o}>{t('rope.end.' + o)}</option>)}
+                  {ROPE_END_OPTIONS.map(o => <option key={o} value={o}>{endLabel(o)}</option>)}
                 </select></div>
               <div><label style={{ fontSize: 12 }}>{t('ropeOffer.endPrice')}</label>
                 <input value={v.end1_price} onChange={e => patch(vi, { end1_price: e.target.value })} inputMode="decimal" style={inStyle} disabled={!v.end1} /></div>
@@ -235,7 +248,7 @@ export default function RopeOfferBuilder({ inquiry, provider, onSent }) {
               <div><label style={{ fontSize: 12 }}>{t('ropeOffer.end2')}</label>
                 <select value={v.end2} onChange={e => onSelectEnd(vi, 2, e.target.value)} style={inStyle}>
                   <option value="">{t('rope.endNone')}</option>
-                  {ROPE_END_OPTIONS.map(o => <option key={o} value={o}>{t('rope.end.' + o)}</option>)}
+                  {ROPE_END_OPTIONS.map(o => <option key={o} value={o}>{endLabel(o)}</option>)}
                 </select></div>
               <div><label style={{ fontSize: 12 }}>{t('ropeOffer.endPrice')}</label>
                 <input value={v.end2_price} onChange={e => patch(vi, { end2_price: e.target.value })} inputMode="decimal" style={inStyle} disabled={!v.end2} /></div>

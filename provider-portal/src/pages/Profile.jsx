@@ -2784,7 +2784,15 @@ export default function Profile() {
         </div>
       </form>
 
-      {canAdmin && <RopeEndPricesEditor provider={provider} />}
+      {canAdmin && (
+        <div style={{ marginTop: 16 }}>
+          <CollapsibleGroup title={t('profile.grpRopePresets')}>
+            <div className="card">
+              <RopeEndPricesEditor provider={provider} />
+            </div>
+          </CollapsibleGroup>
+        </div>
+      )}
     </div>
   )
 }

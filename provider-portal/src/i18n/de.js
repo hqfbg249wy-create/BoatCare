@@ -981,6 +981,12 @@ export default {
   "ropeOffer.endPricesHint": "Enden-Festpreise pflegst du unter Profil → Tauwerk-Preise.",
   "ropeOffer.errEmpty": "Jede Variante braucht mindestens eine Position.",
   "ropePrices.title": "Tauwerk-Preise (Enden)",
-  "ropePrices.hint": "Festpreise je Enden-Variante. Sie bef�llen den Angebots-Builder vor und sind je Angebot �nderbar. Leeres Feld = nicht angeboten.",
+  "ropePrices.hint": "Festpreise je Enden-Variante und anpassbare Begriffe (Bezeichnungen sind nicht überall gleich). Befüllt den Angebots-Builder vor, je Angebot änderbar. Leeres Feld = Standard/kein Preis.",
   "ropePrices.saved": "Preise gespeichert.",
+  "profile.grpRopePresets": "Voreinstellungen für Angebote",
+  "ropePrices.endsTitle": "Enden (Festpreise)",
+  "ropePrices.materialsTitle": "Materialien (Bezeichnung)",
+  "ropePrices.standardTerm": "Standardbegriff",
+  "ropePrices.ownTerm": "Eigene Bezeichnung",
+  "ropePrices.priceCol": "Preis (€)",
 }
