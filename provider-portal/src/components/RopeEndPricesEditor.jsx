@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useT } from '../i18n'
 import { ROPE_END_OPTIONS, ROPE_MATERIALS } from '../lib/ropeOptions'
-import { Save, Loader } from 'lucide-react'
+import { Save, Loader, Plus, Trash2 } from 'lucide-react'
+
+const genKey = () => 'custom_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
 
 // Voreinstellungen für Angebote (Tauwerk): Enden-Festpreise + anpassbare
 // Begriffe für Enden + Materialien. Die Bezeichnung ist bereits mit dem
@@ -13,7 +15,8 @@ export default function RopeEndPricesEditor({ provider }) {
   const endDefault = (o) => t('rope.end.' + o)
   const matDefault = (m) => t('rope.material.' + m)
   const [ends, setEnds] = useState({})   // key -> { label, price } (Strings)
-  const [mats, setMats] = useState({})   // key -> label (String)
+  const [mats, setMats] = useState({})   // key -> label (String; Standard + eigene)
+  const [customKeys, setCustomKeys] = useState([]) // eigene Material-Keys
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState(null)
 
@@ -35,11 +38,13 @@ export default function RopeEndPricesEditor({ provider }) {
 
       const { data: ml } = await supabase.from('provider_rope_material_labels')
         .select('material_key, label').eq('provider_id', provider.id)
-      const dbMat = {}
-      for (const r of ml || []) dbMat[r.material_key] = r.label
-      const m = {}
-      for (const k of ROPE_MATERIALS) m[k] = dbMat[k] || matDefault(k)
-      setMats(m)
+      const m = {}, custom = []
+      for (const k of ROPE_MATERIALS) m[k] = matDefault(k)
+      for (const r of ml || []) {
+        m[r.material_key] = r.label || ''
+        if (!ROPE_MATERIALS.includes(r.material_key)) custom.push(r.material_key)
+      }
+      setMats(m); setCustomKeys(custom)
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provider?.id])
@@ -74,12 +79,17 @@ export default function RopeEndPricesEditor({ provider }) {
         if (error) throw error
       }
 
-      // Materialien: Label nur speichern, wenn abweichend.
+      // Materialien: Standard nur bei Abweichung, eigene immer wenn Label gesetzt.
       const matRows = []
       const matDel = []
       for (const k of ROPE_MATERIALS) {
         const lbl = (mats[k] || '').trim()
         if (lbl && lbl !== matDefault(k)) matRows.push({ provider_id: provider.id, material_key: k, label: lbl, updated_at: new Date().toISOString() })
+        else matDel.push(k)
+      }
+      for (const k of customKeys) {
+        const lbl = (mats[k] || '').trim()
+        if (lbl) matRows.push({ provider_id: provider.id, material_key: k, label: lbl, updated_at: new Date().toISOString() })
         else matDel.push(k)
       }
       if (matDel.length) await supabase.from('provider_rope_material_labels').delete().eq('provider_id', provider.id).in('material_key', matDel)
@@ -120,7 +130,21 @@ export default function RopeEndPricesEditor({ provider }) {
         {ROPE_MATERIALS.map(m => (
           <input key={m} value={mats[m] ?? ''} onChange={e => setMats(prev => ({ ...prev, [m]: e.target.value }))} style={inp} />
         ))}
+        {customKeys.map(k => (
+          <div key={k} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input value={mats[k] ?? ''} placeholder={t('ropePrices.materialPlaceholder')}
+              onChange={e => setMats(prev => ({ ...prev, [k]: e.target.value }))} style={{ ...inp, flex: 1 }} />
+            <button type="button" className="btn-secondary" style={{ padding: '6px 9px' }}
+              onClick={() => { setCustomKeys(prev => prev.filter(x => x !== k)); setMats(prev => { const n = { ...prev }; delete n[k]; return n }) }}>
+              <Trash2 size={14} />
+            </button>
+          </div>
+        ))}
       </div>
+      <button type="button" className="btn-secondary" style={{ marginTop: 8, padding: '5px 10px', fontSize: 13 }}
+        onClick={() => { const k = genKey(); setCustomKeys(prev => [...prev, k]); setMats(prev => ({ ...prev, [k]: '' })) }}>
+        <Plus size={14} /> {t('ropePrices.addMaterial')}
+      </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
         <button type="button" className="btn-primary" onClick={save} disabled={saving}>

@@ -990,4 +990,6 @@ export default {
   "ropePrices.ownTerm": "Eigene Bezeichnung",
   "ropePrices.priceCol": "Preis (€)",
   "inquiries.useRopeBuilder": "Tauwerk-Angebot (Varianten)",
+  "ropePrices.addMaterial": "Material hinzufügen",
+  "ropePrices.materialPlaceholder": "Eigene Materialbezeichnung",
 }

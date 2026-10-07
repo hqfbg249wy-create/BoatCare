@@ -79,6 +79,8 @@ export default function RopeOfferBuilder({ inquiry, provider, onSent }) {
   // Eigene Begriffe bevorzugen, sonst Standard-Label.
   const endLabel = (o) => endLabels[o] || t('rope.end.' + o)
   const matLabel = (m) => matLabels[m] || t('rope.material.' + m)
+  // Eigene (zusaetzliche) Materialien aus den Stammdaten.
+  const customMaterials = useMemo(() => Object.keys(matLabels).filter(k => !ROPE_MATERIALS.includes(k)), [matLabels])
 
   // Produktvarianten (Preise) bei Bedarf nachladen.
   async function ensureProductVariants(productId) {
@@ -217,6 +219,7 @@ export default function RopeOfferBuilder({ inquiry, provider, onSent }) {
               <select value={v.material} onChange={e => patch(vi, { material: e.target.value })} style={inStyle}>
                 <option value="">{t('rope.materialNone')}</option>
                 {ROPE_MATERIALS.map(m => <option key={m} value={m}>{matLabel(m)}</option>)}
+                {customMaterials.map(m => <option key={m} value={m}>{matLabels[m]}</option>)}
               </select>
             </div>
 
