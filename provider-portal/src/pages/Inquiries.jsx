@@ -212,7 +212,7 @@ export default function Inquiries() {
                 {!ordered && showRope(inq) && (
                   <div className="offer-form">
                     <RopeOfferBuilder inquiry={inq} provider={provider}
-                      onSent={() => { setMessage({ type: 'success', text: t('inquiries.offerSent') }); load() }} />
+                      onSent={(draft) => { setMessage({ type: 'success', text: draft ? t('inquiries.draftSaved') : t('inquiries.offerSent') }); if (!draft) load() }} />
                     <div className="offer-actions" style={{ marginTop: 10 }}>
                       {!declined && (
                         <button className="btn-secondary" disabled={busy}

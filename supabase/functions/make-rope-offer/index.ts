@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
     const inquiryId = body?.inquiry_id as string;
     const coverLetter = body?.cover_letter ? String(body.cover_letter).slice(0, 4000) : null;
     const variants = Array.isArray(body?.variants) ? body.variants : [];
+    const draft = body?.draft === true; // Entwurf speichern (nicht an den Kunden senden)
     if (!inquiryId) return json({ error: "inquiry_id fehlt" }, 400);
     if (variants.length < 1 || variants.length > 3) return json({ error: "1 bis 3 Varianten erforderlich" }, 400);
 
@@ -121,8 +122,8 @@ Deno.serve(async (req) => {
     const nowIso = new Date().toISOString();
     const summary = `${variants.length} Angebotsvariante(n)` +
       (minTotal < Infinity ? `, ab ${money(minTotal, currency)}` : "");
-    await svc.from("service_inquiries").update({
-      offer_status: "offered",
+    const inqUpdate: Record<string, unknown> = {
+      offer_status: draft ? "draft" : "offered",
       offer_cover_letter: coverLetter,
       offer_amount: minTotal < Infinity ? minTotal : 0,
       offer_shipping: 0,
@@ -130,9 +131,15 @@ Deno.serve(async (req) => {
       offer_description: summary,
       offer_created_at: nowIso,
       offer_selected_variant_id: null,
-      status: "replied",
-      replied_at: nowIso,
-    }).eq("id", inquiryId);
+    };
+    // Nur beim echten Senden auf "replied" setzen (Entwurf bleibt still).
+    if (!draft) { inqUpdate.status = "replied"; inqUpdate.replied_at = nowIso; }
+    await svc.from("service_inquiries").update(inqUpdate).eq("id", inquiryId);
+
+    // Entwurf: NICHT an den Kunden spiegeln/benachrichtigen.
+    if (draft) {
+      return json({ ok: true, draft: true, variants: variants.length, min_total: minTotal < Infinity ? minTotal : 0 });
+    }
 
     // Provider-Name + Kaeufer fuer Platzhalter/Notify.
     const { data: prov } = await svc.from("service_providers").select("name").eq("id", inq.provider_id).maybeSingle();

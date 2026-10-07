@@ -1247,3 +1247,6 @@
 "inq.rope.shipping" = "Spedizione";
 "inq.rope.total" = "Totale";
 "inq.rope.byAddress" = "spedizione per indirizzo";
+
+"inq.rope.chooseVariant" = "Scegli una delle %d opzioni:";
+"inq.rope.variant" = "Opzione";

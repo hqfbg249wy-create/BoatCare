@@ -384,39 +384,13 @@ struct InquiriesContent: View {
         return VStack(alignment: .leading, spacing: 8) {
             Text("inq.offer_label".loc.uppercased())
                 .font(.caption2).fontWeight(.semibold).foregroundStyle(AppColors.primary)
-            if inq.isRopeOffer {
-                // Tauwerk: bis zu 3 Varianten, Annahme je Variante.
-                RopeOfferVariantsView(
-                    inquiry: inq,
-                    isAccepting: acceptingId == inq.id,
-                    disabled: acceptingId != nil || offerActioningId != nil,
-                    onAccept: { vid in Task { await acceptAndPay(inq, variantId: vid) } }
-                )
-            } else {
-                if let d = inq.offerDescription, !d.isEmpty {
-                    Text(d).font(.subheadline).fixedSize(horizontal: false, vertical: true)
-                }
-                Text(String(format: "inq.offer_total".loc, money(inq.offerTotal)))
-                    .font(.headline)
-                if (inq.offerShipping ?? 0) > 0 {
-                    Text(String(format: "inq.offer_incl_shipping".loc, money(inq.offerShipping ?? 0)))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                Button {
-                    Task { await acceptAndPay(inq) }
-                } label: {
-                    HStack(spacing: 8) {
-                        if acceptingId == inq.id { ProgressView().tint(.white) }
-                        else { Image(systemName: "checkmark.seal.fill") }
-                        Text("inq.offer_accept_pay".loc).fontWeight(.semibold)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
-                .tint(AppColors.success)
-                .disabled(acceptingId != nil || offerActioningId != nil)
-            }
+            // Zeigt mehrere Varianten (vergleichbar) ODER ein flaches Angebot.
+            RopeOfferVariantsView(
+                inquiry: inq,
+                isAccepting: acceptingId == inq.id,
+                disabled: acceptingId != nil || offerActioningId != nil,
+                onAccept: { vid in Task { await acceptAndPay(inq, variantId: vid) } }
+            )
 
             // Ablehnen + Nachfrage
             HStack(spacing: 10) {

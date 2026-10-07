@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useT } from '../i18n'
 import { ROPE_END_OPTIONS, ROPE_MATERIALS } from '../lib/ropeOptions'
-import { Plus, Trash2, Send } from 'lucide-react'
+import { Plus, Trash2, Send, Save } from 'lucide-react'
 
 // Tauwerk-Angebots-Builder: bis zu 3 Varianten aus der Tauwerk-Konfiguration.
 // Material + Preis aus dem Shop, Enden-Festpreise aus dem Anbieter-Katalog,
@@ -105,6 +105,40 @@ export default function RopeOfferBuilder({ inquiry, provider, onSent }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Bereits gespeicherten Entwurf / gesendetes Angebot laden und zurueckbauen,
+  // damit der Anbieter weiterbearbeiten kann.
+  useEffect(() => {
+    if (!inquiry?.id) return
+    ;(async () => {
+      const { data } = await supabase.rpc('get_inquiry_offer', { p_inquiry_id: inquiry.id })
+      const vs = data?.variants
+      if (!vs || !vs.length) return
+      if (data.cover_letter) setCoverLetter(data.cover_letter)
+      const str = (n) => (n != null && n !== '') ? String(n).replace('.', ',') : ''
+      const rebuilt = vs.map((v, i) => {
+        const items = v.items || []
+        const mat = items.find(it => it.kind === 'material')
+        const e1 = items.find(it => it.kind === 'end1')
+        const e2 = items.find(it => it.kind === 'end2')
+        const custom = items.filter(it => it.kind === 'custom').map(it => ({ label: it.label || '', qty: str(it.qty), price: str(it.unit_price) }))
+        if (v.material_product_id) ensureProductVariants(v.material_product_id)
+        return {
+          title: v.title || `Variante ${i + 1}`,
+          length_m: str(v.length_m), diameter_mm: str(v.diameter_mm),
+          material: v.material || '', end1: v.end1 || '', end2: v.end2 || '',
+          material_product_id: v.material_product_id || '', material_variant_id: v.material_variant_id || '',
+          material_unit_price: str(mat?.unit_price),
+          end1_price: str(e1?.unit_price), end2_price: str(e2?.unit_price),
+          custom,
+          discount_type: v.discount_type || '', discount_value: str(v.discount_value), discount_label: v.discount_label || '',
+          shipping_mode: v.shipping_mode || 'fixed', shipping_cost: str(v.shipping_cost),
+        }
+      })
+      setVariants(rebuilt)
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inquiry?.id])
+
   function patch(vi, p) { setVariants(prev => prev.map((v, i) => i === vi ? { ...v, ...p } : v)) }
 
   function onSelectProduct(vi, productId) {
@@ -142,7 +176,7 @@ export default function RopeOfferBuilder({ inquiry, provider, onSent }) {
 
   const prodName = (id) => products.find(p => p.id === id)?.name || ''
 
-  async function send() {
+  async function send(draft = false) {
     setErr(null)
     // Payload bauen
     const payloadVariants = variants.map((v, vi) => {
@@ -172,11 +206,11 @@ export default function RopeOfferBuilder({ inquiry, provider, onSent }) {
     setSending(true)
     try {
       const { data, error } = await supabase.functions.invoke('make-rope-offer', {
-        body: { inquiry_id: inquiry.id, cover_letter: coverLetter, variants: payloadVariants },
+        body: { inquiry_id: inquiry.id, cover_letter: coverLetter, variants: payloadVariants, draft },
       })
       if (error) throw error
       if (data?.error) throw new Error(data.error)
-      onSent?.()
+      onSent?.(draft)
     } catch (e) {
       setErr(e.message || String(e))
     } finally {
@@ -313,7 +347,10 @@ export default function RopeOfferBuilder({ inquiry, provider, onSent }) {
         )}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
           {err && <span style={{ color: '#dc2626', fontSize: 13 }}>{err}</span>}
-          <button className="btn-primary" onClick={send} disabled={sending}>
+          <button className="btn-secondary" onClick={() => send(true)} disabled={sending}>
+            <Save size={16} /> {t('ropeOffer.saveDraft')}
+          </button>
+          <button className="btn-primary" onClick={() => send(false)} disabled={sending}>
             <Send size={16} /> {sending ? '…' : t('ropeOffer.send')}
           </button>
         </div>

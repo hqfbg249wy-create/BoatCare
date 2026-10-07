@@ -1251,3 +1251,6 @@ Ausrüstung unter Boote ergänzen.";
 "inq.rope.shipping" = "Versand";
 "inq.rope.total" = "Gesamt";
 "inq.rope.byAddress" = "Versand nach Adresse";
+
+"inq.rope.chooseVariant" = "Wähle eine von %d Varianten:";
+"inq.rope.variant" = "Variante";

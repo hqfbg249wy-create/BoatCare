@@ -203,6 +203,11 @@ struct InquiryOffer: Codable {
 struct OfferVariant: Codable, Identifiable, Hashable {
     let id: UUID
     let title: String?
+    let length_m: Double?
+    let diameter_mm: Double?
+    let material: String?
+    let end1: String?
+    let end2: String?
     let currency: String?
     let discount_type: String?
     let discount_value: Double?
@@ -211,6 +216,14 @@ struct OfferVariant: Codable, Identifiable, Hashable {
     let shipping_cost: Double?
     let total: Double?
     let items: [OfferItem]?
+
+    /// Kurze Kriterien-Zusammenfassung zum Vergleich (Länge · Durchmesser).
+    var criteriaSummary: String {
+        var parts: [String] = []
+        if let l = length_m, l > 0 { parts.append(String(format: "%@ m", String(format: "%.1f", l).replacingOccurrences(of: ".", with: ","))) }
+        if let d = diameter_mm, d > 0 { parts.append(String(format: "⌀ %@ mm", String(format: "%.1f", d).replacingOccurrences(of: ".", with: ","))) }
+        return parts.joined(separator: " · ")
+    }
 }
 struct OfferItem: Codable, Identifiable, Hashable {
     let id: UUID

@@ -1246,3 +1246,6 @@
 "inq.rope.shipping" = "Shipping";
 "inq.rope.total" = "Total";
 "inq.rope.byAddress" = "shipping by address";
+
+"inq.rope.chooseVariant" = "Choose one of %d options:";
+"inq.rope.variant" = "Option";

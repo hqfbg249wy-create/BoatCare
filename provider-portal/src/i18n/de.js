@@ -992,4 +992,6 @@ export default {
   "inquiries.useRopeBuilder": "Tauwerk-Angebot (Varianten)",
   "ropePrices.addMaterial": "Material hinzufügen",
   "ropePrices.materialPlaceholder": "Eigene Materialbezeichnung",
+  "ropeOffer.saveDraft": "Als Entwurf speichern",
+  "inquiries.draftSaved": "Entwurf gespeichert.",
 }

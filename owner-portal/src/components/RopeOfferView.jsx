@@ -49,7 +49,13 @@ export default function RopeOfferView({ inquiry, onAccept, busy, onLoaded }) {
           const engine = v.shipping_mode === 'engine'
           return (
             <div key={v.id} style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, background: '#fff' }}>
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>{v.title}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontWeight: 700 }}>{v.title}</span>
+                <span style={{ fontSize: 12, color: '#64748b' }}>{[
+                  v.length_m ? `${String(v.length_m).replace('.', ',')} m` : null,
+                  v.diameter_mm ? `⌀ ${String(v.diameter_mm).replace('.', ',')} mm` : null,
+                ].filter(Boolean).join(' · ')}</span>
+              </div>
               <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
                 <tbody>
                   {(v.items || []).map(it => (
