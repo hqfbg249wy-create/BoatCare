@@ -72,8 +72,11 @@ Deno.serve(async (req) => {
     );
     if (authErr || !user) return json({ error: "Invalid token" }, 401);
 
-    const { boat_id, subject, message } = await req.json();
+    const { boat_id, subject, message, rope_config } = await req.json();
     if (!subject || !message) return json({ error: "subject und message erforderlich" }, 400);
+
+    // Strukturierte Tauwerk-Kriterien (fuer den Angebots-Builder des Anbieters).
+    const cfg = (rope_config && typeof rope_config === "object") ? rope_config : null;
 
     // Optional: boat_id muss dem Nutzer gehoeren.
     let safeBoatId: string | null = null;
@@ -110,6 +113,7 @@ Deno.serve(async (req) => {
           boat_id: safeBoatId,
           subject: subj,
           message: msg,
+          rope_config: cfg,
           status: "sent",
           sent_at: new Date().toISOString(),
         });

@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     );
     if (authErr || !user) return json({ error: "Invalid token" }, 401);
 
-    const { inquiry_id } = await req.json();
+    const { inquiry_id, variant_id } = await req.json();
     if (!inquiry_id) return json({ error: "inquiry_id fehlt" }, 400);
 
     const { data: inq } = await svc
@@ -49,21 +49,68 @@ Deno.serve(async (req) => {
       return json({ error: "Kein annehmbares Angebot vorhanden", code: "no_offer" }, 409);
     }
 
-    // Provision + Betraege
     const { data: provider } = await svc
       .from("service_providers").select("commission_rate").eq("id", inq.provider_id).maybeSingle();
     const rate = Number(provider?.commission_rate ?? 10);
-    const subtotal = Number(inq.offer_amount);
-    const shipping = Number(inq.offer_shipping || 0);
-    const total = subtotal + shipping;
-    const commission = Math.round(subtotal * (rate / 100) * 100) / 100;
     const currency = (inq.offer_currency || "EUR").toUpperCase();
+    const r2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 
     // Lieferadresse aus dem Kaeufer-Profil.
     const { data: buyer } = await svc
       .from("profiles")
       .select("full_name, shipping_street, shipping_postal_code, shipping_city, shipping_country")
       .eq("id", user.id).maybeSingle();
+
+    // Betraege + Positionen bestimmen: Tauwerk-Variante ODER flaches Angebot.
+    let subtotal = 0;
+    let shipping = 0;
+    const items: Array<Record<string, unknown>> = [];
+
+    if (variant_id) {
+      const { data: v } = await svc.from("inquiry_offer_variants")
+        .select("id, inquiry_id, subtotal, discount_type, discount_value, discount_label, shipping_mode, shipping_cost")
+        .eq("id", variant_id).maybeSingle();
+      if (!v || v.inquiry_id !== inquiry_id) return json({ error: "Variante nicht gefunden" }, 404);
+      const { data: vitems } = await svc.from("inquiry_offer_items")
+        .select("label, qty, unit_price, line_total, product_id")
+        .eq("variant_id", variant_id).order("sort_order");
+      const goods = r2(v.subtotal);
+      const dAmt = v.discount_type === "percent" ? r2(goods * Number(v.discount_value) / 100)
+                 : v.discount_type === "amount" ? r2(v.discount_value) : 0;
+      subtotal = Math.max(0, r2(goods - dAmt));
+      if (v.shipping_mode === "engine") {
+        try {
+          const rs = await fetch(`${supabaseUrl}/functions/v1/calculate-shipping`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ provider_id: inq.provider_id, country: buyer?.shipping_country || "DE", subtotal, items: [{ quantity: 1 }] }),
+          });
+          const jr = await rs.json().catch(() => ({}));
+          shipping = r2(jr?.shipping_cost);
+        } catch { shipping = 0; }
+      } else {
+        shipping = r2(v.shipping_cost);
+      }
+      for (const it of (vitems || [])) {
+        const qn = Number(it.qty) || 1;
+        const up = Number(it.unit_price) || 0;
+        const label = qn !== 1
+          ? `${it.label} (${String(qn).replace(".", ",")} × ${up.toFixed(2).replace(".", ",")})`
+          : String(it.label);
+        items.push({ product_id: it.product_id ?? null, quantity: 1, unit_price: r2(it.line_total), total: r2(it.line_total), product_name: label.slice(0, 300) });
+      }
+      if (dAmt > 0) {
+        items.push({ product_id: null, quantity: 1, unit_price: -dAmt, total: -dAmt, product_name: (v.discount_label || "Rabatt").slice(0, 300) });
+      }
+      await svc.from("service_inquiries").update({ offer_selected_variant_id: variant_id }).eq("id", inquiry_id);
+    } else {
+      subtotal = Number(inq.offer_amount);
+      shipping = Number(inq.offer_shipping || 0);
+      items.push({ product_id: null, quantity: 1, unit_price: subtotal, total: subtotal, product_name: (inq.offer_description || "Angebot").slice(0, 300) });
+    }
+
+    const total = r2(subtotal + shipping);
+    const commission = r2(subtotal * (rate / 100));
 
     // Bestellung im Deferred-Flow anlegen.
     const { data: order, error: oErr } = await svc.from("orders").insert({
@@ -88,14 +135,7 @@ Deno.serve(async (req) => {
     }).select("id").single();
     if (oErr || !order) return json({ error: "Bestellung konnte nicht angelegt werden: " + (oErr?.message ?? "") }, 500);
 
-    // Position aus dem Angebot.
-    await svc.from("order_items").insert({
-      order_id: order.id,
-      quantity: 1,
-      unit_price: subtotal,
-      total: subtotal,
-      product_name: (inq.offer_description || "Angebot").slice(0, 300),
-    });
+    await svc.from("order_items").insert(items.map((it) => ({ ...it, order_id: order.id })));
 
     // Anfrage verknuepfen.
     await svc.from("service_inquiries").update({
