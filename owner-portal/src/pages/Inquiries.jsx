@@ -8,6 +8,7 @@ import {
   AlertCircle, RefreshCw, X, Ship, Check, Tag
 } from 'lucide-react'
 import { useT } from '../i18n'
+import RopeOfferView from '../components/RopeOfferView'
 
 const statusConfig = {
   draft:   { label: 'Entwurf',    color: '#94a3b8', bg: '#f1f5f9',   icon: Pencil },
@@ -192,10 +193,10 @@ export default function Inquiries() {
     loadInquiries()
   }
 
-  async function offerAccept(inq) {
+  async function offerAccept(inq, variantId) {
     setOfferBusy(inq.id)
     const { data, error } = await supabase.functions.invoke('accept-offer', {
-      body: { inquiry_id: inq.id },
+      body: { inquiry_id: inq.id, ...(variantId ? { variant_id: variantId } : {}) },
     })
     setOfferBusy(null)
     if (error || data?.ok !== true || !data?.order_id) {
@@ -321,8 +322,12 @@ export default function Inquiries() {
                   </div>
                 )}
 
-                {/* Bepreistes Angebot */}
-                {inq.offer_status === 'offered' && Number(inq.offer_amount) > 0 && !inq.order_id && (
+                {/* Tauwerk-Angebot (bis zu 3 Varianten) */}
+                {inq.offer_status === 'offered' && !inq.order_id && inq.rope_config && (
+                  <RopeOfferView inquiry={inq} busy={offerBusy === inq.id} onAccept={(vid) => offerAccept(inq, vid)} />
+                )}
+                {/* Bepreistes (flaches) Angebot */}
+                {inq.offer_status === 'offered' && Number(inq.offer_amount) > 0 && !inq.order_id && !inq.rope_config && (
                   <div className="inq-offer-box">
                     <div className="inq-offer-head"><Tag size={15} /> Angebot</div>
                     <div className="inq-offer-total">{money((Number(inq.offer_amount) || 0) + (Number(inq.offer_shipping) || 0), inq.offer_currency)}</div>
@@ -368,8 +373,8 @@ export default function Inquiries() {
 
                 {/* Actions */}
                 <div className="inq-card-actions">
-                  {/* Käufer-Aktionen auf ein Angebot */}
-                  {inq.offer_status === 'offered' && Number(inq.offer_amount) > 0 && !inq.order_id && (
+                  {/* Käufer-Aktionen auf ein Angebot (flach; Tauwerk hat Buttons je Variante) */}
+                  {inq.offer_status === 'offered' && Number(inq.offer_amount) > 0 && !inq.order_id && !inq.rope_config && (
                     <button className="btn-success btn-sm" disabled={offerBusy === inq.id}
                       onClick={() => offerAccept(inq)}>
                       <Check size={14} /> Annehmen &amp; bezahlen

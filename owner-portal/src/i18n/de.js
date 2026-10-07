@@ -809,4 +809,10 @@ export default {
   "boats.uploadPhoto": "Foto hochladen",
   "boats.removePhoto": "Entfernen",
   "eq.photos": "Fotos",
+  "inqRope.title": "Tauwerk-Angebot",
+  "inqRope.shipping": "Versand",
+  "inqRope.shippingByAddress": "Versand nach Adresse",
+  "inqRope.discount": "Rabatt",
+  "inqRope.total": "Gesamt",
+  "inqRope.acceptPay": "Annehmen & bezahlen",
 }
