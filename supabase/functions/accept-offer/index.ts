@@ -35,17 +35,29 @@ Deno.serve(async (req) => {
     );
     if (authErr || !user) return json({ error: "Invalid token" }, 401);
 
-    const { inquiry_id, variant_id } = await req.json();
+    const body = await req.json();
+    // iOS sendet UUIDs in GROSSBUCHSTABEN (UUID.uuidString), Postgres liefert
+    // sie klein. Ohne Normalisierung schlaegt der String-Vergleich der Variante
+    // fehl -> 404 "Variante nicht gefunden". Deshalb hier vereinheitlichen.
+    const inquiry_id = body?.inquiry_id ? String(body.inquiry_id).toLowerCase() : "";
+    const variant_id = body?.variant_id ? String(body.variant_id).toLowerCase() : "";
     if (!inquiry_id) return json({ error: "inquiry_id fehlt" }, 400);
 
     const { data: inq } = await svc
       .from("service_inquiries")
       .select("id, owner_id, provider_id, boat_id, subject, offer_amount, offer_shipping, offer_currency, offer_description, offer_status, order_id")
       .eq("id", inquiry_id).maybeSingle();
-    if (!inq) return json({ error: "Anfrage nicht gefunden" }, 404);
+    if (!inq) {
+      console.warn("accept-offer 404: Anfrage nicht gefunden", inquiry_id);
+      return json({ error: "Anfrage nicht gefunden" }, 404);
+    }
     if (inq.owner_id !== user.id) return json({ error: "Keine Berechtigung" }, 403);
     if (inq.order_id) return json({ ok: true, order_id: inq.order_id, boat_id: inq.boat_id, note: "bereits angenommen" });
-    if (inq.offer_status !== "offered" || !(Number(inq.offer_amount) > 0)) {
+    // "ordered" ohne order_id = verknuepfte Bestellung wurde geloescht/storniert
+    // (FK setzt order_id auf NULL). Dann darf das Angebot erneut angenommen werden.
+    const acceptable = inq.offer_status === "offered" || (inq.offer_status === "ordered" && !inq.order_id);
+    if (!acceptable || !(Number(inq.offer_amount) > 0)) {
+      console.warn("accept-offer 409: kein annehmbares Angebot", { inquiry_id, offer_status: inq.offer_status, offer_amount: inq.offer_amount });
       return json({ error: "Kein annehmbares Angebot vorhanden", code: "no_offer" }, 409);
     }
 
@@ -70,7 +82,10 @@ Deno.serve(async (req) => {
       const { data: v } = await svc.from("inquiry_offer_variants")
         .select("id, inquiry_id, subtotal, discount_type, discount_value, discount_label, shipping_mode, shipping_cost")
         .eq("id", variant_id).maybeSingle();
-      if (!v || v.inquiry_id !== inquiry_id) return json({ error: "Variante nicht gefunden" }, 404);
+      if (!v || String(v.inquiry_id).toLowerCase() !== inquiry_id) {
+        console.warn("accept-offer 404: Variante nicht gefunden", { variant_id, inquiry_id, found: v?.inquiry_id ?? null });
+        return json({ error: "Variante nicht gefunden" }, 404);
+      }
       const { data: vitems } = await svc.from("inquiry_offer_items")
         .select("label, qty, unit_price, line_total, product_id")
         .eq("variant_id", variant_id).order("sort_order");
