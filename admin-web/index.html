@@ -7,6 +7,13 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <!-- PWA: ermoeglicht „Zum Home-Bildschirm" als Standalone-App (noetig fuer Web-Push auf iOS 16.4+) -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0b1222">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Skipily Admin">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <!-- Leaflet Map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -66,6 +73,11 @@
                     Moderation
                     <span id="moderation-badge" style="display:none; background:#ef4444; color:white; border-radius:999px; font-size:11px; font-weight:700; padding:1px 7px; margin-left:4px;">0</span>
                 </button>
+                <button class="nav-item" data-page="news-moderation" onclick="window.navigateToPage('news-moderation')">
+                    <span class="icon">📰</span>
+                    News-Moderation
+                    <span id="news-moderation-badge" style="display:none; background:#ef4444; color:white; border-radius:999px; font-size:11px; font-weight:700; padding:1px 7px; margin-left:4px;">0</span>
+                </button>
                 <button class="nav-item" data-page="add-provider" onclick="window.navigateToPage('add-provider')">
                     <span class="icon">➕</span>
                     Provider hinzufügen
@@ -85,6 +97,10 @@
                 <button class="nav-item" data-page="announcements" onclick="window.navigateToPage('announcements')">
                     <span class="icon">📣</span>
                     Push / Ankündigungen
+                </button>
+                <button class="nav-item" onclick="window.openAdminNotifications()">
+                    <span class="icon">🔔</span>
+                    Meine Benachrichtigungen
                 </button>
                 <button class="nav-item" data-page="search-automation" onclick="window.navigateToPage('search-automation')">
                     <span class="icon">🔍</span>
@@ -668,6 +684,10 @@
                         <input type="text" name="name" required>
                     </div>
                     <div class="form-group">
+                        <label>Firmenlogo (optional)</label>
+                        <input type="file" name="logo" accept="image/*">
+                    </div>
+                    <div class="form-group">
                         <label>Kategorie *</label>
                         <select name="category" required id="category-select">
                             <option value="">-- Bitte wählen --</option>
@@ -781,6 +801,17 @@
                     <span id="moderation-count-label" style="font-size:13px; color:#64748b;"></span>
                 </div>
                 <div id="moderation-list" style="color:#64748b;">Wird geladen…</div>
+            </div>
+
+            <!-- News-Moderation (Tipps & Tricks Feed) -->
+            <div id="news-moderation-page" class="page">
+                <h1>📰 News-Moderation</h1>
+                <p class="subtitle">Von der KI markierte oder gemeldete News-Beiträge (Tipps &amp; Tricks). Bitte prüfen und freigeben oder ablehnen.</p>
+                <div style="display:flex; gap:10px; margin-bottom:16px; align-items:center;">
+                    <button class="btn-primary" onclick="window.loadNewsModeration()" style="font-size:13px; padding:7px 16px;">🔄 Aktualisieren</button>
+                    <span id="news-moderation-count-label" style="font-size:13px; color:#64748b;"></span>
+                </div>
+                <div id="news-moderation-list" style="color:#64748b;">Wird geladen…</div>
             </div>
 
             <!-- Provider-Suche (Google Places) -->
@@ -2524,7 +2555,7 @@
 
     <script src="config.js"></script>
     <script src="robots-checker.js"></script>
-    <script src="app.js?v=20261001-announcements"></script>
+    <script src="app.js?v=20261022-admin-pwa-push"></script>
     <script>
         // Stelle globale Funktionen bereit für onclick Handler
         window.navigateToPage = navigateToPage;

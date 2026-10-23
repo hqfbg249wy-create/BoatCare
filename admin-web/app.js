@@ -259,6 +259,9 @@ function setupNavigation() {
         console.log(`  [${index}] Binde Listener für: ${page}`);
 
         item.addEventListener('click', () => {
+            // Buttons ohne data-page (Modal-Trigger wie „Meine Benachrichtigungen",
+            // Gruppen-Köpfe) nicht als Seite behandeln -> keine falsche Aktiv-Markierung.
+            if (!page) return;
             console.log(`🖱️ Navigation geklickt: ${page}`);
             try {
                 navigateToPage(page);
@@ -2174,6 +2177,8 @@ async function handleAddProvider(e) {
     e.preventDefault();
 
     const formData = new FormData(e.target);
+    const lat = parseFloat(formData.get('latitude'));
+    const lng = parseFloat(formData.get('longitude'));
     const data = {
         name: formData.get('name'),
         category: formData.get('category'),
@@ -2182,8 +2187,8 @@ async function handleAddProvider(e) {
         postal_code: formData.get('postal_code') || null,
         city: formData.get('city'),
         country: formData.get('country'),
-        latitude: parseFloat(formData.get('latitude')),
-        longitude: parseFloat(formData.get('longitude')),
+        latitude: Number.isFinite(lat) ? lat : null,
+        longitude: Number.isFinite(lng) ? lng : null,
         phone: formData.get('phone') || null,
         email: formData.get('email') || null,
         website: formData.get('website') || null,
@@ -2192,6 +2197,17 @@ async function handleAddProvider(e) {
     };
 
     try {
+        // Firmenlogo hochladen (optional) -> Bucket provider-logos (nur Admin).
+        const logoFile = formData.get('logo');
+        if (logoFile && logoFile.size > 0) {
+            const ext = (logoFile.name.split('.').pop() || 'png').toLowerCase();
+            const path = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+            const { error: upErr } = await supabaseClient.storage.from('provider-logos')
+                .upload(path, logoFile, { upsert: true, contentType: logoFile.type });
+            if (upErr) throw new Error('Logo-Upload fehlgeschlagen: ' + upErr.message);
+            data.logo_url = supabaseClient.storage.from('provider-logos').getPublicUrl(path).data.publicUrl;
+        }
+
         const { error } = await supabaseClient
             .from('service_providers')
             .insert([data]);
@@ -2202,8 +2218,11 @@ async function handleAddProvider(e) {
         e.target.reset();
         loadDashboard();
     } catch (error) {
-        console.error('Fehler:', error);
-        alert('Fehler beim Hinzufügen: ' + error.message);
+        console.error('Fehler beim Hinzufügen:', error);
+        // Vollstaendige Ursache zeigen (Supabase: message/details/hint/code).
+        const parts = [error.message, error.details, error.hint, error.code]
+            .filter(Boolean).map(String);
+        alert('Fehler beim Hinzufügen: ' + (parts.join(' | ') || 'Unbekannter Fehler'));
     }
 }
 
@@ -9966,6 +9985,307 @@ async function deleteReviewAdmin(reviewId, providerName) {
 }
 window.deleteReviewAdmin = deleteReviewAdmin;
 
+// ── News-Moderation (Tipps & Tricks Feed) ─────────────────────────────────────
+async function loadNewsModeration() {
+    const listEl  = document.getElementById('news-moderation-list');
+    const countEl = document.getElementById('news-moderation-count-label');
+    const badgeEl = document.getElementById('news-moderation-badge');
+    if (!listEl) return;
+    listEl.textContent = 'Wird geladen…';
+    try {
+        // 1) Von der KI markierte Beiträge (zur Prüfung/blockiert)
+        const { data: flagged, error: e1 } = await supabaseClient
+            .from('news_posts')
+            .select('id,kind,title,subtitle,boat_ref,equipment_ref,body,status,moderation_reason,created_at')
+            .in('status', ['pending_review', 'blocked'])
+            .order('created_at', { ascending: false });
+        if (e1) throw e1;
+
+        // 2) Gemeldete (noch offene) Beiträge
+        const { data: reports } = await supabaseClient
+            .from('news_reports').select('post_id,reason').eq('resolved', false);
+        const reportedIds = [...new Set((reports || []).map(r => r.post_id))]
+            .filter(id => !(flagged || []).some(p => p.id === id));
+        let reported = [];
+        if (reportedIds.length > 0) {
+            const { data } = await supabaseClient
+                .from('news_posts')
+                .select('id,kind,title,subtitle,boat_ref,equipment_ref,body,status,moderation_reason,created_at')
+                .in('id', reportedIds);
+            reported = data || [];
+        }
+        // 3) Zusaetzlich die neuesten veroeffentlichten Beitraege, damit der Admin
+        //    auch regulaere Beitraege nachtraeglich bearbeiten/loeschen kann.
+        const pendingCount = (flagged || []).length + reported.length;
+        const haveIds = new Set([...(flagged || []), ...reported].map(p => p.id));
+        const { data: recent } = await supabaseClient
+            .from('news_posts')
+            .select('id,kind,title,subtitle,boat_ref,equipment_ref,body,status,moderation_reason,created_at')
+            .eq('status', 'published').order('published_at', { ascending: false }).limit(20);
+        const recentExtra = (recent || []).filter(r => !haveIds.has(r.id));
+        const posts = [...(flagged || []), ...reported, ...recentExtra];
+
+        // Medien laden
+        const ids = posts.map(p => p.id);
+        let mediaByPost = {};
+        if (ids.length > 0) {
+            const { data: media } = await supabaseClient
+                .from('news_post_media').select('post_id,url,sort_order').in('post_id', ids).order('sort_order');
+            for (const m of (media || [])) (mediaByPost[m.post_id] ||= []).push(m.url);
+        }
+        const reportReason = {};
+        for (const r of (reports || [])) if (!reportReason[r.post_id]) reportReason[r.post_id] = r.reason || '';
+
+        if (badgeEl) { badgeEl.textContent = pendingCount; badgeEl.style.display = pendingCount > 0 ? 'inline' : 'none'; }
+        if (countEl) countEl.textContent = pendingCount === 0 ? 'Nichts zu prüfen' : `${pendingCount} Beitrag${pendingCount !== 1 ? 'e' : ''} zu prüfen`;
+        if (posts.length === 0) {
+            listEl.innerHTML = '<p style="color:#16a34a; font-weight:600;">✅ Keine News-Beiträge vorhanden.</p>';
+            return;
+        }
+
+        listEl.innerHTML = posts.map(p => {
+            const dateStr = new Date(p.created_at).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+            const kindLabel = p.kind === 'product' ? 'Produktvorstellung' : 'Eigner-Lösung';
+            const statusLabel = p.status === 'blocked' ? '⛔ KI-blockiert' : p.status === 'pending_review' ? '🔍 KI-Prüfung' : p.status === 'published' ? '✅ Veröffentlicht' : '🚩 Gemeldet';
+            const imgs = (mediaByPost[p.id] || []).map(u =>
+                `<img src="${escapeHtml(u)}" style="height:90px; border-radius:8px; margin-right:6px;" onerror="this.style.display='none'">`).join('');
+            const reasonHtml = p.moderation_reason
+                ? `<p style="margin:6px 0 0; font-size:12px; color:#b45309; background:#fef3c7; border-radius:6px; padding:5px 10px;">🤖 KI: ${escapeHtml(p.moderation_reason)}</p>` : '';
+            const repHtml = reportReason[p.id] !== undefined
+                ? `<p style="margin:6px 0 0; font-size:12px; color:#b91c1c; background:#fee2e2; border-radius:6px; padding:5px 10px;">🚩 Meldung: ${escapeHtml(reportReason[p.id] || '(ohne Grund)')}</p>` : '';
+            const sub = [p.boat_ref, p.equipment_ref].filter(Boolean).map(escapeHtml).join(' · ');
+            const bodyRaw = p.body || '';
+            const snippet = escapeHtml(bodyRaw.slice(0, 160)) + (bodyRaw.length > 160 ? '…' : '');
+            const hasMore = bodyRaw.length > 160 || !!imgs || !!p.subtitle;
+            return `
+            <div id="news-mod-${p.id}" style="background:white; border:1px solid #e2e8f0; border-radius:10px; padding:16px; margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,.06);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+                    <div>
+                        <span style="font-weight:700; font-size:15px;">${escapeHtml(p.title)}</span>
+                        <span style="margin-left:8px; font-size:12px; color:#64748b;">${kindLabel} · ${statusLabel} · ${dateStr}</span>
+                        ${sub ? `<div style="font-size:13px; color:#475569; margin-top:2px;">${sub}</div>` : ''}
+                    </div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        ${p.status !== 'published' ? `<button onclick="window.approveNewsPost('${p.id}')" style="background:#16a34a; color:white; border:none; border-radius:7px; padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer;">✅ Freigeben</button>` : ''}
+                        <button onclick="window.editNewsPost('${p.id}')" style="background:#334155; color:white; border:none; border-radius:7px; padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer;">✏️ Bearbeiten</button>
+                        ${p.status !== 'published' ? `<button onclick="window.rejectNewsPost('${p.id}')" style="background:#f59e0b; color:white; border:none; border-radius:7px; padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer;">⛔ Ablehnen</button>` : ''}
+                        <button onclick="window.deleteNewsPost('${p.id}')" style="background:#ef4444; color:white; border:none; border-radius:7px; padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer;">🗑️ Löschen</button>
+                    </div>
+                </div>
+                ${bodyRaw ? `<p id="news-snip-${p.id}" style="margin:8px 0 0; color:#475569; font-size:14px;">${snippet}${hasMore ? ` <a onclick="window.toggleNewsExpand('${p.id}')" style="color:#2563eb; cursor:pointer; font-weight:600;">…Mehr</a>` : ''}</p>` : (hasMore ? `<a onclick="window.toggleNewsExpand('${p.id}')" style="color:#2563eb; cursor:pointer; font-weight:600; font-size:13px;">…Mehr</a>` : '')}
+                <div id="news-full-${p.id}" style="display:none;">
+                    ${p.subtitle ? `<p style="margin:8px 0 0; font-weight:600; color:#334155;">${escapeHtml(p.subtitle)}</p>` : ''}
+                    ${p.body ? `<p style="margin:8px 0 0; color:#1e293b; white-space:pre-wrap;">${escapeHtml(p.body)}</p>` : ''}
+                    ${imgs ? `<div style="margin-top:10px; display:flex; overflow-x:auto;">${imgs}</div>` : ''}
+                    <a onclick="window.toggleNewsExpand('${p.id}')" style="display:inline-block; margin-top:8px; color:#2563eb; cursor:pointer; font-weight:600; font-size:13px;">Weniger anzeigen</a>
+                </div>
+                ${reasonHtml}${repHtml}
+            </div>`;
+        }).join('');
+    } catch (err) {
+        console.error('loadNewsModeration:', err);
+        listEl.innerHTML = `<p style="color:#ef4444;">Fehler beim Laden: ${escapeHtml(err.message)}</p>`;
+    }
+}
+window.loadNewsModeration = loadNewsModeration;
+
+async function approveNewsPost(postId) {
+    const card = document.getElementById(`news-mod-${postId}`);
+    try {
+        const { error } = await supabaseClient.from('news_posts')
+            .update({ status: 'published', published_at: new Date().toISOString(), moderation_reason: '' })
+            .eq('id', postId);
+        if (error) throw error;
+        await supabaseClient.from('news_reports').update({ resolved: true }).eq('post_id', postId);
+        if (card) card.remove();
+        updateNewsModBadge(-1);
+    } catch (err) { alert('Fehler beim Freigeben: ' + err.message); }
+}
+window.approveNewsPost = approveNewsPost;
+
+async function rejectNewsPost(postId) {
+    if (!confirm('Diesen Beitrag ablehnen (nicht veröffentlichen)?')) return;
+    const card = document.getElementById(`news-mod-${postId}`);
+    try {
+        const { error } = await supabaseClient.from('news_posts')
+            .update({ status: 'rejected' }).eq('id', postId);
+        if (error) throw error;
+        await supabaseClient.from('news_reports').update({ resolved: true }).eq('post_id', postId);
+        if (card) card.remove();
+        updateNewsModBadge(-1);
+    } catch (err) { alert('Fehler beim Ablehnen: ' + err.message); }
+}
+window.rejectNewsPost = rejectNewsPost;
+
+async function deleteNewsPost(postId) {
+    if (!confirm('Diesen Beitrag unwiderruflich löschen?')) return;
+    const card = document.getElementById(`news-mod-${postId}`);
+    try {
+        const { error } = await supabaseClient.from('news_posts').delete().eq('id', postId);
+        if (error) throw error;
+        if (card) card.remove();
+    } catch (err) { alert('Fehler beim Löschen: ' + err.message); }
+}
+window.deleteNewsPost = deleteNewsPost;
+
+// Inline-Editor-Zustand je Beitrag (Admin kann alle Ebenen direkt bearbeiten).
+window.__newsEdit = window.__newsEdit || {};
+
+async function editNewsPost(postId) {
+    const card = document.getElementById('news-mod-' + postId);
+    if (!card) return;
+    try {
+        const { data: p } = await supabaseClient.from('news_posts')
+            .select('id,kind,title,subtitle,boat_ref,equipment_ref,body,shop_url').eq('id', postId).maybeSingle();
+        if (!p) return;
+        const { data: media } = await supabaseClient.from('news_post_media')
+            .select('media_type,url,sort_order').eq('post_id', postId).order('sort_order');
+        const imgs = (media || []).filter(m => m.media_type === 'image').map(m => m.url);
+        const video = (media || []).find(m => m.media_type === 'video')?.url || '';
+        const youtube = (media || []).find(m => m.media_type === 'youtube')?.url || '';
+        window.__newsEdit[postId] = { keptImages: [...imgs], keptVideo: video, newImages: [], newVideo: null };
+
+        const v = s => escapeHtml(s || '');
+        const field = (id, label, val) => `
+            <label style="display:block; font-size:12px; color:#64748b; margin:8px 0 2px;">${label}</label>
+            <input id="ne-${id}-${postId}" value="${v(val)}" style="width:100%; box-sizing:border-box; border:1px solid #cbd5e1; border-radius:7px; padding:8px 10px; font-size:14px;">`;
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                <strong style="font-size:14px;">✏️ Beitrag bearbeiten</strong>
+                <div style="display:flex; gap:8px;">
+                    <button onclick="window.saveNewsPostEdit('${postId}')" style="background:#16a34a; color:white; border:none; border-radius:7px; padding:7px 16px; font-size:13px; font-weight:700; cursor:pointer;">💾 Speichern</button>
+                    <button onclick="window.cancelNewsPostEdit('${postId}')" style="background:#e2e8f0; color:#334155; border:none; border-radius:7px; padding:7px 16px; font-size:13px; font-weight:600; cursor:pointer;">Abbrechen</button>
+                </div>
+            </div>
+            ${field('title', 'Titel', p.title)}
+            ${field('subtitle', 'Untertitel', p.subtitle)}
+            ${field('boat', 'Boot (boat_ref)', p.boat_ref)}
+            ${field('equip', 'Ausrüstung (equipment_ref)', p.equipment_ref)}
+            <label style="display:block; font-size:12px; color:#64748b; margin:8px 0 2px;">Beschreibung</label>
+            <textarea id="ne-body-${postId}" rows="8" style="width:100%; box-sizing:border-box; border:1px solid #cbd5e1; border-radius:7px; padding:8px 10px; font-size:14px; white-space:pre-wrap;">${v(p.body)}</textarea>
+            ${field('shop', 'Shop-Link (shop_url)', p.shop_url)}
+            ${field('youtube', 'YouTube-Link', youtube)}
+            <label style="display:block; font-size:12px; color:#64748b; margin:10px 0 2px;">Fotos</label>
+            <div id="ne-imgs-${postId}" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:6px;"></div>
+            <input type="file" accept="image/*" multiple onchange="window.onNewsEditPhotos('${postId}', this)" style="font-size:13px;">
+            <label style="display:block; font-size:12px; color:#64748b; margin:12px 0 2px;">Video</label>
+            <div id="ne-video-${postId}" style="font-size:13px; color:#334155; margin-bottom:6px;"></div>
+            <input type="file" accept="video/*" onchange="window.onNewsEditVideo('${postId}', this)" style="font-size:13px;">`;
+        renderNewsEditImages(postId);
+        renderNewsEditVideo(postId);
+    } catch (err) { alert('Fehler beim Öffnen: ' + err.message); }
+}
+window.editNewsPost = editNewsPost;
+
+// Kompakt-Liste: Volltext + Bilder eines Beitrags ein-/ausklappen.
+window.toggleNewsExpand = (postId) => {
+    const snip = document.getElementById('news-snip-' + postId);
+    const full = document.getElementById('news-full-' + postId);
+    if (!full) return;
+    const open = full.style.display === 'none';
+    full.style.display = open ? 'block' : 'none';
+    if (snip) snip.style.display = open ? 'none' : 'block';
+};
+
+function renderNewsEditImages(postId) {
+    const st = window.__newsEdit[postId]; if (!st) return;
+    const el = document.getElementById('ne-imgs-' + postId); if (!el) return;
+    const thumb = (src, onDel) => `
+        <div style="position:relative;">
+            <img src="${escapeHtml(src)}" style="width:72px; height:72px; object-fit:cover; border-radius:8px;" onerror="this.style.display='none'">
+            <button onclick="${onDel}" title="Entfernen" style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:10px; background:#ef4444; color:white; border:none; cursor:pointer; font-size:12px; line-height:1;">×</button>
+        </div>`;
+    const kept = st.keptImages.map((u, i) => thumb(u, `window.removeNewsEditImage('${postId}', ${i})`)).join('');
+    const neu = st.newImages.map((f, i) => thumb(URL.createObjectURL(f), `window.removeNewsEditNewImage('${postId}', ${i})`)).join('');
+    el.innerHTML = kept + neu || '<span style="font-size:12px; color:#94a3b8;">Keine Fotos</span>';
+}
+function renderNewsEditVideo(postId) {
+    const st = window.__newsEdit[postId]; if (!st) return;
+    const el = document.getElementById('ne-video-' + postId); if (!el) return;
+    if (st.newVideo) el.innerHTML = `🎬 Neues Video: ${escapeHtml(st.newVideo.name)} <button onclick="window.clearNewsEditNewVideo('${postId}')" style="margin-left:8px; background:#ef4444; color:white; border:none; border-radius:6px; padding:2px 8px; cursor:pointer;">×</button>`;
+    else if (st.keptVideo) el.innerHTML = `🎬 Vorhandenes Video <button onclick="window.removeNewsEditVideo('${postId}')" style="margin-left:8px; background:#ef4444; color:white; border:none; border-radius:6px; padding:2px 8px; cursor:pointer;">entfernen</button>`;
+    else el.innerHTML = '<span style="font-size:12px; color:#94a3b8;">Kein Video</span>';
+}
+window.removeNewsEditImage = (postId, i) => { window.__newsEdit[postId]?.keptImages.splice(i, 1); renderNewsEditImages(postId); };
+window.removeNewsEditNewImage = (postId, i) => { window.__newsEdit[postId]?.newImages.splice(i, 1); renderNewsEditImages(postId); };
+window.onNewsEditPhotos = (postId, input) => {
+    const st = window.__newsEdit[postId]; if (!st) return;
+    for (const f of Array.from(input.files || [])) if (st.keptImages.length + st.newImages.length < 5) st.newImages.push(f);
+    input.value = ''; renderNewsEditImages(postId);
+};
+window.removeNewsEditVideo = (postId) => { const st = window.__newsEdit[postId]; if (st) { st.keptVideo = ''; renderNewsEditVideo(postId); } };
+window.clearNewsEditNewVideo = (postId) => { const st = window.__newsEdit[postId]; if (st) { st.newVideo = null; renderNewsEditVideo(postId); } };
+window.onNewsEditVideo = (postId, input) => {
+    const st = window.__newsEdit[postId]; if (!st) return;
+    st.newVideo = (input.files && input.files[0]) || null; input.value = ''; renderNewsEditVideo(postId);
+};
+window.cancelNewsPostEdit = (postId) => { delete window.__newsEdit[postId]; loadNewsModeration(); };
+
+async function saveNewsPostEdit(postId) {
+    const st = window.__newsEdit[postId]; if (!st) return;
+    const val = id => (document.getElementById('ne-' + id + '-' + postId)?.value || '').trim();
+    try {
+        const { data: ud } = await supabaseClient.auth.getUser();
+        const uid = ud?.user?.id; if (!uid) throw new Error('Nicht angemeldet');
+
+        // Neue Fotos hochladen (eigener uid-Ordner wegen Storage-RLS).
+        const newImgUrls = [];
+        for (let i = 0; i < st.newImages.length; i++) {
+            const f = st.newImages[i];
+            const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
+            const path = `${uid}/admin_${postId}_${Date.now()}_${i}.${ext}`;
+            const { error } = await supabaseClient.storage.from('news-media').upload(path, f, { upsert: true, contentType: f.type });
+            if (error) throw error;
+            newImgUrls.push(supabaseClient.storage.from('news-media').getPublicUrl(path).data.publicUrl);
+        }
+        // Neues Video hochladen (falls gewaehlt).
+        let videoUrl = st.keptVideo;
+        if (st.newVideo) {
+            const f = st.newVideo; const ext = (f.name.split('.').pop() || 'mp4').toLowerCase();
+            const path = `${uid}/admin_${postId}_v_${Date.now()}.${ext}`;
+            const { error } = await supabaseClient.storage.from('news-media').upload(path, f, { upsert: true, contentType: f.type });
+            if (error) throw error;
+            videoUrl = supabaseClient.storage.from('news-media').getPublicUrl(path).data.publicUrl;
+        }
+        // Textfelder + Link aktualisieren.
+        const { error: uErr } = await supabaseClient.from('news_posts').update({
+            title: val('title'), subtitle: val('subtitle'), boat_ref: val('boat'),
+            equipment_ref: val('equip'), body: val('body'), shop_url: val('shop') || null,
+        }).eq('id', postId);
+        if (uErr) throw uErr;
+        // Medien neu aufbauen (Bilder + Video + YouTube).
+        await supabaseClient.from('news_post_media').delete().eq('post_id', postId);
+        const rows = [];
+        const allImgs = [...st.keptImages, ...newImgUrls];
+        allImgs.forEach((u, i) => rows.push({ post_id: postId, media_type: 'image', url: u, sort_order: i }));
+        if (videoUrl) rows.push({ post_id: postId, media_type: 'video', url: videoUrl, sort_order: allImgs.length });
+        const yt = val('youtube');
+        if (yt) rows.push({ post_id: postId, media_type: 'youtube', url: yt, sort_order: allImgs.length + 1 });
+        if (rows.length > 0) { const { error: mErr } = await supabaseClient.from('news_post_media').insert(rows); if (mErr) throw mErr; }
+        // Uebersetzungen des Beitrags neu erzeugen (Admin-Edit umgeht update-news-post).
+        try {
+            await supabaseClient.functions.invoke('backfill-news-translations', { body: { post_id: postId, only_missing: false } });
+        } catch (_) { /* nicht blockierend */ }
+        delete window.__newsEdit[postId];
+        loadNewsModeration();
+    } catch (err) { alert('Fehler beim Speichern: ' + err.message); }
+}
+window.saveNewsPostEdit = saveNewsPostEdit;
+
+function updateNewsModBadge(delta) {
+    const badgeEl = document.getElementById('news-moderation-badge');
+    const countEl = document.getElementById('news-moderation-count-label');
+    const listEl  = document.getElementById('news-moderation-list');
+    if (!badgeEl) return;
+    const next = Math.max(0, (parseInt(badgeEl.textContent, 10) || 0) + delta);
+    badgeEl.textContent = next;
+    badgeEl.style.display = next > 0 ? 'inline' : 'none';
+    if (countEl) countEl.textContent = next === 0 ? 'Nichts zu moderieren' : `${next} Beitrag${next !== 1 ? 'e' : ''} zu prüfen`;
+    if (next === 0 && listEl && listEl.querySelectorAll('[id^="news-mod-"]').length === 0) {
+        listEl.innerHTML = '<p style="color:#16a34a; font-weight:600;">✅ Keine offenen News-Beiträge – alles sauber!</p>';
+    }
+}
+
 function updateModerationBadge(delta) {
     const badgeEl  = document.getElementById('moderation-badge');
     const countEl  = document.getElementById('moderation-count-label');
@@ -11388,6 +11708,7 @@ function buildDatevCsv(buchungen) {
         if (page === 'market-analysis')   openMarketAnalysis();
         if (page === 'registrations')     loadRegistrations();
         if (page === 'review-moderation') loadModerationQueue();
+        if (page === 'news-moderation')   loadNewsModeration();
         if (page === 'subscriptions')     loadSubscriptions();
         if (page === 'customers')         loadCustomers();
         if (page === 'bookkeeping')       loadBookkeeping();
@@ -14504,3 +14825,154 @@ async function recomputeAllCommissions() {
   commStatus(`✓ ${data} Anbieter neu berechnet.`, '#166534');
 }
 window.recomputeAllCommissions = recomputeAllCommissions;
+
+// ===================================================================
+// Admin-Push-Benachrichtigungen (Web Push) + persönliche Einstellungen
+// (News-Freigabe / neue Anbieter / neue Nutzer). Selektiv je Admin.
+// ===================================================================
+const ADMIN_VAPID_PUBLIC_KEY =
+  'BK0YOivzkzVJcP1L4sQDbjJvZzeegoUCH99ViwLIKFjRXUpC6wA6ITG6WggGaO_w9QCkftfkTaB661MGBjDT1yo';
+
+function _vapidToUint8(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+// Service Worker registrieren (für Web Push).
+(function registerAdminSW() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(e => console.warn('SW register failed', e));
+    });
+  }
+})();
+
+function _isStandalonePWA() {
+  return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+    || window.navigator.standalone === true;
+}
+function _isIOSDevice() {
+  const ua = navigator.userAgent || '';
+  return /iPhone|iPad|iPod/i.test(ua)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+async function enableAdminPush() {
+  try {
+    // 1) iPhone/iPad im normalen Tab: Apple sperrt Web-Push dort komplett.
+    //    Push geht NUR als zum Home-Bildschirm hinzugefügte App (ab iOS 16.4).
+    //    Diesen Hinweis ZUERST, sonst landet man bei "kennt keine
+    //    Benachrichtigungen" ohne Lösungsweg.
+    if (_isIOSDevice() && !_isStandalonePWA()) {
+      alert('Auf iPhone/iPad erlaubt Apple Push NUR, wenn du diese Seite als App installierst:\n\n1. Safari: Teilen-Symbol (Quadrat mit Pfeil) antippen\n2. „Zum Home-Bildschirm" wählen\n3. Die App vom Home-Bildschirm öffnen\n4. Dort erneut „Push aktivieren"\n\nAm Desktop (Chrome/Edge/Firefox/Safari) geht es direkt.');
+      return false;
+    }
+    // 2) Allgemeine Voraussetzungen konkret erklären.
+    if (!window.isSecureContext) {
+      alert('Push benötigt eine sichere HTTPS-Verbindung. Bitte https://admin.skipily.app verwenden.');
+      return false;
+    }
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert('Dieser Browser unterstützt kein Web-Push. Bitte einen aktuellen Chrome, Edge, Firefox oder Safari am Desktop nutzen – und nicht im privaten/Inkognito-Modus.');
+      return false;
+    }
+
+    // 2) Berechtigung anfragen.
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      alert('Benachrichtigungen wurden nicht erlaubt. Bitte im Browser für admin.skipily.app zulassen (Schloss-Symbol in der Adresszeile → Benachrichtigungen) und erneut versuchen.');
+      return false;
+    }
+
+    // 3) Service Worker sicherstellen + abonnieren.
+    await navigator.serviceWorker.register('/sw.js');
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: _vapidToUint8(ADMIN_VAPID_PUBLIC_KEY),
+      });
+    }
+
+    // 4) Abo serverseitig speichern.
+    const j = sub.toJSON();
+    const { error } = await supabaseClient.rpc('register_web_push', {
+      p_endpoint: sub.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_locale: 'de',
+    });
+    if (error) { console.error('register_web_push', error); alert('Konnte Abo nicht speichern: ' + error.message); return false; }
+    return true;
+  } catch (e) {
+    console.error('enableAdminPush', e);
+    alert('Push-Aktivierung fehlgeschlagen: ' + ((e && e.message) ? e.message : String(e)));
+    return false;
+  }
+}
+window.enableAdminPush = enableAdminPush;
+
+async function _saveAdminPrefs() {
+  const nr = document.getElementById('an-news').checked;
+  const np = document.getElementById('an-prov').checked;
+  const nu = document.getElementById('an-user').checked;
+  const { error } = await supabaseClient.rpc('set_admin_notification_prefs', {
+    p_news_review: nr, p_new_provider: np, p_new_user: nu,
+  });
+  const st = document.getElementById('an-status');
+  if (error) { if (st) { st.textContent = 'Fehler: ' + error.message; st.style.color = '#ef4444'; } }
+  else { if (st) { st.textContent = '✓ Gespeichert'; st.style.color = '#166534'; setTimeout(() => { if (st) st.textContent = ''; }, 1500); } }
+}
+window._saveAdminPrefs = _saveAdminPrefs;
+
+async function openAdminNotifications() {
+  // Aktuelle Einstellungen laden (Default: alle an).
+  let prefs = { news_review: true, new_provider: true, new_user: true };
+  try {
+    const { data } = await supabaseClient.rpc('get_admin_notification_prefs');
+    if (Array.isArray(data) && data.length) prefs = data[0];
+  } catch (e) { console.warn('get_admin_notification_prefs', e); }
+
+  const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
+  const pushOn = perm === 'granted';
+
+  const row = (id, label, checked) =>
+    `<label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #eef2f6;cursor:pointer;font-size:15px;color:#1f2937;">
+       <span>${label}</span>
+       <input type="checkbox" id="${id}" ${checked ? 'checked' : ''} onchange="window._saveAdminPrefs()" style="width:20px;height:20px;">
+     </label>`;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'admin-notif-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  overlay.innerHTML =
+    `<div style="background:#fff;border-radius:14px;max-width:460px;width:100%;padding:22px;box-shadow:0 10px 40px rgba(0,0,0,0.25);font-family:system-ui,Arial,sans-serif;">
+       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+         <h2 style="margin:0;font-size:19px;color:#0b2545;">🔔 Meine Benachrichtigungen</h2>
+         <button onclick="document.getElementById('admin-notif-overlay').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#64748b;">✕</button>
+       </div>
+       <p style="margin:0 0 10px;font-size:13px;color:#64748b;">Lege fest, worüber du als Push benachrichtigt wirst. Gilt nur für dich.</p>
+       <div id="an-push-box" style="margin:10px 0 12px;padding:12px;border-radius:10px;background:${pushOn ? '#ecfdf5' : '#fff7ed'};border:1px solid ${pushOn ? '#a7f3d0' : '#fed7aa'};font-size:14px;color:#1f2937;">
+         ${pushOn
+            ? '✅ Push ist in diesem Browser aktiv.'
+            : '<div style="margin-bottom:8px;">Push ist noch nicht aktiviert.</div><button onclick="window._activateAdminPush()" style="background:#1f7ae0;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer;">Push aktivieren</button>'}
+       </div>
+       ${row('an-news', 'News-Beitrag wartet auf Freigabe', prefs.news_review !== false)}
+       ${row('an-prov', 'Neuer Anbieter registriert', prefs.new_provider !== false)}
+       ${row('an-user', 'Neuer Nutzer registriert', prefs.new_user !== false)}
+       <div id="an-status" style="min-height:18px;margin-top:10px;font-size:13px;"></div>
+     </div>`;
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+window.openAdminNotifications = openAdminNotifications;
+
+window._activateAdminPush = async function () {
+  const ok = await enableAdminPush();
+  if (ok) {
+    const box = document.getElementById('an-push-box');
+    if (box) { box.style.background = '#ecfdf5'; box.style.border = '1px solid #a7f3d0'; box.textContent = '✅ Push ist in diesem Browser aktiv.'; }
+  }
+};
