@@ -2,6 +2,61 @@
 
 // MARK: - Navigation Tabs
 "tab.map" = "Carte";
+"tab.news" = "Actus";
+"news.title" = "Actus";
+"news.subtitle" = "Astuces et conseils pour propriétaires";
+"news.searchPh" = "Rechercher équipement ou solution…";
+"news.searchEmpty" = "Aucune publication pour cette recherche.";
+"news.findParts" = "Trouver des articles";
+"news.findPartsLoading" = "Recherche d'articles…";
+"news.findPartsEmpty" = "Aucun article précis détecté dans la publication.";
+"news.findPartsNoShop" = "Pas encore de produit correspondant en boutique.";
+"news.findPartsArticleNo" = "Référence";
+"news.copy" = "Copier";
+"news.copied" = "Copié";
+"news.comments" = "Commentaires";
+"news.commentPh" = "Écrire un commentaire…";
+"news.noComments" = "Pas encore de commentaires. Posez la première question.";
+"news.likelyInstalled" = "Correspond à votre équipement";
+"news.likelyArticle" = "Le plus probable";
+"news.create" = "Créer une publication";
+"news.empty" = "Aucune publication pour le moment";
+"news.emptyHint" = "Partagez votre première solution avec la communauté.";
+"news.sponsored" = "Présentation produit";
+"news.toShop" = "Voir la boutique";
+"news.report" = "Signaler";
+"news.share" = "Partager";
+"news.sharedVia" = "Partagé via Skipily :";
+"news.edit" = "Modifier";
+"news.delete" = "Supprimer";
+"news.deleteConfirm" = "Supprimer vraiment cette publication ?";
+"news.more" = "plus";
+"news.autoTranslated" = "Traduit automatiquement · original";
+"news.aiBudgetHint" = "Votre quota IA pour les traductions et sous-titres est épuisé. D'autres sont possibles avec un abonnement.";
+"news.toSubscription" = "S'abonner";
+"news.showTranslation" = "Afficher la traduction";
+"news.less" = "moins";
+"news.reportPrompt" = "Motif (facultatif)";
+"news.fTitle" = "Quel problème avez-vous résolu ?";
+"news.fTitlePh" = "p. ex. Remplacement de la turbine sans démonter le refroidisseur";
+"news.fBoat" = "Pour quel bateau";
+"news.fEquip" = "Pour quel équipement";
+"news.fBody" = "Comment vous l'avez résolu";
+"news.fBodyPh" = "Décrivez étape par étape comment vous avez résolu le problème.";
+"news.fPhotos" = "Photos (max %d)";
+"news.addPhotos" = "Ajouter des photos";
+"news.fVideoSection" = "Vidéo (max %d)";
+"news.addVideo" = "Ajouter une vidéo";
+"news.youtubePlaceholder" = "Lien YouTube (optionnel)";
+"news.youtubeHint" = "La vidéo est affichée directement dans Skipily.";
+"news.videoTooLarge" = "La vidéo est trop volumineuse (max 50 Mo).";
+"news.videoSelected" = "%d vidéo(s) sélectionnée(s)";
+"news.saving" = "Publication…";
+"news.publish" = "Publier";
+"news.resPublished" = "Votre publication est en ligne.";
+"news.resPending" = "Votre publication est en cours d'examen et apparaîtra après validation.";
+"news.resBlocked" = "Votre publication enfreint les règles et n'a pas été publiée.";
+"news.resError" = "Une erreur est survenue.";
 "tab.boats" = "Bateaux";
 "tab.maintenance" = "Entretien";
 "tab.favorites" = "Favoris";
@@ -106,6 +161,41 @@
 
 // MARK: - Boats
 "boats.title" = "Mes Bateaux";
+"boats.transfer" = "Transférer";
+"boats.transferGenerate" = "Générer la clé";
+"boats.transferWarning" = "Attention : dès que l'acheteur utilise la clé, ce bateau passe définitivement en lecture seule à l'état de la vente. Vous ne pourrez plus modifier ses données.";
+"boats.transferAck" = "Je comprends que mon bateau passe en lecture seule après l'utilisation de la clé.";
+"boats.transferConfirm" = "Générer vraiment une clé de transfert pour « %@ » ? Dès que l'acheteur l'utilise, votre bateau passe en lecture seule.";
+"boats.transferLoadingEquip" = "Chargement de l'équipement…";
+"boats.keepLabel" = "Conserver l'équipement";
+"boats.keepHint" = "Les éléments cochés ne sont PAS transférés ; ils passent sur un nouveau bateau pour vous (p. ex. repris sur votre nouveau navire).";
+"boats.transferOrRedeem" = "Transférer ou recevoir un bateau";
+"boats.transferPick" = "Quel bateau transférer ?";
+"boats.keepTarget" = "Équipement conservé vers le bateau";
+"boats.keepTargetNew" = "Nouveau bateau";
+"boats.keepTargetExisting" = "Bateau existant";
+"boats.keepNewNamePh" = "Nom du nouveau bateau";
+"boats.keepChoosePrompt" = "Choisir un bateau…";
+"boats.keepTargetHint" = "Lors de l'utilisation de la clé, l'équipement conservé est déplacé vers ce bateau.";
+"boats.keepDefaultName" = "%@ (conservé)";
+"boats.soldBadge" = "Vendu · lecture seule";
+"boats.transferTitle" = "Transférer le bateau (vente)";
+"boats.transferIntro" = "Générez une clé et donnez-la à l'acheteur de « %@ ». Il recevra une copie complète de ce bateau avec l'équipement, les photos et l'historique. Dès qu'il utilise la clé, votre original passe en lecture seule à l'état de la vente (consultation uniquement).";
+"boats.transferKeyLabel" = "Clé de transfert";
+"boats.transferExpires" = "Valable jusqu'au";
+"boats.transferCopy" = "Copier";
+"boats.transferCopied" = "Copié";
+"boats.transferGenerating" = "Génération de la clé…";
+"boats.transferHint" = "L'acheteur saisit la clé dans son compte sous « Reprendre un bateau ». Chaque clé est utilisable une fois.";
+"boats.transferError" = "Impossible de générer la clé. Veuillez réessayer.";
+"boats.transfer.paywallReason" = "Transférer un bateau par clé fait partie de Skipily Plus : l'acheteur reçoit le bateau avec équipement, photos et historique.";
+"boats.redeem" = "Reprendre un bateau";
+"boats.redeemTitle" = "Reprendre un bateau";
+"boats.redeemIntro" = "Saisissez la clé de transfert reçue du vendeur. Vous recevrez une copie complète du bateau avec son équipement.";
+"boats.redeemSubmit" = "Utiliser";
+"boats.redeemBusy" = "Reprise en cours…";
+"boats.redeemSuccess" = "Bateau repris : %@";
+"boats.redeemError" = "Échec de la reprise. Veuillez vérifier la clé.";
 "boats.add" = "Ajouter un bateau";
 "boats.no_boats" = "Aucun bateau ajouté";
 "boats.name" = "Nom du bateau";
@@ -298,6 +388,7 @@
 "equipment.part_number" = "Numéro de pièce";
 "equipment.location" = "Position sur le bateau";
 "equipment.dimensions" = "Dimensions";
+"equipment.quantity" = "Quantité";
 "equipment.photo_url" = "URL de la photo";
 "equipment.manage_hint" = "Gérer l'équipement de votre bateau";
 "equipment.hint.title" = "Plus c'est précis, mieux vous êtes trouvé";
@@ -308,6 +399,8 @@
 "equipment.cat.safety" = "Sécurité";
 "equipment.cat.engine" = "Moteur";
 "equipment.cat.electrical" = "Électrique";
+"equipment.cat.electrical_12v" = "Électrique 12V";
+"equipment.cat.electrical_230v" = "Électrique 220/110V";
 "equipment.cat.rigging" = "Gréement";
 "equipment.cat.sails" = "Voiles";
 "equipment.cat.anchor" = "Ancre";
@@ -315,6 +408,10 @@
 "equipment.cat.hvac" = "Chauffage/Clim";
 "equipment.cat.paint" = "Peintures";
 "equipment.cat.rope" = "Cordage";
+"equipment.cat.deck" = "Équipement de pont";
+"equipment.cat.hull" = "Coque";
+"equipment.cat.plumbing" = "Plomberie";
+"equipment.cat.galley" = "Cuisine";
 "equipment.cat.other" = "Autre";
 
 // New keys - Issue fixes
@@ -341,6 +438,7 @@
 // MARK: - Profile (extended)
 "profile.complete" = "Compléter votre profil";
 "profile.uploading_photo" = "Téléchargement de la photo...";
+"profile.photoUploadError" = "La photo de profil n'a pas pu être enregistrée. Veuillez réessayer.";
 "profile.user_default" = "Utilisateur";
 "profile.my_boat" = "Mon Bateau";
 "profile.loading_boats" = "Chargement des bateaux...";
@@ -595,6 +693,15 @@
 "equipment.photo_delete" = "Supprimer la photo";
 "equipment.photos_section" = "Photos (max %d)";
 "equipment.add_photos" = "Ajouter des photos (%d/%d)";
+"equipment.take_photo" = "Prendre une photo";
+"equipment.ai_analyze" = "Analyser la/les photo(s) avec l'IA";
+"equipment.ai_analyzing" = "Analyse en cours …";
+"equipment.ai_hint" = "Vérifiez les valeurs détectées et choisissez ce qui doit être repris.";
+"equipment.ai_none" = "Rien détecté. Veuillez saisir manuellement.";
+"equipment.ai_error" = "Échec de l'analyse. Veuillez réessayer.";
+"equipment.ai_suggestions_title" = "Suggestions de l'IA";
+"equipment.ai_apply" = "Appliquer";
+"equipment.ai_overwrites" = "Remplace : %@";
 "equipment.matching_parts" = "Pièces compatibles";
 "equipment.matching_brand" = "Catégorie et marque compatibles";
 "equipment.other_providers" = "Autres prestataires";
@@ -604,6 +711,7 @@
 "shop.load_more" = "Charger plus";
 "data_quality.hint" = "Plus vos saisies sont précises, plus il est facile pour l'IA de vous aider et pour la boutique de trouver la bonne pièce. Idéalement, saisissez votre équipement jusqu'au moindre détail – par exemple filtre à huile, pompe à eau ou turbine.";
 "chat.shop_search_header" = "Trouver les pièces adaptées dans la boutique :";
+"chat.news_header" = "Publications correspondantes du fil d'actus :";
 "chat.shop_search_title" = "Rechercher dans la boutique";
 "chat.shop_search_empty" = "Aucun produit correspondant trouvé. Essayez un autre terme ou contactez un professionnel.";
 "chat.equipment_checklist_button" = "Afficher la liste d'équipement suggérée";
@@ -821,6 +929,7 @@
 "tour.step9.body" = "L'IA t'évite de chercher : explique la technique, recommande l'entretien, trouve la pièce et l'entreprise — en quelques secondes. L'IA est dans le chat, les suggestions d'équipement et la recherche de pièces.";
 "tour.step10.title" = "Plus de puissance avec Skipily Plus";
 "tour.step10.body" = "Tu commences gratuitement avec quelques questions IA. Skipily Plus t'en offre bien plus par jour et le modèle IA plus puissant — des réponses plus précises. Activable dans Profil.";
+"profile.notifications" = "Notifications";
 "profile.show_tour" = "Relancer la visite";
 
 // Recherche de lieu sur la carte
@@ -1079,6 +1188,7 @@
 "srf.errBriefing" = "Le briefing n'a pas pu être généré : %@";
 
 /* ── Inquiries + Orders ── */
+"inq.title" = "Demandes";
 "inq.deleteTitle" = "Supprimer la demande ?";
 "inq.delete" = "Supprimer";
 "inq.cancel" = "Annuler";
@@ -1142,6 +1252,7 @@
 "plus.tier.plus.family" = "Partage familial Apple inclus";
 "plus.tier.plus.import" = "Importer l'équipement via Excel";
 "plus.tier.plus.report" = "Rapport d'entretien en PDF";
+"plus.tier.plus.transfer" = "Transférer un bateau par clé";
 "profile.plan.monthly" = "Mensuel";
 "profile.plan.yearly" = "Annuel";
 "plus.sheet.loading" = "Chargement des offres …";
@@ -1238,6 +1349,7 @@
 /* Plattform-Ankündigungen */
 "announcement.title" = "Annonces";
 "announcement.contact" = "Skipily";
+"announcement.older" = "Anciennes";
 "announcement.more" = "Plus d'informations";
 "announcement.dismiss" = "Masquer";
 "announcement.empty.title" = "Aucune annonce";

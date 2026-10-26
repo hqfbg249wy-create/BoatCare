@@ -253,6 +253,7 @@ struct CartView: View {
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
+            .aboveTabBar()
         }
         .background(Color(.systemBackground))
     }

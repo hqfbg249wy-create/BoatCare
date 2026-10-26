@@ -9,6 +9,7 @@
 // Auth: Bearer <user-jwt> des Kaeufers.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { pushToProvider } from "../_shared/providerPush.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { emailTo, emailShell } from "../_shared/notify.ts";
 
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
     let count = 0;
     for (const p of providers || []) {
       try {
-        await svc.from("service_inquiries").insert({
+        const { data: insIq } = await svc.from("service_inquiries").insert({
           owner_id: user.id,
           provider_id: p.id,
           boat_id: safeBoatId,
@@ -104,7 +105,8 @@ Deno.serve(async (req) => {
           request_type: reqType,
           status: "sent",
           sent_at: new Date().toISOString(),
-        });
+        }).select("id").single();
+        const inqId = insIq?.id;
         count++;
 
         // Zusaetzlich in Nachrichten spiegeln, damit der Anbieter die Anfrage
@@ -133,7 +135,10 @@ Deno.serve(async (req) => {
           const ready = isPlatformReady(p);
           const kind = isQuote ? "eine Bitte um ein Angebot" : "eine unverbindliche Anfrage";
           const claimUrl = ready ? null : await claimUrlFor(svc, p.id);
-          const ctaUrl = ready ? PROVIDER_PORTAL_BASE : (claimUrl ?? PROVIDER_PORTAL_BASE);
+          // Direkt zur konkreten Anfrage im Portal (Deep-Link), sonst Claim-Link.
+          const ctaUrl = ready
+            ? `${PROVIDER_PORTAL_BASE}/inquiries${inqId ? `?id=${inqId}` : ""}`
+            : (claimUrl ?? PROVIDER_PORTAL_BASE);
           const ctaLabel = ready ? "Im Anbieter-Portal antworten" : "Jetzt registrieren & antworten";
 
           const intro = `${buyerName ? buyerName + " " : "Ein Kunde "}sendet dir ueber Skipily ${kind}` +
@@ -163,6 +168,14 @@ Deno.serve(async (req) => {
                 : "Du erhaeltst diese Nachricht, weil ein Skipily-Nutzer einen Betrieb wie deinen sucht.",
             }),
           );
+        }
+        // Zusaetzlich Web-Push, falls der Provider Push aktiviert hat.
+        if (inqId) {
+          await pushToProvider(svc, p.id, {
+            title: isQuote ? "Neue Angebotsanfrage" : "Neue Anfrage",
+            body: `${buyerName ? buyerName + ": " : ""}${subj}`.slice(0, 140),
+            url: `${PROVIDER_PORTAL_BASE}/inquiries?id=${inqId}`,
+          });
         }
       } catch (e) {
         console.error("request-quote insert failed for", p.id, (e as Error).message);

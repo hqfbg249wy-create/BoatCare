@@ -2,6 +2,61 @@
 
 // MARK: - Navigation Tabs
 "tab.map" = "Map";
+"tab.news" = "News";
+"news.title" = "News";
+"news.subtitle" = "Tips & tricks for boat owners";
+"news.searchPh" = "Search equipment or solution…";
+"news.searchEmpty" = "No posts match your search.";
+"news.findParts" = "Find parts";
+"news.findPartsLoading" = "Searching parts…";
+"news.findPartsEmpty" = "No specific parts detected in the post.";
+"news.findPartsNoShop" = "No matching product in the shop yet.";
+"news.findPartsArticleNo" = "Article number";
+"news.copy" = "Copy";
+"news.copied" = "Copied";
+"news.comments" = "Comments";
+"news.commentPh" = "Write a comment…";
+"news.noComments" = "No comments yet. Ask the first question.";
+"news.likelyInstalled" = "Matches your equipment";
+"news.likelyArticle" = "Most likely";
+"news.create" = "Create post";
+"news.empty" = "No posts yet";
+"news.emptyHint" = "Share your first solution with the community.";
+"news.sponsored" = "Product feature";
+"news.toShop" = "Go to shop";
+"news.report" = "Report";
+"news.share" = "Share";
+"news.sharedVia" = "Shared via Skipily:";
+"news.edit" = "Edit";
+"news.delete" = "Delete";
+"news.deleteConfirm" = "Really delete this post?";
+"news.more" = "more";
+"news.autoTranslated" = "Auto-translated · original";
+"news.aiBudgetHint" = "Your AI allowance for translations and subtitles is used up. More are available with a subscription.";
+"news.toSubscription" = "Subscribe";
+"news.showTranslation" = "Show translation";
+"news.less" = "less";
+"news.reportPrompt" = "Reason (optional)";
+"news.fTitle" = "What problem did you solve?";
+"news.fTitlePh" = "e.g. Replaced impeller without removing the cooler";
+"news.fBoat" = "For which boat";
+"news.fEquip" = "For which equipment";
+"news.fBody" = "How you solved it";
+"news.fBodyPh" = "Describe step by step how you solved the problem.";
+"news.fPhotos" = "Photos (max %d)";
+"news.addPhotos" = "Add photos";
+"news.fVideoSection" = "Video (max %d)";
+"news.addVideo" = "Add video";
+"news.youtubePlaceholder" = "YouTube link (optional)";
+"news.youtubeHint" = "The video is shown directly in Skipily.";
+"news.videoTooLarge" = "Video is too large (max 50 MB).";
+"news.videoSelected" = "%d video(s) selected";
+"news.saving" = "Publishing…";
+"news.publish" = "Publish";
+"news.resPublished" = "Your post is published.";
+"news.resPending" = "Your post is being reviewed and will appear once approved.";
+"news.resBlocked" = "Your post violates the guidelines and was not published.";
+"news.resError" = "Something went wrong.";
 "tab.boats" = "Boats";
 "tab.maintenance" = "Maintenance";
 "tab.marketplace" = "Offers";
@@ -115,6 +170,41 @@
 
 // MARK: - Boats
 "boats.title" = "My Boats";
+"boats.transfer" = "Hand over";
+"boats.transferGenerate" = "Generate key";
+"boats.transferWarning" = "Warning: once the buyer redeems the key, this boat is permanently set read-only at the state of sale. You will no longer be able to change its data.";
+"boats.transferAck" = "I understand that my boat becomes read-only after the key is redeemed.";
+"boats.transferConfirm" = "Really generate a transfer key for “%@”? Once the buyer redeems it, your boat becomes read-only.";
+"boats.transferLoadingEquip" = "Loading equipment…";
+"boats.keepLabel" = "Keep equipment";
+"boats.keepHint" = "Checked items are NOT transferred; they move to a new boat for you (e.g. taken to your new vessel).";
+"boats.transferOrRedeem" = "Transfer or receive boat";
+"boats.transferPick" = "Which boat to transfer?";
+"boats.keepTarget" = "Kept equipment goes to boat";
+"boats.keepTargetNew" = "New boat";
+"boats.keepTargetExisting" = "Existing boat";
+"boats.keepNewNamePh" = "Name of the new boat";
+"boats.keepChoosePrompt" = "Choose boat…";
+"boats.keepTargetHint" = "When the key is redeemed, the kept equipment is moved to this boat.";
+"boats.keepDefaultName" = "%@ (kept)";
+"boats.soldBadge" = "Sold · read-only";
+"boats.transferTitle" = "Hand over boat (sale)";
+"boats.transferIntro" = "Generate a key and give it to the buyer of “%@”. They receive a full copy of this boat including equipment, photos and history. Once they redeem the key, your original is set read-only at the state of sale (view only).";
+"boats.transferKeyLabel" = "Transfer key";
+"boats.transferExpires" = "Valid until";
+"boats.transferCopy" = "Copy";
+"boats.transferCopied" = "Copied";
+"boats.transferGenerating" = "Generating key…";
+"boats.transferHint" = "The buyer enters the key in their account under “Take over boat”. Each key can be redeemed once.";
+"boats.transferError" = "Could not generate key. Please try again.";
+"boats.transfer.paywallReason" = "Handing over a boat by key is part of Skipily Plus: the buyer receives the boat with equipment, photos and history.";
+"boats.redeem" = "Take over boat";
+"boats.redeemTitle" = "Take over boat";
+"boats.redeemIntro" = "Enter the transfer key you received from the seller. You will receive a full copy of the boat including its equipment.";
+"boats.redeemSubmit" = "Redeem";
+"boats.redeemBusy" = "Redeeming…";
+"boats.redeemSuccess" = "Boat taken over: %@";
+"boats.redeemError" = "Redemption failed. Please check the key.";
 "boats.add" = "Add Boat";
 "boats.no_boats" = "No boats added yet";
 "boats.name" = "Boat Name";
@@ -253,6 +343,7 @@
 "equipment.part_number" = "Part Number";
 "equipment.location" = "Position on Boat";
 "equipment.dimensions" = "Dimensions";
+"equipment.quantity" = "Quantity";
 "equipment.photo_url" = "Photo URL";
 "equipment.manage_hint" = "Manage your boat equipment";
 "equipment.hint.title" = "The more precise, the easier you're found";
@@ -263,6 +354,8 @@
 "equipment.cat.safety" = "Safety";
 "equipment.cat.engine" = "Engine";
 "equipment.cat.electrical" = "Electrical";
+"equipment.cat.electrical_12v" = "12V electrical";
+"equipment.cat.electrical_230v" = "220/110V electrical";
 "equipment.cat.rigging" = "Rigging";
 "equipment.cat.sails" = "Sails";
 "equipment.cat.anchor" = "Anchor";
@@ -270,6 +363,10 @@
 "equipment.cat.hvac" = "HVAC";
 "equipment.cat.paint" = "Paint";
 "equipment.cat.rope" = "Rope";
+"equipment.cat.deck" = "Deck gear";
+"equipment.cat.hull" = "Hull";
+"equipment.cat.plumbing" = "Plumbing";
+"equipment.cat.galley" = "Galley";
 "equipment.cat.other" = "Other";
 
 // MARK: - Marketplace / Shop
@@ -344,6 +441,7 @@
 // MARK: - Profile (extended)
 "profile.complete" = "Complete your profile";
 "profile.uploading_photo" = "Uploading photo...";
+"profile.photoUploadError" = "Profile picture could not be saved. Please try again.";
 "profile.user_default" = "User";
 "profile.my_boat" = "My Boat";
 "profile.loading_boats" = "Loading boats...";
@@ -598,6 +696,15 @@
 "equipment.photo_delete" = "Delete photo";
 "equipment.photos_section" = "Photos (max %d)";
 "equipment.add_photos" = "Add photos (%d/%d)";
+"equipment.take_photo" = "Take photo";
+"equipment.ai_analyze" = "Analyze photo(s) with AI";
+"equipment.ai_analyzing" = "Analyzing …";
+"equipment.ai_hint" = "Review the detected values and choose what to apply.";
+"equipment.ai_none" = "Nothing detected. Please enter manually.";
+"equipment.ai_error" = "Analysis failed. Please try again.";
+"equipment.ai_suggestions_title" = "AI suggestions";
+"equipment.ai_apply" = "Apply";
+"equipment.ai_overwrites" = "Replaces: %@";
 "equipment.matching_parts" = "Matching parts";
 "equipment.matching_brand" = "Matching category & brand";
 "equipment.other_providers" = "Other providers";
@@ -607,6 +714,7 @@
 "shop.load_more" = "Load more";
 "data_quality.hint" = "The more accurate your entries, the easier it is for the AI to help you and the shop to find the right part. Ideally, add your equipment right down to the individual part – such as oil filter, water pump or impeller.";
 "chat.shop_search_header" = "Find matching parts in the shop:";
+"chat.news_header" = "Matching posts from the news feed:";
 "chat.shop_search_title" = "Search the shop";
 "chat.shop_search_empty" = "No matching products found. Try another term or ask a service provider.";
 "chat.equipment_checklist_button" = "Show suggested equipment list";
@@ -820,6 +928,7 @@
 "tour.step9.body" = "The AI saves you the search: explains tech clearly, recommends maintenance, finds the right part and business — in seconds. AI is in the chat, the equipment suggestions and the spare-parts search.";
 "tour.step10.title" = "More power with Skipily Plus";
 "tour.step10.body" = "You start free with a few AI questions. Skipily Plus gives you many more per day and the stronger AI model — more precise answers for trickier boat questions. Activate under Profile.";
+"profile.notifications" = "Notifications";
 "profile.show_tour" = "Restart app tour";
 
 // Location search (MKLocalSearch) on map
@@ -1078,6 +1187,7 @@
 "srf.errBriefing" = "Briefing could not be generated: %@";
 
 /* ── Inquiries + Orders ── */
+"inq.title" = "Requests";
 "inq.deleteTitle" = "Delete request?";
 "inq.delete" = "Delete";
 "inq.cancel" = "Cancel";
@@ -1141,6 +1251,7 @@
 "plus.tier.plus.family" = "Share with your family (Apple Family Sharing)";
 "plus.tier.plus.import" = "Import equipment via Excel";
 "plus.tier.plus.report" = "Maintenance report as PDF";
+"plus.tier.plus.transfer" = "Hand over a boat by key";
 "profile.plan.monthly" = "Monthly";
 "profile.plan.yearly" = "Yearly";
 "plus.sheet.loading" = "Loading plans …";
@@ -1237,6 +1348,7 @@
 /* Plattform-Ankündigungen */
 "announcement.title" = "Announcements";
 "announcement.contact" = "Skipily";
+"announcement.older" = "Older";
 "announcement.more" = "More information";
 "announcement.dismiss" = "Dismiss";
 "announcement.empty.title" = "No announcements";

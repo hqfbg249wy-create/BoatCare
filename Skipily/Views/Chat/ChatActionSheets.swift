@@ -425,9 +425,35 @@ struct ChatMessageActions: View {
     let message: LocalChatMessage
     let onShopSearch: (String) -> Void
     let onEquipmentChecklist: () -> Void
+    var onOpenNews: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if !message.newsItems.isEmpty {
+                Text("chat.news_header".loc)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(message.newsItems) { n in
+                            Button {
+                                onOpenNews()
+                            } label: {
+                                Label(n.title, systemImage: "newspaper")
+                                    .font(.caption.weight(.medium))
+                                    .lineLimit(1)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .background(Color.blue.opacity(0.12))
+                                    .foregroundStyle(Color.blue)
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 1)
+                }
+            }
             if !message.shopSearchTerms.isEmpty {
                 Text("chat.shop_search_header".loc)
                     .font(.caption)

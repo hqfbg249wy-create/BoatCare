@@ -6,6 +6,10 @@
   "installCommand": "npm install --include=dev",
   "rewrites": [
     {
+      "source": "/p/:id",
+      "destination": "/api/p/:id"
+    },
+    {
       "source": "/((?!\\.well-known/|api/|assets/|.*\\..*).*)",
       "destination": "/index.html"
     }

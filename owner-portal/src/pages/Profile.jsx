@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { User, MapPin, Save, CheckCircle, Shield, Gift, Copy, Share2, Fingerprint, Trash2 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { User, MapPin, Save, CheckCircle, Shield, Gift, Copy, Share2, Fingerprint, Trash2, Camera } from 'lucide-react'
 import MFASetup from '../components/MFASetup'
 import { useT } from '../i18n'
 
@@ -10,7 +11,31 @@ export default function Profile() {
           listPasskeys, enrollPasskey, removePasskey } = useAuth()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '')
+  const [avatarBusy, setAvatarBusy] = useState(false)
   const [referralStats, setReferralStats] = useState(null)
+
+  useEffect(() => { setAvatarUrl(profile?.avatar_url || '') }, [profile?.avatar_url])
+
+  async function uploadAvatar(file) {
+    if (!file || !user) return
+    setAvatarBusy(true)
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+      // user-photos erlaubt avatars/<uid>.*
+      const path = `avatars/${user.id}.${ext}`
+      const { error: upErr } = await supabase.storage.from('user-photos')
+        .upload(path, file, { upsert: true, contentType: file.type })
+      if (upErr) throw upErr
+      const { data: pub } = supabase.storage.from('user-photos').getPublicUrl(path)
+      const url = `${pub.publicUrl}?v=${Date.now()}` // Cache-Buster
+      await updateProfile({ avatar_url: url })
+      setAvatarUrl(url)
+    } catch (err) {
+      alert(t('prof.avatarError') + (err.message ? `: ${err.message}` : ''))
+    }
+    setAvatarBusy(false)
+  }
   const [codeCopied, setCodeCopied] = useState(false)
 
   // Passkey-Verwaltung
@@ -116,6 +141,18 @@ export default function Profile() {
       <form onSubmit={handleSave}>
         <div className="card">
           <h2><User size={18} /> {t('prof.k1')}</h2>
+          <div className="form-group">
+            <label>{t('prof.avatar')}</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              {avatarUrl
+                ? <img src={avatarUrl} alt="" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '1px solid #e2e8f0' }} />
+                : <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#e2e8f0', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User size={28} /></div>}
+              <label className="btn-secondary" style={{ cursor: 'pointer', margin: 0, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <Camera size={16} /> {avatarBusy ? t('prof.avatarUploading') : t('prof.avatarChange')}
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => uploadAvatar(e.target.files?.[0])} />
+              </label>
+            </div>
+          </div>
           <div className="form-row">
             <div className="form-group">
               <label>{t('prof.k2')}</label>

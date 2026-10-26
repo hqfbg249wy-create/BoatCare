@@ -15,11 +15,6 @@ struct AnnouncementBanner: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Farbkennzeichnung + Skipily-Logo (Wiedererkennbarkeit)
-            RoundedRectangle(cornerRadius: 3)
-                .fill(announcement.accentColor)
-                .frame(width: 5)
-
             SkipilyLogoIcon(size: 34)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
@@ -44,12 +39,23 @@ struct AnnouncementBanner: View {
             .accessibilityLabel("announcement.dismiss".loc)
         }
         .padding(.vertical, 10)
-        .padding(.leading, 10)
+        .padding(.leading, 14)
         .padding(.trailing, 4)
         .background(Color(.secondarySystemBackground))
+        // Farbkennzeichnung als Leiste links (Overlay -> haengt an der echten
+        // Kartenhoehe, NICHT flexibel -> blaeht das Banner nicht auf).
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 3)
+                .fill(announcement.accentColor)
+                .frame(width: 5)
+                .padding(.vertical, 8)
+        }
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
         .padding(.horizontal, 12)
+        // Banner haelt sich an die Inhaltshoehe (verhindert Vollbild-Aufblaehen
+        // im .overlay(alignment: .top) der Elternansicht).
+        .fixedSize(horizontal: false, vertical: true)
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
     }

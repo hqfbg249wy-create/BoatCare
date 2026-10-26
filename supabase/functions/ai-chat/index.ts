@@ -6,6 +6,7 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkAiQuota, recordAiUsage } from "../_shared/aiQuota.ts";
+import { checkFeature, gateBody } from "../_shared/featureGate.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 // Sonnet 5: stärkere Basisqualität als 4.6, aktuell günstiger (Einführungspreis).
@@ -223,6 +224,22 @@ Deno.serve(async (req) => {
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Paywall: Schadens-Foto-Analyse (Bild-Anhang in der aktuellen Frage) ab Basic.
+    const lastUser = Array.isArray(messages)
+      ? [...messages].reverse().find((m: { role?: string }) => m?.role === "user")
+      : null;
+    const hasPhoto = Array.isArray(lastUser?.attachment_urls) &&
+      lastUser.attachment_urls.some((u: unknown) => typeof u === "string" && u.length > 0);
+    if (hasPhoto && quota.tier === "free") {
+      const access = await checkFeature(user.id, "photo_analysis", userLang);
+      if (!access.allowed) {
+        return new Response(
+          JSON.stringify({ ...gateBody(access), quota_exhausted: true }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
     const LANG_NAMES: Record<string,string> = {
       de: "German", en: "English", fr: "French",
       es: "Spanish", it: "Italian", nl: "Dutch",
@@ -309,6 +326,44 @@ Deno.serve(async (req) => {
           )
           .join("\n\n");
         dynamicSystem += `\n\nLernkontext — frueher als hilfreich bewertete Antworten zu aehnlichen Themen. Nutze sie als Qualitaets-Referenz (Tonfall, Detailtiefe, Struktur), uebernimm aber niemals wortwoertlich und passe an den aktuellen Kontext an:\n\n${block}`;
+      }
+    }
+
+    // ── Community-Lösungen (News-Feed) passend zur Frage heraussuchen.
+    // Kleiner Datensatz → clientseitiges Keyword-Scoring reicht. RLS liefert nur
+    // veröffentlichte Beiträge. Treffer gehen in den Prompt UND als `news`-Feld
+    // an die App (dort als Chips). Keine modellgenerierten IDs (kein Halluzinieren).
+    let newsMatches: Array<{ id: string; title: string; subtitle: string; kind: string }> = [];
+    if (latestUserMessage?.content) {
+      try {
+        const { data: posts } = await supabaseClient
+          .from("news_posts")
+          .select("id, title, subtitle, boat_ref, equipment_ref, body, kind, shop_url, product_id")
+          .eq("status", "published")
+          .order("published_at", { ascending: false })
+          .limit(60);
+        const q = String(latestUserMessage.content).toLowerCase()
+          .replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter((w) => w.length >= 4);
+        if (q.length > 0 && Array.isArray(posts)) {
+          const scored = posts.map((p: Record<string, unknown>) => {
+            const hay = [p.title, p.subtitle, p.boat_ref, p.equipment_ref, p.body]
+              .map((x) => String(x ?? "").toLowerCase()).join(" ");
+            let score = 0;
+            for (const w of q) if (hay.includes(w)) score++;
+            return { p, score };
+          }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 4);
+          newsMatches = scored.map(({ p }) => ({
+            id: String(p.id), title: String(p.title ?? ""),
+            subtitle: String(p.subtitle ?? ""), kind: String(p.kind ?? "solution"),
+          }));
+        }
+      } catch (e) { console.warn("news retrieval failed:", e); }
+
+      if (newsMatches.length > 0) {
+        const list = newsMatches.map((n, i) =>
+          `${i + 1}. [${n.kind === "product" ? "Produkt" : "Lösung"}] ${n.title}${n.subtitle ? " — " + n.subtitle : ""}`).join("\n");
+        dynamicSystem += `\n\nPassende Community-Beiträge aus dem Skipily-News-Feed (Tipps & Tricks anderer Eigner bzw. Produktvorstellungen):\n${list}\n` +
+          `Wenn einer davon zur Frage passt, erwähne ihn kurz im Fließtext ("Ein anderer Eigner hat dazu eine Lösung geteilt …" bzw. bei Produkten einen passenden Hinweis). Die App zeigt die Beiträge zusätzlich als antippbare Chips an — erfinde KEINE weiteren Beiträge und keine Links.`;
       }
     }
 
@@ -430,6 +485,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         reply,
+        news: newsMatches,
         quota: { source: quota.source, remaining: (quota.remaining ?? Infinity) - 1, limit: quota.limit },
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

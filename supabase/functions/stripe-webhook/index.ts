@@ -138,6 +138,19 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     switch (event.type) {
+      // News-Anzeige bezahlt (Tagesbudget-Vorkasse) → Kampagne aktivieren.
+      case "checkout.session.completed": {
+        const session = event.data.object;
+        const adCampaignId = session.metadata?.ad_campaign_id;
+        if (adCampaignId) {
+          const { error } = await supabase.from("news_ad_campaigns")
+            .update({ status: "active", is_paid: true, paid_at: new Date().toISOString() })
+            .eq("id", adCampaignId);
+          if (error) console.error("ad campaign activate error:", error.message);
+          else console.log(`News-Ad-Kampagne ${adCampaignId} bezahlt → aktiv`);
+        }
+        break;
+      }
       case "payment_intent.succeeded": {
         const paymentIntent = event.data.object;
         const orderIds = paymentIntent.metadata?.order_ids?.split(",") || [];

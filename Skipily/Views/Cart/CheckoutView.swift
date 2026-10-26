@@ -218,6 +218,8 @@ struct CheckoutView: View {
             }
             .padding(16)
         }
+        // Letzter Eintrag laesst sich ueber die schwebende Tab-Leiste scrollen
+        .tabBarScrollClearance()
     }
 
     // MARK: - Step 2: Review + Pay
@@ -416,6 +418,7 @@ struct CheckoutView: View {
                 }
                 .foregroundStyle(AppColors.gray400)
                 .padding(.bottom, 8)
+                .aboveTabBar()
             }
             .background(Color(.systemBackground))
         }

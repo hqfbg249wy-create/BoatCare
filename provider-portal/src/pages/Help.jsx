@@ -14,11 +14,12 @@ const LANGS = [
 
 // Kategorie-Reihenfolge + Überschriften je Sprache (Fallback: DE)
 const CATEGORY_ORDER = [
-  'offering', 'csv', 'api', 'team', 'security', 'payment',
+  'offering', 'news', 'csv', 'api', 'team', 'security', 'payment',
   'orders_shipping', 'market_analysis', 'commission', 'advantages',
 ]
 const CATEGORY_LABELS = {
   offering:        { de: 'Was wir bieten', en: 'What we offer', fr: 'Notre offre', it: 'Cosa offriamo', es: 'Qué ofrecemos', nl: 'Wat wij bieden' },
+  news:            { de: 'News-Feed & Werbung', en: 'News feed & advertising', fr: 'Fil d’actualités & publicité', it: 'News feed & pubblicità', es: 'Noticias y publicidad', nl: 'Nieuwsfeed & advertenties' },
   csv:             { de: 'CSV-Produktimport', en: 'CSV product import', fr: 'Import de produits CSV', it: 'Importazione prodotti CSV', es: 'Importación de productos CSV', nl: 'CSV-productimport' },
   api:             { de: 'API / Schnittstelle / Webhook', en: 'API / interface / webhook', fr: 'API / interface / webhook', it: 'API / interfaccia / webhook', es: 'API / interfaz / webhook', nl: 'API / koppeling / webhook' },
   team:            { de: 'Teammitglieder', en: 'Team members', fr: 'Membres de l’équipe', it: 'Membri del team', es: 'Miembros del equipo', nl: 'Teamleden' },

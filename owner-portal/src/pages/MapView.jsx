@@ -583,6 +583,7 @@ export default function MapView() {
                 key={p.id}
                 position={[p.latitude, p.longitude]}
                 icon={createPinIcon(p, favorites.has(p.id), selectedProvider?.id === p.id)}
+                zIndexOffset={Math.round((Number(p.rating) || 0) * 100 + Math.min(Number(p.review_count) || 0, 50))}
                 eventHandlers={{
                   click: (e) => {
                     L.DomEvent.stopPropagation(e)
@@ -648,8 +649,8 @@ function ProviderDetailCard({ provider, isFavorite, onToggleFavorite, onClose })
       }>
         <div className="pdc-cover-overlay" />
         <button className="pdc-close" onClick={onClose}><X size={18} /></button>
-        <button className={`pdc-fav ${isFavorite ? 'active' : ''}`} onClick={onToggleFavorite}>
-          <Heart size={20} fill={isFavorite ? '#ef4444' : 'none'} color={isFavorite ? '#ef4444' : 'white'} />
+        <button className={`pdc-fav ${isFavorite ? 'active' : ''}`} onClick={onToggleFavorite} title={isFavorite ? 'Favorit entfernen' : 'Als Favorit speichern'}>
+          <Heart size={20} fill={isFavorite ? '#ef4444' : 'none'} color="#ef4444" />
         </button>
       </div>
 
@@ -785,7 +786,7 @@ function ProviderCard({ provider, isFavorite, onToggleFavorite }) {
         <button className={`prov-fav-btn ${isFavorite ? 'active' : ''}`}
           onClick={e => { e.stopPropagation(); onToggleFavorite() }}
           title={isFavorite ? 'Favorit entfernen' : 'Als Favorit speichern'}>
-          <Heart size={20} fill={isFavorite ? '#ef4444' : 'none'} color={isFavorite ? '#ef4444' : '#cbd5e1'} />
+          <Heart size={20} fill={isFavorite ? '#ef4444' : 'none'} color="#ef4444" />
         </button>
       </div>
 

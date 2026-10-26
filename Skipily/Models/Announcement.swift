@@ -75,6 +75,12 @@ final class AnnouncementStore: ObservableObject {
     @Published private(set) var items: [Announcement] = []
     /// Aktuell als Banner anzuzeigende Ankuendigung (neueste ungelesene).
     @Published var banner: Announcement?
+    /// Vom Push-Tap gesetzt: Ankuendigung, die direkt im Volltext geoeffnet
+    /// werden soll (MainTabView zeigt dafuer AnnouncementDetailView).
+    @Published var pendingDetail: Announcement?
+    /// Vom Push-Tap gesetzt, wenn keine konkrete Ankuendigung gefunden wurde:
+    /// die vollstaendige Benachrichtigungsliste oeffnen.
+    @Published var openList = false
 
     var unreadCount: Int { items.filter { !$0.isRead }.count }
 
@@ -107,11 +113,20 @@ final class AnnouncementStore: ObservableObject {
         await refresh()
     }
 
-    /// Von der Push-Verarbeitung aufgerufen (Vordergrund/Tap).
-    func handlePush(announcementId: String?) async {
+    /// Von der Push-Verarbeitung aufgerufen.
+    /// - openDetail=false (App im Vordergrund): eigenes In-App-Banner zeigen.
+    /// - openDetail=true  (Nutzer hat die Push-Nachricht angetippt, z. B. vom
+    ///   Sperrbildschirm): die Ankuendigung direkt im Volltext oeffnen; ohne
+    ///   konkrete ID die Benachrichtigungsliste.
+    func handlePush(announcementId: String?, openDetail: Bool = false) async {
         await refresh()
-        if let announcementId, let uuid = UUID(uuidString: announcementId),
-           let hit = items.first(where: { $0.id == uuid }) {
+        let hit: Announcement? = {
+            guard let announcementId, let uuid = UUID(uuidString: announcementId) else { return nil }
+            return items.first(where: { $0.id == uuid })
+        }()
+        if openDetail {
+            if let hit { self.pendingDetail = hit } else { self.openList = true }
+        } else if let hit {
             self.banner = hit
         }
     }

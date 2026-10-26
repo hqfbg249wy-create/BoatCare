@@ -37,6 +37,7 @@ struct BoatInfo: Codable, Identifiable, Sendable {
 
 struct ProfileView: View {
     @EnvironmentObject var authService: AuthService
+    @ObservedObject private var announcements = AnnouncementStore.shared
 
     // Personal data
     @State private var fullName = ""
@@ -61,6 +62,7 @@ struct ProfileView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var profileImage: UIImage?
     @State private var isUploadingPhoto = false
+    @State private var avatarError: String?
 
     // UI state
     @State private var isSaving = false
@@ -96,6 +98,9 @@ struct ProfileView: View {
                 if let profile = authService.userProfile, !profile.isComplete {
                     completionBanner(profile: profile)
                 }
+
+                // MARK: - Benachrichtigungen (oben, Plattform-Ankuendigungen)
+                notificationsButton
 
                 // MARK: - Avatar
                 avatarSection
@@ -280,6 +285,12 @@ struct ProfileView: View {
                 ProgressView("profile.uploading_photo".loc)
                     .font(.caption)
             }
+            if let avatarError {
+                Text(avatarError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+            }
 
             Text(authService.userProfile?.fullName ?? "profile.user_default".loc)
                 .font(.title3)
@@ -304,7 +315,7 @@ struct ProfileView: View {
         guard let data = try? await item.loadTransferable(type: Data.self),
               let uiImage = UIImage(data: data) else { return }
 
-        await MainActor.run { profileImage = uiImage; isUploadingPhoto = true }
+        await MainActor.run { profileImage = uiImage; isUploadingPhoto = true; avatarError = nil }
 
         // Compress and upload to Supabase storage
         guard let jpegData = uiImage.jpegData(compressionQuality: 0.7),
@@ -313,7 +324,9 @@ struct ProfileView: View {
             return
         }
 
-        let path = "avatars/\(userId.uuidString).jpg"
+        // Storage-Policy vergleicht den Dateinamen mit auth.uid()::text (klein
+        // geschrieben); Swifts uuidString ist GROSS -> Upload wurde abgelehnt.
+        let path = "avatars/\(userId.uuidString.lowercased()).jpg"
         do {
             // Upload to Supabase storage bucket "user-photos"
             try await SupabaseManager.shared.client.storage
@@ -325,13 +338,18 @@ struct ProfileView: View {
                 .from("user-photos")
                 .getPublicURL(path: path)
 
-            // Update profile
+            // Update profile (Cache-Buster, sonst zeigt AsyncImage das alte Bild)
             if var profile = authService.userProfile {
-                profile.avatarUrl = publicURL.absoluteString
+                profile.avatarUrl = "\(publicURL.absoluteString)?v=\(Int(Date().timeIntervalSince1970))"
                 try await authService.updateProfile(profile)
             }
         } catch {
             AppLog.error("Avatar upload error: \(error)")
+            // Nicht stumm scheitern: Vorschau zuruecksetzen und Hinweis zeigen
+            await MainActor.run {
+                profileImage = nil
+                avatarError = "profile.photoUploadError".loc
+            }
         }
 
         await MainActor.run { isUploadingPhoto = false }
@@ -883,6 +901,41 @@ struct ProfileView: View {
     }
 
     // MARK: - App-Tour erneut starten
+
+    // MARK: - Benachrichtigungen
+
+    /// Einstieg zu allen Plattform-Ankuendigungen. Push-Nachrichten fuehren
+    /// ueber dieselbe Liste/Detailansicht (siehe MainTabView). Ungelesene werden
+    /// mit einem Badge angezeigt. Titel/Inhalt sind in allen sechs Sprachen
+    /// lokalisiert (Liste + Detail via Announcement.translations).
+    private var notificationsButton: some View {
+        NavigationLink {
+            AnnouncementsView()
+        } label: {
+            HStack {
+                Image(systemName: "bell.badge")
+                Text("profile.notifications".loc)
+                Spacer()
+                if announcements.unreadCount > 0 {
+                    Text("\(announcements.unreadCount)")
+                        .font(.caption2).fontWeight(.bold)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 7).padding(.vertical, 2)
+                        .background(Capsule().fill(AppColors.error))
+                }
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.tertiary)
+                    .font(.caption)
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 50)
+            .background(AppColors.primary.opacity(0.08))
+            .foregroundStyle(AppColors.primary)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .padding(.horizontal, 16)
+        .task { await announcements.refresh() }
+    }
 
     private var tourButton: some View {
         Button {

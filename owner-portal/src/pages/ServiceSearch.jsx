@@ -345,7 +345,7 @@ export default function ServiceSearch() {
                         </div>
                       )}
                       <button className="service-fav-btn" onClick={(e) => toggleFavorite(e, p.id)}>
-                        <Heart size={18} fill={p._isFav ? '#ef4444' : 'none'} color={p._isFav ? '#ef4444' : '#cbd5e1'} />
+                        <Heart size={18} fill={p._isFav ? '#ef4444' : 'none'} color="#ef4444" />
                       </button>
                     </div>
                   </Link>

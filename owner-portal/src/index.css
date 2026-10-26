@@ -370,6 +370,8 @@ a { color: var(--blue); text-decoration: none; }
 .equipment-card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-left: 4px solid var(--gray-200); }
 .eq-photo-strip { display: flex; gap: 4px; margin: 6px 0 10px; flex-wrap: wrap; }
 .eq-photo-thumb { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; background: var(--gray-100); flex-shrink: 0; }
+.eq-photo-strip { align-items: flex-end; }
+.eq-photo-more { font-size: 12px; font-weight: 600; color: var(--gray-500, #64748b); }
 .equipment-card.overdue { border-left-color: var(--red); }
 .equipment-card.due_soon { border-left-color: var(--yellow); }
 .equipment-card.ok { border-left-color: var(--green); }

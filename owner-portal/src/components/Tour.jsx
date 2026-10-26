@@ -85,7 +85,7 @@ export default function Tour() {
   // Floating-Hilfe-Button (Tour jederzeit neu starten).
   const HelpButton = (
     <button aria-label="Tour starten" onClick={() => { setI(0); setActive(true) }}
-      style={{ position: 'fixed', right: 18, bottom: 18, zIndex: 1400, width: 46, height: 46,
+      style={{ position: 'fixed', right: 18, bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))', zIndex: 1400, width: 46, height: 46,
         borderRadius: '50%', border: 'none', background: 'var(--primary, #0a6cff)', color: '#fff',
         boxShadow: '0 4px 14px rgba(0,0,0,0.2)', cursor: 'pointer', display: 'flex',
         alignItems: 'center', justifyContent: 'center' }}>

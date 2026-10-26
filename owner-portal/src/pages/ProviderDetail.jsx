@@ -467,8 +467,8 @@ export default function ProviderDetail() {
         <button className="pd-back-btn" onClick={() => navigate(-1)}>
           <ChevronLeft size={20} /> {t('prov.k1')}
         </button>
-        <button className={`pd-fav-float ${isFavorite ? 'active' : ''}`} onClick={toggleFavorite}>
-          <Heart size={22} fill={isFavorite ? '#ef4444' : 'none'} color={isFavorite ? '#ef4444' : 'white'} />
+        <button className={`pd-fav-float ${isFavorite ? 'active' : ''}`} onClick={toggleFavorite} title={isFavorite ? 'Favorit entfernen' : 'Als Favorit speichern'}>
+          <Heart size={22} fill={isFavorite ? '#ef4444' : 'none'} color="#ef4444" />
         </button>
       </div>
 

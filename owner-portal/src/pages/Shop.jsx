@@ -16,6 +16,7 @@ const sfSymbolToEmoji = {
   'figure.sailing': '🏄', 'lifepreserver.fill': '🛟', 'drop.fill': '💧',
   'sparkles': '✨', 'car.rear.and.tire.marks': '🚗', 'tshirt.fill': '👕',
   'fuelpump.fill': '⛽', 'battery.100': '🔋', 'shippingbox.fill': '📦',
+  'bag.fill': '🎒',
 }
 function mapIcon(icon) { return sfSymbolToEmoji[icon] || '' }
 
@@ -44,6 +45,10 @@ export default function Shop() {
   const [search, setSearch] = useState(searchParams.get('q') || '')
   const [selectedCat, setSelectedCat] = useState(searchParams.get('category') || '')
   const [providerFilter, setProviderFilter] = useState(searchParams.get('provider') || '')
+  // Aus einem News-Produktbeitrag angepinnte Produkte (oben hervorgehoben).
+  const pinIds = (searchParams.get('pin') || '').split(',').map(s => s.trim()).filter(Boolean)
+  const [pinnedProducts, setPinnedProducts] = useState([])
+  const pinnedSet = new Set(pinIds)
   // Amazon-artig: Suchvorschlaege (Dropdown) + Eingrenzungs-Chips (Facetten),
   // beide zentral aus der DB (suggest_products / search_product_facets).
   const [suggestions, setSuggestions] = useState([])
@@ -60,6 +65,11 @@ export default function Shop() {
   // damit der Observer nicht an veralteten State/Filter gebunden ist.
   const observerRef = useRef(null)
   const infiniteRef = useRef({})
+  // Laufende-Nummer je Produktanfrage: beim Tippen starten mehrere Suchen
+  // gleichzeitig; nur die ANTWORT der zuletzt gestarteten Anfrage darf die
+  // Liste setzen, sonst ueberholt eine aeltere Antwort die neuere (Ergebnis
+  // hinkt dem Suchfeld um einen Tastendruck hinterher).
+  const productReqSeq = useRef(0)
   const [cartToast, setCartToast] = useState(null)
   // Empfehlungen für User-Equipment ("Passende Produkte für Deine Ausrüstung")
   const [equipmentRecommendations, setEquipmentRecommendations] = useState([])
@@ -97,6 +107,22 @@ export default function Shop() {
     return () => { cancelled = true }
   }, [products, equipmentRecommendations, lang])
   const nameOf = (p) => prodTr[p.id]?.name || p.name
+
+  // Angepinnte Produkte (aus einem Beitrag) separat laden, damit sie auch dann
+  // oben erscheinen, wenn sie nicht auf der ersten Ergebnisseite liegen.
+  useEffect(() => {
+    if (pinIds.length === 0) { setPinnedProducts([]); return }
+    let cancelled = false
+    ;(async () => {
+      const { data } = await supabase.from('metashop_products')
+        .select(LIST_SELECT).in('id', pinIds).eq('is_active', true)
+      if (cancelled) return
+      const order = new Map(pinIds.map((id, i) => [id, i]))
+      setPinnedProducts((data || []).sort((a, b) => (order.get(a.id) ?? 99) - (order.get(b.id) ?? 99)))
+    })()
+    return () => { cancelled = true }
+  }, [searchParams.get('pin')])
+
   // Reload products when search, category, or provider filter changes (Shop-Modus only)
   useEffect(() => {
     if (!loading && !isSparePartsMode) loadProducts(0)
@@ -241,6 +267,7 @@ export default function Shop() {
   }
 
   async function loadProducts(pageNum, append = false) {
+    const seq = ++productReqSeq.current
     let query
     if (search && search.trim().length >= 2) {
       // Unscharfe Suche zentral in der DB (search_products RPC): sucht ueber
@@ -269,6 +296,9 @@ export default function Shop() {
     }
 
     const { data, error } = await query
+    // Veraltete Antwort verwerfen: zwischenzeitlich wurde eine neuere Suche
+    // gestartet (schuetzt vor dem "Lag um einen Tastendruck").
+    if (seq !== productReqSeq.current) return
     if (error) { console.error('Products error:', error); return }
     setHasMore((data || []).length === PAGE_SIZE)
     if (append) {
@@ -514,17 +544,49 @@ export default function Shop() {
         </div>
       )}
 
+      {/* Aus dem Beitrag empfohlene Produkte (oben hervorgehoben) */}
+      {pinnedProducts.length > 0 && (
+        <div style={{ margin: '0 0 18px', padding: '12px 14px', borderRadius: 14, border: '2px solid #2563eb', background: 'rgba(37,99,235,0.05)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, color: '#1d4ed8', fontWeight: 700, fontSize: 14 }}>
+            <Package size={16} /> {t('shop.fromPost')}
+          </div>
+          <div className="shop-product-grid">
+            {pinnedProducts.map(product => (
+              <div key={'pin-' + product.id} className="shop-product-card" style={{ outline: '2px solid #2563eb', outlineOffset: 0 }}>
+                <Link to={`/shop/product/${product.id}`} className="shop-product-link">
+                  {product.images?.[0]
+                    ? <div className="shop-product-img-wrap"><img src={product.images[0]} alt={nameOf(product)} loading="lazy" decoding="async" /></div>
+                    : <div className="shop-product-img-wrap shop-product-no-img"><Package size={32} color="#cbd5e1" /></div>}
+                  <div className="shop-product-info">
+                    {product.service_providers?.name && <span className="shop-product-provider">{product.service_providers.name}</span>}
+                    <span className="shop-product-name">{nameOf(product)}</span>
+                    {product.manufacturer && <span className="shop-product-mfr">{product.manufacturer}</span>}
+                    {product.price != null && (
+                      <div className="shop-product-price-row">
+                        <span className="shop-product-price">{Number(product.price).toFixed(2)} {product.currency || '€'}</span>
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Product grid */}
       {products.length === 0 ? (
+        pinnedProducts.length === 0 && (
         <div className="empty-state">
           <Package size={64} color="#cbd5e1" />
           <h2>{t('shop.k7')}</h2>
           <p>{t('shop.k8')}</p>
         </div>
+        )
       ) : (
         <>
           <div className="shop-product-grid">
-            {products.map(product => {
+            {products.filter(p => !pinnedSet.has(p.id)).map(product => {
               const promo = bestPromo(product)
               const inCart = isInCart(product.id)
               const discountedPrice = promo

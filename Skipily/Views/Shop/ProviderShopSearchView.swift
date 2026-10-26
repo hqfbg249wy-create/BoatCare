@@ -11,6 +11,8 @@ struct ProviderShopSearchView: View {
     let providerId: UUID
     let providerName: String
     let searchTerm: String
+    /// Aus einem News-Produktbeitrag hervorzuhebende Produkte (oben, blau umrandet).
+    var pinnedProductIds: [UUID] = []
 
     @State private var products: [Product] = []
     @State private var isLoading = true
@@ -30,6 +32,19 @@ struct ProviderShopSearchView: View {
         GridItem(.flexible(), spacing: 12),
         GridItem(.flexible(), spacing: 12)
     ]
+
+    private var pinnedSet: Set<UUID> { Set(pinnedProductIds) }
+    /// Angepinnte Produkte zuerst (in der im Beitrag hinterlegten Reihenfolge).
+    private var orderedProducts: [Product] {
+        guard !pinnedProductIds.isEmpty else { return products }
+        let rank = Dictionary(uniqueKeysWithValues: pinnedProductIds.enumerated().map { ($1, $0) })
+        return products.sorted { a, b in
+            let ra = rank[a.id], rb = rank[b.id]
+            if (ra != nil) != (rb != nil) { return ra != nil }   // angepinnte zuerst
+            if let ra, let rb { return ra < rb }
+            return false
+        }
+    }
 
     var body: some View {
         ScrollView {
@@ -81,7 +96,7 @@ struct ProviderShopSearchView: View {
                     ), isActive: $navigateToServiceSearch) { EmptyView() }
                 } else {
                     LazyVGrid(columns: columns, spacing: 12) {
-                        ForEach(products) { product in
+                        ForEach(orderedProducts) { product in
                             NavigationLink {
                                 ProductDetailView(product: product)
                             } label: {
@@ -89,6 +104,10 @@ struct ProviderShopSearchView: View {
                                     product: product,
                                     promotionBadge: promotionService.promotionBadgeText(for: product),
                                     discountedPrice: promotionService.displayDiscountedPrice(for: product)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(AppColors.primary, lineWidth: pinnedSet.contains(product.id) ? 2 : 0)
                                 )
                             }
                             .buttonStyle(.plain)
@@ -184,13 +203,20 @@ struct ProviderShopSearchView: View {
             } else {
                 // Load from specific provider
                 let allProducts = try await productService.fetchProductsByProvider(providerId: providerId)
-                let term = searchTerm.lowercased()
-                products = allProducts.filter { product in
-                    if product.name.lowercased().contains(term) { return true }
-                    if product.manufacturer?.lowercased().contains(term) == true { return true }
-                    if product.description?.lowercased().contains(term) == true { return true }
-                    if product.tags?.contains(where: { $0.lowercased().contains(term) }) == true { return true }
-                    return false
+                let term = searchTerm.trimmingCharacters(in: .whitespaces).lowercased()
+                if term.isEmpty {
+                    // Kein Suchbegriff (z. B. aus einem News-Beitrag geoeffnet)
+                    // -> ALLE Produkte des Anbieters zeigen. (String.contains("")
+                    // liefert in Swift false und wuerde sonst alles rausfiltern.)
+                    products = allProducts
+                } else {
+                    products = allProducts.filter { product in
+                        if product.name.lowercased().contains(term) { return true }
+                        if product.manufacturer?.lowercased().contains(term) == true { return true }
+                        if product.description?.lowercased().contains(term) == true { return true }
+                        if product.tags?.contains(where: { $0.lowercased().contains(term) }) == true { return true }
+                        return false
+                    }
                 }
             }
         } catch {

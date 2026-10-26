@@ -19,6 +19,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import * as XLSX from "npm:xlsx@0.18.5";
 import { corsHeaders } from "../_shared/cors.ts";
+import { checkFeature, gateBody, gateLang } from "../_shared/featureGate.ts";
 
 const SUPABASE_URL         = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY    = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -229,7 +230,11 @@ Deno.serve(async (req) => {
 
     // ── Plus erforderlich
     const { data: hasPlus } = await admin.rpc("user_has_plus", { p_user_id: user.id, p_boat_id: null });
-    if (hasPlus !== true) return json({ error: "Skipily Plus erforderlich.", requires_plus: true }, 402);
+    if (hasPlus !== true) {
+      // Kurze Upgrade-Meldung aus der DB (feature_gates, Migration 215)
+      const access = await checkFeature(user.id, "excel_import", gateLang(req, body?.lang));
+      return json(gateBody({ ...access, allowed: false, required_tier: "plus" }), 402);
+    }
 
     // ── Datei parsen
     let wb: XLSX.WorkBook;

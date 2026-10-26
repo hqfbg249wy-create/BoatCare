@@ -2,6 +2,61 @@
 
 // MARK: - Navigation Tabs
 "tab.map" = "Kaart";
+"tab.news" = "Nieuws";
+"news.title" = "Nieuws";
+"news.subtitle" = "Tips & trucs voor booteigenaren";
+"news.searchPh" = "Zoek uitrusting of oplossing…";
+"news.searchEmpty" = "Geen berichten voor deze zoekopdracht.";
+"news.findParts" = "Artikelen vinden";
+"news.findPartsLoading" = "Artikelen zoeken…";
+"news.findPartsEmpty" = "Geen concrete artikelen in het bericht herkend.";
+"news.findPartsNoShop" = "Nog geen passend product in de shop.";
+"news.findPartsArticleNo" = "Artikelnummer";
+"news.copy" = "Kopiëren";
+"news.copied" = "Gekopieerd";
+"news.comments" = "Reacties";
+"news.commentPh" = "Schrijf een reactie…";
+"news.noComments" = "Nog geen reacties. Stel de eerste vraag.";
+"news.likelyInstalled" = "Past bij jouw uitrusting";
+"news.likelyArticle" = "Meest waarschijnlijk";
+"news.create" = "Bericht maken";
+"news.empty" = "Nog geen berichten";
+"news.emptyHint" = "Deel je eerste oplossing met de community.";
+"news.sponsored" = "Productpresentatie";
+"news.toShop" = "Naar de shop";
+"news.report" = "Melden";
+"news.share" = "Delen";
+"news.sharedVia" = "Gedeeld via Skipily:";
+"news.edit" = "Bewerken";
+"news.delete" = "Verwijderen";
+"news.deleteConfirm" = "Dit bericht echt verwijderen?";
+"news.more" = "meer";
+"news.autoTranslated" = "Automatisch vertaald · origineel";
+"news.aiBudgetHint" = "Je AI-tegoed voor vertalingen en ondertitels is op. Meer is mogelijk met een abonnement.";
+"news.toSubscription" = "Abonneren";
+"news.showTranslation" = "Vertaling tonen";
+"news.less" = "minder";
+"news.reportPrompt" = "Reden (optioneel)";
+"news.fTitle" = "Welk probleem heb je opgelost?";
+"news.fTitlePh" = "bijv. Impeller vervangen zonder de koeler te demonteren";
+"news.fBoat" = "Voor welke boot";
+"news.fEquip" = "Voor welke uitrusting";
+"news.fBody" = "Hoe je het hebt opgelost";
+"news.fBodyPh" = "Beschrijf stap voor stap hoe je het probleem hebt opgelost.";
+"news.fPhotos" = "Foto's (max %d)";
+"news.addPhotos" = "Foto's toevoegen";
+"news.fVideoSection" = "Video (max %d)";
+"news.addVideo" = "Video toevoegen";
+"news.youtubePlaceholder" = "YouTube-link (optioneel)";
+"news.youtubeHint" = "De video wordt direct in Skipily getoond.";
+"news.videoTooLarge" = "Video is te groot (max 50 MB).";
+"news.videoSelected" = "%d video('s) geselecteerd";
+"news.saving" = "Publiceren…";
+"news.publish" = "Publiceren";
+"news.resPublished" = "Je bericht is gepubliceerd.";
+"news.resPending" = "Je bericht wordt beoordeeld en verschijnt na goedkeuring.";
+"news.resBlocked" = "Je bericht schendt de richtlijnen en is niet gepubliceerd.";
+"news.resError" = "Er is iets misgegaan.";
 "tab.boats" = "Boten";
 "tab.maintenance" = "Onderhoud";
 "tab.favorites" = "Favorieten";
@@ -106,6 +161,41 @@
 
 // MARK: - Boats
 "boats.title" = "Mijn Boten";
+"boats.transfer" = "Overdragen";
+"boats.transferGenerate" = "Sleutel genereren";
+"boats.transferWarning" = "Let op: zodra de koper de sleutel inwisselt, wordt deze boot onomkeerbaar alleen-lezen op de stand van de verkoop. Je kunt de gegevens daarna niet meer wijzigen.";
+"boats.transferAck" = "Ik begrijp dat mijn boot alleen-lezen wordt nadat de sleutel is ingewisseld.";
+"boats.transferConfirm" = "Echt een overdrachtssleutel voor ‘%@’ genereren? Zodra de koper deze inwisselt, wordt je boot alleen-lezen.";
+"boats.transferLoadingEquip" = "Uitrusting laden…";
+"boats.keepLabel" = "Uitrusting houden";
+"boats.keepHint" = "Aangevinkte items worden NIET overgedragen; ze gaan naar een nieuwe boot voor jou (bijv. mee naar je nieuwe schip).";
+"boats.transferOrRedeem" = "Boot overdragen of ontvangen";
+"boats.transferPick" = "Welke boot overdragen?";
+"boats.keepTarget" = "Behouden uitrusting naar boot";
+"boats.keepTargetNew" = "Nieuwe boot";
+"boats.keepTargetExisting" = "Bestaande boot";
+"boats.keepNewNamePh" = "Naam van de nieuwe boot";
+"boats.keepChoosePrompt" = "Boot kiezen…";
+"boats.keepTargetHint" = "Bij het inwisselen van de sleutel wordt de behouden uitrusting naar deze boot verplaatst.";
+"boats.keepDefaultName" = "%@ (behouden)";
+"boats.soldBadge" = "Verkocht · alleen-lezen";
+"boats.transferTitle" = "Boot overdragen (verkoop)";
+"boats.transferIntro" = "Genereer een sleutel en geef die aan de koper van ‘%@’. Die ontvangt een volledige kopie van deze boot inclusief uitrusting, foto's en historie. Zodra de sleutel wordt ingewisseld, wordt jouw origineel alleen-lezen op de stand van de verkoop (alleen bekijken).";
+"boats.transferKeyLabel" = "Overdrachtssleutel";
+"boats.transferExpires" = "Geldig tot";
+"boats.transferCopy" = "Kopiëren";
+"boats.transferCopied" = "Gekopieerd";
+"boats.transferGenerating" = "Sleutel wordt gegenereerd…";
+"boats.transferHint" = "De koper voert de sleutel in zijn account in onder ‘Boot overnemen’. Elke sleutel is één keer in te wisselen.";
+"boats.transferError" = "Sleutel kon niet worden gegenereerd. Probeer opnieuw.";
+"boats.transfer.paywallReason" = "Een boot via een sleutel overdragen hoort bij Skipily Plus: de koper krijgt de boot met uitrusting, foto's en historie.";
+"boats.redeem" = "Boot overnemen";
+"boats.redeemTitle" = "Boot overnemen";
+"boats.redeemIntro" = "Voer de overdrachtssleutel in die je van de verkoper hebt gekregen. Je ontvangt een volledige kopie van de boot inclusief uitrusting.";
+"boats.redeemSubmit" = "Inwisselen";
+"boats.redeemBusy" = "Bezig met inwisselen…";
+"boats.redeemSuccess" = "Boot overgenomen: %@";
+"boats.redeemError" = "Inwisselen mislukt. Controleer de sleutel.";
 "boats.add" = "Boot toevoegen";
 "boats.no_boats" = "Nog geen boten toegevoegd";
 "boats.name" = "Bootnaam";
@@ -298,6 +388,7 @@
 "equipment.part_number" = "Onderdeelnummer";
 "equipment.location" = "Positie op de boot";
 "equipment.dimensions" = "Afmetingen";
+"equipment.quantity" = "Aantal";
 "equipment.photo_url" = "Foto-URL";
 "equipment.manage_hint" = "Beheer de uitrusting van je boot";
 "equipment.hint.title" = "Hoe nauwkeuriger, hoe beter gevonden";
@@ -308,6 +399,8 @@
 "equipment.cat.safety" = "Veiligheid";
 "equipment.cat.engine" = "Motor";
 "equipment.cat.electrical" = "Elektrisch";
+"equipment.cat.electrical_12v" = "12V-elektra";
+"equipment.cat.electrical_230v" = "220/110V-elektra";
 "equipment.cat.rigging" = "Tuigage";
 "equipment.cat.sails" = "Zeilen";
 "equipment.cat.anchor" = "Anker";
@@ -315,6 +408,10 @@
 "equipment.cat.hvac" = "Verwarming/Airco";
 "equipment.cat.paint" = "Verf";
 "equipment.cat.rope" = "Touwwerk";
+"equipment.cat.deck" = "Dekuitrusting";
+"equipment.cat.hull" = "Romp";
+"equipment.cat.plumbing" = "Sanitair";
+"equipment.cat.galley" = "Kombuis";
 "equipment.cat.other" = "Overig";
 
 // New keys - Issue fixes
@@ -341,6 +438,7 @@
 // MARK: - Profile (extended)
 "profile.complete" = "Profiel voltooien";
 "profile.uploading_photo" = "Foto wordt geüpload...";
+"profile.photoUploadError" = "Profielfoto kon niet worden opgeslagen. Probeer het opnieuw.";
 "profile.user_default" = "Gebruiker";
 "profile.my_boat" = "Mijn Boot";
 "profile.loading_boats" = "Boten laden...";
@@ -595,6 +693,15 @@
 "equipment.photo_delete" = "Foto verwijderen";
 "equipment.photos_section" = "Foto's (max %d)";
 "equipment.add_photos" = "Foto's toevoegen (%d/%d)";
+"equipment.take_photo" = "Foto maken";
+"equipment.ai_analyze" = "Foto('s) analyseren met AI";
+"equipment.ai_analyzing" = "Analyseren …";
+"equipment.ai_hint" = "Controleer de herkende waarden en kies wat je wilt overnemen.";
+"equipment.ai_none" = "Niets herkend. Voer handmatig in.";
+"equipment.ai_error" = "Analyse mislukt. Probeer het opnieuw.";
+"equipment.ai_suggestions_title" = "AI-suggesties";
+"equipment.ai_apply" = "Overnemen";
+"equipment.ai_overwrites" = "Vervangt: %@";
 "equipment.matching_parts" = "Passende onderdelen";
 "equipment.matching_brand" = "Categorie & merk passen";
 "equipment.other_providers" = "Overige aanbieders";
@@ -604,6 +711,7 @@
 "shop.load_more" = "Meer laden";
 "data_quality.hint" = "Hoe nauwkeuriger je invoer, hoe gemakkelijker de AI je kan helpen en de winkel het juiste onderdeel kan vinden. Voer je uitrusting idealiter tot in detail in – zoals oliefilter, waterpomp of impeller.";
 "chat.shop_search_header" = "Vind passende onderdelen in de shop:";
+"chat.news_header" = "Passende berichten uit de nieuwsfeed:";
 "chat.shop_search_title" = "Zoeken in de shop";
 "chat.shop_search_empty" = "Geen passende producten gevonden. Probeer een andere term of vraag een servicebedrijf.";
 "chat.equipment_checklist_button" = "Toon aanbevolen uitrustingslijst";
@@ -821,6 +929,7 @@
 "tour.step9.body" = "De AI bespaart je het zoeken: legt techniek uit, adviseert onderhoud, vindt het juiste onderdeel en bedrijf — in seconden. AI zit in de chat, de uitrustingssuggesties en het onderdelen zoeken.";
 "tour.step10.title" = "Meer kracht met Skipily Plus";
 "tour.step10.body" = "Je begint gratis met een paar AI-vragen. Skipily Plus geeft je veel meer per dag en het sterkere AI-model — preciezere antwoorden. Activeer onder Profiel.";
+"profile.notifications" = "Meldingen";
 "profile.show_tour" = "Rondleiding opnieuw starten";
 
 // Locatie zoeken op de kaart
@@ -1079,6 +1188,7 @@
 "srf.errBriefing" = "Briefing kon niet worden gegenereerd: %@";
 
 /* ── Inquiries + Orders ── */
+"inq.title" = "Aanvragen";
 "inq.deleteTitle" = "Aanvraag verwijderen?";
 "inq.delete" = "Verwijderen";
 "inq.cancel" = "Annuleren";
@@ -1142,6 +1252,7 @@
 "plus.tier.plus.family" = "Delen met je gezin (Apple Family Sharing)";
 "plus.tier.plus.import" = "Uitrusting importeren via Excel";
 "plus.tier.plus.report" = "Onderhoudsrapport als PDF";
+"plus.tier.plus.transfer" = "Boot via sleutel overdragen";
 "profile.plan.monthly" = "Maandelijks";
 "profile.plan.yearly" = "Jaarlijks";
 "plus.sheet.loading" = "Abonnementen laden …";
@@ -1238,6 +1349,7 @@
 /* Plattform-Ankündigungen */
 "announcement.title" = "Mededelingen";
 "announcement.contact" = "Skipily";
+"announcement.older" = "Oudere";
 "announcement.more" = "Meer informatie";
 "announcement.dismiss" = "Verbergen";
 "announcement.empty.title" = "Geen mededelingen";

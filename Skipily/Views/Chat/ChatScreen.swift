@@ -34,6 +34,8 @@ struct LocalChatMessage: Identifiable, Equatable {
     /// true → Claude signalisiert, dass eine bootspezifische Ausrüstungsliste
     /// zum Übernehmen sinnvoll ist (Einsteiger-Frage).
     var showsEquipmentChecklist: Bool
+    /// Vom Server vorgeschlagene passende News-Beiträge (Community-Lösungen/Produkte).
+    var newsItems: [AINewsSuggestion]
 
     init(
         id: UUID = UUID(),
@@ -46,7 +48,8 @@ struct LocalChatMessage: Identifiable, Equatable {
         isUpgradePrompt: Bool = false,
         shopSearchTerms: [String] = [],
         shopSearchLabels: [String] = [],
-        showsEquipmentChecklist: Bool = false
+        showsEquipmentChecklist: Bool = false,
+        newsItems: [AINewsSuggestion] = []
     ) {
         self.id = id
         self.remoteId = remoteId
@@ -59,6 +62,7 @@ struct LocalChatMessage: Identifiable, Equatable {
         self.shopSearchTerms = shopSearchTerms
         self.shopSearchLabels = shopSearchLabels
         self.showsEquipmentChecklist = showsEquipmentChecklist
+        self.newsItems = newsItems
     }
 }
 
@@ -117,6 +121,7 @@ struct ChatScreen: View {
     @State private var equipmentFromPhotos: [String]?
     /// Nicht-nil → Shop-Suche-Sheet mit diesem Begriff öffnen (aus Produkt-Chip).
     @State private var shopSearchQuery: String?
+    @State private var showNewsSheet = false
     /// Öffnet die bootspezifische Ausrüstungsliste zum Übernehmen.
     @State private var showEquipmentChecklist = false
 
@@ -150,11 +155,12 @@ struct ChatScreen: View {
                                 // Aktionen aus dem Antwort-Block: Shop-Suche
                                 // und/oder Ausrüstungsliste-Übernehmen.
                                 if !msg.isUser,
-                                   !msg.shopSearchTerms.isEmpty || msg.showsEquipmentChecklist {
+                                   !msg.shopSearchTerms.isEmpty || msg.showsEquipmentChecklist || !msg.newsItems.isEmpty {
                                     ChatMessageActions(
                                         message: msg,
                                         onShopSearch: { shopSearchQuery = $0 },
-                                        onEquipmentChecklist: { showEquipmentChecklist = true }
+                                        onEquipmentChecklist: { showEquipmentChecklist = true },
+                                        onOpenNews: { showNewsSheet = true }
                                     )
                                     .padding(.leading, 40)
                                     .padding(.trailing, 8)
@@ -397,6 +403,10 @@ struct ChatScreen: View {
             ChatEquipmentChecklistSheet()
                 .environmentObject(authService)
         }
+        // Passende Community-Beiträge (News-Feed) öffnen
+        .sheet(isPresented: $showNewsSheet) {
+            NewsScreen()
+        }
         // Kamera-Sheet
         .fullScreenCover(isPresented: $showingCamera) {
             CameraPickerView(image: $cameraImage)
@@ -619,10 +629,11 @@ struct ChatScreen: View {
                     )
                 }
 
-                let reply = try await chatService.sendMessage(
+                let result = try await chatService.sendMessage(
                     messages: chatHistory,
                     boatContext: boatContext
                 )
+                let reply = result.reply
 
                 // Sichtbaren Text vom Aktions-Block trennen. Der ROH-Text (inkl.
                 // Block) wird persistiert, damit die Aktionen auch beim späteren
@@ -633,7 +644,8 @@ struct ChatScreen: View {
                     isUser: false,
                     shopSearchTerms: parsed.actions.shopSearchTerms,
                     shopSearchLabels: parsed.actions.shopSearchLabels,
-                    showsEquipmentChecklist: parsed.actions.showsEquipmentChecklist
+                    showsEquipmentChecklist: parsed.actions.showsEquipmentChecklist,
+                    newsItems: result.news
                 )
                 if let sid = sessionId {
                     do {

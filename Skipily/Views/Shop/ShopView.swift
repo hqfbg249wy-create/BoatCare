@@ -162,6 +162,8 @@ struct ShopView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 20)
             }
+            // Letzter Eintrag laesst sich ueber die schwebende Tab-Leiste scrollen
+            .tabBarScrollClearance()
             // Beim (Wieder-)Erscheinen des Shops nach einem Ruecksprung an das
             // zuletzt geoeffnete Produkt scrollen -> nie mehr leere weisse
             // Flaeche. Kleiner Verzug, damit das LazyVGrid zuerst layoutet.
@@ -867,7 +869,10 @@ struct ShopView: View {
                 .eq("owner_id", value: userId.uuidString)
                 .execute().value
 
-            var keywords = Set<String>()
+            // Kandidaten sammeln, case-/whitespace-unabhaengig deduplizieren
+            // (sonst erscheint z. B. "Dyneema" mehrfach durch Schreibvarianten).
+            var seen = Set<String>()
+            var candidates: [String] = []
             for boat in boats {
                 struct EquipBasic: Codable { let name: String; let manufacturer: String?; let category: String }
                 let equipment: [EquipBasic] = try await authService.supabase
@@ -876,11 +881,26 @@ struct ShopView: View {
                     .execute().value
 
                 for eq in equipment {
-                    if let mfr = eq.manufacturer, !mfr.isEmpty { keywords.insert(mfr) }
-                    keywords.insert(eq.category)
+                    for raw in [eq.manufacturer, eq.category] {
+                        guard let v = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty, v.count >= 3 else { continue }
+                        if seen.insert(v.lowercased()).inserted { candidates.append(v) }
+                    }
                 }
             }
-            await MainActor.run { equipmentKeywords = Array(keywords).sorted().prefix(8).map { $0 } }
+
+            // Nur Schlagworte behalten, die auch wirklich Shop-Treffer liefern
+            // (keine toten Chips wie "Dyneema", wenn es dazu nichts gibt).
+            struct SP: Encodable { let q: String; let p_limit: Int }
+            struct IDRow: Decodable { let id: UUID }
+            var usable: [String] = []
+            for kw in candidates.sorted() {
+                if usable.count >= 6 { break }
+                let rows: [IDRow] = (try? await authService.supabase
+                    .rpc("search_products", params: SP(q: kw, p_limit: 1))
+                    .select("id").execute().value) ?? []
+                if !rows.isEmpty { usable.append(kw) }
+            }
+            await MainActor.run { equipmentKeywords = usable }
         } catch {
             AppLog.error("Equipment-Keywords laden: \(error)")
         }

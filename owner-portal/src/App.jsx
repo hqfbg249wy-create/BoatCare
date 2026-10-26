@@ -18,6 +18,7 @@ import Shop from './pages/Shop'
 import ProductDetail from './pages/ProductDetail'
 import ServiceSearch from './pages/ServiceSearch'
 import AIChat from './pages/AIChat'
+import News from './pages/News'
 import Paywall from './pages/Paywall'
 import Checkout from './pages/Checkout'
 import Inquiries from './pages/Inquiries'
@@ -25,6 +26,7 @@ import Messages from './pages/Messages'
 import ResetPassword from './pages/ResetPassword'
 import AuthCallback from './pages/AuthCallback'
 import GuestMap from './pages/GuestMap'
+import PublicPost from './pages/PublicPost'
 
 function ProtectedRoutes() {
   const { user, loading, mfaRequired } = useAuth()
@@ -57,6 +59,7 @@ function ProtectedRoutes() {
         <Route path="provider/:id" element={<ProviderDetail />} />
         <Route path="services" element={<ServiceSearch />} />
         <Route path="chat" element={<AIChat />} />
+        <Route path="news" element={<News />} />
         <Route path="plus" element={<Paywall />} />
         <Route path="checkout" element={<Checkout />} />
         <Route path="checkout/success" element={<Checkout />} />
@@ -83,6 +86,8 @@ export default function App() {
           <Route path="/auth/callback" element={<AuthCallback />} />
           {/* Öffentliche Gäste-Karte (kein Login) — Android-Pendant zum iPhone-App-Clip. */}
           <Route path="/entdecken" element={<GuestMap />} />
+          {/* Öffentliche Landingpage eines geteilten News-Beitrags (kein Login). */}
+          <Route path="/p/:id" element={<PublicPost />} />
           <Route path="/*" element={<ProtectedRoutes />} />
         </Routes>
        </PlusProvider>

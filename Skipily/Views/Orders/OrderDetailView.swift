@@ -112,6 +112,8 @@ struct OrderDetailView: View {
             }
             .padding(16)
         }
+        // Letzter Eintrag laesst sich ueber die schwebende Tab-Leiste scrollen
+        .tabBarScrollClearance()
     }
 
     /// Storno moeglich: noch nicht bezahlt, nicht versandt, nicht bereits

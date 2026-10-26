@@ -1,0 +1,22 @@
+{
+  "_hinweis": "Body fuer POST/PUT https://vcjwlyqkfkszumdrfvtm.supabase.co/functions/v1/products-api  (einfaches Produkt ohne Varianten = Shopify-Variante 'Default Title'). {{...}} = Make-Feld aus dem Shopify-Produkt/der Variante.",
+  "sku": "{{1.variants[].sku}}",
+  "name": "{{1.title}}",
+  "manufacturer": "{{1.vendor}}",
+  "description": "{{replace(1.body_html; \"/<[^>]+>/g\"; \"\")}}",
+  "price": "{{parseNumber(1.variants[].price; \".\")}}",
+  "currency": "EUR",
+  "ean": "{{1.variants[].barcode}}",
+  "part_number": "{{1.variants[].sku}}",
+  "stock_quantity": "{{1.variants[].inventory_quantity}}",
+  "in_stock": "{{1.variants[].inventory_quantity > 0}}",
+  "weight_kg": "{{1.variants[].grams / 1000}}",
+  "delivery_days": 3,
+  "min_order_quantity": 1,
+  "images": [
+    "{{1.image.src}}"
+  ],
+  "tags": "{{split(1.tags; \", \")}}",
+  "category_id": null,
+  "is_active": "{{if(1.status = \"active\"; true; false)}}"
+}

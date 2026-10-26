@@ -272,6 +272,31 @@ class ServiceProviderManager: ObservableObject {
         isLoading = false
     }
 
+    /// Laedt die vollstaendigen Treffer einer Namens-/Stichwortsuche ueber die
+    /// zentrale RPC `search_providers` und MERGT sie in `providers`. Noetig,
+    /// weil die Karte sonst nur Betriebe im aktuell geladenen Ausschnitt kennt;
+    /// eine Namenssuche (z. B. "OneSails") muss aber auch Treffer ausserhalb
+    /// des Ausschnitts als Pins zeigen. Gibt die Treffer zurueck (fuer
+    /// ID-Filter + Kamera-Fit in der Kartenansicht).
+    func mergeSearchResults(query: String, limit: Int = 500) async -> [BoatServiceProvider] {
+        guard let supabase = supabase else { return [] }
+        struct P: Encodable { let q: String; let p_limit: Int }
+        do {
+            let rows: [BoatServiceProvider] = try await supabase
+                .rpc("search_providers", params: P(q: query, p_limit: limit))
+                .execute()
+                .value
+            // Union nach id: vorhandene Pins behalten, Treffer hinzufuegen.
+            var byId = Dictionary(providers.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new })
+            for r in rows { byId[r.id] = r }
+            providers = Array(byId.values)
+            return rows
+        } catch {
+            AppLog.warning("mergeSearchResults fehlgeschlagen: \(error)")
+            return []
+        }
+    }
+
     func loadAllProviders() async {
         guard let supabase = supabase else {
             errorMessage = "Supabase nicht initialisiert"

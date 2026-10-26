@@ -13,7 +13,7 @@ struct InquiriesView: View {
     var body: some View {
         NavigationStack {
             InquiriesContent()
-                .navigationTitle("Anfragen")
+                .navigationTitle("inq.title".loc)
         }
     }
 }
@@ -60,7 +60,7 @@ struct InquiriesContent: View {
     var body: some View {
         Group {
             if service.isLoading && service.inquiries.isEmpty {
-                ProgressView("Anfragen laden…")
+                ProgressView("general.loading".loc)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if filtered.isEmpty {
                 emptyView
@@ -200,6 +200,8 @@ struct InquiriesContent: View {
                     }
             }
         }
+        // Letzter Eintrag laesst sich ueber die schwebende Tab-Leiste scrollen
+        .tabBarScrollClearance()
         .listStyle(.plain)
         .padding(.top, 4)
     }

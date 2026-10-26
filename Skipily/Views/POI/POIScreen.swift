@@ -83,7 +83,7 @@ struct POIScreen: View {
 
     private var inquiryBadgeLabel: String {
         let n = inquiryService.unreadCount
-        return n > 0 ? "Anfragen (\(n))" : "Anfragen"
+        return n > 0 ? "\("inq.title".loc) (\(n))" : "inq.title".loc
     }
 
     private var messagesBadgeLabel: String {
@@ -95,7 +95,7 @@ struct POIScreen: View {
         switch selectedTab {
         case .favorites: return "poi.favorites".loc
         case .messages:  return "messages.title".loc
-        case .inquiries: return "Anfragen"
+        case .inquiries: return "inq.title".loc
         }
     }
 
@@ -141,6 +141,8 @@ struct POIScreen: View {
                         favoriteProviders.remove(atOffsets: offsets)
                     }
                 }
+                // Letzter Eintrag laesst sich ueber die schwebende Tab-Leiste scrollen
+                .tabBarScrollClearance()
                 .listStyle(.plain)
             }
         }

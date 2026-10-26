@@ -6,6 +6,7 @@
 import SwiftUI
 import Supabase
 import PhotosUI
+import UIKit
 
 // MARK: - Boat Model
 // Spiegelt das vollständige Supabase-Schema der Tabelle "boats" wider.
@@ -26,6 +27,7 @@ struct Boat: Identifiable, Codable {
     var registrationNumber: String
     var hin: String              // Hull Identification Number
     var imageUrl: String?
+    var readOnly: Bool = false   // true = verkauft, Stand des Verkaufs (nur Ansicht)
 
     // Computed helpers für UI
     var yearString: String {
@@ -54,12 +56,13 @@ struct Boat: Identifiable, Codable {
          manufacturer: String = "", model: String = "", year: Int? = nil, yearBuilt: Int? = nil,
          lengthMeters: Double? = nil, width: Double? = nil, draft: Double? = nil,
          engine: String = "", homePort: String = "", registrationNumber: String = "",
-         hin: String = "", imageUrl: String? = nil) {
+         hin: String = "", imageUrl: String? = nil, readOnly: Bool = false) {
         self.id = id; self.ownerId = ownerId; self.name = name; self.boatType = boatType
         self.manufacturer = manufacturer; self.model = model; self.year = year
         self.yearBuilt = yearBuilt; self.lengthMeters = lengthMeters; self.width = width
         self.draft = draft; self.engine = engine; self.homePort = homePort
         self.registrationNumber = registrationNumber; self.hin = hin; self.imageUrl = imageUrl
+        self.readOnly = readOnly
     }
 
     enum CodingKeys: String, CodingKey {
@@ -71,6 +74,7 @@ struct Boat: Identifiable, Codable {
         case yearBuilt          = "year_built"
         case registrationNumber = "registration_number"
         case imageUrl           = "image_url"
+        case readOnly           = "read_only"
     }
 
     // Robuster Decoder — crasht nicht bei fehlenden/falschen Spaltentypen
@@ -87,6 +91,7 @@ struct Boat: Identifiable, Codable {
         registrationNumber = (try? c.decode(String.self, forKey: .registrationNumber)) ?? ""
         hin                = (try? c.decode(String.self, forKey: .hin)) ?? ""
         imageUrl           = try? c.decode(String.self, forKey: .imageUrl)
+        readOnly           = (try? c.decode(Bool.self, forKey: .readOnly)) ?? false
 
         // Flexible Int-Felder (bigint oder text)
         year      = Self.decodeFlexibleInt(c, key: .year)
@@ -184,6 +189,12 @@ struct BoatDataScreen: View {
     @AppStorage("referral_hint_dismissed") private var referralHintDismissed = false
     @State private var referralCode: String?
     @State private var showingReferralShare = false
+    @State private var transferBoat: Boat?
+    @State private var showingRedeem = false
+    @State private var showingTransferPicker = false
+    @State private var pickedForTransfer: Boat?
+    @State private var showingTransferPaywall = false
+    @ObservedObject private var plusManager = PlusSubscriptionManager.shared
 
     /// 2 Spalten auf iPad / regular size class, 1 Spalte auf iPhone
     private var gridColumns: [GridItem] {
@@ -219,7 +230,8 @@ struct BoatDataScreen: View {
                                         equipmentCount: equipmentCounts[boat.id] ?? 0,
                                         compact: useTwoColumns,
                                         onUpdate: { updated in Task { await updateBoat(updated) } },
-                                        onDelete: { Task { await deleteBoatById(boat.id) } }
+                                        onDelete: { Task { await deleteBoatById(boat.id) } },
+                                        onTransfer: { requestTransfer(boat) }
                                     )
                                     .environmentObject(authService)
                                 }
@@ -227,6 +239,8 @@ struct BoatDataScreen: View {
                             .padding(.horizontal)
                             .padding(.top, 8)
                         }
+                        // Letzter Eintrag laesst sich ueber die schwebende Tab-Leiste scrollen
+                        .tabBarScrollClearance()
                     }
                 }
             }
@@ -234,14 +248,36 @@ struct BoatDataScreen: View {
             .navigationTitle("boats.title".loc)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        if authService.isAuthenticated {
-                            showingAddBoat = true
-                        } else {
-                            showingLoginRequired = true
+                    HStack(spacing: 16) {
+                        Menu {
+                            Button {
+                                guard authService.isAuthenticated else { showingLoginRequired = true; return }
+                                // Boot per Schluessel uebergeben ist Skipily Plus -> Upsell statt Fehler
+                                guard plusManager.hasActivePlus else { showingTransferPaywall = true; return }
+                                if boats.count == 1 { transferBoat = boats.first }
+                                else if boats.count > 1 { showingTransferPicker = true }
+                            } label: {
+                                Label("boats.transfer".loc, systemImage: "arrow.up.forward.square")
+                            }
+                            Button {
+                                if authService.isAuthenticated { showingRedeem = true }
+                                else { showingLoginRequired = true }
+                            } label: {
+                                Label("boats.redeem".loc, systemImage: "arrow.down.square")
+                            }
+                        } label: {
+                            Image(systemName: "key.horizontal")
                         }
-                    } label: {
-                        Image(systemName: "plus")
+                        .accessibilityLabel("boats.transferOrRedeem".loc)
+                        Button {
+                            if authService.isAuthenticated {
+                                showingAddBoat = true
+                            } else {
+                                showingLoginRequired = true
+                            }
+                        } label: {
+                            Image(systemName: "plus")
+                        }
                     }
                 }
             }
@@ -256,6 +292,23 @@ struct BoatDataScreen: View {
             }
             .sheet(isPresented: $showingReferralShare) {
                 if let code = referralCode { ReferralShareSheet(code: code) }
+            }
+            .sheet(item: $transferBoat) { boat in
+                BoatTransferSheet(boat: boat, otherBoats: boats.filter { $0.id != boat.id })
+            }
+            .sheet(isPresented: $showingTransferPaywall) {
+                PlusUpgradeSheet(reason: "boats.transfer.paywallReason".loc)
+            }
+            .sheet(isPresented: $showingRedeem) {
+                BoatRedeemSheet(onRedeemed: { Task { await loadFromSupabase() } })
+            }
+            .sheet(isPresented: $showingTransferPicker, onDismiss: {
+                if let b = pickedForTransfer { pickedForTransfer = nil; transferBoat = b }
+            }) {
+                BoatTransferPickerSheet(boats: boats) { chosen in
+                    pickedForTransfer = chosen
+                    showingTransferPicker = false
+                }
             }
             .alert("map.login_required".loc, isPresented: $showingLoginRequired) {
                 Button("general.cancel".loc, role: .cancel) { }
@@ -361,6 +414,11 @@ struct BoatDataScreen: View {
                 equipmentCounts[boat.id] = 0
             }
         }
+    }
+
+    /// Boot per Schluessel uebergeben ist Skipily Plus: ohne Plus den Upsell zeigen.
+    private func requestTransfer(_ boat: Boat) {
+        if plusManager.hasActivePlus { transferBoat = boat } else { showingTransferPaywall = true }
     }
 
     private func deleteBoatById(_ id: UUID) async {
@@ -483,6 +541,7 @@ struct BoatCardView: View {
     var compact: Bool = false        // iPad: 2-spaltig, kleinere Bildhöhe
     let onUpdate: (Boat) -> Void
     let onDelete: () -> Void
+    var onTransfer: () -> Void = {}
     @EnvironmentObject var authService: AuthService
 
     /// SF Symbol passend zum Bootstyp
@@ -558,6 +617,15 @@ struct BoatCardView: View {
                                 .foregroundStyle(.tertiary)
                         }
 
+                        if boat.readOnly {
+                            Label("boats.soldBadge".loc, systemImage: "lock.fill")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(Color.orange)
+                                .padding(.horizontal, 8).padding(.vertical, 3)
+                                .background(Color.orange.opacity(0.15))
+                                .clipShape(Capsule())
+                        }
+
                         HStack(spacing: 6) {
                             Image(systemName: boatTypeIcon)
                                 .foregroundStyle(.blue)
@@ -626,6 +694,13 @@ struct BoatCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
         .contextMenu {
+            if !boat.readOnly {
+                Button {
+                    onTransfer()
+                } label: {
+                    Label("boats.transfer".loc, systemImage: "key.horizontal")
+                }
+            }
             Button(role: .destructive) {
                 onDelete()
             } label: {
@@ -760,6 +835,8 @@ struct BoatDetailView: View {
             // Schaltpläne & Montagepläne sind als Reiter im Equipment-Screen
             // erreichbar — hier kein eigener Einstieg mehr.
         }
+        // Letzter Eintrag laesst sich ueber die schwebende Tab-Leiste scrollen
+        .tabBarScrollClearance()
         .navigationTitle(boat.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -1087,6 +1164,330 @@ struct CameraPickerView: UIViewControllerRepresentable {
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             parent.dismiss()
+        }
+    }
+}
+
+// MARK: - Boot uebergeben (Verkauf) → Ausruestung behalten + Key erzeugen
+struct BoatTransferSheet: View {
+    let boat: Boat
+    /// Andere Schiffe des Verkaeufers (Ziel-Auswahl fuer behaltene Ausruestung).
+    var otherBoats: [Boat] = []
+    @Environment(\.dismiss) private var dismiss
+
+    private struct EquipRow: Decodable, Identifiable {
+        let id: UUID
+        let name: String
+        let manufacturer: String?
+        let model: String?
+    }
+
+    /// Wohin wandert die behaltene Ausruestung?
+    private enum KeptTarget: Hashable { case newBoat, existing }
+
+    @State private var equipLoading = true
+    @State private var equip: [EquipRow] = []
+    @State private var kept: Set<UUID> = []
+    @State private var keptTarget: KeptTarget = .newBoat
+    @State private var keptNewName = ""
+    @State private var keptExistingBoatId: UUID?
+    @State private var isGenerating = false
+    @State private var key = ""
+    @State private var expires = ""
+    @State private var errorText: String?
+    @State private var copied = false
+    @State private var ack = false
+    @State private var showConfirm = false
+    @State private var showingPaywall = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text(String(format: "boats.transferIntro".loc, boat.name))
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+
+                if key.isEmpty {
+                    // Phase 1: Ausruestung zum Behalten auswaehlen
+                    if equipLoading {
+                        HStack(spacing: 8) { ProgressView(); Text("boats.transferLoadingEquip".loc) }
+                    } else if !equip.isEmpty {
+                        Section {
+                            ForEach(equip) { e in
+                                Button {
+                                    if kept.contains(e.id) { kept.remove(e.id) } else { kept.insert(e.id) }
+                                } label: {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: kept.contains(e.id) ? "checkmark.circle.fill" : "circle")
+                                            .foregroundStyle(kept.contains(e.id) ? AppColors.primary : .secondary)
+                                        VStack(alignment: .leading, spacing: 1) {
+                                            Text(e.name).foregroundStyle(.primary)
+                                            let sub = [e.manufacturer, e.model].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
+                                            if !sub.isEmpty { Text(sub).font(.caption).foregroundStyle(.secondary) }
+                                        }
+                                        Spacer()
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        } header: {
+                            Text("boats.keepLabel".loc)
+                        } footer: {
+                            Text("boats.keepHint".loc)
+                        }
+                    }
+
+                    // Ziel-Schiff fuer behaltene Ausruestung — nur wenn etwas behalten wird.
+                    if !kept.isEmpty {
+                        Section {
+                            Picker("boats.keepTarget".loc, selection: $keptTarget) {
+                                Text("boats.keepTargetNew".loc).tag(KeptTarget.newBoat)
+                                if !otherBoats.isEmpty { Text("boats.keepTargetExisting".loc).tag(KeptTarget.existing) }
+                            }
+                            .pickerStyle(.segmented)
+
+                            if keptTarget == .newBoat {
+                                TextField("boats.keepNewNamePh".loc, text: $keptNewName)
+                            } else {
+                                Picker("boats.keepTargetExisting".loc, selection: $keptExistingBoatId) {
+                                    Text("boats.keepChoosePrompt".loc).tag(UUID?.none)
+                                    ForEach(otherBoats) { b in
+                                        Text(b.name).tag(Optional(b.id))
+                                    }
+                                }
+                            }
+                        } header: {
+                            Text("boats.keepTarget".loc)
+                        } footer: {
+                            Text("boats.keepTargetHint".loc)
+                        }
+                    }
+                    // Doppelte Sicherheitsabfrage: Warnhinweis + Pflicht-Toggle + roter Button.
+                    Section {
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.red)
+                            Text("boats.transferWarning".loc)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                        }
+                        Toggle("boats.transferAck".loc, isOn: $ack)
+                        Button {
+                            showConfirm = true
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Label(isGenerating ? "boats.transferGenerating".loc : "boats.transferGenerate".loc,
+                                      systemImage: "exclamationmark.triangle.fill")
+                                    .fontWeight(.bold)
+                                Spacer()
+                            }
+                        }
+                        .disabled(!ack || isGenerating || equipLoading || !keptTargetValid)
+                        .foregroundStyle(.white)
+                        .listRowBackground((ack && !isGenerating && keptTargetValid) ? Color.red : Color.red.opacity(0.4))
+                    }
+                    if let err = errorText {
+                        Text(err).foregroundStyle(.red)
+                    }
+                } else {
+                    // Phase 2: Key anzeigen
+                    Section {
+                        HStack {
+                            Text(key)
+                                .font(.title3.weight(.bold).monospaced())
+                                .textSelection(.enabled)
+                            Spacer()
+                            Button {
+                                UIPasteboard.general.string = key
+                                copied = true
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copied = false }
+                            } label: {
+                                Label(copied ? "boats.transferCopied".loc : "boats.transferCopy".loc,
+                                      systemImage: copied ? "checkmark" : "doc.on.doc")
+                            }
+                        }
+                        if !expires.isEmpty {
+                            Text("\("boats.transferExpires".loc): \(expires)")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    } header: {
+                        Text("boats.transferKeyLabel".loc)
+                    } footer: {
+                        Text("boats.transferHint".loc)
+                    }
+                }
+            }
+            .navigationTitle("boats.transferTitle".loc)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if key.isEmpty {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("general.cancel".loc) { dismiss() }
+                    }
+                } else {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("general.done".loc) { dismiss() }
+                    }
+                }
+            }
+            .confirmationDialog(
+                String(format: "boats.transferConfirm".loc, boat.name),
+                isPresented: $showConfirm, titleVisibility: .visible
+            ) {
+                Button("boats.transferGenerate".loc, role: .destructive) {
+                    Task { await generate() }
+                }
+                Button("general.cancel".loc, role: .cancel) {}
+            }
+            .task { await loadEquipment() }
+            .sheet(isPresented: $showingPaywall) {
+                PlusUpgradeSheet(reason: "boats.transfer.paywallReason".loc)
+            }
+        }
+    }
+
+    /// Gueltiges Ziel, falls Ausruestung behalten wird: entweder ein nicht-leerer
+    /// neuer Name oder ein ausgewaehltes vorhandenes Schiff.
+    private var keptTargetValid: Bool {
+        if kept.isEmpty { return true }
+        switch keptTarget {
+        case .newBoat:  return !keptNewName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .existing: return keptExistingBoatId != nil
+        }
+    }
+
+    private func loadEquipment() async {
+        if keptNewName.isEmpty { keptNewName = String(format: "boats.keepDefaultName".loc, boat.name) }
+        equipLoading = true
+        defer { equipLoading = false }
+        let rows: [EquipRow] = (try? await SupabaseManager.shared.client
+            .from("equipment")
+            .select("id, name, manufacturer, model")
+            .eq("boat_id", value: boat.id.uuidString)
+            .order("category", ascending: true)
+            .execute().value) ?? []
+        equip = rows
+    }
+
+    private func generate() async {
+        errorText = nil; isGenerating = true
+        defer { isGenerating = false }
+        do {
+            // Ziel-Schiff nur senden, wenn ueberhaupt etwas behalten wird.
+            let targetId: UUID? = (!kept.isEmpty && keptTarget == .existing) ? keptExistingBoatId : nil
+            let newName: String? = (!kept.isEmpty && keptTarget == .newBoat) ? keptNewName : nil
+            let r = try await BoatTransferService.shared.createTransfer(
+                boatId: boat.id, keptEquipmentIds: Array(kept),
+                keptTargetBoatId: targetId, keptNewBoatName: newName
+            )
+            key = r.key
+            if let exp = r.expires_at, let d = ISO8601DateFormatter().date(from: exp) {
+                expires = d.formatted(date: .abbreviated, time: .omitted)
+            }
+        } catch BoatTransferService.TransferError.requiresPlus {
+            // Kein Fehler, sondern Upsell (Backend meldet fehlendes Plus)
+            showingPaywall = true
+        } catch {
+            AppLog.error("create-boat-transfer: \(error)")
+            errorText = "boats.transferError".loc
+        }
+    }
+}
+
+// MARK: - Boot zum Uebergeben auswaehlen (bei mehreren Schiffen)
+struct BoatTransferPickerSheet: View {
+    let boats: [Boat]
+    var onPick: (Boat) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List(boats) { boat in
+                Button { onPick(boat) } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "sailboat.fill").foregroundStyle(AppColors.primary)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(boat.name).foregroundStyle(.primary)
+                            let sub = [boat.manufacturer, boat.model].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
+                            if !sub.isEmpty { Text(sub).font(.caption).foregroundStyle(.secondary) }
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .navigationTitle("boats.transferPick".loc)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("general.cancel".loc) { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Boot uebernehmen → Key einloesen
+struct BoatRedeemSheet: View {
+    var onRedeemed: () -> Void = {}
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var key = ""
+    @State private var isBusy = false
+    @State private var errorText: String?
+    @State private var successName: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("boats.redeemIntro".loc).font(.footnote).foregroundStyle(.secondary)
+                }
+                Section {
+                    TextField("SKP-XXXX-XXXX-XXXX", text: $key)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                        .font(.body.monospaced())
+                }
+                if let err = errorText {
+                    Text(err).foregroundStyle(.red)
+                }
+                if let name = successName {
+                    Label(String(format: "boats.redeemSuccess".loc, name), systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                }
+            }
+            .navigationTitle("boats.redeemTitle".loc)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("general.cancel".loc) { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(isBusy ? "boats.redeemBusy".loc : "boats.redeemSubmit".loc) {
+                        Task { await redeem() }
+                    }
+                    .disabled(isBusy || key.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+
+    private func redeem() async {
+        errorText = nil; isBusy = true
+        defer { isBusy = false }
+        do {
+            let r = try await BoatTransferService.shared.redeem(key: key)
+            successName = r.boat_name ?? ""
+            onRedeemed()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { dismiss() }
+        } catch {
+            AppLog.error("redeem-boat-transfer: \(error)")
+            errorText = "boats.redeemError".loc
         }
     }
 }

@@ -8,6 +8,7 @@ import Supabase
 import CoreLocation
 import Combine
 import PhotosUI
+import UIKit
 
 // MARK: - Equipment Model (Supabase-backed)
 /// Übergibt die Tauwerk-Konfiguration vom Formular an addItem/updateItem.
@@ -45,6 +46,7 @@ struct EquipmentItem: Identifiable, Codable {
     var dimensions: String
     var photoUrl: String?
     var itemDescription: String
+    var quantity: Int = 1
     /// Transient: Tauwerk-Konfig aus dem Formular (nicht in CodingKeys → wird
     /// weder in die equipment-Tabelle kodiert noch von dort dekodiert).
     var ropeDraft: RopeConfigDraft? = nil
@@ -57,7 +59,7 @@ struct EquipmentItem: Identifiable, Codable {
          installationDate: String? = nil, warrantyExpiry: String? = nil, notes: String = "",
          imageUrl: String? = nil, lastMaintenanceDate: String? = nil, nextMaintenanceDate: String? = nil,
          maintenanceCycleYears: Int? = nil, partNumber: String = "", locationOnBoat: String = "",
-         dimensions: String = "", photoUrl: String? = nil, itemDescription: String = "") {
+         dimensions: String = "", photoUrl: String? = nil, itemDescription: String = "", quantity: Int = 1) {
         self.id = id; self.boatId = boatId; self.name = name; self.category = category
         self.manufacturer = manufacturer; self.model = model; self.serialNumber = serialNumber
         self.installationDate = installationDate; self.warrantyExpiry = warrantyExpiry
@@ -65,6 +67,7 @@ struct EquipmentItem: Identifiable, Codable {
         self.nextMaintenanceDate = nextMaintenanceDate; self.maintenanceCycleYears = maintenanceCycleYears
         self.partNumber = partNumber; self.locationOnBoat = locationOnBoat
         self.dimensions = dimensions; self.photoUrl = photoUrl; self.itemDescription = itemDescription
+        self.quantity = quantity
     }
 
     enum CodingKeys: String, CodingKey {
@@ -81,6 +84,7 @@ struct EquipmentItem: Identifiable, Codable {
         case locationOnBoat       = "location_on_boat"
         case photoUrl             = "photo_url"
         case itemDescription      = "item_description"
+        case quantity
     }
 
     init(from decoder: Decoder) throws {
@@ -104,6 +108,7 @@ struct EquipmentItem: Identifiable, Codable {
         nextMaintenanceDate   = try? c.decode(String.self, forKey: .nextMaintenanceDate)
         photoUrl              = try? c.decode(String.self, forKey: .photoUrl)
         maintenanceCycleYears = try? c.decode(Int.self, forKey: .maintenanceCycleYears)
+        quantity              = (try? c.decode(Int.self, forKey: .quantity)) ?? 1
     }
 
     // Kategorie-Helpers
@@ -113,11 +118,17 @@ struct EquipmentItem: Identifiable, Codable {
         case "safety", "sicherheit": return "shield.fill"
         case "engine", "motor": return "engine.combustion.fill"
         case "electrical", "elektrik": return "bolt.fill"
+        case "electrical_12v": return "minus.plus.batteryblock.fill"
+        case "electrical_230v": return "powerplug.fill"
         case "rigging", "rigg": return "arrow.up.and.down.and.arrow.left.and.right"
         case "sails", "segel": return "wind"
         case "anchor", "anker": return "scope"
         case "communication", "kommunikation": return "antenna.radiowaves.left.and.right"
         case "hvac", "heizung": return "thermometer.sun.fill"
+        case "plumbing", "sanitär", "sanitaer": return "drop.fill"
+        case "galley", "küche", "kueche": return "fork.knife"
+        case "deck", "decksausrüstung": return "square.grid.2x2.fill"
+        case "hull", "rumpf": return "sailboat.fill"
         case "paint", "farben": return "paintbrush.fill"
         case "rope", "tauwerk": return "circle.and.line.horizontal.fill"
         default: return "shippingbox.fill"
@@ -129,12 +140,18 @@ struct EquipmentItem: Identifiable, Codable {
         case "safety", "sicherheit": return .red
         case "engine", "motor": return .orange
         case "electrical", "elektrik": return .yellow
+        case "electrical_12v": return .yellow
+        case "electrical_230v": return Color(red: 0.96, green: 0.62, blue: 0.04)
         case "rigging", "rigg": return .purple
         case "sails", "segel": return .cyan
         case "anchor", "anker": return .brown
         case "communication", "kommunikation": return .teal
-        case "hvac", "heizung": return .orange
-        case "paint", "farben": return .pink
+        case "hvac", "heizung": return .pink
+        case "plumbing", "sanitär", "sanitaer": return .teal
+        case "galley", "küche", "kueche": return .orange
+        case "deck", "decksausrüstung": return .cyan
+        case "hull", "rumpf": return Color(.systemGray)
+        case "paint", "farben": return .purple
         case "rope", "tauwerk": return .mint
         default: return .gray
         }
@@ -197,9 +214,61 @@ private struct EquipmentUpdate: Encodable {
     let photo_url: String?; let item_description: String
 }
 
+/// Leichte, client-seitige unscharfe Suche (diakritik-unabhaengig, Token-basiert
+/// mit Tippfehler-Toleranz). Fuer kleine, bereits geladene Datensaetze wie die
+/// Ausruestung pro Nutzer. Pendant: owner-portal lib/fuzzySearch.js.
+enum FuzzySearch {
+    static func normalize(_ s: String) -> String {
+        let folded = s.lowercased().folding(options: .diacriticInsensitive, locale: .current)
+        var out = ""
+        for ch in folded { out.append((ch.isLetter || ch.isNumber) ? ch : " ") }
+        return out.split(separator: " ").joined(separator: " ")
+    }
+
+    private static func lev(_ a: [Character], _ b: [Character]) -> Int {
+        if a == b { return 0 }
+        let m = a.count, n = b.count
+        if m == 0 { return n }
+        if n == 0 { return m }
+        var prev = Array(0...n)
+        var cur = [Int](repeating: 0, count: n + 1)
+        for i in 1...m {
+            cur[0] = i
+            for j in 1...n {
+                let cost = a[i - 1] == b[j - 1] ? 0 : 1
+                cur[j] = Swift.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost)
+            }
+            swap(&prev, &cur)
+        }
+        return prev[n]
+    }
+
+    /// true, wenn jedes Query-Token irgendwo (Teilstring/Praefix/Tippfehler) passt.
+    static func matches(_ haystack: String, _ query: String) -> Bool {
+        let qNorm = normalize(query)
+        if qNorm.isEmpty { return true }
+        let hNorm = normalize(haystack)
+        if hNorm.contains(qNorm) { return true }
+        let qTokens = qNorm.split(separator: " ").map(String.init)
+        let hTokens = hNorm.split(separator: " ").map(String.init)
+        for qt in qTokens {
+            var ok = false
+            let qtChars = Array(qt)
+            for ht in hTokens {
+                if ht.contains(qt) || ht.hasPrefix(qt) { ok = true; break }
+                let tol = qt.count <= 4 ? 1 : 2
+                if lev(qtChars, Array(ht)) <= tol { ok = true; break }
+            }
+            if !ok { return false }
+        }
+        return true
+    }
+}
+
 private let equipmentCategories = [
-    "navigation", "safety", "engine", "electrical", "rigging", "sails", "anchor", "communication",
-    "hvac", "paint", "rope", "other"
+    "navigation", "safety", "engine", "electrical_12v", "electrical_230v", "electrical",
+    "rigging", "sails", "anchor", "communication",
+    "rope", "deck", "hull", "hvac", "plumbing", "galley", "paint", "other"
 ]
 
 /// Identifiable-Wrapper für .sheet(item:) — die id basiert auf der Kategorie,
@@ -323,13 +392,65 @@ struct EquipmentScreen: View {
 
     private var filtered: [EquipmentItem] {
         items.filter { item in
-            let matchSearch = searchText.isEmpty
-                || item.name.localizedCaseInsensitiveContains(searchText)
-                || item.manufacturer.localizedCaseInsensitiveContains(searchText)
-                || item.model.localizedCaseInsensitiveContains(searchText)
+            let haystack = [
+                item.name, item.manufacturer, item.model, item.serialNumber,
+                item.partNumber, item.notes, "equipment.cat.\(item.category.lowercased())".loc,
+            ].joined(separator: " ")
+            let matchSearch = searchText.isEmpty || FuzzySearch.matches(haystack, searchText)
             let matchCat = selectedCategory == nil || item.category.lowercased() == selectedCategory
             return matchSearch && matchCat
         }
+    }
+
+    /// Naechstes Wartungsdatum eines Items (nil = kein Datum).
+    private func nextDate(_ it: EquipmentItem) -> Date? {
+        guard let s = it.nextMaintenanceDate else { return nil }
+        return EquipmentItem.dateFormatter.date(from: s)
+    }
+
+    /// Nach Kategorie gruppiert; innerhalb nach naechster Wartung (soonest zuerst,
+    /// ohne Datum ans Ende); Gruppenreihenfolge nach frueheste­r Wartung je Gruppe
+    /// (dringendste Kategorie oben). Siehe Wartungsbildschirm fuer dieselbe Logik.
+    private var groupedFiltered: [(key: String, items: [EquipmentItem])] {
+        let groups = Dictionary(grouping: filtered) { $0.category.lowercased() }
+        func itemSort(_ a: EquipmentItem, _ b: EquipmentItem) -> Bool {
+            switch (nextDate(a), nextDate(b)) {
+            case let (x?, y?): return x < y
+            case (nil, _?): return false
+            case (_?, nil): return true
+            default: return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+            }
+        }
+        let built = groups.map { (key: $0.key, items: $0.value.sorted(by: itemSort)) }
+        return built.sorted { g1, g2 in
+            let d1 = g1.items.compactMap(nextDate).min()
+            let d2 = g2.items.compactMap(nextDate).min()
+            switch (d1, d2) {
+            case let (x?, y?): return x < y
+            case (nil, _?): return false
+            case (_?, nil): return true
+            default: return g1.key < g2.key
+            }
+        }
+    }
+
+    /// Farbiger Kopf je Kategorie-Gruppe (Icon + Name + Anzahl).
+    @ViewBuilder
+    private func categoryGroupHeader(_ sample: EquipmentItem?) -> some View {
+        let color = sample?.categoryColor ?? .gray
+        let icon = sample?.categoryIcon ?? "shippingbox.fill"
+        let cat = sample?.category.lowercased() ?? "other"
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(color)
+            Text("equipment.cat.\(cat)".loc)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(color)
+            Spacer()
+        }
+        .textCase(nil)
+        .padding(.vertical, 2)
     }
 
     var body: some View {
@@ -356,20 +477,28 @@ struct EquipmentScreen: View {
                 emptyState
             } else {
                 List {
-                    ForEach(filtered) { item in
-                        EquipmentExpandableRow(
-                            item: item,
-                            boatName: boatName,
-                            onUpdate: { updated in Task { await updateItem(updated) } },
-                            onDelete: { Task { await deleteItem(item) } }
-                        )
-                        .environmentObject(authService)
-                    }
-                    .onDelete { offsets in
-                        let toDelete = offsets.map { filtered[$0] }
-                        for item in toDelete { Task { await deleteItem(item) } }
+                    ForEach(groupedFiltered, id: \.key) { group in
+                        Section {
+                            ForEach(group.items) { item in
+                                EquipmentExpandableRow(
+                                    item: item,
+                                    boatName: boatName,
+                                    onUpdate: { updated in Task { await updateItem(updated) } },
+                                    onDelete: { Task { await deleteItem(item) } }
+                                )
+                                .environmentObject(authService)
+                                .listRowBackground((group.items.first?.categoryColor ?? .gray).opacity(0.06))
+                            }
+                            .onDelete { offsets in
+                                let toDelete = offsets.map { group.items[$0] }
+                                for item in toDelete { Task { await deleteItem(item) } }
+                            }
+                        } header: {
+                            categoryGroupHeader(group.items.first)
+                        }
                     }
                 }
+                .listStyle(.insetGrouped)
             }
         }
         .navigationTitle("equipment.title".loc)
@@ -385,7 +514,7 @@ struct EquipmentScreen: View {
             .presentationDetents([.fraction(0.55), .large])
             .presentationDragIndicator(.visible)
         }
-        .searchable(text: $searchText, prompt: "general.search".loc)
+        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "general.search".loc)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: 16) {
@@ -538,10 +667,32 @@ struct EquipmentScreen: View {
         )
         do {
             try await authService.supabase.from("equipment").insert(ins).execute()
+            await syncEquipmentPhotos(item)
             await saveRopeDraftIfNeeded(item)
             await saveSailDraftIfNeeded(item)
             await loadItems()
         } catch { AppLog.error("Equipment hinzufügen: \(error)") }
+    }
+
+    /// Angleichung an das Web: Fotos werden in der gemeinsamen Tabelle
+    /// equipment_photos gepflegt (einzige Schreibquelle fuer beide Frontends).
+    /// Atomar via RPC set_equipment_photos; der DB-Trigger haelt
+    /// equipment.photo_url daraus synchron. Muss NACH dem Anlegen/Aktualisieren
+    /// der Ausruestung laufen (Fremdschluessel equipment_id).
+    private func syncEquipmentPhotos(_ item: EquipmentItem) async {
+        let urls = (item.photoUrl ?? "")
+            .components(separatedBy: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        struct Params: Encodable { let p_equipment_id: String; let p_urls: [String] }
+        do {
+            try await authService.supabase
+                .rpc("set_equipment_photos",
+                     params: Params(p_equipment_id: item.id.uuidString, p_urls: urls))
+                .execute()
+        } catch {
+            AppLog.error("syncEquipmentPhotos: \(error)")
+        }
     }
 
     private func updateItem(_ item: EquipmentItem) async {
@@ -560,6 +711,7 @@ struct EquipmentScreen: View {
         do {
             try await authService.supabase.from("equipment")
                 .update(upd).eq("id", value: item.id.uuidString).execute()
+            await syncEquipmentPhotos(item)
             await saveRopeDraftIfNeeded(item)
             await saveSailDraftIfNeeded(item)
             await loadItems()
@@ -685,18 +837,53 @@ struct EquipmentScreen: View {
 }
 
 // MARK: - Equipment Row
+/// Vorschaubild in der Ausruestungs-Uebersicht: erstes Foto als Thumbnail,
+/// ohne Foto (oder bei Ladefehler) das farbige Kategorie-Symbol.
+struct EquipmentThumbnail: View {
+    let item: EquipmentItem
+
+    private var firstPhotoURL: URL? {
+        let raw = item.photoUrl ?? item.imageUrl ?? ""
+        guard let first = raw.split(separator: ",")
+            .map({ $0.trimmingCharacters(in: .whitespaces) })
+            .first(where: { !$0.isEmpty }) else { return nil }
+        return URL(string: first)
+    }
+
+    private var categoryIcon: some View {
+        Image(systemName: item.categoryIcon)
+            .font(.title2).foregroundStyle(item.categoryColor)
+            .frame(width: 44, height: 44)
+            .background(item.categoryColor.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    var body: some View {
+        if let url = firstPhotoURL {
+            CachedAsyncImage(url: url, targetSize: CGSize(width: 44, height: 44)) { phase in
+                if case .success(let image) = phase {
+                    image.resizable().scaledToFill()
+                        .frame(width: 44, height: 44)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                } else {
+                    categoryIcon
+                }
+            }
+            .frame(width: 44, height: 44)
+        } else {
+            categoryIcon
+        }
+    }
+}
+
 struct EquipmentRow: View {
     let item: EquipmentItem
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: item.categoryIcon)
-                .font(.title2).foregroundStyle(item.categoryColor)
-                .frame(width: 44, height: 44)
-                .background(item.categoryColor.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+            EquipmentThumbnail(item: item)
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
-                    Text(item.name).font(.headline)
+                    Text(item.quantity > 1 ? "\(item.name) ×\(item.quantity)" : item.name).font(.headline)
                     if item.maintenanceStatus == .overdue {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.red).font(.caption)
@@ -745,15 +932,11 @@ struct EquipmentExpandableRow: View {
                 withAnimation(.easeInOut(duration: 0.2)) { showActions.toggle() }
             } label: {
                 HStack(spacing: 12) {
-                    Image(systemName: item.categoryIcon)
-                        .font(.title2).foregroundStyle(item.categoryColor)
-                        .frame(width: 44, height: 44)
-                        .background(item.categoryColor.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    EquipmentThumbnail(item: item)
 
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
-                            Text(item.name).font(.headline).foregroundStyle(.primary)
+                            Text(item.quantity > 1 ? "\(item.name) ×\(item.quantity)" : item.name).font(.headline).foregroundStyle(.primary)
                             if item.maintenanceStatus == .overdue {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundStyle(.red).font(.caption)
@@ -948,6 +1131,7 @@ struct EquipmentDetailView: View {
     @State private var showingBriefing = false
     @State private var showingSpareParts = false
     @State private var showQuoteSheet = false
+    @State private var fsImage: FSImage?   // Foto im Vollbild (Pinch-Zoom)
     @State private var quoteMode: QuoteMode = .quote
     @State private var selectedPhotoIndex = 0
 
@@ -999,6 +1183,8 @@ struct EquipmentDetailView: View {
                                     }
                                     .containerRelativeFrame(.horizontal)
                                     .id(index)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { fsImage = FSImage(url: url.absoluteString) }
                                 }
                             }
                             .scrollTargetLayout()
@@ -1158,6 +1344,9 @@ struct EquipmentDetailView: View {
         }
         .navigationTitle(item.name)
         .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(item: $fsImage) { img in
+            ZoomableImageView(url: img.url)
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("general.edit".loc) { showingEdit = true }
@@ -1249,6 +1438,7 @@ struct AddEditEquipmentView: View {
     @State private var locationOnBoat = ""
     @State private var dimensions = ""
     @State private var itemDescription = ""
+    @State private var quantity = 1
     @State private var notes = ""
     @State private var installationDate: Date = Date()
     @State private var hasInstallationDate = false
@@ -1262,8 +1452,17 @@ struct AddEditEquipmentView: View {
     // Multi-Photo support (max 5)
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var selectedImages: [UIImage] = []
+    @State private var showingCamera = false
+    @State private var cameraImage: UIImage?
     @State private var existingPhotoUrls: [String] = []
     @State private var isUploadingPhotos = false
+    @State private var fsImage: FSImage?   // Foto im Vollbild (Pinch-Zoom)
+
+    // Foto-KI-Analyse (Vorschlag, dann bestaetigen)
+    @State private var isAnalyzingPhotos = false
+    @State private var aiSuggestion: EquipmentAIFields?
+    @State private var showAISuggestionSheet = false
+    @State private var aiError: String?
 
     // Sail measurement (inline im Formular, wie Tauwerk)
     @State private var sailType: SailType
@@ -1329,6 +1528,8 @@ struct AddEditEquipmentView: View {
                                                             .overlay { ProgressView() }
                                                     }
                                                 }
+                                                .contentShape(Rectangle())
+                                                .onTapGesture { fsImage = FSImage(url: urlStr) }
                                             case .image(let uiImage):
                                                 Image(uiImage: uiImage)
                                                     .resizable().scaledToFill()
@@ -1389,6 +1590,80 @@ struct AddEditEquipmentView: View {
                     }
                 }
 
+                // Fotos (max 5): Aufnahme + KI-Analyse direkt unter der Galerie
+                Section {
+                    let totalPhotos = existingPhotoUrls.count + selectedImages.count
+                    if totalPhotos < 5 {
+                        PhotosPicker(
+                            selection: $selectedPhotoItems,
+                            maxSelectionCount: 5 - totalPhotos,
+                            matching: .images
+                        ) {
+                            Label(String(format: "equipment.add_photos".loc, totalPhotos, 5), systemImage: "photo.badge.plus")
+                                .font(.subheadline)
+                        }
+                        .onChange(of: selectedPhotoItems) { _, newItems in
+                            Task {
+                                for item in newItems {
+                                    if let data = try? await item.loadTransferable(type: Data.self),
+                                       let uiImage = UIImage(data: data) {
+                                        let total = existingPhotoUrls.count + selectedImages.count
+                                        if total < 5 {
+                                            selectedImages.append(uiImage)
+                                        }
+                                    }
+                                }
+                                selectedPhotoItems = []
+                            }
+                        }
+
+                        // Direkt mit der Kamera aufnehmen (nur wenn verfuegbar).
+                        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                            Button {
+                                showingCamera = true
+                            } label: {
+                                Label("equipment.take_photo".loc, systemImage: "camera.fill")
+                                    .font(.subheadline)
+                            }
+                        }
+                    } else {
+                        Text("equipment.max_photos".loc)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if isUploadingPhotos {
+                        ProgressView("equipment.uploading_photos".loc)
+                            .font(.caption)
+                    }
+
+                    // KI-Analyse: erkennt Hersteller/Modell/Seriennummer/Teilenummer
+                    // aus den Fotos und schlaegt die Werte zum Bestaetigen vor.
+                    if !allDisplayPhotos.isEmpty {
+                        if isAnalyzingPhotos {
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                Text("equipment.ai_analyzing".loc).font(.subheadline)
+                            }
+                        } else {
+                            Button {
+                                Task { await analyzePhotos() }
+                            } label: {
+                                Label("equipment.ai_analyze".loc, systemImage: "sparkles")
+                                    .font(.subheadline.weight(.medium))
+                            }
+                        }
+                        if let err = aiError {
+                            Text(err).font(.caption).foregroundStyle(.red)
+                        }
+                    }
+                } header: {
+                    Text(String(format: "equipment.photos_section".loc, 5))
+                } footer: {
+                    if !allDisplayPhotos.isEmpty {
+                        Text("equipment.ai_hint".loc)
+                    }
+                }
                 Section {
                     TextField("equipment.name".loc, text: $name)
                     // Picker bleibt immer als Picker — beim Anlegen mit vorgewählter
@@ -1418,6 +1693,14 @@ struct AddEditEquipmentView: View {
                         TextField("equipment.part_number".loc, text: $partNumber)
                         TextField("equipment.location".loc, text: $locationOnBoat)
                         TextField("equipment.dimensions".loc, text: $dimensions)
+                    }
+                    // Anzahl: oft mehrere gleiche Teile (z. B. Umlenkblock, Fenster).
+                    Stepper(value: $quantity, in: 1...999) {
+                        HStack {
+                            Text("equipment.quantity".loc)
+                            Spacer()
+                            Text("\(quantity)").foregroundStyle(.secondary)
+                        }
                     }
                 }
                 // Beschreibung: bei Segel entfaellt sie hier (Notizen/Besonderheiten
@@ -1459,43 +1742,6 @@ struct AddEditEquipmentView: View {
                             TextField("equipment.repair_notes".loc, text: $itemDescription, axis: .vertical)
                                 .lineLimit(2...4)
                         }
-                    }
-                }
-                // Fotos (max 5)
-                Section(String(format: "equipment.photos_section".loc, 5)) {
-                    let totalPhotos = existingPhotoUrls.count + selectedImages.count
-                    if totalPhotos < 5 {
-                        PhotosPicker(
-                            selection: $selectedPhotoItems,
-                            maxSelectionCount: 5 - totalPhotos,
-                            matching: .images
-                        ) {
-                            Label(String(format: "equipment.add_photos".loc, totalPhotos, 5), systemImage: "photo.badge.plus")
-                                .font(.subheadline)
-                        }
-                        .onChange(of: selectedPhotoItems) { _, newItems in
-                            Task {
-                                for item in newItems {
-                                    if let data = try? await item.loadTransferable(type: Data.self),
-                                       let uiImage = UIImage(data: data) {
-                                        let total = existingPhotoUrls.count + selectedImages.count
-                                        if total < 5 {
-                                            selectedImages.append(uiImage)
-                                        }
-                                    }
-                                }
-                                selectedPhotoItems = []
-                            }
-                        }
-                    } else {
-                        Text("equipment.max_photos".loc)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    if isUploadingPhotos {
-                        ProgressView("equipment.uploading_photos".loc)
-                            .font(.caption)
                     }
                 }
                 // Segelmessblatt inline (wie Tauwerk-Konfiguration) — nicht fuer Tauwerk.
@@ -1590,6 +1836,9 @@ struct AddEditEquipmentView: View {
             }
             .navigationTitle(isRopeCategoryInForm ? "rope.title".loc : (item == nil ? "equipment.add".loc : "general.edit".loc))
             .navigationBarTitleDisplayMode(.inline)
+            .fullScreenCover(item: $fsImage) { img in
+                ZoomableImageView(url: img.url)
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("general.cancel".loc) { dismiss() } }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -1611,6 +1860,30 @@ struct AddEditEquipmentView: View {
                 mode: quoteMode
             )
         }
+        .sheet(isPresented: $showAISuggestionSheet) {
+            if let s = aiSuggestion {
+                EquipmentAISuggestionSheet(
+                    suggestion: s,
+                    current: EquipmentAIFields(
+                        name: name, manufacturer: manufacturer, model: model,
+                        serialNumber: serialNumber, partNumber: partNumber,
+                        itemDescription: itemDescription, category: category
+                    ),
+                    onApply: { applied in applyAISuggestion(applied) }
+                )
+            }
+        }
+        .fullScreenCover(isPresented: $showingCamera) {
+            CameraPickerView(image: $cameraImage)
+                .ignoresSafeArea()
+        }
+        .onChange(of: cameraImage) { _, img in
+            guard let img else { return }
+            if existingPhotoUrls.count + selectedImages.count < 5 {
+                selectedImages.append(img)
+            }
+            cameraImage = nil
+        }
         .onAppear {
             guard let e = item else { return }
             let df = EquipmentItem.dateFormatter
@@ -1618,6 +1891,7 @@ struct AddEditEquipmentView: View {
             model = e.model; serialNumber = e.serialNumber; partNumber = e.partNumber
             locationOnBoat = e.locationOnBoat; dimensions = e.dimensions
             itemDescription = e.itemDescription; notes = e.notes
+            quantity = max(1, e.quantity)
             photoUrl = e.photoUrl ?? ""
             // Load existing photos from photoUrl (comma-separated)
             if let urls = e.photoUrl, !urls.isEmpty {
@@ -1673,6 +1947,64 @@ struct AddEditEquipmentView: View {
         return lines.joined(separator: "\n")
     }
 
+    /// Sammelt bis zu 5 Fotos (neue Bilder + bestehende URLs) als UIImages.
+    private func collectPhotosForAnalysis() async -> [UIImage] {
+        var result: [UIImage] = []
+        for img in selectedImages {
+            if result.count >= 5 { break }
+            result.append(img)
+        }
+        for urlStr in existingPhotoUrls {
+            if result.count >= 5 { break }
+            guard let url = URL(string: urlStr) else { continue }
+            if let (data, _) = try? await URLSession.shared.data(from: url),
+               let img = UIImage(data: data) {
+                result.append(img)
+            }
+        }
+        return result
+    }
+
+    private func analyzePhotos() async {
+        aiError = nil
+        isAnalyzingPhotos = true
+        defer { isAnalyzingPhotos = false }
+
+        let images = await collectPhotosForAnalysis()
+        guard !images.isEmpty else {
+            aiError = "equipment.ai_error".loc
+            return
+        }
+        do {
+            let result = try await EquipmentPhotoAnalysisService.shared.analyze(images)
+            guard result.fields.hasAnyValue else {
+                aiError = "equipment.ai_none".loc
+                return
+            }
+            aiSuggestion = result.fields
+            showAISuggestionSheet = true
+        } catch {
+            AppLog.error("analyze-equipment-photo error: \(error)")
+            aiError = "equipment.ai_error".loc
+        }
+    }
+
+    /// Uebernimmt die vom Nutzer bestaetigten KI-Felder in das Formular.
+    private func applyAISuggestion(_ applied: EquipmentAIFields) {
+        if !applied.name.isEmpty { name = applied.name }
+        if !applied.manufacturer.isEmpty { manufacturer = applied.manufacturer }
+        if !applied.model.isEmpty { model = applied.model }
+        if !applied.serialNumber.isEmpty { serialNumber = applied.serialNumber }
+        if !applied.partNumber.isEmpty { partNumber = applied.partNumber }
+        if !applied.itemDescription.isEmpty { itemDescription = applied.itemDescription }
+        // Kategorie nur uebernehmen, wenn Picker nicht gesperrt ist.
+        let isLocked = (initialCategory != nil && item == nil)
+        if !applied.category.isEmpty, !isLocked,
+           equipmentCategories.contains(applied.category) {
+            category = applied.category
+        }
+    }
+
     private func saveWithPhotos() async {
         isUploadingPhotos = true
         var allPhotoUrls = existingPhotoUrls
@@ -1717,7 +2049,7 @@ struct AddEditEquipmentView: View {
             maintenanceCycleYears: cycle, partNumber: partNumber,
             locationOnBoat: locationOnBoat, dimensions: dimensions,
             photoUrl: finalPhotoUrl,
-            itemDescription: itemDescription
+            itemDescription: itemDescription, quantity: max(1, quantity)
         )
         // Tauwerk-Konfiguration mitgeben → addItem/updateItem persistiert sie.
         if isRopeCategoryInForm {
@@ -1807,6 +2139,106 @@ struct AddEditEquipmentView: View {
         guard let m = rows.first else { return }
         sailMeasurement = m
         sailType = SailType.fromDBValue(m.sailType)
+    }
+}
+
+// MARK: - KI-Vorschlag bestaetigen (Foto-Analyse)
+/// Zeigt die von der KI erkannten Felder; der Nutzer haekelt an, was er
+/// uebernehmen moechte (vorbelegt: an, wenn das Formularfeld leer ist).
+private struct EquipmentAISuggestionSheet: View {
+    let suggestion: EquipmentAIFields
+    let current: EquipmentAIFields
+    let onApply: (EquipmentAIFields) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var selected: Set<String> = []
+
+    /// Felder (key, Label, Vorschlagswert, aktueller Wert) — nur mit Vorschlag.
+    private var rows: [(key: String, label: String, value: String, current: String)] {
+        var r: [(String, String, String, String)] = []
+        func add(_ key: String, _ label: String, _ v: String, _ cur: String) {
+            if !v.trimmingCharacters(in: .whitespaces).isEmpty {
+                r.append((key, label, v, cur))
+            }
+        }
+        add("name", "equipment.name".loc, suggestion.name, current.name)
+        add("manufacturer", "boats.manufacturer".loc, suggestion.manufacturer, current.manufacturer)
+        add("model", "boats.model".loc, suggestion.model, current.model)
+        add("serial", "equipment.serial".loc, suggestion.serialNumber, current.serialNumber)
+        add("part", "equipment.part_number".loc, suggestion.partNumber, current.partNumber)
+        add("desc", "equipment.description".loc, suggestion.itemDescription, current.itemDescription)
+        if !suggestion.category.isEmpty {
+            add("category", "equipment.category".loc,
+                "equipment.cat.\(suggestion.category)".loc,
+                current.category.isEmpty ? "" : "equipment.cat.\(current.category)".loc)
+        }
+        return r
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    ForEach(rows, id: \.key) { row in
+                        Button {
+                            if selected.contains(row.key) { selected.remove(row.key) }
+                            else { selected.insert(row.key) }
+                        } label: {
+                            HStack(alignment: .top, spacing: 12) {
+                                Image(systemName: selected.contains(row.key) ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(selected.contains(row.key) ? AppColors.primary : .secondary)
+                                    .font(.title3)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(row.label).font(.caption).foregroundStyle(.secondary)
+                                    Text(row.value).font(.body).foregroundStyle(.primary)
+                                    if !row.current.isEmpty && row.current != row.value {
+                                        Text(String(format: "equipment.ai_overwrites".loc, row.current))
+                                            .font(.caption2).foregroundStyle(.orange)
+                                    }
+                                }
+                                Spacer()
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text("equipment.ai_suggestions_title".loc)
+                } footer: {
+                    Text("equipment.ai_hint".loc)
+                }
+            }
+            .navigationTitle("equipment.ai_suggestions_title".loc)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("general.cancel".loc) { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("equipment.ai_apply".loc) { apply() }
+                        .fontWeight(.semibold)
+                        .disabled(selected.isEmpty)
+                }
+            }
+            .onAppear {
+                // Vorbelegen: Felder anhaken, deren Formularwert leer ist.
+                for row in rows where row.current.trimmingCharacters(in: .whitespaces).isEmpty {
+                    selected.insert(row.key)
+                }
+            }
+        }
+    }
+
+    private func apply() {
+        var out = EquipmentAIFields()
+        if selected.contains("name") { out.name = suggestion.name }
+        if selected.contains("manufacturer") { out.manufacturer = suggestion.manufacturer }
+        if selected.contains("model") { out.model = suggestion.model }
+        if selected.contains("serial") { out.serialNumber = suggestion.serialNumber }
+        if selected.contains("part") { out.partNumber = suggestion.partNumber }
+        if selected.contains("desc") { out.itemDescription = suggestion.itemDescription }
+        if selected.contains("category") { out.category = suggestion.category }
+        onApply(out)
+        dismiss()
     }
 }
 

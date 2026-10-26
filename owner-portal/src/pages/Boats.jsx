@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
-import { Ship, Plus, Pencil, Trash2, X, Save, Ruler, Gauge, MapPin, Hash, Package, Wrench, Bot } from 'lucide-react'
+import { Ship, Plus, Pencil, Trash2, X, Save, Ruler, Gauge, MapPin, Hash, Package, Wrench, Bot, KeyRound, Copy, Check, AlertTriangle } from 'lucide-react'
 import { useT } from '../i18n'
+import { useFeatureGate } from '../hooks/useFeatureGate'
+import { upgradeMessageFromInvoke } from '../lib/featureGate'
 
 const emptyBoat = { name: '', boat_type: '', manufacturer: '', model: '', year: '', length_meters: '', width: '', draft: '', engine: '', home_port: '', registration_number: '', hin: '', image_url: '' }
 
@@ -23,6 +25,7 @@ const boatTypes = [
 export default function Boats() {
   const { user } = useAuth()
   const { t } = useT()
+  const { gate, showUpgrade, gateModal } = useFeatureGate()
   const navigate = useNavigate()
   const [boats, setBoats] = useState([])
   const [loading, setLoading] = useState(true)
@@ -30,6 +33,25 @@ export default function Boats() {
   const [form, setForm] = useState(emptyBoat)
   const [saving, setSaving] = useState(false)
   const [uploadingImg, setUploadingImg] = useState(false)
+
+  // Boot-Uebergabe (Verkauf) + Uebernahme per Key
+  const [transferBoat, setTransferBoat] = useState(null)
+  const [transferKey, setTransferKey] = useState('')
+  const [transferExpires, setTransferExpires] = useState('')
+  const [transferBusy, setTransferBusy] = useState(false)
+  const [transferError, setTransferError] = useState('')
+  const [copied, setCopied] = useState(false)
+  const [transferEquip, setTransferEquip] = useState([])
+  const [transferEquipLoading, setTransferEquipLoading] = useState(false)
+  const [keptIds, setKeptIds] = useState(() => new Set())
+  const [transferAck, setTransferAck] = useState(false)
+  const [keptTarget, setKeptTarget] = useState('new') // 'new' | 'existing'
+  const [keptNewName, setKeptNewName] = useState('')
+  const [keptExistingId, setKeptExistingId] = useState('')
+  const [showRedeem, setShowRedeem] = useState(false)
+  const [redeemKey, setRedeemKey] = useState('')
+  const [redeemBusy, setRedeemBusy] = useState(false)
+  const [redeemError, setRedeemError] = useState('')
 
   async function uploadBoatImage(file) {
     if (!file) return
@@ -108,16 +130,97 @@ export default function Boats() {
     await loadBoats()
   }
 
+  async function startTransfer(boat) {
+    // Paywall: Boot per Schlüssel übergeben ist Skipily Plus (Meldung aus der DB)
+    if (!(await gate('boat_transfer', boat.id))) return
+    setTransferBoat(boat); setTransferKey(''); setTransferExpires('')
+    setTransferError(''); setCopied(false); setKeptIds(new Set()); setTransferAck(false)
+    setKeptTarget('new'); setKeptNewName(t('boats.keepDefaultName', { name: boat.name })); setKeptExistingId('')
+    setTransferEquip([]); setTransferEquipLoading(true)
+    try {
+      const { data } = await supabase.from('equipment')
+        .select('id, name, category, manufacturer, model')
+        .eq('boat_id', boat.id).order('category, name')
+      setTransferEquip(data || [])
+    } catch { /* ignore */ }
+    setTransferEquipLoading(false)
+  }
+
+  function toggleKept(id) {
+    setKeptIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+
+  async function generateKey() {
+    if (!transferBoat || !transferAck) return
+    // Zweite Sicherheitsabfrage (unumkehrbar nach dem Einlösen).
+    if (!window.confirm(t('boats.transferConfirm', { name: transferBoat.name }))) return
+    setTransferBusy(true); setTransferError('')
+    try {
+      const hasKept = keptIds.size > 0
+      const { data, error } = await supabase.functions.invoke('create-boat-transfer', {
+        body: {
+          boat_id: transferBoat.id,
+          kept_equipment_ids: [...keptIds],
+          kept_target_boat_id: (hasKept && keptTarget === 'existing') ? (keptExistingId || null) : null,
+          kept_new_boat_name: (hasKept && keptTarget === 'new') ? (keptNewName.trim() || null) : null,
+        },
+      })
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+      setTransferKey(data.key)
+      setTransferExpires(data.expires_at ? new Date(data.expires_at).toLocaleDateString() : '')
+    } catch (err) {
+      console.error('create-boat-transfer:', err)
+      const upgrade = await upgradeMessageFromInvoke(err)
+      if (upgrade) { setTransferBoat(null); showUpgrade(upgrade, 'plus') }
+      else setTransferError(t('boats.transferError'))
+    } finally {
+      setTransferBusy(false)
+    }
+  }
+
+  async function copyKey() {
+    try { await navigator.clipboard.writeText(transferKey); setCopied(true); setTimeout(() => setCopied(false), 2000) }
+    catch { /* ignore */ }
+  }
+
+  async function redeem() {
+    const key = redeemKey.trim()
+    if (!key) return
+    setRedeemBusy(true); setRedeemError('')
+    try {
+      const { data, error } = await supabase.functions.invoke('redeem-boat-transfer', { body: { key } })
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+      setShowRedeem(false); setRedeemKey('')
+      await loadBoats()
+      alert(t('boats.redeemSuccess', { name: data.boat_name || '' }))
+      if (data.boat_id) navigate(`/equipment?boat=${data.boat_id}`)
+    } catch (err) {
+      console.error('redeem-boat-transfer:', err)
+      setRedeemError(err?.message && /abgelaufen|eingelöst|ungültig|Key/i.test(err.message) ? err.message : t('boats.redeemError'))
+    } finally {
+      setRedeemBusy(false)
+    }
+  }
+
   if (loading) return <div className="page"><div className="spinner" /></div>
 
   return (
     <div className="page">
+      {gateModal}
       <div className="page-header">
         <div>
           <h1>{t('nav.boats')}</h1>
           <p className="subtitle">{t(boats.length === 1 ? 'boats.countSingular' : 'boats.countPlural', { n: boats.length })}</p>
         </div>
-        <button className="btn-primary" onClick={startNew}><Plus size={16} /> {t('boats.add')}</button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="btn-secondary" onClick={() => { setShowRedeem(true); setRedeemKey(''); setRedeemError('') }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <KeyRound size={16} /> {t('boats.redeem')}
+          </button>
+          <button className="btn-primary" onClick={startNew}><Plus size={16} /> {t('boats.add')}</button>
+        </div>
       </div>
 
       {editing && (
@@ -213,9 +316,16 @@ export default function Boats() {
                 <div>
                   <h3>{boat.name}</h3>
                   <span className="boat-type">{boatTypeLabel(boat.boat_type)}</span>
+                  {boat.read_only && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '2px 8px', borderRadius: 999 }}>
+                      <KeyRound size={11} /> {t('boats.soldBadge')}
+                    </span>
+                  )}
                 </div>
                 <div className="boat-actions">
-                  <button className="btn-icon" onClick={() => startEdit(boat)}><Pencil size={16} /></button>
+                  {!boat.read_only && (
+                    <button className="btn-icon" onClick={() => startEdit(boat)}><Pencil size={16} /></button>
+                  )}
                   <button className="btn-icon btn-danger" onClick={() => deleteBoat(boat.id)}><Trash2 size={16} /></button>
                 </div>
               </div>
@@ -238,9 +348,164 @@ export default function Boats() {
                 <button className="boat-action-btn" onClick={() => navigate(`/chat?boat=${boat.id}`)}>
                   <Bot size={16} /><span>{t('maint.askAi')}</span>
                 </button>
+                {!boat.read_only && (
+                  <button className="boat-action-btn" onClick={() => startTransfer(boat)} title={t('boats.transferTitle')}>
+                    <KeyRound size={16} /><span>{t('boats.transfer')}</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Boot uebergeben (Verkauf) → Key anzeigen */}
+      {transferBoat && (
+        <div className="modal-overlay" onClick={() => setTransferBoat(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="modal-header">
+              <h2><KeyRound size={18} /> {t('boats.transferTitle')}</h2>
+              <button className="btn-icon" onClick={() => setTransferBoat(null)}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: 13, color: '#64748b', marginTop: 0 }}>
+                {t('boats.transferIntro', { name: transferBoat.name })}
+              </p>
+
+              {!transferKey ? (
+                <>
+                  {transferEquipLoading && <p style={{ color: '#64748b' }}>{t('boats.transferLoadingEquip')}</p>}
+                  {!transferEquipLoading && transferEquip.length > 0 && (
+                    <div style={{ marginTop: 4 }}>
+                      <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>{t('boats.keepLabel')}</label>
+                      <p style={{ fontSize: 12, color: '#94a3b8', margin: '2px 0 8px' }}>{t('boats.keepHint')}</p>
+                      <div style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: 10 }}>
+                        {transferEquip.map(eq => (
+                          <label key={eq.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
+                            <input type="checkbox" checked={keptIds.has(eq.id)} onChange={() => toggleKept(eq.id)} />
+                            <span style={{ minWidth: 0 }}>
+                              <span style={{ fontSize: 14, fontWeight: 600 }}>{eq.name}</span>
+                              {(eq.manufacturer || eq.model) && <span style={{ fontSize: 12, color: '#94a3b8' }}> · {[eq.manufacturer, eq.model].filter(Boolean).join(' ')}</span>}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                      {keptIds.size > 0 && (
+                        <p style={{ fontSize: 12, color: '#b45309', marginTop: 8 }}>{t('boats.keepCount', { n: keptIds.size })}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Ziel-Schiff fuer behaltene Ausruestung */}
+                  {keptIds.size > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>{t('boats.keepTarget')}</label>
+                      <p style={{ fontSize: 12, color: '#94a3b8', margin: '2px 0 8px' }}>{t('boats.keepTargetHint')}</p>
+                      <div style={{ display: 'flex', gap: 14, marginBottom: 8, flexWrap: 'wrap' }}>
+                        <label style={{ display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer', fontSize: 14 }}>
+                          <input type="radio" name="keptTarget" checked={keptTarget === 'new'} onChange={() => setKeptTarget('new')} />
+                          {t('boats.keepTargetNew')}
+                        </label>
+                        {boats.filter(b => b.id !== transferBoat.id).length > 0 && (
+                          <label style={{ display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer', fontSize: 14 }}>
+                            <input type="radio" name="keptTarget" checked={keptTarget === 'existing'} onChange={() => setKeptTarget('existing')} />
+                            {t('boats.keepTargetExisting')}
+                          </label>
+                        )}
+                      </div>
+                      {keptTarget === 'new' ? (
+                        <input type="text" value={keptNewName} onChange={e => setKeptNewName(e.target.value)}
+                          placeholder={t('boats.keepNewNamePh')}
+                          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }} />
+                      ) : (
+                        <select value={keptExistingId} onChange={e => setKeptExistingId(e.target.value)}
+                          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }}>
+                          <option value="">{t('boats.keepChoosePrompt')}</option>
+                          {boats.filter(b => b.id !== transferBoat.id).map(b => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  )}
+                  {/* Doppelte Sicherheitsabfrage: Warnhinweis + Pflicht-Haekchen */}
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 14, padding: '10px 12px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 10 }}>
+                    <AlertTriangle size={18} color="#dc2626" style={{ flexShrink: 0, marginTop: 1 }} />
+                    <span style={{ fontSize: 12.5, color: '#b91c1c', lineHeight: 1.45 }}>{t('boats.transferWarning')}</span>
+                  </div>
+                  <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 10, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={transferAck} onChange={e => setTransferAck(e.target.checked)} style={{ marginTop: 3 }} />
+                    <span style={{ fontSize: 13, color: '#334155' }}>{t('boats.transferAck')}</span>
+                  </label>
+                  {transferError && <p style={{ color: '#dc2626', marginTop: 8 }}>{transferError}</p>}
+                </>
+              ) : (
+                <>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>{t('boats.transferKeyLabel')}</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                    <code style={{ flex: 1, fontSize: 18, fontWeight: 700, letterSpacing: 1, padding: '10px 12px', background: '#f1f5f9', borderRadius: 10, textAlign: 'center' }}>{transferKey}</code>
+                    <button type="button" className="btn-secondary" onClick={copyKey}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      {copied ? <Check size={16} /> : <Copy size={16} />} {copied ? t('boats.transferCopied') : t('boats.transferCopy')}
+                    </button>
+                  </div>
+                  {transferExpires && <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>{t('boats.transferExpires')}: {transferExpires}</p>}
+                  <p style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>{t('boats.transferHint')}</p>
+                </>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setTransferBoat(null)}>{t('common.cancel')}</button>
+              {!transferKey && (() => {
+                const keptTargetValid = keptIds.size === 0 ||
+                  (keptTarget === 'new' ? keptNewName.trim() !== '' : keptExistingId !== '')
+                const blocked = transferBusy || transferEquipLoading || !transferAck || !keptTargetValid
+                return (
+                  <button
+                    onClick={generateKey}
+                    disabled={blocked}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
+                      background: blocked ? '#fca5a5' : '#dc2626',
+                      color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px',
+                      fontWeight: 700, cursor: blocked ? 'not-allowed' : 'pointer',
+                    }}>
+                    <AlertTriangle size={16} /> {transferBusy ? t('boats.transferGenerating') : t('boats.transferGenerate')}
+                  </button>
+                )
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Boot uebernehmen → Key einloesen */}
+      {showRedeem && (
+        <div className="modal-overlay" onClick={() => setShowRedeem(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
+            <div className="modal-header">
+              <h2><KeyRound size={18} /> {t('boats.redeemTitle')}</h2>
+              <button className="btn-icon" onClick={() => setShowRedeem(false)}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: 13, color: '#64748b', marginTop: 0 }}>{t('boats.redeemIntro')}</p>
+              <input
+                type="text"
+                value={redeemKey}
+                onChange={e => setRedeemKey(e.target.value.toUpperCase())}
+                placeholder="SKP-XXXX-XXXX-XXXX"
+                style={{ width: '100%', fontSize: 16, fontWeight: 600, letterSpacing: 1, textAlign: 'center', padding: '10px 12px' }}
+                onKeyDown={e => { if (e.key === 'Enter') redeem() }}
+              />
+              {redeemError && <p style={{ color: '#dc2626', marginTop: 8 }}>{redeemError}</p>}
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setShowRedeem(false)}>{t('common.cancel')}</button>
+              <button className="btn-primary" onClick={redeem} disabled={redeemBusy || !redeemKey.trim()}>
+                {redeemBusy ? t('boats.redeemBusy') : t('boats.redeemSubmit')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

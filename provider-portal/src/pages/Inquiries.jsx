@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Inbox, Send, CheckCircle, Package, XCircle, Trash2, MessageSquare } from 'lucide-react'
+import { Inbox, Send, CheckCircle, Package, XCircle, Trash2, MessageSquare, Bell } from 'lucide-react'
 import { useT } from '../i18n'
+import { enableWebPush, webPushPermission, webPushSupported } from '../lib/webpush'
 import RopeOfferBuilder from '../components/RopeOfferBuilder'
 
 // Anfragen der Kunden an diesen Betrieb + strukturiertes Angebot (Preis) abgeben.
@@ -12,6 +14,7 @@ export default function Inquiries() {
   const { t } = useT()
   const [inquiries, setInquiries] = useState([])
   const [loading, setLoading] = useState(true)
+  const [pushPerm, setPushPerm] = useState(() => webPushPermission())  // granted|denied|default|unsupported
   const [forms, setForms] = useState({})     // inquiryId -> { amount, shipping, description, reply }
   const [sendingId, setSendingId] = useState(null)
   const [actioningId, setActioningId] = useState(null)
@@ -91,6 +94,22 @@ export default function Inquiries() {
 
   useEffect(() => { load() }, [load])
 
+  // Deep-Link aus der E-Mail/Push: /inquiries?id=<inquiryId> -> zur Anfrage
+  // scrollen, hervorheben und den Nachrichten-Thread oeffnen.
+  const [searchParams] = useSearchParams()
+  const focusId = searchParams.get('id')
+  useEffect(() => {
+    if (!focusId || loading || inquiries.length === 0) return
+    const el = document.getElementById('inq-' + focusId)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.style.transition = 'box-shadow 0.4s ease'
+    el.style.boxShadow = '0 0 0 3px #2563eb'
+    setTimeout(() => { el.style.boxShadow = '' }, 2500)
+    setThreadOpen(prev => (prev[focusId] ? prev : { ...prev, [focusId]: true }))
+    loadThread(focusId)
+  }, [focusId, loading, inquiries])
+
   function setField(id, field, value) {
     setForms(prev => ({ ...prev, [id]: { ...(prev[id] || {}), [field]: value } }))
   }
@@ -158,6 +177,18 @@ export default function Inquiries() {
       <div className="page-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
         <h1><Inbox size={22} style={{ verticalAlign: '-4px', marginRight: 8 }} />{t('inquiries.title')}</h1>
         <p className="subtitle" style={{ marginBottom: 0 }}>{t('inquiries.subtitle')}</p>
+        {webPushSupported() && pushPerm !== 'granted' && (
+          <button type="button"
+            onClick={async () => { const ok = await enableWebPush('de'); setPushPerm(ok ? 'granted' : webPushPermission()); if (!ok && Notification.permission === 'denied') setMessage({ type: 'error', text: 'Benachrichtigungen sind im Browser blockiert. Bitte für diese Seite erlauben.' }) }}
+            style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, background: '#1e40af', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+            <Bell size={15} /> Push bei neuen Anfragen aktivieren
+          </button>
+        )}
+        {pushPerm === 'granted' && (
+          <span style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, color: '#059669', fontSize: 13, fontWeight: 600 }}>
+            <Bell size={15} /> Push für neue Anfragen aktiv
+          </span>
+        )}
       </div>
 
       {message && (
@@ -179,7 +210,7 @@ export default function Inquiries() {
             const isInquiry = inq.request_type === 'inquiry'
             const busy = actioningId === inq.id
             return (
-              <div key={inq.id} className="card inquiry-card">
+              <div key={inq.id} id={'inq-' + inq.id} className="card inquiry-card">
                 <div className="inquiry-head">
                   <div>
                     <div className="inquiry-subject">{inq.subject || t('inquiries.noSubject')}</div>

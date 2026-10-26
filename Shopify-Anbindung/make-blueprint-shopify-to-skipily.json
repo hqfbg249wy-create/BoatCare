@@ -1,0 +1,54 @@
+{
+  "name": "Shopify (marinedustrie) -> Skipily Produkt-Sync",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": { "hook": 0, "maxResults": 1 },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 },
+        "restore": { "parameters": { "hook": { "label": "Shopify Produkt-Webhook (products/create, products/update)" } } },
+        "notes": "Erstelle in Make einen Custom-Webhook. Trage dessen URL in Shopify unter Einstellungen -> Benachrichtigungen -> Webhooks fuer die Ereignisse 'Produkterstellung' und 'Produktaktualisierung' ein (Format JSON). Shopify sendet dann den kompletten Produkt-JSON hierher."
+      }
+    },
+    {
+      "id": 2,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": { "handleErrors": true, "useNewZLibDeCompress": true },
+      "mapper": {
+        "url": "https://vcjwlyqkfkszumdrfvtm.supabase.co/functions/v1/products-api",
+        "method": "post",
+        "headers": [
+          { "name": "Content-Type", "value": "application/json" },
+          { "name": "x-api-key", "value": "DEIN_SKIPILY_PROVIDER_API_KEY" }
+        ],
+        "qs": [],
+        "bodyType": "raw",
+        "contentType": "application/json",
+        "data": "{\n  \"sku\": \"{{1.variants[1].sku}}\",\n  \"name\": \"{{1.title}}\",\n  \"manufacturer\": \"{{1.vendor}}\",\n  \"description\": \"{{replace(1.body_html; \"/<[^>]+>/g\"; \"\")}}\",\n  \"price\": {{parseNumber(1.variants[1].price; \".\")}},\n  \"currency\": \"EUR\",\n  \"ean\": \"{{1.variants[1].barcode}}\",\n  \"part_number\": \"{{1.variants[1].sku}}\",\n  \"stock_quantity\": {{1.variants[1].inventory_quantity}},\n  \"in_stock\": {{if(1.variants[1].inventory_quantity > 0; true; false)}},\n  \"weight_kg\": {{1.variants[1].grams / 1000}},\n  \"delivery_days\": 3,\n  \"min_order_quantity\": 1,\n  \"images\": [\"{{1.image.src}}\"],\n  \"tags\": {{split(1.tags; \", \")}},\n  \"is_active\": {{if(1.status = \"active\"; true; false)}}\n}",
+        "parseResponse": true
+      },
+      "metadata": {
+        "designer": { "x": 300, "y": 0 },
+        "notes": "POST legt neu an. Fuer Updates spaeter: Skipily-Produkt-id merken (Data Store, Schluessel = Shopify-Produkt-id) und PUT ...?id=<uuid> aufrufen. Varianten-Produkte: variant_options + variants ergaenzen (siehe skipily-product-variants.json)."
+      }
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "sequential": false,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false
+    },
+    "designer": { "orphans": [] }
+  }
+}

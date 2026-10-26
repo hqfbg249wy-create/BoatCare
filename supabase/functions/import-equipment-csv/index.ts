@@ -26,6 +26,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { checkFeature, gateBody, gateLang } from "../_shared/featureGate.ts";
 
 const SUPABASE_URL         = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -78,11 +79,9 @@ Deno.serve(async (req) => {
       p_boat_id: null,
     });
     if (hasPlus !== true) {
-      return json({
-        error: "CSV-Import ist Skipily Plus vorbehalten.",
-        upgrade_hint: "Hole dir Skipily Plus, um Ausrüstungslisten als CSV zu importieren.",
-        requires_plus: true,
-      }, 402);
+      // Kurze Upgrade-Meldung aus der DB (feature_gates, Migration 215)
+      const access = await checkFeature(user.id, "excel_import", gateLang(req));
+      return json(gateBody({ ...access, allowed: false, required_tier: "plus" }), 402);
     }
 
     const body = await req.json().catch(() => ({}));

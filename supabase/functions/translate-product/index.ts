@@ -71,8 +71,11 @@ async function claudeTranslateAll(texts: string[], lang: Lang): Promise<string[]
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5",
-        max_tokens: 1500,
+        model: "claude-haiku-5-5",
+        // Haiku 5.5 hat Thinking standardmaessig an; max_tokens hoeher, damit
+        // Thinking + JSON-Ausgabe sicher passen (der Parser nimmt den
+        // text-Block nach einem evtl. thinking-Block).
+        max_tokens: 4000,
         system:
           `You are a professional translator for a marine/boating e-commerce shop. ` +
           `The inputs are PRODUCT TITLES that mix an article code, a brand, and descriptive words in Italian or English. ` +

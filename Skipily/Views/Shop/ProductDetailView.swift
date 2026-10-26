@@ -188,10 +188,8 @@ struct ProductDetailView: View {
                         variantSection
                     }
 
-                    Divider()
-
-                    // Quantity + Add to Cart
-                    addToCartSection
+                    // Menge + "In den Warenkorb" sitzen als feste Leiste unten
+                    // (siehe .safeAreaInset unten) -> immer sichtbar, nie verdeckt.
 
                     // Provider-kuratierte Verknüpfungen (Zubehör/Alternativen/Bundle)
                     if !relations.isEmpty {
@@ -213,6 +211,17 @@ struct ProductDetailView: View {
                 }
                 .padding(.horizontal, 16)
             }
+        }
+        // Feste Kauf-Leiste: Buttons per .aboveTabBar() ueber die schwebende
+        // Glas-Tab-Leiste gehoben -> nie verdeckt, Hintergrund laeuft darunter.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            addToCartSection
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+                .aboveTabBar()
+                .frame(maxWidth: .infinity)
+                .background(.bar)
+                .overlay(alignment: .top) { Divider() }
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(for: Product.self) { prod in
@@ -635,7 +644,7 @@ struct ProductDetailView: View {
             }
             .disabled(!canAddToCart)
         }
-        .padding(.bottom, 20)
+        .padding(.bottom, 10)
     }
 
     // MARK: - After-Cart Sheet (was tun nach In-den-Warenkorb)

@@ -12,11 +12,19 @@ import {
   getPlusPackages, purchasePlus, restorePurchases, isUserCancelled, isNative,
 } from '../lib/purchases'
 
-const BENEFITS = [
-  'Unbegrenzter KI-Assistent: Chat, Schadens-Foto-Analyse & Ausrüstungs-Empfehlungen (sonst 10/Monat)',
-  'Ausrüstung per Excel importieren (inkl. Segelmessblatt & Tauwerk)',
-  'Wartungsreport als PDF – je Boot getrennt',
-  'Skipily-Rabatte im Shop nutzen',
+// Stufen-Zuordnung wie auf skipily.app/preise (Gates serverseitig: feature_gates, Migration 215)
+const BASIC_BENEFITS = [
+  'KI-Assistent: 5 Fragen pro Tag (kostenlos: 10 Fragen insgesamt)',
+  'Schadens-Foto- und Video-Analyse',
+  'KI-Analyse von Ausrüstungsfotos (Fotos speichern bleibt kostenlos)',
+  'Autoübersetzung von News-Beiträgen und Video-Untertiteln',
+]
+const PLUS_BENEFITS = [
+  'Alles aus Basic, dazu 15 KI-Fragen pro Tag',
+  'Stärkere KI für tiefergehende Analysen',
+  'Boot per Schlüssel übergeben (mit Ausrüstung, Fotos und Historie)',
+  'Wartungshistorie als PDF',
+  'Ausrüstung per Excel importieren (inkl. Segelmessblatt und Tauwerk)',
 ]
 
 export default function Paywall() {
@@ -83,24 +91,38 @@ export default function Paywall() {
       <div style={S.hero}>
         <Sparkles size={48} color="#a855f7" />
         <h1 style={S.title}>Mehr aus deinem Boot herausholen</h1>
-        <p style={S.subtitle}>Alle Kernfunktionen bleiben gratis. Plus erweitert die App.</p>
+        <p style={S.subtitle}>Alle Kernfunktionen bleiben gratis. Basic und Plus erweitern die App.</p>
+      </div>
+
+      <div style={S.card}>
+        <div style={S.cardHead}>
+          <Sparkles size={20} color="#2563eb" />
+          <span style={S.cardTitle}>Skipily Basic</span>
+          <span style={S.muted}>ab 1,99 € im Monat</span>
+        </div>
+        <ul style={S.benefits}>
+          {BASIC_BENEFITS.map((b) => (
+            <li key={b} style={S.benefit}><Check size={18} color="#16a34a" /> {b}</li>
+          ))}
+        </ul>
       </div>
 
       <div style={S.card}>
         <div style={S.cardHead}>
           <Sparkles size={20} color="#a855f7" />
           <span style={S.cardTitle}>Skipily Plus</span>
+          <span style={S.muted}>ab 4,99 € im Monat</span>
           {isPlus && <span style={S.activeBadge}>Aktiv</span>}
         </div>
         <ul style={S.benefits}>
-          {BENEFITS.map((b) => (
+          {PLUS_BENEFITS.map((b) => (
             <li key={b} style={S.benefit}><Check size={18} color="#16a34a" /> {b}</li>
           ))}
         </ul>
 
         {!isNative() ? (
           <p style={S.webNote}>
-            Skipily Plus buchst du direkt in der Skipily-App (App Store / Google Play).
+            Skipily Basic und Plus buchst du direkt in der Skipily-App (App Store / Google Play).
           </p>
         ) : loading ? (
           <p style={S.muted}>Angebote werden geladen…</p>
@@ -158,7 +180,7 @@ const S = {
   hero: { textAlign: 'center', padding: '8px 8px 24px' },
   title: { fontSize: 24, fontWeight: 700, margin: '12px 0 6px' },
   subtitle: { color: '#6b7280', margin: 0 },
-  card: { border: '1px solid #e5e7eb', borderRadius: 16, padding: 20, background: 'var(--card-bg, #fff)' },
+  card: { border: '1px solid #e5e7eb', borderRadius: 16, padding: 20, marginBottom: 16, background: 'var(--card-bg, #fff)' },
   cardHead: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 },
   cardTitle: { fontWeight: 700, fontSize: 18 },
   activeBadge: { marginLeft: 'auto', background: '#16a34a', color: '#fff', fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 999 },

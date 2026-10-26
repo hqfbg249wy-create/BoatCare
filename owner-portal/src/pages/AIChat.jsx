@@ -5,6 +5,7 @@ import { Send, Wrench, Trash2, Anchor, Clock, Plus, X, ImagePlus, Camera, Search
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useT } from '../i18n'
 import { parseChatActions } from '../lib/chatActions'
+import { useFeatureGate } from '../hooks/useFeatureGate'
 
 // Tippbarer Aktions-Chip unter KI-Antworten (Shop-Suche / Ausrüstungsliste).
 const chipStyle = {
@@ -33,6 +34,7 @@ export default function AIChat() {
 
   // Foto-Anhänge für die nächste Nachricht ({ file, preview }-Objekte)
   const [attachedImages, setAttachedImages] = useState([])
+  const { gate, showUpgrade, gateModal } = useFeatureGate()
   const [uploadingImages, setUploadingImages] = useState(false)
 
   const messagesEndRef = useRef(null)
@@ -205,10 +207,12 @@ export default function AIChat() {
 
   // ------- Foto-Anhänge -------
 
-  function onPickImages(e) {
+  async function onPickImages(e) {
     const files = Array.from(e.target.files || [])
     e.target.value = '' // erlaubt erneutes Wählen derselben Datei
     if (!files.length) return
+    // Paywall: Schadens-Foto-Analyse ab Skipily Basic (Meldung aus der DB)
+    if (!(await gate('photo_analysis'))) return
     setAttachedImages(prev => {
       const room = Math.max(0, 5 - prev.length)
       const next = files.slice(0, room).map(file => ({ file, preview: URL.createObjectURL(file) }))
@@ -297,6 +301,14 @@ export default function AIChat() {
         clearTimeout(timeout)
       }
 
+      if (response.status === 402) {
+        // Kontingent/Paywall: kurze Upgrade-Meldung vom Server statt Fehlertext
+        const body = await response.json().catch(() => ({}))
+        const hint = [body.error, body.upgrade_hint].filter((x, i, a) => x && a.indexOf(x) === i).join(' ')
+        showUpgrade(hint || t('gate.fallback'), body.required_tier)
+        setLoading(false)
+        return
+      }
       if (!response.ok) {
         const errText = await response.text()
         throw new Error(`Server-Fehler (${response.status}): ${errText}`)
@@ -313,6 +325,7 @@ export default function AIChat() {
         content: parsed.text,
         shopSearchTerms: parsed.shopSearchTerms,
         equipmentChecklist: parsed.equipmentChecklist,
+        newsItems: Array.isArray(data.news) ? data.news : [],
       }])
       // ROH-Text (inkl. Block) persistieren → beim Laden erneut parsen.
       if (sid) await saveMessageRow(sid, 'assistant', reply)
@@ -353,6 +366,7 @@ export default function AIChat() {
 
   return (
     <div className="page chat-page">
+      {gateModal}
       <div className="chat-header">
         <div>
           <h1>{t('chat.k0')}</h1>
@@ -448,6 +462,18 @@ export default function AIChat() {
                     <button onClick={() => navigate('/equipment?suggest=1')} style={{ ...chipStyle, fontWeight: 600 }}>
                       <ClipboardList size={14} /> {t('chat.checklistBtn')}
                     </button>
+                  </div>
+                )}
+                {msg.role === 'assistant' && Array.isArray(msg.newsItems) && msg.newsItems.length > 0 && (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>{t('chat.newsHeader')}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {msg.newsItems.map((n, k) => (
+                        <button key={k} onClick={() => navigate('/news')} style={chipStyle} title={n.subtitle || ''}>
+                          📰 {n.title?.length > 40 ? n.title.slice(0, 38) + '…' : n.title}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

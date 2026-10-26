@@ -31,12 +31,12 @@ private enum PlanTier: String, CaseIterable, Identifiable {
         switch self {
         case .basic:
             return ["plus.tier.basic.ai".loc,
-                    "plus.tier.basic.photo".loc,
-                    "plus.tier.basic.discounts".loc]
+                    "plus.tier.basic.photo".loc]
         case .plus:
             return ["plus.tier.plus.ai".loc,
                     "plus.tier.plus.strongerAI".loc,
                     "plus.tier.plus.photo".loc,
+                    "plus.tier.plus.transfer".loc,
                     "plus.tier.plus.import".loc,
                     "plus.tier.plus.report".loc]
         }

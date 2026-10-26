@@ -1,0 +1,24 @@
+{
+  "_hinweis": "So sieht der Payload aus, den Skipily (order-webhooks) an die im Provider-Profil hinterlegte webhook_url POSTet. Header: 'X-BoatCare-Event' (event_type) und 'X-BoatCare-Signature' (HMAC-SHA256 des Bodys). In Make als Custom-Webhook empfangen und daraus eine Shopify-Bestellung/Notiz erzeugen.",
+  "event_type": "order_created",
+  "order": {
+    "order_number": "SK-2026-000123",
+    "status": "pending",
+    "payment_status": "pending",
+    "total": 129.9,
+    "currency": "EUR",
+    "buyer_name": "Max Mustermann",
+    "shipping_city": "Bonn",
+    "line_items": [
+      {
+        "product_name": "Liros Race SK78",
+        "product_sku": "LIROS-SK78",
+        "variant_sku": "SK78-8",
+        "variant": { "Durchmesser": "8mm" },
+        "quantity": 2,
+        "unit_price": 120.0,
+        "total": 240.0
+      }
+    ]
+  }
+}

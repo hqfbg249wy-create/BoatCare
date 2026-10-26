@@ -1,10 +1,14 @@
 // Shared helper functions for equipment-based searches (Shop, Service, AI)
 
 const categoryLabels = {
-  engine: 'Motor & Antrieb', electrical: 'Elektrik & Batterie', navigation: 'Navigation & Elektronik',
+  engine: 'Motor & Antrieb', electrical: 'Elektrik & Batterie',
+  electrical_12v: '12V-Elektrik', electrical_230v: '220/110V-Elektrik',
+  navigation: 'Navigation & Elektronik',
   safety: 'Sicherheit', communication: 'Kommunikation', rigging: 'Rigg & Takelage',
   sails: 'Segel', rope: 'Tauwerk',
-  hull: 'Rumpf & Unterwasser', deck: 'Deck & Beschläge', anchor: 'Anker & Kette', other: 'Sonstiges'
+  hull: 'Rumpf & Unterwasser', deck: 'Deck & Beschläge', anchor: 'Anker & Kette',
+  hvac: 'Heizung & Klima', plumbing: 'Sanitär & Wasser', galley: 'Küche & Pantry',
+  paint: 'Farben & Pflege', other: 'Sonstiges'
 }
 
 // Stichworte, mit denen die Provider-Textsuche die PASSENDEN Betriebe findet
@@ -14,6 +18,8 @@ const categoryLabels = {
 const serviceKeywords = {
   engine: 'Motor Antrieb Diesel',
   electrical: 'Elektrik Batterie Elektronik',
+  electrical_12v: 'Elektrik Batterie Bordnetz 12V',
+  electrical_230v: 'Elektrik Landstrom Wechselrichter 230V',
   navigation: 'Navigation Elektronik Instrumente',
   safety: 'Sicherheit Rettung',
   communication: 'Elektronik Funk Navigation',
@@ -23,6 +29,10 @@ const serviceKeywords = {
   hull: 'Lackierer Osmose Antifouling Bootsbau Taucher Unterwasser',
   deck: 'Beschläge Deck',
   anchor: 'Anker Kette',
+  hvac: 'Heizung Klima Lüftung',
+  plumbing: 'Sanitär Wasser Pumpe Tank',
+  galley: 'Küche Pantry Kocher Kühlung',
+  paint: 'Farben Lack Pflege Antifouling',
   other: '',
 }
 
@@ -68,8 +78,14 @@ export function resolveProviderQuery(text) {
              service_terms: ['osmose', 'antifouling', 'gelcoat', 'lack', 'gfk', 'teak', 'rumpf', 'taucher', 'unterwasser'] }
   if (any(['anchor', 'anker', 'kette', 'chain']))
     return { category_allow: ['zubehör'], service_terms: ['anker', 'kette'] }
-  if (any(['heiz', 'klima', 'heating']))
-    return { category_allow: ['heizung/klima', 'zubehör'], service_terms: ['heizung', 'klima'] }
+  if (any(['hvac', 'heiz', 'klima', 'heating', 'lüftung', 'luftung', 'klimaanlage', 'webasto', 'eberspächer', 'eberspacher']))
+    return { category_allow: ['heizung/klima', 'zubehör'], service_terms: ['heizung', 'klima', 'lüftung'] }
+  if (any(['plumbing', 'sanitär', 'sanitar', 'wasser', 'pumpe', 'tank', 'seeventil', 'bilge', 'bilgenpumpe', 'wc', 'toilette', 'head', 'boiler', 'wasserhahn']))
+    return { category_allow: ['sanitär', 'zubehör'], service_terms: ['sanitär', 'wasser', 'pumpe', 'tank', 'bilge', 'seeventil'] }
+  if (any(['galley', 'küche', 'kueche', 'kocher', 'herd', 'backofen', 'kühl', 'kuehl', 'fridge', 'stove', 'spüle', 'spule', 'pantry']))
+    return { category_allow: ['zubehör'], service_terms: ['küche', 'kocher', 'kühlung', 'herd', 'pantry'] }
+  if (any(['paint', 'farbe', 'lack', 'antifouling', 'gelcoat', 'pflege', 'politur', 'wachs']))
+    return { category_allow: ['lackiererei', 'zubehör'], service_terms: ['farben', 'lack', 'antifouling', 'pflege', 'politur'] }
   return null
 }
 

@@ -10,6 +10,7 @@
 // Auth: Bearer <user-jwt> des Kaeufers (Eigner).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { pushToProvider } from "../_shared/providerPush.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { emailTo } from "../_shared/notify.ts";
 
@@ -107,7 +108,7 @@ Deno.serve(async (req) => {
     let count = 0;
     for (const p of providers || []) {
       try {
-        await svc.from("service_inquiries").insert({
+        const { data: insIq } = await svc.from("service_inquiries").insert({
           owner_id: user.id,
           provider_id: p.id,
           boat_id: safeBoatId,
@@ -116,15 +117,26 @@ Deno.serve(async (req) => {
           rope_config: cfg,
           status: "sent",
           sent_at: new Date().toISOString(),
-        });
+        }).select("id").single();
+        const inqId = insIq?.id;
         count++;
         if (p.email) {
+          const portal = Deno.env.get("PROVIDER_PORTAL_URL") ?? "https://provider.skipily.app";
+          const link = `${portal}/inquiries${inqId ? `?id=${inqId}` : ""}`;
           await emailTo(
             p.email,
             "Angebotsanfrage Tauwerk" + (buyerName ? " von " + buyerName : ""),
-            `${msg}\n\nBitte antworte direkt auf diese Anfrage in deinem Anbieter-Portal ` +
-              `(Bereich Anfragen).\n\nDein Skipily-Team`,
+            `${msg}\n\nAnfrage im Anbieter-Portal ansehen und beantworten:\n${link}\n\nDein Skipily-Team`,
           );
+        }
+        // Zusaetzlich Web-Push, falls der Provider Push aktiviert hat.
+        if (inqId) {
+          const portal = Deno.env.get("PROVIDER_PORTAL_URL") ?? "https://provider.skipily.app";
+          await pushToProvider(svc, p.id, {
+            title: "Angebotsanfrage Tauwerk",
+            body: `${buyerName ? buyerName + ": " : ""}${subj}`.slice(0, 140),
+            url: `${portal}/inquiries?id=${inqId}`,
+          });
         }
       } catch (e) {
         console.error("request-rope-quote insert failed for", p.id, (e as Error).message);

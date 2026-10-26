@@ -304,6 +304,8 @@ struct ServiceProviderDetailView: View {
                 .padding()
             }
         }
+        // Letzter Eintrag laesst sich ueber die schwebende Tab-Leiste scrollen
+        .tabBarScrollClearance()
         .navigationTitle(provider.name)
         .navigationBarTitleDisplayMode(.inline)
         .task {

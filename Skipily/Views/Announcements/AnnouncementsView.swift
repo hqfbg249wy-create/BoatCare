@@ -32,6 +32,56 @@ struct AnnouncementsView: View {
     }
 }
 
+// Vollständige Einzel-Ansicht einer Ankündigung (direkt aus dem Banner geöffnet).
+// Ältere Meldungen sind von hier mit einem Klick erreichbar.
+struct AnnouncementDetailView: View {
+    let announcement: Announcement
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+    @State private var showOlder = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 8) {
+                    Image(systemName: "megaphone.fill").foregroundStyle(announcement.accentColor)
+                    Text(announcement.displayDate).font(.caption).foregroundStyle(AppColors.gray500)
+                }
+                Text(announcement.displayTitle)
+                    .font(.title2.bold())
+                    .foregroundStyle(AppColors.gray900)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(announcement.displayBody)
+                    .font(.body)
+                    .foregroundStyle(AppColors.gray700)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let s = announcement.actionURL, let url = URL(string: s) {
+                    Button { openURL(url) } label: {
+                        Label("announcement.more".loc, systemImage: "arrow.up.right.square")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding(.top, 4)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+        }
+        .navigationTitle("announcement.title".loc)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("general.done".loc) { dismiss() }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("announcement.older".loc) { showOlder = true }
+            }
+        }
+        .sheet(isPresented: $showOlder) {
+            NavigationStack { AnnouncementsView() }
+        }
+    }
+}
+
 private struct AnnouncementRow: View {
     let announcement: Announcement
     let openURL: (URL) -> Void

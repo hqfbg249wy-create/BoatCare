@@ -15,7 +15,7 @@ import { useT } from '../i18n'
 import LanguageSwitcher from './LanguageSwitcher'
 import {
   LayoutDashboard, Ship, Wrench, ShoppingBag, ShoppingCart,
-  Heart, User, LogOut, Menu, X, Package, Map, Search, MessageSquare, MessageCircle, Mail
+  Heart, User, LogOut, Menu, X, Package, Map, Search, MessageSquare, MessageCircle, Mail, Newspaper
 } from 'lucide-react'
 import { useState } from 'react'
 import LayoutMobile from './LayoutMobile'
@@ -27,6 +27,7 @@ const navItems = [
   { to: '/equipment', icon: Package, key: 'nav.equipment' },
   { to: '/maintenance', icon: Wrench, key: 'nav.maintenance' },
   { to: '/shop', icon: ShoppingCart, key: 'nav.shop' },
+  { to: '/news', icon: Newspaper, key: 'nav.news' },
   { to: '/services', icon: Search, key: 'nav.services' },
   { to: '/orders', icon: ShoppingBag, key: 'nav.orders' },
   { to: '/favorites', icon: Heart, key: 'nav.favorites' },
@@ -36,12 +37,13 @@ const navItems = [
   { to: '/profile', icon: User, key: 'nav.profile' },
 ]
 
-// Bottom-Tabs identisch zur iOS-App (MainTabView): Karte · Boote · Wartung · Shop · Kontakte
+// Bottom-Tabs identisch zur iOS-App (MainTabView): Karte · Boote · Wartung · Shop · News · Kontakte
 const bottomTabs = [
   { to: '/map', icon: Map, key: 'nav.map' },
   { to: '/boats', icon: Ship, key: 'nav.boatsShort' },
   { to: '/maintenance', icon: Wrench, key: 'nav.maintenance' },
   { to: '/shop', icon: ShoppingCart, key: 'nav.shop' },
+  { to: '/news', icon: Newspaper, key: 'nav.news' },
   { to: '/favorites', icon: Heart, key: 'nav.contacts' },
 ]
 

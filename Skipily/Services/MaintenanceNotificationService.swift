@@ -182,7 +182,8 @@ final class MaintenanceNotificationService: NSObject, UNUserNotificationCenterDe
         let info = response.notification.request.content.userInfo
         if (info["type"] as? String) == "announcement" {
             let id = info["id"] as? String
-            Task { @MainActor in await AnnouncementStore.shared.handlePush(announcementId: id) }
+            // Nutzer hat die Nachricht angetippt -> direkt im Volltext oeffnen.
+            Task { @MainActor in await AnnouncementStore.shared.handlePush(announcementId: id, openDetail: true) }
         }
         completionHandler()
     }

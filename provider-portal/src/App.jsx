@@ -15,6 +15,7 @@ import Products from './pages/Products'
 import Orders from './pages/Orders'
 import Inquiries from './pages/Inquiries'
 import Promotions from './pages/Promotions'
+import News from './pages/News'
 import Messages from './pages/Messages'
 import MarketInsights from './pages/MarketInsights'
 import Help from './pages/Help'
@@ -106,6 +107,7 @@ function ProtectedRoutes() {
         <Route path="orders" element={<Orders />} />
         <Route path="inquiries" element={<Inquiries />} />
         <Route path="promotions" element={<Promotions />} />
+        <Route path="news" element={<News />} />
         <Route path="messages" element={<Messages />} />
         <Route path="insights" element={<MarketInsights />} />
         <Route path="help" element={<Help />} />

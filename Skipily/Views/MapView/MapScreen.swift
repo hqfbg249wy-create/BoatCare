@@ -586,24 +586,64 @@ struct MapScreen: View {
     private func refreshProviderSearch(_ raw: String) {
         providerSearchTask?.cancel()
         let q = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard q.count >= 2 else { searchIdSet = nil; return }
+        guard q.count >= 2 else {
+            searchIdSet = nil
+            // Suche geleert -> normale Regionsansicht wiederherstellen.
+            if let region = currentRegion {
+                lastLoadedRegion = nil   // erzwingt frischen Fetch
+                Task { await providerManager.loadProviders(in: region) }
+            }
+            return
+        }
         providerSearchTask = Task {
             try? await Task.sleep(nanoseconds: 250_000_000)
             if Task.isCancelled { return }
-            struct SearchParams: Encodable { let q: String; let p_limit: Int }
-            struct IDRow: Decodable { let id: UUID }
-            do {
-                let rows: [IDRow] = try await authService.supabase
-                    .rpc("search_providers", params: SearchParams(q: q, p_limit: 5000))
-                    .select("id")
-                    .execute()
-                    .value
-                if Task.isCancelled { return }
-                await MainActor.run { searchIdSet = Set(rows.map { $0.id }) }
-            } catch {
-                await MainActor.run { searchIdSet = nil }   // Fallback: lokaler Filter
+            // Volle Treffer laden UND in die Pin-Liste mergen, damit auch
+            // Betriebe ausserhalb des aktuellen Kartenausschnitts erscheinen
+            // (z. B. "OneSails" ueberall in Europa), nicht nur im Ausschnitt.
+            let rows = await providerManager.mergeSearchResults(query: q, limit: 5000)
+            if Task.isCancelled { return }
+            await MainActor.run {
+                searchIdSet = Set(rows.map { $0.id })
+                fitCamera(to: rows)
             }
         }
+    }
+
+    /// Passt die Kamera an die Suchtreffer an:
+    /// - 1 Treffer -> darauf zoomen (~25 km Radius).
+    /// - mehrere, eng beieinander (z. B. "Segelmacher Séte") -> auf den
+    ///   Bereich, Radius max. ~25 km.
+    /// - mehrere, weit verteilt (z. B. "OneSails" in Europa) -> Übersicht
+    ///   (alle Treffer sichtbar).
+    /// - generische Kategorie mit vielen, weit verteilten Treffern (z. B.
+    ///   "Segelmacher", "Taucher") -> Kamera NICHT bewegen; der Filter greift
+    ///   in der aktuell gewählten Zoomstufe.
+    private func fitCamera(to results: [BoatServiceProvider]) {
+        let coords = results.map { $0.coordinate }
+            .filter { CLLocationCoordinate2DIsValid($0) && !($0.latitude == 0 && $0.longitude == 0) }
+        guard !coords.isEmpty else { return }
+        let lats = coords.map { $0.latitude }, lons = coords.map { $0.longitude }
+        let minLat = lats.min()!, maxLat = lats.max()!
+        let minLon = lons.min()!, maxLon = lons.max()!
+        let spanLat = maxLat - minLat, spanLon = maxLon - minLon
+        let spread = max(spanLat, spanLon)
+
+        // Generische Suche (viele Treffer, weit verteilt): nicht zoomen.
+        if coords.count > 40 && spread > 5.0 { return }
+
+        let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2,
+                                            longitude: (minLon + maxLon) / 2)
+        // Min-Span ~0.45° (≈ 25 km Radius) für 1 Treffer / enge Cluster;
+        // sonst Bounding-Box + 40 % Rand (Übersicht).
+        let span = MKCoordinateSpan(
+            latitudeDelta: max(spanLat * 1.4, 0.45),
+            longitudeDelta: max(spanLon * 1.4, 0.45))
+        let region = MKCoordinateRegion(center: center, span: span)
+        withAnimation(.easeInOut(duration: 0.4)) {
+            cameraPosition = .region(region)
+        }
+        currentRegion = region
     }
 
     @ViewBuilder
@@ -766,7 +806,9 @@ struct MapScreen: View {
                                     isHighlighted: isActive
                                 )
                             }
-                            .zIndex(isActive ? 100 : 0)
+                            // Gut bewertete Provider nach vorne, damit sie bei
+                            // Überlappung nicht verdeckt werden (sonst gehen sie unter).
+                            .zIndex(isActive ? 100 : pinZIndex(provider))
                         }
                     }
                 } else {
@@ -1102,6 +1144,11 @@ struct MapScreen: View {
             try? await Task.sleep(nanoseconds: 200_000_000)
             guard !Task.isCancelled else { return }
 
+            // Waehrend einer aktiven Namenssuche die Region NICHT nachladen,
+            // sonst wuerden die gemergten Suchtreffer (auch ausserhalb des
+            // Ausschnitts) durch die regionale Liste ueberschrieben.
+            if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return }
+
             // Prüfe ob sich die Region wesentlich verändert hat (> 10 % des Spans)
             if let last = lastLoadedRegion {
                 let deltaLat = abs(region.center.latitude  - last.center.latitude)
@@ -1154,6 +1201,14 @@ struct MapScreen: View {
     ///
     /// Nutzt `cardZoomLevel` wenn ein Cluster geöffnet wurde, damit der Zoom-Level
     /// beim Swipen stabil bleibt und die einzelnen Pins sichtbar sind.
+    /// Zeichen-Reihenfolge der Pins: besser bewertete Provider liegen oben.
+    /// Bewertung (0..5) plus kleiner Bonus für viele Rezensionen.
+    private func pinZIndex(_ provider: BoatServiceProvider) -> Double {
+        let rating = provider.rating ?? 0
+        let reviews = Double(provider.review_count ?? 0)
+        return rating * 10 + min(reviews, 50) * 0.1
+    }
+
     private func centerOnProvider(_ provider: BoatServiceProvider, animated: Bool = true) {
         // Cluster-Zoom-Level hat Vorrang – verhindert Raus-Zoomen beim Swipen
         let zoom = cardZoomLevel ?? currentZoomLevel

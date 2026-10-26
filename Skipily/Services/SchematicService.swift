@@ -181,7 +181,7 @@ final class SchematicService: ObservableObject {
         let reply = try await AIChatService.shared.sendMessage(
             messages: [AIChatMessage(role: "user", content: prompt)],
             boatContext: nil
-        )
+        ).reply
         lastRawResponse = reply
 
         let json = Self.extractJSON(from: reply)
@@ -219,7 +219,7 @@ final class SchematicService: ObservableObject {
         let reply = try await AIChatService.shared.sendMessage(
             messages: [AIChatMessage(role: "user", content: prompt)],
             boatContext: nil
-        )
+        ).reply
         lastRawResponse = reply
 
         let json = Self.extractJSON(from: reply)
@@ -257,7 +257,7 @@ final class SchematicService: ObservableObject {
         let reply = try await AIChatService.shared.sendMessage(
             messages: [AIChatMessage(role: "user", content: prompt)],
             boatContext: nil
-        )
+        ).reply
         lastRawResponse = reply
 
         let json = Self.extractJSON(from: reply)

@@ -7,13 +7,16 @@ import { buildShopQuery, buildServiceQuery, buildMaintenanceAIQuestion } from '.
 import { buildSparePartsParams } from '../lib/sparePartsSearch'
 import { generateMaintenanceReport, CAT_ORDER } from '../lib/maintenanceReport'
 import { useHasPlus } from '../hooks/useHasPlus'
+import { useEquipmentCatalog } from '../lib/equipmentCategories'
 
 const catRank = (c) => { const i = CAT_ORDER.indexOf(c); return i < 0 ? 99 : i }
 import { useT } from '../i18n'
+import { useFeatureGate } from '../hooks/useFeatureGate'
 
 export default function Maintenance() {
   const { user } = useAuth()
-  const { t } = useT()
+  const { t, lang } = useT()
+  const { colorOf, labelOf } = useEquipmentCatalog(lang)
   const navigate = useNavigate()
   const [items, setItems] = useState([])
   const [boats, setBoats] = useState([])
@@ -24,9 +27,11 @@ export default function Maintenance() {
   // Eigene Bootsauswahl NUR für den Report (unabhängig vom Listenfilter).
   const [reportBoat, setReportBoat] = useState('')
   const { hasPlus } = useHasPlus()
+  const { gate, gateModal } = useFeatureGate()
 
   async function downloadReport() {
-    if (!hasPlus) { navigate('/plus'); return }   // Soft-Gate: Upsell statt Ausführung
+    // Paywall: Wartungshistorie als PDF ist Skipily Plus (Meldung aus der DB)
+    if (!hasPlus && !(await gate('maintenance_pdf', reportBoat || null))) return
     setGenPdf(true)
     // Ist ein Boot gewählt, enthält das PDF nur dieses Boot (getrennte
     // Historie, z. B. Hauptboot ohne Beiboot beim Verkauf).
@@ -74,6 +79,25 @@ export default function Maintenance() {
     return true
   }).sort((a, b) => catRank(a.category) - catRank(b.category) || a._status.days - b._status.days)
 
+  // Nach Kategorie gruppiert, farbig umrahmt. Innerhalb nach Faelligkeit
+  // (soonest zuerst, via filtered-Sort). Gruppenreihenfolge: dringendste
+  // Kategorie oben (frueheste Faelligkeit). Ohne Datum (_status.days=9999)
+  // sinkt eine Gruppe ans Ende.
+  const groupedMaint = (() => {
+    const map = new Map()
+    for (const it of filtered) {
+      const key = (it.category || 'other').toLowerCase()
+      if (!map.has(key)) map.set(key, [])
+      map.get(key).push(it)
+    }
+    const groups = [...map.entries()].map(([key, arr]) => ({
+      key, items: arr,
+      minDays: Math.min(...arr.map(x => x._status.days)),
+    }))
+    groups.sort((a, b) => a.minDays - b.minDays || a.key.localeCompare(b.key))
+    return groups
+  })()
+
   const counts = { overdue: 0, due_soon: 0, ok: 0 }
   enriched.forEach(i => { if (counts[i._status.cls] !== undefined) counts[i._status.cls]++ })
 
@@ -105,6 +129,7 @@ export default function Maintenance() {
 
   return (
     <div className="page">
+      {gateModal}
       <h1>{t('maint.title')}</h1>
       <p className="subtitle">{t('maint.subtitle')}</p>
 
@@ -157,8 +182,20 @@ export default function Maintenance() {
           <p>{t('maint.emptyHint')}</p>
         </div>
       ) : (
-        <div className="equipment-grid">
-          {filtered.map(item => (
+        <div className="equipment-groups">
+          {groupedMaint.map(group => {
+            const color = colorOf(group.key)
+            return (
+            <section key={group.key} className="eq-group"
+              style={{ borderLeft: `4px solid ${color}`, borderRadius: 12, padding: '10px 12px 4px', marginBottom: 18, background: 'var(--card-bg, #fff)', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+              <div className="eq-group-header"
+                style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14, color, marginBottom: 10 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 3, background: color, display: 'inline-block' }} />
+                {labelOf(group.key, t)}
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8' }}>{group.items.length}</span>
+              </div>
+              <div className="equipment-grid">
+          {group.items.map(item => (
             <div key={item.id} className={`equipment-card ${item._status.cls}`}>
               <div className="eq-header">
                 <span className={`maint-badge ${item._status.cls}`}>
@@ -192,6 +229,10 @@ export default function Maintenance() {
               </div>
             </div>
           ))}
+              </div>
+            </section>
+            )
+          })}
         </div>
       )}
     </div>

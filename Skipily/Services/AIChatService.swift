@@ -10,6 +10,20 @@ import Supabase
 
 // MARK: - Chat Models
 
+/// Von der KI vorgeschlagene passende News-Beiträge (Community-Lösungen/Produkte).
+struct AINewsSuggestion: Codable, Identifiable, Hashable {
+    let id: String
+    let title: String
+    let subtitle: String?
+    let kind: String?
+}
+
+/// Antwort des AI-Chats: Text + optionale News-Vorschläge (Chips).
+struct AIChatReply {
+    let reply: String
+    let news: [AINewsSuggestion]
+}
+
 struct AIChatMessage: Codable {
     let role: String  // "user" or "assistant"
     let content: String
@@ -123,7 +137,7 @@ class AIChatService {
     func sendMessage(
         messages: [AIChatMessage],
         boatContext: AIChatContext? = nil
-    ) async throws -> String {
+    ) async throws -> AIChatReply {
         guard let url = URL(string: endpoint) else {
             throw AIChatError.invalidURL
         }
@@ -145,7 +159,7 @@ class AIChatService {
         to url: URL,
         messages: [AIChatMessage],
         boatContext: AIChatContext?
-    ) async throws -> String {
+    ) async throws -> AIChatReply {
         // Auth Token holen
         guard let accessToken = try? await SupabaseManager.shared.client.auth.session.accessToken else {
             throw AIChatError.notAuthenticated
@@ -186,6 +200,7 @@ class AIChatService {
         // Response parsen — quota_exhausted/upgrade_hint kommen vom Quota-Gate (402)
         struct APIResponse: Codable {
             let reply: String?
+            let news: [AINewsSuggestion]?
             let error: String?
             let upgrade_hint: String?
             let quota_exhausted: Bool?
@@ -198,7 +213,7 @@ class AIChatService {
             guard let reply = apiResponse.reply else {
                 throw AIChatError.emptyResponse
             }
-            return reply
+            return AIChatReply(reply: reply, news: apiResponse.news ?? [])
         case 401:
             throw AIChatError.notAuthenticated
         case 402:
@@ -246,7 +261,7 @@ class AIChatService {
         """
 
         let messages = [AIChatMessage(role: "user", content: userPrompt)]
-        let reply = try await sendMessage(messages: messages, boatContext: nil)
+        let reply = try await sendMessage(messages: messages, boatContext: nil).reply
 
         // Parse: Komma-separiert, trimmen, auf 2–40 Zeichen pro Token beschränken.
         let tokens = reply

@@ -100,6 +100,8 @@ struct OrdersView: View {
             }
             .padding(16)
         }
+        // Letzter Eintrag laesst sich ueber die schwebende Tab-Leiste scrollen
+        .tabBarScrollClearance()
         .navigationDestination(for: UUID.self) { orderId in
             OrderDetailView(orderId: orderId)
         }

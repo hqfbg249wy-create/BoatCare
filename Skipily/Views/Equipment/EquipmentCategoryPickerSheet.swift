@@ -14,12 +14,9 @@ import SwiftUI
 struct EquipmentCategoryPickerSheet: View {
     let onPick: (String) -> Void
     @Environment(\.dismiss) private var dismiss
-
-    /// Reihenfolge in der UI — typische / häufige zuerst
-    private let categories: [String] = [
-        "engine", "sails", "rigging", "navigation", "communication",
-        "electrical", "safety", "anchor", "hvac", "paint", "rope", "other",
-    ]
+    // Kategorien aus der serverseitigen Quelle (DB) mit Offline-Fallback/Cache.
+    @ObservedObject private var catalog = EquipmentCategoryCatalog.shared
+    private var lang: String { LanguageManager.shared.currentLanguage.code }
 
     var body: some View {
         NavigationStack {
@@ -53,16 +50,16 @@ struct EquipmentCategoryPickerSheet: View {
                     columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
                     spacing: 12
                 ) {
-                    ForEach(categories, id: \.self) { cat in
+                    ForEach(catalog.keys, id: \.self) { cat in
                         Button {
                             onPick(cat)
                         } label: {
                             VStack(spacing: 10) {
-                                Image(systemName: iconFor(cat))
+                                Image(systemName: catalog.iconIOS(cat))
                                     .font(.system(size: 32))
-                                    .foregroundStyle(colorFor(cat))
+                                    .foregroundStyle(catalog.color(cat))
                                     .frame(height: 40)
-                                Text("equipment.cat.\(cat)".loc)
+                                Text(catalog.label(cat, lang: lang))
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                     .foregroundStyle(.primary)
@@ -76,7 +73,7 @@ struct EquipmentCategoryPickerSheet: View {
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(colorFor(cat).opacity(0.25), lineWidth: 1)
+                                    .stroke(catalog.color(cat).opacity(0.25), lineWidth: 1)
                             )
                         }
                         .buttonStyle(.plain)
@@ -93,44 +90,7 @@ struct EquipmentCategoryPickerSheet: View {
                     Button("general.cancel".loc) { dismiss() }
                 }
             }
-        }
-    }
-
-    // MARK: - Mapping zu Icons / Farben (parallel zu EquipmentItem.categoryIcon/-Color)
-
-    private func iconFor(_ cat: String) -> String {
-        switch cat {
-        case "engine":        return "engine.combustion.fill"
-        case "sails":         return "wind"
-        case "rigging":       return "arrow.up.and.down"
-        case "navigation":    return "location.north.line.fill"
-        case "communication": return "antenna.radiowaves.left.and.right"
-        case "electrical":    return "bolt.fill"
-        case "safety":        return "shield.fill"
-        case "anchor":        return "anchor.circle.fill"
-        case "hvac":          return "thermometer.sun.fill"
-        case "paint":         return "paintbrush.fill"
-        case "rope":          return "scribble.variable"
-        case "other":         return "shippingbox.fill"
-        default:              return "shippingbox.fill"
-        }
-    }
-
-    private func colorFor(_ cat: String) -> Color {
-        switch cat {
-        case "engine":        return .orange
-        case "sails":         return .cyan
-        case "rigging":       return .indigo
-        case "navigation":    return .blue
-        case "communication": return .teal
-        case "electrical":    return .yellow
-        case "safety":        return .red
-        case "anchor":        return .gray
-        case "hvac":          return .pink
-        case "paint":         return .purple
-        case "rope":          return .brown
-        case "other":         return .secondary
-        default:              return .secondary
+            .task { await catalog.refresh() }
         }
     }
 }

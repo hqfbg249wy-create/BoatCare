@@ -114,9 +114,76 @@ enum MaintenanceEntry: Identifiable {
         switch self {
         case .manual: return 999
         case .equipment(let e):
-            let order = ["engine", "electrical", "navigation", "safety", "communication",
-                         "rigging", "hull", "deck", "anchor", "other"]
+            let order = ["engine", "electrical_12v", "electrical_230v", "electrical",
+                         "navigation", "safety", "communication",
+                         "rigging", "sails", "rope", "hull", "deck", "anchor",
+                         "hvac", "plumbing", "galley", "paint", "other"]
             return order.firstIndex(of: e.category) ?? 900
+        }
+    }
+
+    // Gruppierung nach Kategorie (farbig umrahmt). Manuelle Aufgaben in eine
+    // eigene Gruppe, die stets zuletzt erscheint.
+    var groupKey: String {
+        switch self {
+        case .manual: return "__manual__"
+        case .equipment(let e): return e.category.lowercased()
+        }
+    }
+    var groupColor: Color { EquipmentCategoryStyle.color(groupKey) }
+    var groupIcon: String { EquipmentCategoryStyle.icon(groupKey) }
+    var groupLabel: String {
+        groupKey == "__manual__" ? "maintenance.tasks".loc : "equipment.cat.\(groupKey)".loc
+    }
+}
+
+/// Zentrale Farb-/Icon-Zuordnung je Ausruestungs-Kategorie — synchron mit
+/// EquipmentItem.categoryColor/categoryIcon. Auch von der Wartungsliste genutzt.
+enum EquipmentCategoryStyle {
+    static func color(_ cat: String) -> Color {
+        switch cat.lowercased() {
+        case "navigation": return .blue
+        case "safety", "sicherheit": return .red
+        case "engine", "motor": return .orange
+        case "electrical", "elektrik": return .yellow
+        case "electrical_12v": return .yellow
+        case "electrical_230v": return Color(red: 0.96, green: 0.62, blue: 0.04)
+        case "rigging", "rigg": return .purple
+        case "sails", "segel": return .cyan
+        case "anchor", "anker": return .brown
+        case "communication", "kommunikation": return .teal
+        case "hvac", "heizung": return .pink
+        case "plumbing", "sanitär", "sanitaer": return .teal
+        case "galley", "küche", "kueche": return .orange
+        case "deck", "decksausrüstung": return .cyan
+        case "hull", "rumpf": return Color(.systemGray)
+        case "paint", "farben": return .purple
+        case "rope", "tauwerk": return .mint
+        case "__manual__": return .indigo
+        default: return .gray
+        }
+    }
+    static func icon(_ cat: String) -> String {
+        switch cat.lowercased() {
+        case "navigation": return "location.north.fill"
+        case "safety", "sicherheit": return "shield.fill"
+        case "engine", "motor": return "engine.combustion.fill"
+        case "electrical", "elektrik": return "bolt.fill"
+        case "electrical_12v": return "minus.plus.batteryblock.fill"
+        case "electrical_230v": return "powerplug.fill"
+        case "rigging", "rigg": return "arrow.up.and.down.and.arrow.left.and.right"
+        case "sails", "segel": return "wind"
+        case "anchor", "anker": return "scope"
+        case "communication", "kommunikation": return "antenna.radiowaves.left.and.right"
+        case "hvac", "heizung": return "thermometer.sun.fill"
+        case "plumbing", "sanitär", "sanitaer": return "drop.fill"
+        case "galley", "küche", "kueche": return "fork.knife"
+        case "deck", "decksausrüstung": return "square.grid.2x2.fill"
+        case "hull", "rumpf": return "sailboat.fill"
+        case "paint", "farben": return "paintbrush.fill"
+        case "rope", "tauwerk": return "circle.and.line.horizontal.fill"
+        case "__manual__": return "checklist"
+        default: return "shippingbox.fill"
         }
     }
 }
@@ -146,44 +213,87 @@ struct MaintenanceScreen: View {
         }
     }
 
+    /// Nach Kategorie gruppiert, farbig umrahmt. Innerhalb: offen vor erledigt,
+    /// dann nach Faelligkeit (soonest zuerst). Gruppenreihenfolge: dringendste
+    /// Kategorie oben (frueheste offene Faelligkeit); manuelle Aufgaben zuletzt.
+    private var groupedEntries: [(key: String, items: [MaintenanceEntry])] {
+        let groups = Dictionary(grouping: entries) { $0.groupKey }
+        func itemSort(_ a: MaintenanceEntry, _ b: MaintenanceEntry) -> Bool {
+            if a.isCompleted != b.isCompleted { return !a.isCompleted }
+            return a.dueDate < b.dueDate
+        }
+        func groupEarliest(_ items: [MaintenanceEntry]) -> Date {
+            items.filter { !$0.isCompleted }.map(\.dueDate).min()
+                ?? items.map(\.dueDate).min() ?? Date.distantFuture
+        }
+        let built = groups.map { (key: $0.key, items: $0.value.sorted(by: itemSort)) }
+        return built.sorted { g1, g2 in
+            if (g1.key == "__manual__") != (g2.key == "__manual__") {
+                return g2.key == "__manual__"   // manuelle Aufgaben stets zuletzt
+            }
+            return groupEarliest(g1.items) < groupEarliest(g2.items)
+        }
+    }
+
     var body: some View {
         Group {
             if entries.isEmpty {
                 emptyState
             } else {
                 List {
-                    Section("maintenance.tasks".loc) {
-                        ForEach(entries) { entry in
-                            switch entry {
-                            case .manual(let task):
-                                MaintenanceTaskRow(task: task) { toggleTask(task) }
-                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                        Button(role: .destructive) {
-                                            deleteManualTask(task)
-                                        } label: {
-                                            Label("maintenance.swipe_delete".loc, systemImage: "trash")
+                    ForEach(groupedEntries, id: \.key) { group in
+                        let color = group.items.first?.groupColor ?? .gray
+                        Section {
+                            ForEach(group.items) { entry in
+                                Group {
+                                    switch entry {
+                                    case .manual(let task):
+                                        MaintenanceTaskRow(task: task) { toggleTask(task) }
+                                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                                Button(role: .destructive) {
+                                                    deleteManualTask(task)
+                                                } label: {
+                                                    Label("maintenance.swipe_delete".loc, systemImage: "trash")
+                                                }
+                                            }
+                                    case .equipment(let item):
+                                        EquipmentMaintenanceRow(
+                                            item: item,
+                                            isCompleting: completingEquipmentIds.contains(item.id),
+                                            onComplete: {
+                                                Task { await completeEquipmentMaintenance(item) }
+                                            }
+                                        )
+                                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                            Button {
+                                                Task { await completeEquipmentMaintenance(item) }
+                                            } label: {
+                                                Label("maintenance.swipe_done".loc, systemImage: "checkmark.circle.fill")
+                                            }
+                                            .tint(.green)
                                         }
                                     }
-                            case .equipment(let item):
-                                EquipmentMaintenanceRow(
-                                    item: item,
-                                    isCompleting: completingEquipmentIds.contains(item.id),
-                                    onComplete: {
-                                        Task { await completeEquipmentMaintenance(item) }
-                                    }
-                                )
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button {
-                                        Task { await completeEquipmentMaintenance(item) }
-                                    } label: {
-                                        Label("maintenance.swipe_done".loc, systemImage: "checkmark.circle.fill")
-                                    }
-                                    .tint(.green)
                                 }
+                                .listRowBackground(color.opacity(0.06))
                             }
+                        } header: {
+                            HStack(spacing: 8) {
+                                Image(systemName: group.items.first?.groupIcon ?? "shippingbox.fill")
+                                    .font(.footnote.weight(.bold))
+                                    .foregroundStyle(color)
+                                Text(group.items.first?.groupLabel ?? "")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(color)
+                                Spacer()
+                            }
+                            .textCase(nil)
+                            .padding(.vertical, 2)
                         }
                     }
                 }
+                // Letzter Eintrag laesst sich ueber die schwebende Tab-Leiste scrollen
+                .tabBarScrollClearance()
+                .listStyle(.insetGrouped)
             }
         }
         .navigationTitle("maintenance.title".loc)

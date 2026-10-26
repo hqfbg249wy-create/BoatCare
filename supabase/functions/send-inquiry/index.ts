@@ -4,10 +4,12 @@
 
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { pushToProvider } from "../_shared/providerPush.ts";
 import { logEvent } from "../_shared/eventlog.ts";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "noreply@skipily.app";
+const PROVIDER_PORTAL = Deno.env.get("PROVIDER_PORTAL_URL") ?? "https://provider.skipily.app";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -90,7 +92,10 @@ Datum: ${new Date(inquiry.sent_at || inquiry.updated_at).toLocaleString("de-DE")
 ${inquiry.message}${notesInfo}
 ──────────────────────────────
 
-Sie können direkt auf diese E-Mail antworten, um mit dem Bootseigner in Kontakt zu treten.
+Anfrage im Provider-Portal ansehen:
+${PROVIDER_PORTAL}/inquiries?id=${inquiry_id}
+
+Sie können auch direkt auf diese E-Mail antworten, um mit dem Bootseigner in Kontakt zu treten.
 
 Freundliche Grüße
 Das Skipily-Team
@@ -123,6 +128,9 @@ Diese Nachricht wurde automatisch über app.skipily.app versendet.
         <p style="margin:0;font-size:0.95rem;line-height:1.7;color:#334155;white-space:pre-wrap">${inquiry.message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
       </div>
 
+      <a href="${PROVIDER_PORTAL}/inquiries?id=${inquiry_id}" style="display:inline-block;background:#1e40af;color:white;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:700;font-size:0.95rem;margin-right:8px">
+        Anfrage im Portal ansehen
+      </a>
       <a href="mailto:${ownerEmail}?subject=Re: ${encodeURIComponent(inquiry.subject)}" style="display:inline-block;background:#3b82f6;color:white;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:0.95rem">
         Jetzt antworten
       </a>
@@ -175,6 +183,15 @@ Diese Nachricht wurde automatisch über app.skipily.app versendet.
       recipient: providerEmail, subject, provider_message_id: resData.id,
       meta: { provider_name: inquiry.provider?.name, reply_to: ownerEmail || null },
     });
+
+    // Zusaetzlich Web-Push, falls der Provider Push aktiviert hat.
+    if (inquiry.provider?.id) {
+      await pushToProvider(supabase, inquiry.provider.id, {
+        title: `Neue Anfrage: ${inquiry.subject}`,
+        body: `${ownerName}: ${String(inquiry.message || "").slice(0, 120)}`,
+        url: `${PROVIDER_PORTAL}/inquiries?id=${inquiry_id}`,
+      });
+    }
 
     return new Response(JSON.stringify({ success: true, email_id: resData.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

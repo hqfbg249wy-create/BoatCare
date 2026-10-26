@@ -1,0 +1,22 @@
+{
+  "_hinweis": "Body fuer POST/PUT products-api mit Varianten. variant_options = Shopify options (name + values). variants = eine Zeile je Shopify-Variante. In Make: variant_options aus 1.options ableiten, variants per Array-Aggregator aus 1.variants[] bauen. Beispiel unten mit KONKRETEN Werten (statt Make-Tokens), damit die Struktur klar ist.",
+  "name": "Beispiel Tauwerk Liros Race SK78",
+  "manufacturer": "Liros",
+  "description": "Hochfestes Tauwerk in mehreren Durchmessern.",
+  "currency": "EUR",
+  "price": 100.0,
+  "sku": "LIROS-SK78",
+  "category_id": null,
+  "is_active": true,
+  "images": [
+    "https://cdn.shopify.com/s/files/.../sk78.png"
+  ],
+  "variant_options": [
+    { "name": "Durchmesser", "values": ["6mm", "8mm", "10mm"] }
+  ],
+  "variants": [
+    { "attributes": { "Durchmesser": "6mm" },  "price": 100.0, "stock_quantity": 20, "sku": "SK78-6",  "in_stock": true },
+    { "attributes": { "Durchmesser": "8mm" },  "price": 120.0, "stock_quantity": 15, "sku": "SK78-8",  "in_stock": true },
+    { "attributes": { "Durchmesser": "10mm" }, "price": 150.0, "stock_quantity": 10, "sku": "SK78-10", "in_stock": true }
+  ]
+}

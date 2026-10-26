@@ -11,7 +11,7 @@ import { useT } from '../i18n'
 import LanguageSwitcher from './LanguageSwitcher'
 import {
   Ship, Wrench, ShoppingCart, Heart, User, LogOut, Map, Mail,
-  LayoutDashboard, ShoppingBag, MessageSquare, MessageCircle, ChevronDown,
+  LayoutDashboard, ShoppingBag, MessageSquare, MessageCircle, ChevronDown, Newspaper,
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 
@@ -20,6 +20,7 @@ const bottomTabs = [
   { to: '/boats',       icon: Ship,         key: 'nav.boatsShort' },
   { to: '/maintenance', icon: Wrench,       key: 'nav.maintenance' },
   { to: '/shop',        icon: ShoppingCart, key: 'nav.shop' },
+  { to: '/news',        icon: Newspaper,    key: 'nav.news' },
   { to: '/favorites',   icon: Heart,        key: 'nav.contacts' },
 ]
 
